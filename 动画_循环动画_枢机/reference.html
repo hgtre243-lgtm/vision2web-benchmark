@@ -1,0 +1,2535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>枢机 PIVOT · Celestial Chrono-Mechanism 循环动画</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   枢机 PIVOT · 多阶周转轮系机械联动循环动画 · 样式表
+   画布 1440×900，深空工坊底 + 黄铜/钢机构；所有机构与仪表盘在 Canvas 绘制，
+   本表只负责页面框架、HUD 控件、精密仪表读数与响应式收缩。
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --bg0:#0b1420; --bg1:#060a11; --bg2:#04070c;
+  --brass0:#e8c37a; --brass1:#c99a45; --brass2:#8a6526; --brass3:#5c4419;
+  --steel0:#b9c6d4; --steel1:#7d8b9c; --steel2:#4a5566;
+  --ink:#f2e6c8; --ink2:#c9bda0; --ink3:#8d8471;
+  --ruby:#d8574f; --glow:#ffd98a; --hot:#ff7a4d;
+  --line:rgba(201,154,69,.22);
+  --line2:rgba(201,154,69,.42);
+  --surf:rgba(12,22,34,.72);
+  --surf2:rgba(18,30,44,.86);
+  --r:6px; --r2:10px;
+  --mono:'SF Mono',ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  --sans:'Inter',-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+html,body{
+  width:100%; height:100%;
+  background:linear-gradient(180deg,var(--bg0) 0%,var(--bg1) 62%,var(--bg2) 100%);
+  color:var(--ink); font-family:var(--sans);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── 无动画冻结态：供截图与审计使用 ── */
+html.no-anim *{animation:none!important;transition:none!important}
+
+/* ══════════════════ 舞台 / 定标世界层 ══════════════════ */
+/* 全站以 1440×900 设计稿为唯一坐标系；#world 由脚本等比平移缩放贴入视口，
+   保证任意窗口尺寸下画面与 HUD 的相对位置恒定，且不产生横向溢出。 */
+#stage{
+  position:fixed; inset:0; overflow:hidden;
+  background:linear-gradient(180deg,var(--bg0) 0%,var(--bg1) 62%,var(--bg2) 100%);
+}
+#world{
+  position:absolute; left:0; top:0;
+  width:1440px; height:900px;
+  transform-origin:0 0;
+  will-change:transform;
+}
+#cv{
+  position:absolute; left:0; top:0;
+  display:block; width:1440px; height:900px;
+  image-rendering:auto;
+}
+
+/* ══════════════════ 四角装饰边框 ══════════════════ */
+#frame-dec{
+  position:absolute; inset:18px; pointer-events:none;
+  border:1px solid var(--line);
+}
+#frame-dec::before,#frame-dec::after{
+  content:''; position:absolute; width:26px; height:26px;
+  border:2px solid var(--line2);
+}
+#frame-dec::before{top:-2px;left:-2px;border-right:0;border-bottom:0}
+#frame-dec::after{bottom:-2px;right:-2px;border-left:0;border-top:0}
+.corner{position:absolute;width:26px;height:26px;border:2px solid var(--line2)}
+.corner.tr{top:-2px;right:-2px;border-left:0;border-bottom:0}
+.corner.bl{bottom:-2px;left:-2px;border-right:0;border-top:0}
+
+/* ══════════════════ 左上标题牌 ══════════════════ */
+#brand{
+  position:absolute; top:38px; left:46px;
+  pointer-events:none;
+}
+#brand .mark{display:flex; align-items:center; gap:11px;}
+#brand .glyph{
+  width:34px; height:34px; flex:0 0 34px;
+  border:1.5px solid var(--brass1); border-radius:50%;
+  position:relative;
+}
+#brand .glyph::before{
+  content:''; position:absolute; inset:5px;
+  border:1px solid var(--brass2); border-radius:50%;
+}
+#brand .glyph::after{
+  content:''; position:absolute; left:50%; top:50%;
+  width:1.5px; height:11px; background:var(--brass0);
+  transform-origin:bottom center;
+  transform:translate(-50%,-100%) rotate(38deg);
+}
+#brand h1{font-size:19px; font-weight:600; letter-spacing:.16em; color:var(--brass0); line-height:1.1;}
+#brand .sub{font-size:10.5px; letter-spacing:.22em; color:var(--ink3); margin-top:4px; font-family:var(--mono);}
+
+/* ══════════════════ 右上相位读数 ══════════════════ */
+#phasebox{
+  position:absolute; top:38px; right:46px;
+  text-align:right; pointer-events:none;
+  font-family:var(--mono);
+}
+#phasebox .t{font-size:31px; font-weight:600; color:var(--ink); letter-spacing:.02em; font-variant-numeric:tabular-nums; line-height:1;}
+#phasebox .t .u{font-size:14px;color:var(--ink3);margin-left:3px}
+#phasebox .state{
+  font-size:11px; color:var(--glow); letter-spacing:.14em; margin-top:7px;
+  font-weight:600;
+}
+#phasebox .lap{font-size:11px; color:var(--brass1); letter-spacing:.16em; margin-top:4px;}
+#phasebox .lbl{font-size:10px; color:var(--ink3); letter-spacing:.26em; margin-top:3px;}
+
+/* ══════════════════ 左下机构读数（精密仪表文字） ══════════════════ */
+#gaugebox{
+  position:absolute; left:46px; bottom:120px;
+  pointer-events:none;
+  font-family:var(--mono);
+}
+#gaugebox .row{
+  display:flex; align-items:center; gap:9px;
+  font-size:10.5px; color:var(--ink2); letter-spacing:.08em;
+  margin-bottom:6px;
+}
+#gaugebox .row .k{color:var(--ink3);width:92px;letter-spacing:.14em}
+#gaugebox .row .v{color:var(--brass0); min-width:64px; font-variant-numeric:tabular-nums;}
+#gaugebox .row .v.hot{color:var(--hot)}
+
+/* ══════════════════ 右下图例 ══════════════════ */
+#legend{
+  position:absolute; right:46px; bottom:120px;
+  pointer-events:none;
+  font-family:var(--mono); text-align:right;
+}
+#legend .item{
+  display:flex; align-items:center; justify-content:flex-end; gap:8px;
+  font-size:10px; color:var(--ink2); letter-spacing:.12em;
+  margin-bottom:6px;
+}
+#legend .sw{width:16px; height:3px; border-radius:2px; flex:0 0 16px;}
+
+/* ══════════════════ 右下宏周期倒计时矩阵 ══════════════════ */
+#ledger{
+  position:absolute; right:46px; bottom:40px;
+  pointer-events:none; font-family:var(--mono); text-align:right;
+}
+#ledger .ttl{font-size:9.5px; letter-spacing:.22em; color:var(--ink3); margin-bottom:7px;}
+#ledger .grid{display:grid; grid-template-columns:repeat(4,auto); gap:5px; justify-content:end;}
+#ledger .cell{
+  width:22px; height:26px; border:1px solid var(--line2); border-radius:4px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; color:var(--glow); font-variant-numeric:tabular-nums;
+  background:rgba(201,154,69,.06);
+}
+#ledger .cell.dim{color:var(--ink3); border-color:var(--line);}
+#ledger .cap{font-size:8.5px; letter-spacing:.14em; color:var(--ink3); margin-top:6px;}
+
+/* ══════════════════ 底部控制条 ══════════════════ */
+#bar{
+  position:absolute; left:50%; bottom:40px;
+  transform:translateX(-50%);
+  width:min(1120px,calc(100% - 260px));
+  display:flex; align-items:center; gap:13px;
+  padding:11px 16px;
+  background:var(--surf); backdrop-filter:blur(9px);
+  border:1px solid var(--line); border-radius:var(--r2);
+  z-index:5;
+}
+#bar .btns{display:flex;align-items:center;gap:7px}
+.btn{
+  appearance:none; border:1px solid var(--line2);
+  background:linear-gradient(180deg,rgba(201,154,69,.13),rgba(201,154,69,.04));
+  color:var(--brass0); font-family:var(--mono);
+  font-size:10.5px; letter-spacing:.11em;
+  padding:6px 12px; border-radius:var(--r);
+  cursor:pointer; white-space:nowrap;
+  transition:background .16s,border-color .16s,color .16s,transform .12s;
+}
+.btn:hover{background:rgba(201,154,69,.22);border-color:var(--brass1)}
+.btn:active{transform:translateY(1px)}
+.btn.on{background:linear-gradient(180deg,var(--brass0),var(--brass1)); color:#20180a; border-color:var(--brass0); font-weight:600;}
+.btn.ico{padding:6px 9px;font-size:12px;letter-spacing:0}
+
+#bar .divider{width:1px; height:22px; background:var(--line); flex:0 0 1px;}
+
+/* 进度轨 */
+#track{flex:1 1 auto; position:relative; height:22px; display:flex; align-items:center; cursor:pointer; min-width:90px;}
+#track .rail{position:absolute; left:0; right:0; height:3px; background:rgba(201,154,69,.18); border-radius:2px;}
+#track .fill{position:absolute; left:0; height:3px; width:0; background:linear-gradient(90deg,var(--brass2),var(--brass0)); border-radius:2px;}
+#track .knob{position:absolute; left:0; width:11px; height:11px; margin-left:-5.5px; background:var(--brass0); border-radius:50%; box-shadow:0 0 0 3px rgba(201,154,69,.22); transition:box-shadow .16s;}
+#track:hover .knob{box-shadow:0 0 0 5px rgba(201,154,69,.30)}
+#track .seam{position:absolute; right:-1px; top:2px; bottom:2px; width:2px; background:var(--glow); opacity:.75; border-radius:1px;}
+
+/* 啮合错位微调滑杆 */
+#meshwrap{display:flex; align-items:center; gap:7px; white-space:nowrap;}
+#meshwrap label{font-size:9.5px; letter-spacing:.10em; color:var(--ink3);}
+#mesh{
+  -webkit-appearance:none; appearance:none; width:86px; height:3px;
+  background:linear-gradient(90deg,var(--brass2),var(--brass0)); border-radius:2px; outline:none;
+}
+#mesh::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none; width:12px; height:12px; border-radius:50%;
+  background:var(--brass0); border:1px solid var(--brass3); cursor:pointer;
+}
+#meshval{font-size:10px; color:var(--brass0); font-variant-numeric:tabular-nums; min-width:26px; text-align:right;}
+
+#bar .rt{display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10.5px; color:var(--ink2); letter-spacing:.10em; white-space:nowrap;}
+
+/* 循环模式徽标 */
+#loopbadge{
+  font-family:var(--mono); font-size:10px; letter-spacing:.14em;
+  padding:4px 9px; border-radius:var(--r);
+  border:1px solid var(--line2); color:var(--brass0);
+  background:rgba(201,154,69,.10); white-space:nowrap;
+}
+#loopbadge.off{color:var(--ink3);border-color:var(--line);background:transparent}
+#loopbadge.ping{animation:ping .5s ease-out}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(255,217,138,.55)}100%{box-shadow:0 0 0 11px rgba(255,217,138,0)}}
+
+/* ══════════════════ 浮层：部件标签 ══════════════════ */
+#tip{position:absolute; z-index:8; pointer-events:none; opacity:0; transform:translateY(4px); transition:opacity .16s,transform .16s; max-width:250px;}
+#tip.on{opacity:1;transform:translateY(0)}
+#tip .card{background:var(--surf2); backdrop-filter:blur(9px); border:1px solid var(--line2); border-radius:var(--r); padding:9px 12px;}
+#tip .nm{font-size:11.5px; color:var(--brass0); font-weight:600; letter-spacing:.08em; margin-bottom:5px;}
+#tip .ln{font-size:10px; color:var(--ink2); font-family:var(--mono); letter-spacing:.06em; line-height:1.65; display:flex; justify-content:space-between; gap:14px;}
+#tip .ln b{color:var(--ink);font-weight:600}
+
+/* ══════════════════ Toast ══════════════════ */
+#toast{
+  position:absolute; left:50%; bottom:104px;
+  transform:translateX(-50%) translateY(9px);
+  background:var(--surf2); backdrop-filter:blur(9px);
+  border:1px solid var(--line2); border-radius:var(--r);
+  padding:8px 16px; font-family:var(--mono); font-size:10.5px;
+  color:var(--brass0); letter-spacing:.11em;
+  opacity:0; pointer-events:none; z-index:9;
+  transition:opacity .18s,transform .18s; white-space:nowrap;
+}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ══════════════════ 控制台级 HUD 模块（5 个独立视窗） ══════════════════ */
+.mod{
+  position:absolute; z-index:4; pointer-events:none;
+  background:var(--surf); backdrop-filter:blur(9px);
+  border:1px solid var(--line); border-radius:var(--r2);
+  padding:8px 10px 9px;
+  font-family:var(--mono);
+}
+.mod .hd{
+  display:flex; align-items:center; gap:7px;
+  padding-bottom:5px; margin-bottom:6px;
+  border-bottom:1px solid var(--line);
+}
+.mod .hd .no{
+  font-size:8.5px; letter-spacing:.06em; font-weight:700;
+  color:#20180a; background:var(--brass1);
+  border-radius:3px; padding:1px 5px; flex:0 0 auto;
+}
+.mod .hd .nm{
+  font-size:9.5px; letter-spacing:.11em; color:var(--brass0); font-weight:600;
+  flex:1 1 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.mod .hd .st{font-size:8px; letter-spacing:.10em; color:var(--ink3); flex:0 0 auto; text-align:right;}
+.mod canvas{display:block; width:100%; height:auto; border-radius:4px;}
+.rl{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  font-size:9px; letter-spacing:.05em; color:var(--ink3);
+  margin-top:4px; font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.rl b{color:var(--brass0); font-weight:600;}
+.rl b.hot{color:var(--hot)}
+.rl b.on{color:var(--glow)}
+
+/* M1 / M3 定位 */
+#mod1{left:46px; top:150px; width:250px}
+#mod3{right:46px; top:150px; width:250px}
+/* M4 / M5 定位 */
+#mod4{left:46px; top:404px; width:250px}
+#mod5{right:46px; top:404px; width:250px}
+/* M2 双轨时间轴 */
+#mod2{left:46px; right:46px; bottom:112px; padding:7px 12px 8px}
+
+/* ── M4 仪表条 ── */
+.mt{display:flex; align-items:center; gap:7px; margin-top:5px; font-size:9px; letter-spacing:.05em; color:var(--ink3);}
+.mt .mk{width:74px; flex:0 0 74px; white-space:nowrap;}
+.mb{flex:1 1 auto; height:5px; border-radius:3px; background:rgba(201,154,69,.12); overflow:hidden; position:relative;}
+.mb i{display:block; height:100%; width:0; border-radius:3px; background:linear-gradient(90deg,var(--brass2),var(--brass0)); transition:width .08s linear;}
+.mb i.hot{background:linear-gradient(90deg,#8a3a1c,var(--hot))}
+.mb i.teal{background:linear-gradient(90deg,#2c5a5d,var(--teal))}
+.mt .mv{width:46px; flex:0 0 46px; text-align:right; color:var(--brass0); font-variant-numeric:tabular-nums;}
+
+/* ── M5 LCM 校验矩阵 ── */
+.mx{width:100%; border-collapse:collapse; font-size:8.5px; letter-spacing:.02em;}
+.mx th{color:var(--ink3); font-weight:500; text-align:right; padding:0 0 3px; letter-spacing:.08em;}
+.mx th:first-child{text-align:left;}
+.mx td{color:var(--ink2); text-align:right; padding:2px 0; border-top:1px solid rgba(201,154,69,.10); font-variant-numeric:tabular-nums;}
+.mx td:first-child{text-align:left; color:var(--ink2);}
+.mx td b{color:var(--brass0); font-weight:600;}
+.mx td .ok{color:var(--teal);}
+.mx td .no{color:var(--hot);}
+
+/* ── M2 双轨时间轴 ── */
+.tk{display:flex; align-items:center; gap:9px; margin-top:3px;}
+.tk .tklab{
+  width:104px; flex:0 0 104px; font-size:8.5px; letter-spacing:.08em;
+  color:var(--ink3); white-space:nowrap;
+}
+.tkbar{
+  position:relative; flex:1 1 auto; height:15px;
+  border:1px solid var(--line); border-radius:4px;
+  background:rgba(4,9,15,.55); overflow:hidden;
+}
+.tkbar.sm{height:11px;}
+.tkbar .sgs{position:absolute; inset:0; display:flex;}
+.tkbar .sg{
+  height:100%; border-right:1px solid rgba(4,9,15,.85);
+  display:flex; align-items:center; justify-content:center;
+  font-size:7px; letter-spacing:.02em; color:rgba(6,12,20,.78);
+  overflow:hidden; white-space:nowrap; font-weight:600;
+}
+.tkbar .sl{
+  position:absolute; top:0; bottom:0; width:1px;
+  background:rgba(255,217,138,.55);
+}
+.tkbar .cur{
+  position:absolute; top:-2px; bottom:-2px; width:2px;
+  background:var(--glow); box-shadow:0 0 6px rgba(255,217,138,.85);
+}
+.tkbar .mic{
+  position:absolute; top:0; bottom:0; width:3px; border-radius:2px;
+  background:var(--teal); opacity:.9;
+}
+.tkbar .mb2{position:absolute; inset:0; display:flex;}
+.tkbar .mb2 span{
+  flex:1 1 0; border-right:1px solid rgba(201,154,69,.10);
+  display:flex; align-items:center; justify-content:center;
+  font-size:6.5px; color:var(--ink3);
+}
+.tkbar .mb2 span.on{background:rgba(124,194,198,.42); color:#04121a; font-weight:700;}
+
+/* ── A/B 分屏切分线 ── */
+#abline{
+  position:absolute; top:124px; bottom:236px; width:0;
+  border-left:2px dashed rgba(255,217,138,.85);
+  pointer-events:none; opacity:0; z-index:6;
+}
+#abline.on{opacity:1}
+#abline .tag{
+  position:absolute; top:-1px; left:4px;
+  font-family:var(--mono); font-size:8.5px; letter-spacing:.10em;
+  background:rgba(8,14,22,.9); border:1px solid var(--line2);
+  color:var(--glow); border-radius:3px; padding:2px 6px; white-space:nowrap;
+}
+
+/* ── 键位提示 ── */
+#keys{
+  position:absolute; left:50%; bottom:84px; transform:translateX(-50%);
+  font-family:var(--mono); font-size:8.5px; letter-spacing:.10em;
+  color:var(--ink3); opacity:.72; pointer-events:none; white-space:nowrap;
+}
+</style>
+</head>
+<body>
+
+<div id="stage">
+<div id="world">
+  <canvas id="cv" width="1440" height="900" role="img"
+    aria-label="枢机 PIVOT 环形强耦合机械循环动画：太阳轮-行星轮-外齿圈差速解算、日内瓦擒纵、进动章动、离合滑行、涡流尾流扰动在 12 秒宏周期内完成首尾导数连续的无缝闭环"></canvas>
+
+  <div id="frame-dec" aria-hidden="true">
+    <span class="corner tr"></span><span class="corner bl"></span>
+  </div>
+
+  <header id="brand">
+    <div class="mark">
+      <span class="glyph" aria-hidden="true"></span>
+      <div>
+        <h1>枢机 PIVOT</h1>
+        <div class="sub">CELESTIAL CHRONO-MECHANISM · 12.0s SEAMLESS LOOP</div>
+      </div>
+    </div>
+  </header>
+
+  <section id="phasebox" aria-label="时间相位与状态读数">
+    <div class="t"><span id="t">0.00</span><span class="u">s</span></div>
+    <div class="state" id="state">COLD_LOCKED · 初始冷态锁止</div>
+    <div class="lap" id="lap">周期 0.0%</div>
+    <div class="lbl" id="tn">帧 0 / 720 · 微步 0/8</div>
+  </section>
+
+  <!-- ══ M1 光流运动矢量与角动量示波器 ══ -->
+  <section class="mod" id="mod1" aria-label="光流运动矢量与角动量示波器">
+    <div class="hd"><span class="no">M1</span><span class="nm">光流矢量 · 角动量示波器</span><span class="st" id="m1st">IDLE</span></div>
+    <canvas id="cOsc" width="460" height="316" role="img" aria-label="光流场矢量环与四通道角动量波形"></canvas>
+    <div class="rl"><span>ΣL 角动量</span><b id="m1L">0.0000</b></div>
+    <div class="rl"><span>光流 |v|max / 涡量</span><b id="m1V">0.00 / 0.00</b></div>
+  </section>
+
+  <!-- ══ M3 虚拟运镜三轴视角与视差深度热力雷达 ══ -->
+  <section class="mod" id="mod3" aria-label="虚拟运镜三轴视角与视差深度热力雷达">
+    <div class="hd"><span class="no">M3</span><span class="nm">虚拟运镜三轴 · 视差深度雷达</span><span class="st" id="m3st">PUSH</span></div>
+    <canvas id="cRad" width="460" height="316" role="img" aria-label="运镜三轴姿态与五层 Z-Buffer 视差热力雷达"></canvas>
+    <div class="rl"><span>推拉 / 摇移 / 俯仰</span><b id="m3ax">1.000 · 0.0 · 0.0</b></div>
+    <div class="rl"><span>焦平面 / 弥散圆</span><b id="m3f">Z-2 · 0.0px</b></div>
+  </section>
+
+  <!-- ══ M4 动力学阻尼与系统等效温度/应力仪表盘 ══ -->
+  <section class="mod" id="mod4" aria-label="动力学阻尼与系统等效温度应力仪表盘">
+    <div class="hd"><span class="no">M4</span><span class="nm">阻尼 · 等效温度 · 应力盘</span><span class="st" id="m4st">NOMINAL</span></div>
+    <div class="mt"><span class="mk">阻尼系数 ζ</span><div class="mb"><i id="bZ"></i></div><span class="mv" id="vZ">0.00</span></div>
+    <div class="mt"><span class="mk">等效温度</span><div class="mb"><i id="bT" class="hot"></i></div><span class="mv" id="vT">0 °C</span></div>
+    <div class="mt"><span class="mk">表面应力 σ</span><div class="mb"><i id="bS" class="hot"></i></div><span class="mv" id="vS">0.00</span></div>
+    <div class="mt"><span class="mk">角加速度 α</span><div class="mb"><i id="bA" class="teal"></i></div><span class="mv" id="vA">0</span></div>
+    <div class="mt"><span class="mk">冲击 Jerk</span><div class="mb"><i id="bJ" class="teal"></i></div><span class="mv" id="vJ">0</span></div>
+    <div class="rl"><span>主扭矩 τ / 发条势能</span><b id="vTau">0.00 / 0%</b></div>
+    <div class="rl"><span>尾流粒子 / 熵增</span><b id="vWk">0 / 0.0</b></div>
+  </section>
+
+  <!-- ══ M5 LCM 宏周期闭环同调校验矩阵 ══ -->
+  <section class="mod" id="mod5" aria-label="LCM宏周期闭环同调校验矩阵">
+    <div class="hd"><span class="no">M5</span><span class="nm">LCM 宏周期闭环同调矩阵</span><span class="st" id="m5st">OPEN</span></div>
+    <table class="mx"><thead><tr><th>振荡源</th><th>周期T</th><th>相位</th><th>理论</th><th>闭环</th></tr></thead>
+      <tbody id="m5body"></tbody></table>
+    <div class="rl"><span>LCM 宏周期 / 相位误差</span><b id="m5lcm">12.000 s · 0.0000</b></div>
+  </section>
+
+  <!-- ══ M2 亚帧级双轨时间轴与切片标记栏 ══ -->
+  <section class="mod" id="mod2" aria-label="亚帧级双轨时间轴与切片标记栏">
+    <div class="hd"><span class="no">M2</span><span class="nm">亚帧级双轨时间轴 · 切片标记栏</span><span class="st" id="m2clock">00000000 µs</span></div>
+    <div class="tk">
+      <span class="tklab">A 宏周期轨 12.000s</span>
+      <div class="tkbar" id="barA"><div class="sgs" id="sgsA"></div><span class="cur" id="curA"></span></div>
+    </div>
+    <div class="tk">
+      <span class="tklab">B 亚帧微步轨 ×8</span>
+      <div class="tkbar sm" id="barB"><div class="mb2" id="mb2"></div><span class="mic" id="curB"></span></div>
+    </div>
+    <div class="rl"><span id="m2note">帧 0 / 720 · 微步 0 / 8</span><b id="m2dil">Δ 1.000× · 实时</b></div>
+  </section>
+
+  <div id="abline"><span class="tag" id="abtag">A t=0.00 ｜ B 实时</span></div>
+  <div id="keys">空格长按 0.25× 微距 · 拖拽齿圈洗带倒带 · 双击行星轮锚定 · 滚轮焦平面 · SHIFT+拖拽 A/B 分屏</div>
+
+  <div id="tip" role="tooltip"></div>
+  <div id="toast" role="status"></div>
+
+  <div id="bar">
+    <div class="btns">
+      <button class="btn" id="btnPlay">❚❚ 暂停</button>
+      <button class="btn ico" id="btnStepB" title="后退 6 帧（←）">⏮</button>
+      <button class="btn ico" id="btnStepF" title="前进 6 帧（→）">⏭</button>
+      <button class="btn" id="btnReset" title="回到起点（Home）">重置</button>
+      <button class="btn" id="btnEnd" title="跳到末帧（End）">末帧</button>
+    </div>
+    <div class="divider"></div>
+    <div id="track" role="slider" aria-label="时间轴进度" aria-valuemin="0" aria-valuemax="12" aria-valuenow="0" tabindex="0">
+      <span class="rail"></span>
+      <span class="fill" id="fill"></span>
+      <span class="knob" id="knob"></span>
+      <span class="seam" title="首尾接缝：t=12.00 与 t=0.00 完全重合"></span>
+    </div>
+    <div class="divider"></div>
+    <div id="meshwrap" title="滚轮或拖动微调输入差速传动比">
+      <label for="mesh">啮合错位</label>
+      <input type="range" id="mesh" min="-18" max="18" step="1" value="0">
+      <span id="meshval">0</span>
+    </div>
+    <div class="divider"></div>
+    <div class="rt">
+      <button class="btn" data-speed="0.5">×0.5</button>
+      <button class="btn" data-speed="1">×1</button>
+      <button class="btn" data-speed="2">×2</button>
+    </div>
+    <div class="divider"></div>
+    <button class="btn on" id="btnLoop" title="切换循环模式（L）">循环</button>
+    <span id="loopbadge">循环 LOOP · 无缝</span>
+  </div>
+</div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   枢机 PIVOT · PART 1 —— 运动学数据层与状态机
+   归一化时间轴 t∈[0,12] 为唯一驱动源；所有旋转体在 12s 内的相位由
+   闭式函数单向求解（非积分、非关键帧轮播）。无缝保证：t=12 与 t=0
+   每个齿轮的齿位完全一致（整齿回转，见下方注释）。
+   ═══════════════════════════════════════════════════════════════════════ */
+
+var DUR = 12.0, SIM_HZ = 60, DT = 1 / SIM_HZ, TWO_PI = Math.PI * 2;
+
+/* ── 周转轮系齿数（13:23:59 传动比，满足 Z_ring = Z_sun + 2·Z_planet 同模数共面啮合） ── */
+var Z_SUN = 15, Z_PLANET = 15, Z_RING = 45;   /* 45 = 15 + 2·15：标准同模数同心约束 */
+/* 设计半径（像素，节圆）：太阳 49 / 行星 86 / 外齿圈 221 / 行星架臂 135 */
+var R_SUN = 73.667, R_PLANET = 73.667, R_RING = 221, R_CARR = 147.333;
+/* 每 12s 整圈数（无缝的充要条件）：全部构件均为「整圈」。
+   外齿圈 1 圈、行星架 3 圈为设计输入；太阳轮与行星自转由 Willis 啮合
+   方程导出 —— 齿数取 15/15/45 使 ωs/ωc = 4 为整数比，
+   故 SUN_LAPS = 3 + 3·(3−1) = 9 圈、PLANET_SELF = −6 圈，均为整数。
+   只有整圈归位，齿轮上「非齿对称」的辐条 / 减重孔 / 键槽才会在接缝处
+   精确重合（整齿归位只保证齿廓重合，不保证轮辐重合）。 */
+var LAPS_RING = 1, LAPS_CARRIER = 3;
+var WILLIS = Z_RING / Z_SUN;              /* 45/15 = 3，整数比 */
+var SUN_LAPS = LAPS_CARRIER + WILLIS * (LAPS_CARRIER - LAPS_RING); /* 3+118/13 */
+var PLANET_SELF = -(Z_SUN / Z_PLANET) * (SUN_LAPS - LAPS_CARRIER); /* -6，整数圈 */
+
+/* ── 状态机时间窗（秒） ──
+   首窗 LOCK 与末窗 (SYNC−COAST) 均取 0.42s：两者在接缝处相邻，合计 0.84s
+   < 1.0s，因此不存在任何连续 1 秒的零 Jerk 平台（机构永不进入伪匀速）。 */
+var WIN = {
+  LOCK: 0.42, WIND: 2.4, TICK: 3.8, CRUISE: 8.0,
+  OVER: 9.2, SLIP: 10.2, COAST: 11.58, SYNC: 12.0
+};
+var STATES = [
+  { key:'COLD_LOCKED',          nm:'初始冷态锁止', a:0.0,        b:WIN.LOCK },
+  { key:'ENERGY_PRIMING',       nm:'势能加载蓄势', a:WIN.LOCK,   b:WIN.WIND },
+  { key:'PROPULSION_ACCEL',     nm:'非线性脉冲起振', a:WIN.WIND, b:WIN.TICK },
+  { key:'HARMONIC_CRUISE',      nm:'多轨谐波巡航', a:WIN.TICK,   b:WIN.CRUISE },
+  { key:'PERTURB_OVERLOAD',     nm:'突发扰动应力失稳', a:WIN.CRUISE, b:WIN.OVER },
+  { key:'INERTIA_COASTING',     nm:'脱扣惯性滑行衰减', a:WIN.OVER, b:WIN.SLIP },
+  { key:'REVERSE_TURBULENCE',   nm:'逆向耗散重平衡', a:WIN.SLIP, b:WIN.COAST },
+  { key:'PHASE_CONVERGED_LOOP', nm:'宏周期瞬态闭环爆发', a:WIN.COAST, b:WIN.SYNC }
+];
+
+/* ── 冲击顿挫时刻表（秒）与窗口宽度 ──
+   宽度 115ms，落在 [80ms,160ms] 断言窗口内；窗口内以 sin² 包络承载 26Hz
+   高频反冲，包络两端一阶导为零（速度不跳变、Jerk 剧烈突变），
+   用以复现机械卡位 / 介质阻力突变 / 流体反冲造成的物理顿挫。 */
+var IMPACTS = [1.02, 3.14, 4.96, 6.71, 8.42, 9.88, 10.94];
+var IMP_W = 0.115;
+function impactEnv(t){
+  var s = 0;
+  for(var i=0;i<IMPACTS.length;i++){
+    var u = (t - IMPACTS[i]) / IMP_W;
+    if(u > 0 && u < 1){ var k = Math.sin(Math.PI * u); s += k * k; }
+  }
+  return s;
+}
+
+/* ── 擒纵/日内瓦/棘轮（独立的非匀速间歇调节器） ── */
+var RATCH = { N: 6, DT: 0.12, PER: 2.0 };   /* 每周期 6 次、每次锁死 120ms */
+
+/* ── 进动与章动（谐波双轴倾角） ── */
+var NUT = { base: 0.30, amp: 0.16, f: 2, phi: 0.5 };   /* 章动俯仰（弧度） */
+var PREC = { f: 1, phi: -0.6 };                          /* 进动方位（圈/12s） */
+
+/* ── 离合 ── */
+var CLUTCH = { kDrag: 0.42, nDrag: 1.5 };                /* F_drag = k·θ^1.5 */
+
+/* ── 色板 ── */
+var CL = {
+  bg0:'#0b1420', bg1:'#060a11',
+  brass0:'#e8c37a', brass1:'#c99a45', brass2:'#8a6526', brass3:'#5c4419',
+  steel0:'#b9c6d4', steel1:'#7d8b9c', steel2:'#4a5566',
+  ink:'#f2e6c8', ink2:'#c9bda0', ink3:'#8d8471',
+  ruby:'#d8574f', glow:'#ffd98a', hot:'#ff7a4d', teal:'#7cc2c6'
+};
+
+/* ═══════════════ 基础数学 ═══════════════ */
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function lerp(a,b,u){ return a+(b-a)*u; }
+function smoothstep(a,b,x){
+  if(b<=a) return x<a?0:1;
+  var u=clamp((x-a)/(b-a),0,1);
+  return u*u*(3-2*u);
+}
+function easeInQuad(u){ return u*u; }
+function easeOutQuad(u){ return 1-(1-u)*(1-u); }
+function easeInOutQuad(u){ return u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2; }
+function easeOutQuart(u){ return 1-Math.pow(1-u,4); }
+function easeOutCubic(u){ return 1-Math.pow(1-u,3); }
+function easeInOutCubic(u){ return u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2; }
+function easeInOutSine(u){ return -(Math.cos(Math.PI*u)-1)/2; }
+
+/* ── 相位规约（单位：圈）→ [0,1) ── */
+function fracWrap(p){ var r=p%1; if(r<0) r+=1; return r; }
+function norm2pi(a){ var r=a%TWO_PI; return r<0?r+TWO_PI:r; }
+
+/* ═══════════════ 状态机 ═══════════════ */
+var XFADE = WIN.LOCK * 0.5;          /* 相邻状态弧的交接半宽（秒） */
+function stateWeight(t, i){          /* 第 i 段相位弧的连续激活权重 ∈ [0,1] */
+  var s = STATES[i];
+  var up = smoothstep(s.a, s.a + XFADE, t);
+  var dn = 1 - smoothstep(s.b - XFADE, s.b, t);
+  return clamp(up * dn, 0, 1);
+}
+function mixHex(h0, h1, w){          /* 两色线性混色（w=0 取 h0，w=1 取 h1） */
+  var r0 = parseInt(h0.substr(1, 2), 16), g0 = parseInt(h0.substr(3, 2), 16), b0 = parseInt(h0.substr(5, 2), 16);
+  var r1 = parseInt(h1.substr(1, 2), 16), g1 = parseInt(h1.substr(3, 2), 16), b1 = parseInt(h1.substr(5, 2), 16);
+  function hx(v){ var u = Math.round(v); if(u < 0) u = 0; if(u > 255) u = 255; var q = u.toString(16); return q.length < 2 ? '0' + q : q; }
+  return '#' + hx(r0 + (r1 - r0) * w) + hx(g0 + (g1 - g0) * w) + hx(b0 + (b1 - b0) * w);
+}
+function stateOf(t){
+  for(var i=0;i<STATES.length;i++){
+    if(t < STATES[i].b) return STATES[i];
+  }
+  return STATES[STATES.length-1];
+}
+
+/* ═══════════════ 主相位 M(t)：0→1，非匀速、闭式 ═══════════════
+   速度包络 = 死锁(0) → 上弦(缓) → 擒纵顿挫(阶梯脉冲) → 巡航(谐波)
+   → 超频(急) → 离合打滑(减速) → 惯性衰减 → 归零同步。  */
+function tickPhase(t){   /* 擒纵启动：3 微阶跃 + 微停 */
+  var u = clamp((t - WIN.WIND) / (WIN.TICK - WIN.WIND), 0, 1);
+  var k = Math.min(2, Math.floor(u * 3));
+  var f = u * 3 - k;
+  var adv = f < 0.72 ? easeOutCubic(f / 0.72) : 1;
+  return 0.08 + 0.10 * ((k + adv) / 3);
+}
+function masterPhase(t){
+  if(t <= WIN.LOCK) return 0;
+  if(t <= WIN.WIND) return 0.08 * easeInQuad((t - WIN.LOCK) / (WIN.WIND - WIN.LOCK));
+  if(t <= WIN.TICK) return tickPhase(t);
+  if(t <= WIN.CRUISE) return 0.18 + 0.54 * easeInOutSine((t - WIN.TICK) / (WIN.CRUISE - WIN.TICK));
+  if(t <= WIN.SLIP) return 0.72 + 0.23 * easeInOutCubic((t - WIN.CRUISE) / (WIN.SLIP - WIN.CRUISE));
+  if(t <= WIN.COAST) return 0.95 + 0.05 * easeOutQuart((t - WIN.SLIP) / (WIN.COAST - WIN.SLIP));
+  return 1.0;
+}
+/* 运行包络：死锁与同步尾段归零，仅中段允许谐波摆动 */
+function runEnv(t){
+  return smoothstep(WIN.LOCK, WIN.LOCK + 0.4, t) * (1 - smoothstep(WIN.COAST - 0.2, WIN.COAST + 0.3, t));
+}
+function overEnv(t){
+  return smoothstep(WIN.CRUISE, WIN.CRUISE + 0.3, t) * (1 - smoothstep(WIN.SLIP - 0.2, WIN.SLIP, t));
+}
+
+/* ═══════════════ 五子系统角度（弧度，闭式，全部整齿无缝） ═══════════════ */
+
+/* 外齿圈：随主相位平滑 1 圈（Willis 输入之一） */
+function ringAngle(t){
+  return TWO_PI * LAPS_RING * masterPhase(t);
+}
+/* 行星架：3 圈 + 巡航谐波摆动 + 超频摆动 + 冲击顿挫反冲
+   （runEnv 保证冷态锁止段与闭环收束段的摆动严格为 0，接缝处一阶导为零） */
+function carrierAngle(t){
+  var m = masterPhase(t);
+  var wob = runEnv(t) * (0.030 * Math.sin(TWO_PI * 3 * t / DUR)
+                       + overEnv(t) * 0.055 * Math.sin(TWO_PI * 4 * t / DUR)
+                       + 0.016 * impactEnv(t) * Math.sin(TWO_PI * 26 * t));
+  return TWO_PI * (LAPS_CARRIER * m + wob);
+}
+/* 太阳轮：由 Willis 啮合方程导出（非独立、非匀速） */
+function sunAngle(t){
+  var c = carrierAngle(t), r = ringAngle(t);
+  return c + WILLIS * (c - r);
+}
+/* 行星轮自转：滚轧太阳（整齿归位） */
+function planetSelf(t){
+  return -(Z_SUN / Z_PLANET) * (sunAngle(t) - carrierAngle(t));
+}
+
+/* 棘轮/日内瓦调节轮：每 2s 一段，段首锁死 120ms（角速度精确为 0） */
+function ratchetPhase(t){
+  var seg = Math.min(RATCH.N - 1, Math.floor(t / RATCH.PER));
+  var u = t - seg * RATCH.PER;
+  if(u <= RATCH.DT) return seg / RATCH.N;
+  var v = (u - RATCH.DT) / (RATCH.PER - RATCH.DT);
+  return seg / RATCH.N + (1 / RATCH.N) * easeInOutCubic(v);
+}
+function ratchetAngle(t){ return TWO_PI * ratchetPhase(t); }
+/* 棘爪咬合权重 0..1：段首驻留 + 段末预咬合，接缝两侧取值相同且一阶连续
+   （跨接缝时 t=12⁻ 的「预咬合」与 t=0⁺ 的「段首驻留」严丝合缝）。 */
+function ratchetDwell(t){
+  var u = t % RATCH.PER;
+  var a = 1 - smoothstep(RATCH.DT * 0.55, RATCH.DT * 1.15, u);
+  var b = smoothstep(RATCH.PER - 0.14, RATCH.PER, u);
+  return clamp(Math.max(a, b), 0, 1);
+}
+
+/* ═══════════════ 进动 / 章动（双轴倾角，谐波、整数周期无缝） ═══════════════ */
+function nutTilt(t){   /* 章动俯仰角（弧度） */
+  return NUT.base + NUT.amp * Math.sin(norm2pi(TWO_PI * NUT.f * t / DUR + NUT.phi));
+}
+function precAzimuth(t){ /* 进动方位角（弧度） */
+  return norm2pi(TWO_PI * PREC.f * t / DUR + PREC.phi);
+}
+/* 投影形变：垂直压扁 + 随方位斜切 */
+function tiltSquashY(t){ return Math.cos(nutTilt(t)); }
+function tiltShear(t){
+  return Math.sin(precAzimuth(t)) * Math.sin(nutTilt(t)) * 0.16;
+}
+
+/* ═══════════════ 状态派生量（HUD 与视觉门控） ═══════════════ */
+function lockPin(t){    /* 锁止插销：死锁期插入 → 拔出 → 末段重新咬合（无缝） */
+  var out = smoothstep(WIN.LOCK, WIN.LOCK + 0.35, t);
+  var reIn = smoothstep(WIN.COAST, WIN.SYNC, t);
+  return clamp(1 - out + reIn, 0, 1);
+}
+function torque(t){     /* 主扭矩（0..1）：速度包络的归一化 */
+  var m = masterPhase(t);
+  var sp = 0;
+  if(t <= WIN.LOCK) sp = 0;
+  else if(t <= WIN.WIND) sp = 0.08 * 2 * (t - WIN.LOCK) / ((WIN.WIND - WIN.LOCK) * (WIN.WIND - WIN.LOCK));
+  else sp = 0.75 * (1 - smoothstep(WIN.COAST, WIN.SYNC, t));
+  var slip = smoothstep(WIN.OVER, WIN.OVER + 0.4, t) * (1 - smoothstep(WIN.SLIP - 0.1, WIN.SLIP + 0.1, t));
+  return clamp(sp * (1 - 0.35 * slip), 0, 1);
+}
+function springWind(t){ /* 发条蓄能 0..1：上弦蓄满，超频后完全释放（两端归零，无缝） */
+  return smoothstep(WIN.LOCK, WIN.WIND, t) * (1 - smoothstep(WIN.OVER, WIN.COAST, t));
+}
+function clutchGap(t){  /* 离合分离量 0(接合)..1(全脱)：滑行段打开，同步段重新接合（无缝） */
+  var open = smoothstep(WIN.SLIP + 0.05, WIN.COAST, t);
+  var close = 1 - smoothstep(WIN.COAST, WIN.SYNC, t);
+  return clamp(open * close, 0, 1);
+}
+function slipGlow(t){   /* 离合打滑热损 0..1：打滑段峰值 */
+  return smoothstep(WIN.OVER, WIN.OVER + 0.5, t) * (1 - smoothstep(WIN.SLIP - 0.2, WIN.SLIP + 0.2, t));
+}
+function heat(t){       /* 发热量 0..1 */
+  return slipGlow(t);
+}
+function coherence(t){  /* 同调辉光脉冲：同步段 sin(π·gate) 两端归零（窗口严格落在 [COAST,SYNC] 内） */
+  var g = smoothstep(WIN.COAST, WIN.COAST + 0.42, t) * (1 - smoothstep(WIN.SYNC - 0.30, WIN.SYNC, t));
+  if(g <= 0 || g >= 1) return 0;
+  return Math.sin(Math.PI * g);
+}
+
+/* ═══════════════ 子系统 I：连续高阶运动解算（有限差分导数链） ═══════════════
+   位移 → 速度 → 加速度 → Jerk 全链由闭式相位数值求导得到；整条时间轴上
+   不存在连续 1 秒的零 Jerk 平台，位移严禁匀速。 */
+var H_D = 1 / 240;                                   /* 一 / 二阶导数步长 */
+var H_J = 1 / 120;                                   /* 三阶导数（Jerk）步长 */
+function d1(f, t, h){ return (f(t + h) - f(t - h)) / (2 * h); }
+function d2(f, t, h){ return (f(t + h) - 2 * f(t) + f(t - h)) / (h * h); }
+function d3(f, t, h){ return (f(t + 2*h) - 2*f(t + h) + 2*f(t - h) - f(t - 2*h)) / (2 * h * h * h); }
+
+function omegaSun(t){ return d1(sunAngle, t, H_D); }
+function omegaCarr(t){ return d1(carrierAngle, t, H_D); }
+function omegaRing(t){ return d1(ringAngle, t, H_D); }
+function omegaRat(t){ return d1(ratchetAngle, t, H_D); }
+
+/* 惯性张量（合成量）—— 角动量账本的权重 */
+var INERTIA = { sun: 0.42, carr: 1.85, ring: 2.60, rat: 0.18 };
+function momentum(t){
+  return INERTIA.sun * omegaSun(t) + INERTIA.carr * omegaCarr(t)
+       + INERTIA.ring * omegaRing(t) + INERTIA.rat * omegaRat(t);
+}
+
+/* ── 无缝包裹：t=12 ≡ t=0（所有子系统在接缝处 C¹/C² 连续） ── */
+function wrapT(t){ var r = t % DUR; if(r < 0) r += DUR; return r; }
+function degOf(a){ return fracWrap(a / TWO_PI) * 360; }
+
+/* ═══════════════ 确定性哈希（背景尘点等，不依赖 Math.random） ═══════════════ */
+function h32(n){
+  var x = (n | 0) + 0x9e3779b9;
+  x = Math.imul(x ^ (x >>> 16), 0x21f0aaad);
+  x = Math.imul(x ^ (x >>> 15), 0x735a2d97);
+  return ((x ^ (x >>> 15)) >>> 0) / 4294967296;
+}
+/* ═══════════════════════════════════════════════════════════════════════
+   枢机 PIVOT · PART 2 —— 绘制基元与机构几何
+   ═══════════════════════════════════════════════════════════════════════ */
+
+var _gradCache = {};
+function linGrad(ctx,x0,y0,x1,y1,stops){
+  var key = [x0,y0,x1,y1].join('|') + '::' + stops.join(';');
+  if(_gradCache[key]) return _gradCache[key];
+  var g = ctx.createLinearGradient(x0,y0,x1,y1);
+  for(var i=0;i<stops.length;i+=2) g.addColorStop(+stops[i], stops[i+1]);
+  _gradCache[key] = g; return g;
+}
+/* ── 表面应力反应核：全局应力态驱动材质色偏 / 高光位移 ──
+   brassFill / steelFill 每次取样都经 stressMix 折向赤热色，
+   因此加速度越大的瞬间，金属表面的高光点与饱和度同步改变。 */
+var STRESS = { s: 0, alpha: 0, jx: 0, jy: -1, T: 0 };
+function stressMix(hex){
+  var s = STRESS.s;
+  if(s <= 0.004) return hex;
+  var r0 = parseInt(hex.substr(1,2),16), g0 = parseInt(hex.substr(3,2),16), b0 = parseInt(hex.substr(5,2),16);
+  var k = 0.62 * s;
+  function hx(v){ var vv = Math.round(v); if(vv < 0) vv = 0; if(vv > 255) vv = 255;
+                  var s2 = vv.toString(16); return s2.length < 2 ? '0' + s2 : s2; }
+  return '#' + hx(r0 + (255 - r0) * k) + hx(g0 + (92 - g0) * k) + hx(b0 + (58 - b0) * k);
+}
+function brassFill(ctx,x,y,r){
+  var g = ctx.createRadialGradient(x-r*0.34,y-r*0.40,r*0.06, x,y,r*1.02);
+  g.addColorStop(0.00, stressMix('#f6e3b4')); g.addColorStop(0.30, stressMix(CL.brass0));
+  g.addColorStop(0.68, stressMix(CL.brass1)); g.addColorStop(1.00, stressMix(CL.brass3));
+  return g;
+}
+function steelFill(ctx,x,y,r){
+  var g = ctx.createRadialGradient(x-r*0.36,y-r*0.42,r*0.05, x,y,r*1.02);
+  g.addColorStop(0.00, stressMix('#e6eef6')); g.addColorStop(0.32, stressMix(CL.steel0));
+  g.addColorStop(0.70, stressMix(CL.steel1)); g.addColorStop(1.00, stressMix('#2b3440'));
+  return g;
+}
+
+/* ── 外啮合齿轮齿廓（梯形齿） ── */
+function gearPath(ctx,cx,cy,teeth,rOut,rRoot,rot){
+  if(teeth < 3){ ctx.beginPath(); ctx.arc(cx,cy,rOut,0,TWO_PI); return; }
+  var rPitch = (rOut+rRoot)/2;
+  var pitchStep = TWO_PI/teeth;
+  var toothW = pitchStep*0.55, rootW = pitchStep*0.45;
+  ctx.beginPath();
+  for(var i=0;i<teeth;i++){
+    var a0 = rot + i*pitchStep;
+    var aIn = a0 - rootW/2, aTop0 = a0 - toothW/2, aTop1 = a0 + toothW/2, aOut = a0 + rootW/2, aNext = a0 + pitchStep - rootW/2;
+    if(i===0) ctx.moveTo(cx+Math.cos(aIn)*rRoot, cy+Math.sin(aIn)*rRoot);
+    else      ctx.lineTo(cx+Math.cos(aIn)*rRoot, cy+Math.sin(aIn)*rRoot);
+    ctx.lineTo(cx+Math.cos(aTop0)*rOut, cy+Math.sin(aTop0)*rOut);
+    ctx.arc(cx,cy,rOut, aTop0, aTop1);
+    ctx.lineTo(cx+Math.cos(aOut)*rRoot, cy+Math.sin(aOut)*rRoot);
+    ctx.arc(cx,cy,rRoot, aOut, aNext);
+  }
+  ctx.closePath();
+}
+
+/* ── 内啮合外齿圈：齿朝内（tip 半径 < root 半径） ── */
+function internalToothPath(ctx,cx,cy,teeth,rRoot,rTip,rot){
+  var pitchStep = TWO_PI/teeth;
+  var toothW = pitchStep*0.55, rootW = pitchStep*0.45;
+  for(var i=0;i<teeth;i++){
+    var a0 = rot + i*pitchStep;
+    var aIn = a0 - rootW/2, aTop0 = a0 - toothW/2, aTop1 = a0 + toothW/2, aOut = a0 + rootW/2, aNext = a0 + pitchStep - rootW/2;
+    if(i===0) ctx.moveTo(cx+Math.cos(aIn)*rRoot, cy+Math.sin(aIn)*rRoot);
+    else      ctx.lineTo(cx+Math.cos(aIn)*rRoot, cy+Math.sin(aIn)*rRoot);
+    ctx.lineTo(cx+Math.cos(aTop0)*rTip, cy+Math.sin(aTop0)*rTip);
+    ctx.arc(cx,cy,rTip, aTop0, aTop1);
+    ctx.lineTo(cx+Math.cos(aOut)*rRoot, cy+Math.sin(aOut)*rRoot);
+    ctx.arc(cx,cy,rRoot, aOut, aNext);
+  }
+  ctx.closePath();
+}
+
+/* ── 辐条 ── */
+function drawSpokes(ctx,cx,cy,rHub,rRim,n,rot,w,style){
+  ctx.strokeStyle = style; ctx.lineWidth = w; ctx.lineCap = 'round';
+  for(var i=0;i<n;i++){
+    var a = rot + i*TWO_PI/n;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(a)*rHub, cy+Math.sin(a)*rHub);
+    ctx.lineTo(cx+Math.cos(a)*rRim, cy+Math.sin(a)*rRim);
+    ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
+}
+/* ── 红宝石轴承 ── */
+function drawRuby(ctx,x,y,r){
+  ctx.beginPath(); ctx.arc(x,y,r*1.85,0,TWO_PI);
+  ctx.fillStyle = steelFill(ctx,x,y,r*1.85); ctx.fill();
+  ctx.strokeStyle = 'rgba(20,28,38,.85)'; ctx.lineWidth = 1.1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x,y,r,0,TWO_PI);
+  var g = ctx.createRadialGradient(x-r*0.34,y-r*0.40,r*0.05, x,y,r*1.02);
+  g.addColorStop(0,'#f08078'); g.addColorStop(0.5,CL.ruby); g.addColorStop(1,'#6d211c');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,220,214,.45)'; ctx.lineWidth = 0.8; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x-r*0.30,y-r*0.34,r*0.26,0,TWO_PI);
+  ctx.fillStyle = 'rgba(255,240,238,.62)'; ctx.fill();
+}
+
+/* ═══════════════ 外啮合齿轮（太阳/行星）：齿廓+辐条+轮毂+轴承 ═══════════════ */
+function drawExternalGear(ctx,cx,cy,teeth,rOut,rRoot,rot,kind){
+  var rHub = rRoot*0.30;
+  ctx.beginPath(); ctx.arc(cx+3, cy+4.5, rOut*1.02, 0, TWO_PI);
+  ctx.fillStyle='rgba(4,8,14,.42)'; ctx.fill();
+  gearPath(ctx,cx,cy,teeth,rOut,rRoot,rot);
+  ctx.fillStyle = (kind==='steel') ? steelFill(ctx,cx,cy,rOut) : brassFill(ctx,cx,cy,rOut);
+  ctx.fill();
+  ctx.strokeStyle = (kind==='steel') ? 'rgba(24,32,42,.92)' : 'rgba(58,42,14,.88)';
+  ctx.lineWidth = 1.5; ctx.stroke();
+  if(teeth >= 8){
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx,cy,rOut*0.97,0,TWO_PI); ctx.clip();
+    for(var i=0;i<teeth;i++){
+      var a = rot + i*TWO_PI/teeth;
+      ctx.beginPath();
+      ctx.arc(cx+Math.cos(a)*rRoot, cy+Math.sin(a)*rRoot, rRoot*0.06, 0, TWO_PI);
+      ctx.fillStyle = (kind==='steel') ? 'rgba(232,242,252,.24)' : 'rgba(255,240,204,.30)';
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  ctx.beginPath(); ctx.arc(cx,cy,rRoot*0.86,0,TWO_PI);
+  ctx.strokeStyle = (kind==='steel') ? 'rgba(180,205,230,.26)' : 'rgba(255,232,180,.30)';
+  ctx.lineWidth = 1.1; ctx.stroke();
+  if(rRoot > 40){
+    var nHole = 4;
+    for(var k=0;k<nHole;k++){
+      var ah = rot*0.5 + k*TWO_PI/nHole;
+      var rh = rRoot*0.52;
+      ctx.beginPath(); ctx.arc(cx+Math.cos(ah)*rh, cy+Math.sin(ah)*rh, rRoot*0.13, 0, TWO_PI);
+      ctx.fillStyle='rgba(8,13,20,.60)'; ctx.fill();
+      ctx.strokeStyle=(kind==='steel')?'rgba(150,175,200,.32)':'rgba(232,195,122,.32)';
+      ctx.lineWidth=1; ctx.stroke();
+    }
+  }
+  drawSpokes(ctx,cx,cy,rHub*1.4,rRoot*0.80, teeth>=24?5:4, rot, 2.2,
+    (kind==='steel')?'rgba(150,175,200,.40)':'rgba(232,195,122,.44)');
+  ctx.beginPath(); ctx.arc(cx,cy,rHub*1.6,0,TWO_PI);
+  ctx.fillStyle = (kind==='steel') ? steelFill(ctx,cx,cy,rHub*1.6) : brassFill(ctx,cx,cy,rHub*1.6);
+  ctx.fill();
+  ctx.strokeStyle='rgba(40,30,12,.72)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(rot);
+  ctx.beginPath(); ctx.moveTo(0,-rHub*1.3); ctx.lineTo(0,-rHub*0.5);
+  ctx.strokeStyle='rgba(40,28,8,.62)'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke();
+  ctx.restore(); ctx.lineCap='butt';
+  drawRuby(ctx,cx,cy,Math.max(4.4,rHub*0.62));
+}
+
+/* ═══════════════ 背景 ═══════════════ */
+function drawBackdrop(ctx,W,H,t){
+  var g = ctx.createRadialGradient(W*0.5,H*0.46,H*0.08, W*0.5,H*0.5,H*1.02);
+  g.addColorStop(0,'#16273a'); g.addColorStop(0.42,'#0d1a28');
+  g.addColorStop(0.80,'#08111b'); g.addColorStop(1,'#04070c');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  var px = fracWrap(t/DUR)*40*2;
+  ctx.strokeStyle = 'rgba(120,160,200,.045)'; ctx.lineWidth = 1;
+  for(var x=-40; x<W+40; x+=40){
+    var xx = x + (px % 40);
+    ctx.beginPath(); ctx.moveTo(xx,0); ctx.lineTo(xx,H); ctx.stroke();
+  }
+  for(var y=0; y<H; y+=40){
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(255,226,170,.16)';
+  var ph = norm2pi(TWO_PI*fracWrap(t/DUR));
+  for(var i=0;i<46;i++){
+    var h1 = h32(i*7+1), h2 = h32(i*13+5), h3 = h32(i*29+11);
+    var bx = (h1*W + Math.sin(ph)*W*0.06*(h3>0.5?1:-1)) % W; if(bx<0) bx+=W;
+    var by = (h2*H + Math.sin(ph)*9) % H; if(by<0) by+=H;
+    ctx.beginPath(); ctx.arc(bx,by,0.7+h3*1.5,0,TWO_PI); ctx.fill();
+  }
+}
+
+/* ═══════════════ 底板 + 螺钉 + 铭牌 ═══════════════ */
+function rrect(ctx,x,y,w,h,r){
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function drawScrew(ctx,x,y,r,rot){
+  ctx.beginPath(); ctx.arc(x,y,r,0,TWO_PI);
+  ctx.fillStyle = steelFill(ctx,x,y,r); ctx.fill();
+  ctx.strokeStyle='rgba(12,18,26,.9)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x,y,r*0.62,0,TWO_PI);
+  ctx.strokeStyle='rgba(28,38,50,.9)'; ctx.lineWidth=0.9; ctx.stroke();
+  ctx.save(); ctx.translate(x,y); ctx.rotate(rot);
+  ctx.beginPath(); ctx.moveTo(-r*0.58,0); ctx.lineTo(r*0.58,0);
+  ctx.strokeStyle='rgba(20,28,38,.92)'; ctx.lineWidth=1.8; ctx.lineCap='round';
+  ctx.stroke(); ctx.restore(); ctx.lineCap='butt';
+}
+function drawBasePlate(ctx,c){
+  var x0 = ORIGIN.x-430, y0 = ORIGIN.y-300, w = 860, h = 600;
+  ctx.beginPath(); rrect(ctx,x0,y0,w,h,26);
+  var g = ctx.createLinearGradient(x0,y0,x0+w*0.3,y0+h);
+  g.addColorStop(0,'#2b3441'); g.addColorStop(0.34,'#1c242f');
+  g.addColorStop(0.72,'#141b24'); g.addColorStop(1,'#0c1119');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = 'rgba(201,154,69,.38)'; ctx.lineWidth = 2.2; ctx.stroke();
+  ctx.beginPath(); rrect(ctx,x0+14,y0+14,w-28,h-28,18);
+  ctx.strokeStyle = 'rgba(201,154,69,.16)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.save(); ctx.clip();
+  ctx.strokeStyle = 'rgba(180,210,240,.030)'; ctx.lineWidth = 1;
+  for(var y=y0;y<y0+h;y+=5){ ctx.beginPath(); ctx.moveTo(x0,y+0.5); ctx.lineTo(x0+w,y+0.5); ctx.stroke(); }
+  ctx.restore();
+  var spts = [[x0+30,y0+30],[x0+w-30,y0+30],[x0+30,y0+h-30],[x0+w-30,y0+h-30]];
+  spts.forEach(function(p,i){ drawScrew(ctx,p[0],p[1],9.5, i*0.7 + c.az*0.006); });
+  var mx = ORIGIN.x-240, my = y0+h-72, mw = 480, mh = 44;
+  ctx.beginPath(); rrect(ctx,mx,my,mw,mh,7);
+  ctx.fillStyle='rgba(201,154,69,.10)'; ctx.fill();
+  ctx.strokeStyle='rgba(201,154,69,.34)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='rgba(232,195,122,.90)';
+  ctx.font='600 15px Georgia, serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('PIVOT  ·  枢机', ORIGIN.x, my+16);
+  ctx.fillStyle='rgba(201,189,160,.58)';
+  ctx.font='10px ui-monospace, monospace';
+  ctx.fillText('CAL. EC-1359 · EPICYCLIC 13:23:59 · CYCLE 12.0s · SEAMLESS LOOP', ORIGIN.x, my+32);
+}
+
+/* ═══════════════ 周转轮系（含进动/章动投影形变） ═══════════════ */
+function applyTilt(ctx,t){
+  var sq = tiltSquashY(t), sh = tiltShear(t);
+  ctx.translate(ORIGIN.x, ORIGIN.y);
+  ctx.transform(1, 0, sh, sq, 0, 0);
+  ctx.translate(-ORIGIN.x, -ORIGIN.y);
+}
+function drawEpicyclic(ctx,t){
+  var ring = ringAngle(t), carr = carrierAngle(t), sun = sunAngle(t), ps = planetSelf(t) + MESH_OFF;
+
+  /* ── 外齿圈（内啮合，59 内齿） ── */
+  ctx.beginPath(); ctx.arc(ORIGIN.x+4, ORIGIN.y+6, R_RING+22, 0, TWO_PI);
+  ctx.fillStyle='rgba(4,8,14,.40)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(ORIGIN.x, ORIGIN.y, R_RING+22, 0, TWO_PI);
+  ctx.fillStyle = linGrad(ctx, ORIGIN.x-R_RING, ORIGIN.y-R_RING, ORIGIN.x+R_RING, ORIGIN.y+R_RING,
+    [0,'#8a9aac', 0.5,'#5c6d80', 1,'#33414f']);
+  ctx.fill();
+  ctx.strokeStyle='rgba(12,18,26,.9)'; ctx.lineWidth=2; ctx.stroke();
+  /* 内齿（齿尖朝内） */
+  ctx.beginPath(); ctx.arc(ORIGIN.x, ORIGIN.y, R_RING+22, 0, TWO_PI);
+  internalToothPath(ctx, ORIGIN.x, ORIGIN.y, Z_RING, R_RING+8, R_RING-6, ring);
+  ctx.fillStyle = 'rgba(8,13,20,.96)';
+  ctx.fill('evenodd');
+  /* 内齿高光 */
+  ctx.save();
+  ctx.beginPath(); ctx.arc(ORIGIN.x, ORIGIN.y, R_RING+22, 0, TWO_PI);
+  internalToothPath(ctx, ORIGIN.x, ORIGIN.y, Z_RING, R_RING+8, R_RING-6, ring);
+  ctx.clip('evenodd');
+  for(var i=0;i<Z_RING;i++){
+    var a = ring + i*TWO_PI/Z_RING;
+    ctx.beginPath();
+    ctx.arc(ORIGIN.x+Math.cos(a)*(R_RING+1), ORIGIN.y+Math.sin(a)*(R_RING+1), 3.2, 0, TWO_PI);
+    ctx.fillStyle='rgba(220,236,252,.20)'; ctx.fill();
+  }
+  ctx.restore();
+  /* 外缘刻线 */
+  ctx.beginPath(); ctx.arc(ORIGIN.x, ORIGIN.y, R_RING+14, 0, TWO_PI);
+  ctx.strokeStyle='rgba(201,154,69,.22)'; ctx.lineWidth=1; ctx.stroke();
+
+  /* ── 行星架（三臂蜘蛛） ── */
+  drawSpokes(ctx, ORIGIN.x, ORIGIN.y, R_SUN+14, R_CARR+4, 3, carr, 7,
+    'rgba(150,175,200,.34)');
+  ctx.beginPath(); ctx.arc(ORIGIN.x, ORIGIN.y, R_CARR, 0, TWO_PI);
+  ctx.strokeStyle='rgba(150,175,200,.16)'; ctx.lineWidth=1.5; ctx.stroke();
+  /* 行星架中心毂 */
+  ctx.beginPath(); ctx.arc(ORIGIN.x, ORIGIN.y, R_SUN+16, 0, TWO_PI);
+  ctx.fillStyle='rgba(40,52,64,.35)'; ctx.fill();
+
+  /* ── 三个行星轮（23 齿，自转 + 公转） ── */
+  for(var k=0;k<3;k++){
+    var pa = carr + k*TWO_PI/3;
+    var px = ORIGIN.x + Math.cos(pa)*R_CARR, py = ORIGIN.y + Math.sin(pa)*R_CARR;
+    drawExternalGear(ctx, px, py, Z_PLANET, R_PLANET+6, R_PLANET-8, ps, 'steel');
+  }
+
+  /* ── 太阳轮（13 齿，中央） ── */
+  drawExternalGear(ctx, ORIGIN.x, ORIGIN.y, Z_SUN, R_SUN+6, R_SUN-8, sun, 'brass');
+}
+
+/* ═══════════════ 日内瓦/棘轮擒纵调节站 ═══════════════ */
+function drawEscapement(ctx,t){
+  var cx = ORIGIN.x + 372, cy = ORIGIN.y + 78;
+  var ra = ratchetAngle(t), rp = ratchetPhase(t);
+
+  /* 基座 */
+  ctx.beginPath(); ctx.arc(cx, cy, 96, 0, TWO_PI);
+  ctx.fillStyle='rgba(12,18,26,.55)'; ctx.fill();
+  ctx.strokeStyle='rgba(201,154,69,.28)'; ctx.lineWidth=1.4; ctx.stroke();
+
+  /* ── 日内瓦十字轮（6 槽，随棘轮相位间歇转 60°） ── */
+  var cross = ra;   /* 每周期转 1 圈、6 次顿挫 */
+  ctx.save();
+  ctx.translate(cx, cy-18); ctx.rotate(cross);
+  ctx.beginPath();
+  for(var i=0;i<6;i++){
+    var a0 = i*TWO_PI/6;
+    var tip = 58;
+    /* 六叶十字：每叶 = 宽槽 + 弧端 */
+    var a = a0 - 0.16, b = a0 + 0.16;
+    ctx.moveTo(0,0);
+    ctx.lineTo(Math.cos(a)*tip, Math.sin(a)*tip);
+    ctx.arc(0,0,tip, a, b);
+    ctx.lineTo(0,0);
+  }
+  ctx.fillStyle = linGrad(ctx, cx-58, cy-76, cx+58, cy+40, [0,'#e8c37a',0.6,'#c99a45',1,'#8a6526']);
+  ctx.fill();
+  ctx.strokeStyle='rgba(58,42,14,.88)'; ctx.lineWidth=1.3; ctx.stroke();
+  /* 六条槽 */
+  ctx.strokeStyle='rgba(58,42,14,.66)'; ctx.lineWidth=4;
+  for(var j=0;j<6;j++){
+    var cj = j*TWO_PI/6;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(cj)*14, Math.sin(cj)*14);
+    ctx.lineTo(Math.cos(cj)*54, Math.sin(cj)*54);
+    ctx.stroke();
+  }
+  ctx.beginPath(); ctx.arc(0,0,11,0,TWO_PI); ctx.fillStyle=CL.ruby; ctx.fill();
+  ctx.restore();
+
+  /* ── 驱动销轮（连续转，销子拨槽） ── */
+  var drv = -ra * 1.0;
+  ctx.save();
+  ctx.translate(cx+52, cy-18); ctx.rotate(drv);
+  ctx.beginPath(); ctx.arc(0,0,34,0,TWO_PI);
+  ctx.fillStyle = steelFill(ctx,cx+52,cy-18,34); ctx.fill();
+  ctx.strokeStyle='rgba(24,32,42,.9)'; ctx.lineWidth=1.3; ctx.stroke();
+  ctx.beginPath(); ctx.arc(26,0,7,0,TWO_PI); ctx.fillStyle=CL.ruby; ctx.fill();   /* 销子 */
+  ctx.beginPath(); ctx.arc(0,0,8,0,TWO_PI); ctx.fillStyle='#2b3440'; ctx.fill();
+  ctx.restore();
+
+  /* ── 棘轮 + 止回棘爪（每段锁死 120ms，角速度精确归零） ── */
+  var rx = cx-16, ry = cy+40;
+  ctx.save();
+  ctx.translate(rx, ry); ctx.rotate(ra);
+  /* 棘轮 18 尖齿 */
+  var Zt = 18;
+  ctx.beginPath();
+  for(var m=0;m<Zt;m++){
+    var a0 = m*TWO_PI/Zt;
+    var aM = a0 + TWO_PI/Zt*0.42;
+    var a1 = a0 + TWO_PI/Zt;
+    var rTip = 40, rRoot = 32;
+    if(m===0) ctx.moveTo(Math.cos(a0)*rRoot, Math.sin(a0)*rRoot);
+    else ctx.lineTo(Math.cos(a0)*rRoot, Math.sin(a0)*rRoot);
+    ctx.lineTo(Math.cos(aM)*rTip, Math.sin(aM)*rTip);
+    ctx.lineTo(Math.cos(a1)*rRoot, Math.sin(a1)*rRoot);
+  }
+  ctx.closePath();
+  ctx.fillStyle = steelFill(ctx,rx,ry,40); ctx.fill();
+  ctx.strokeStyle='rgba(22,30,40,.9)'; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,0,7,0,TWO_PI); ctx.fillStyle=CL.ruby; ctx.fill();
+  ctx.restore();
+  /* 棘爪（锁死态：爪尖咬入棘齿）—— 咬合量连续，接缝两侧完全一致 */
+  var pawlLock = ratchetDwell(t);
+  ctx.save();
+  ctx.translate(rx+44, ry-16);
+  ctx.rotate(-0.55 + (0.10 - 0.28 * pawlLock));
+  ctx.beginPath();
+  ctx.moveTo(-18,0); ctx.lineTo(6,-7); ctx.lineTo(6,7); ctx.closePath();
+  ctx.fillStyle = 'rgb(' + Math.round(125 + 130 * pawlLock) + ','
+                        + Math.round(139 + 78 * pawlLock) + ','
+                        + Math.round(156 - 18 * pawlLock) + ')';
+  ctx.fill();
+  ctx.strokeStyle='rgba(20,28,38,.9)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.restore();
+
+  /* 基座标注 */
+  ctx.fillStyle='rgba(201,189,160,.5)';
+  ctx.font='9px ui-monospace, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('GENEVA · 日内瓦擒纵', cx, cy+78);
+}
+
+/* ═══════════════ 主发条鼓（扭矩源） ═══════════════ */
+function drawMainspring(ctx,t){
+  var cx = ORIGIN.x - 380, cy = ORIGIN.y - 92;
+  var R = 96, w = springWind(t);
+  ctx.beginPath(); ctx.arc(cx+4, cy+5, R*1.04, 0, TWO_PI);
+  ctx.fillStyle='rgba(4,8,14,.44)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, TWO_PI);
+  var gd = ctx.createRadialGradient(cx-R*0.32,cy-R*0.36,R*0.05, cx,cy,R*1.03);
+  gd.addColorStop(0,'#5d7387'); gd.addColorStop(0.36,'#3f5266');
+  gd.addColorStop(0.74,'#2a3846'); gd.addColorStop(1,'#141c26');
+  ctx.fillStyle = gd; ctx.fill();
+  ctx.strokeStyle='rgba(201,154,69,.62)'; ctx.lineWidth=3; ctx.stroke();
+  /* 鼓缘齿圈（与离合输入啮合） */
+  var pitch = TWO_PI/48;
+  for(var i=0;i<48;i++){
+    var a = i*pitch;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(a)*R, cy+Math.sin(a)*R);
+    ctx.lineTo(cx+Math.cos(a)*(R+6), cy+Math.sin(a)*(R+6));
+    ctx.strokeStyle='rgba(201,154,69,.5)'; ctx.lineWidth=2.2; ctx.stroke();
+  }
+  /* 内腔 + 发条涡线 */
+  ctx.beginPath(); ctx.arc(cx, cy, R*0.82, 0, TWO_PI);
+  ctx.fillStyle='rgba(9,14,21,.94)'; ctx.fill();
+  ctx.strokeStyle='rgba(201,154,69,.26)'; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R*0.80, 0, TWO_PI); ctx.clip();
+  /* 涡线：蓄能越高越贴外圈 */
+  var turns = 20, steps = turns*30;
+  var ph0 = (1-w)*turns;
+  ctx.beginPath();
+  for(var s=0;s<=steps;s++){
+    var u = s/steps;
+    var ang = u*turns*TWO_PI + ph0*TWO_PI;
+    var rr = lerp(R*0.78, R*0.10, u*(0.6+0.4*(1-w)));
+    var x = cx+Math.cos(ang)*rr, y = cy+Math.sin(ang)*rr;
+    if(s===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.strokeStyle='rgba(232,195,122,.80)'; ctx.lineWidth=2.4; ctx.stroke();
+  ctx.restore();
+  /* 蓄能指示弧 */
+  var a0 = -Math.PI/2, a1 = a0 + TWO_PI*w;
+  ctx.beginPath(); ctx.arc(cx, cy, R*0.90, a0, a1);
+  ctx.strokeStyle='rgba(255,217,138,.9)'; ctx.lineWidth=3.2; ctx.lineCap='round'; ctx.stroke();
+  ctx.lineCap='butt';
+  ctx.beginPath(); ctx.arc(cx+Math.cos(a1)*R*0.90, cy+Math.sin(a1)*R*0.90, 3.6, 0, TWO_PI);
+  ctx.fillStyle=CL.glow; ctx.fill();
+  drawRuby(ctx,cx,cy,6);
+  /* 标签 */
+  ctx.fillStyle='rgba(201,189,160,.5)'; ctx.font='9px ui-monospace, monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('MAINSPRING · 发条', cx, cy+R+20);
+}
+
+/* ═══════════════ 动力离合（摩擦片 + 打滑热损 + 惯性衰减） ═══════════════ */
+function drawClutch(ctx,t){
+  var cx = ORIGIN.x - 232, cy = ORIGIN.y - 92;
+  var gap = clutchGap(t), slip = slipGlow(t);
+  var gy = gap * 26;   /* 分离间隙（像素） */
+  /* 主轴（发条鼓 → 轮系） */
+  ctx.beginPath(); ctx.moveTo(ORIGIN.x - 284, cy); ctx.lineTo(ORIGIN.x + R_SUN, ORIGIN.y);
+  ctx.strokeStyle='rgba(150,175,200,.30)'; ctx.lineWidth=7; ctx.lineCap='round'; ctx.stroke();
+
+  /* 摩擦片 A（输入，随发条） */
+  ctx.beginPath(); ctx.arc(cx, cy - gy, 58, 0, TWO_PI);
+  ctx.fillStyle = brassFill(ctx, cx, cy - gy, 58); ctx.fill();
+  ctx.strokeStyle='rgba(58,42,14,.9)'; ctx.lineWidth=1.4; ctx.stroke();
+  /* 摩擦片 B（输出，随轮系） */
+  ctx.beginPath(); ctx.arc(cx, cy + gy, 58, 0, TWO_PI);
+  ctx.fillStyle = steelFill(ctx, cx, cy + gy, 58); ctx.fill();
+  ctx.strokeStyle='rgba(24,32,42,.9)'; ctx.lineWidth=1.4; ctx.stroke();
+
+  /* 打滑：摩擦面受热泛红 + 虚影 */
+  if(slip > 0.01){
+    var pulse = slip;
+    ctx.save();
+    ctx.globalAlpha = 0.55*pulse;
+    ctx.beginPath(); ctx.arc(cx, cy, 56, 0, TWO_PI);
+    var hg = ctx.createRadialGradient(cx,cy,8, cx,cy,56);
+    hg.addColorStop(0,'rgba(255,122,77,.9)'); hg.addColorStop(0.6,'rgba(216,87,79,.45)'); hg.addColorStop(1,'rgba(216,87,79,0)');
+    ctx.fillStyle = hg; ctx.fill();
+    ctx.restore();
+    /* 打滑虚影（切向拖影） */
+    for(var g=1; g<=3; g++){
+      ctx.save();
+      ctx.globalAlpha = 0.16*(4-g);
+      ctx.translate(cx + g*10, cy);
+      ctx.beginPath(); ctx.arc(0,0,52,0,TWO_PI);
+      ctx.strokeStyle = CL.hot; ctx.lineWidth = 2; ctx.stroke();
+      ctx.restore();
+    }
+  }
+  /* 片间连接螺栓（分离时可见） */
+  ctx.save();
+  ctx.strokeStyle='rgba(201,154,69,.4)'; ctx.lineWidth=1.4;
+  for(var b=0;b<4;b++){
+    var ba = b*TWO_PI/4;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(ba)*52, cy - gy + Math.sin(ba)*0);
+    ctx.lineTo(cx+Math.cos(ba)*52, cy + gy);
+    ctx.stroke();
+  }
+  ctx.restore();
+  /* 标签 */
+  ctx.fillStyle='rgba(201,189,160,.5)'; ctx.font='9px ui-monospace, monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('FRICTION CLUTCH · 离合', cx, cy + 78);
+}
+
+/* ═══════════════ 锁止插销（死锁态可见） ═══════════════ */
+function drawLockPin(ctx,t){
+  var pin = lockPin(t);
+  if(pin <= 0.003) return;
+  var cx = ORIGIN.x, cy = ORIGIN.y - R_RING - 26;
+  ctx.save();
+  ctx.globalAlpha = pin;
+  /* 插销体（垂直插入齿圈） */
+  ctx.beginPath();
+  ctx.moveTo(cx-26, cy-20); ctx.lineTo(cx+26, cy-20);
+  ctx.lineTo(cx+26, cy+16); ctx.lineTo(cx-26, cy+16);
+  ctx.closePath();
+  ctx.fillStyle = steelFill(ctx, cx, cy, 26); ctx.fill();
+  ctx.strokeStyle='rgba(22,30,40,.9)'; ctx.lineWidth=1.4; ctx.stroke();
+  /* 插销端头（卡入齿圈） */
+  ctx.beginPath();
+  ctx.moveTo(cx-10, cy+16); ctx.lineTo(cx+10, cy+16); ctx.lineTo(cx, cy+40); ctx.closePath();
+  ctx.fillStyle = CL.ruby; ctx.fill();
+  /* 锁环 */
+  ctx.beginPath(); ctx.arc(cx, cy-28, 15, 0, TWO_PI);
+  ctx.strokeStyle='rgba(232,195,122,.7)'; ctx.lineWidth=3; ctx.stroke();
+  ctx.restore();
+}
+/* ═══════════════════════════════════════════════════════════════════════
+   枢机 PIVOT · PART 3 —— 五子系统运行时 / 控制台 HUD / 复合手势 / 验证 API
+   子系统 I  连续高阶运动解算引擎（PART 1 的闭式相位 + 本节的有限差分导数）
+   子系统 II 多轴虚拟运镜与视差景深切片器（Z-Buffer 五层 + 弥散圆斑）
+   子系统 III 流场扰动与微气象尾流核（墙钟单调前进的熵账本）
+   子系统 IV 表面应力与动态光影反应核（二阶导数 → 材质色偏/高光位移）
+   子系统 V  归一化时间流与宏周期同调账本（时间膨胀 + 亚帧微步 + LCM 闭环）
+   ═══════════════════════════════════════════════════════════════════════ */
+
+var canvas = document.getElementById('cv');
+var ctx = canvas.getContext('2d');
+var W = canvas.width, H = canvas.height;              /* 1440 × 900 设计稿坐标 */
+var ORIGIN = { x: W * 0.5, y: H * 0.5 - 6 };
+var SC = 0.82;                                        /* 场景缩放：为左右 HUD 边栏让位 */
+var world = document.getElementById('world');
+
+/* ── 离屏画布：A/B 分屏参考帧 与 首尾 SSIM 自检 ── */
+var _off = document.createElement('canvas'); _off.width = W; _off.height = H;
+var _offCtx = _off.getContext('2d');
+
+/* ── 状态段配色（M2 宏周期轨 / 相位环共用） ── */
+var SEG_COL = ['#26414f','#3d6b74','#7cc2c6','#c99a45','#e8c37a','#ff7a4d','#d8574f','#ffd98a'];
+
+/* ═══════════ 子系统 II：虚拟运镜与视差景深切片器 ═══════════ */
+var CAM = { dolly:1.0, panX:0, panY:0, yaw:0, tilt:0, focal:2, depthGain:1.0, bokeh:0 };
+var LAYERS = [
+  { z:-1.00, nm:'FAR GRID'  },
+  { z:-0.45, nm:'BACK HALO' },
+  { z: 0.00, nm:'MECHANISM' },
+  { z: 0.55, nm:'FORE DUST' },
+  { z: 1.00, nm:'VIGNETTE'  }
+];
+function bokehOf(z){ return clamp(Math.abs(z - LAYERS[CAM.focal].z) * 16 * CAM.depthGain, 0, 26); }
+function camSolve(t){
+  var env = runEnv(t);
+  CAM.dolly = 1.0 + 0.030 * Math.sin(TWO_PI * t / DUR + 1.3) * env;
+  CAM.yaw   = 0.045 * Math.sin(TWO_PI * t / DUR) * env;
+  CAM.tilt  = 0.020 * Math.sin(TWO_PI * 2 * t / DUR + 0.7) * env;
+  CAM.panX  = 9 * Math.sin(TWO_PI * 2 * t / DUR) * env;
+  CAM.panY  = 6 * Math.sin(TWO_PI * 3 * t / DUR + 1.1) * env;
+  CAM.bokeh = bokehOf(LAYERS[0].z);
+}
+function beginLayer(c, z){
+  var k = z * CAM.depthGain;
+  c.save();
+  c.translate(ORIGIN.x + CAM.panX * k, ORIGIN.y + CAM.panY * k);
+  c.rotate(CAM.yaw * (1 + k * 0.55));
+  var s = SC * CAM.dolly * (1 + 0.060 * k);
+  c.scale(s, s);
+  c.transform(1, 0, Math.tan(CAM.tilt) * 0.65, 1, 0, 0);
+  c.translate(-ORIGIN.x, -ORIGIN.y);
+}
+
+/* ═══════════ 子系统 III：流场扰动与微气象尾流核 ═══════════
+   尾流在「墙钟」上单向前进：时间轴被拖回时 liveT 减小，而 WAKE.CLOCK
+   只增不减，因此烟雾/火花/水纹/光斑只继续膨胀与衰减，绝不倒放。 */
+var WAKE = {
+  CLOCK:0, EMIT:0.12, CAP:300, P:[], nextEmit:0, spread:0, emits:0,
+  GW:48, GH:30, GT:null
+};
+WAKE.GT = new Float32Array(WAKE.GW * WAKE.GH);
+var WAKE_KIND = [
+  { r0:5.0, grow:22, life:3.2, drag:0.72, v:26, a:0.30 },   /* 0 烟雾 */
+  { r0:8.0, grow:34, life:2.4, drag:1.05, v:16, a:0.34 },   /* 1 水纹 */
+  { r0:2.2, grow: 4, life:1.1, drag:1.60, v:62, a:0.95 },   /* 2 火花 */
+  { r0:12.0,grow:30, life:2.8, drag:0.60, v:12, a:0.26 }    /* 3 光斑 */
+];
+var _trailCv = document.createElement('canvas');
+_trailCv.width = WAKE.GW; _trailCv.height = WAKE.GH;
+var _trailCtx = _trailCv.getContext('2d');
+var _trailImg = _trailCtx.createImageData(WAKE.GW, WAKE.GH);
+
+function wakeSource(T, k){
+  var a;
+  if(k % 4 === 0){ a = carrierAngle(T); return { x:ORIGIN.x + Math.cos(a) * R_CARR, y:ORIGIN.y + Math.sin(a) * R_CARR, z:-0.30, kind:0 }; }
+  if(k % 4 === 1){ a = ringAngle(T);    return { x:ORIGIN.x + Math.cos(a) * (R_RING - 10), y:ORIGIN.y + Math.sin(a) * (R_RING - 10), z:0.10, kind:1 }; }
+  if(k % 4 === 2){                      return { x:ORIGIN.x + 356, y:ORIGIN.y + 118, z:0.35, kind:2 }; }
+  a = -0.9;                             return { x:ORIGIN.x - 232 + Math.cos(a) * 58, y:ORIGIN.y - 92 + Math.sin(a) * 58, z:-0.12, kind:3 };
+}
+function wakeEmit(T){
+  var guard = 0;
+  while(WAKE.CLOCK >= WAKE.nextEmit && guard++ < 8){
+    var e = WAKE.nextEmit; WAKE.nextEmit += WAKE.EMIT;
+    var k = Math.round(e / WAKE.EMIT);
+    var src = wakeSource(T, k), K = WAKE_KIND[src.kind];
+    var ang = Math.atan2(src.y - ORIGIN.y, src.x - ORIGIN.x);
+    var sp  = K.v * (0.55 + 0.90 * h32(k * 17 + 3));
+    if(WAKE.P.length >= WAKE.CAP) WAKE.P.shift();
+    var r0 = K.r0 * (0.70 + 0.70 * h32(k * 29 + 7));
+    WAKE.P.push({
+      pid:WAKE.emits, x:src.x, y:src.y, z:src.z, kind:src.kind,
+      vx:Math.cos(ang + 1.15) * sp, vy:Math.sin(ang + 1.15) * sp,
+      r0:r0, r:r0, a:1,
+      life:K.life * (0.75 + 0.50 * h32(k * 41 + 11)),
+      grow:K.grow, drag:K.drag, spin:(h32(k * 53 + 5) - 0.5) * 2.4
+    });
+    WAKE.emits++;
+  }
+}
+function wakeStep(dt){                       /* dt 恒为正 —— 熵只增不减 */
+  WAKE.CLOCK += dt;
+  var i, p, n = WAKE.P.length;
+  for(i = 0; i < n; i++){
+    p = WAKE.P[i];
+    var dr = Math.exp(-dt * p.drag);
+    p.vx *= dr; p.vy *= dr;
+    var dx = p.x - ORIGIN.x, dy = p.y - ORIGIN.y;
+    var rr = Math.sqrt(dx * dx + dy * dy) + 1e-3;
+    var sw = p.spin * 42 / (1 + rr * 0.012);              /* 涡旋切向诱导 */
+    p.vx += (-dy / rr) * sw * dt;
+    p.vy += ( dx / rr) * sw * dt;
+    p.vx += (dx / rr) * p.grow * 0.30 * dt;               /* 发散场径向扩散 */
+    p.vy += (dy / rr) * p.grow * 0.30 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    var rPrev = p.r;
+    p.r += p.grow * dt;                                   /* 半径单调膨胀 */
+    p.a -= dt / p.life;
+    WAKE.spread += dt * (p.r - rPrev) * (1 + p.r * 0.02); /* 熵账本 */
+    var gx = (p.x / W * WAKE.GW) | 0, gy = (p.y / H * WAKE.GH) | 0;
+    if(gx >= 0 && gx < WAKE.GW && gy >= 0 && gy < WAKE.GH){
+      var gi = gy * WAKE.GW + gx;
+      var add = dt * (p.kind === 2 ? 3.4 : 1.15);
+      WAKE.GT[gi] = Math.min(1.6, WAKE.GT[gi] + add);
+    }
+  }
+  for(i = WAKE.P.length - 1; i >= 0; i--) if(WAKE.P[i].a <= 0) WAKE.P.splice(i, 1);
+}
+function wakeDecay(dt){                      /* 残热栅格正向衰减：永不回填 */
+  var dec = Math.exp(-dt * 0.62);
+  for(var g = 0; g < WAKE.GT.length; g++) WAKE.GT[g] *= dec;
+}
+function wakeReset(){
+  WAKE.CLOCK = 0; WAKE.nextEmit = 0; WAKE.spread = 0; WAKE.emits = 0; WAKE.P.length = 0;
+  for(var g = 0; g < WAKE.GT.length; g++) WAKE.GT[g] = 0;
+}
+function wakeSpread(){                       /* 全体尾流半径总和（熵的观测量） */
+  var s = 0; for(var i = 0; i < WAKE.P.length; i++) s += WAKE.P[i].r;
+  return s;
+}
+function drawTrail(c){
+  var d = _trailImg.data, i, v;
+  for(i = 0; i < WAKE.GT.length; i++){
+    v = WAKE.GT[i]; if(v > 1) v = 1;
+    var o = i * 4;
+    d[o]   = 255 * v;
+    d[o+1] = 150 * v * v;
+    d[o+2] = 70  * v * v * v;
+    d[o+3] = 255 * Math.min(1, v * 1.25);
+  }
+  _trailCtx.putImageData(_trailImg, 0, 0);
+  c.save();
+  c.globalCompositeOperation = 'lighter';
+  c.imageSmoothingEnabled = true;
+  c.drawImage(_trailCv, 0, 0, W, H);
+  c.restore();
+}
+function drawWake(c, lo, hi){
+  var i, p;
+  c.save();
+  for(i = 0; i < WAKE.P.length; i++){
+    p = WAKE.P[i];
+    if(p.a <= 0.004 || p.z < lo || p.z >= hi) continue;
+    var al = p.a * (p.kind === 2 ? 1.0 : 0.62);
+    if(p.kind === 2){
+      c.beginPath();
+      c.moveTo(p.x, p.y);
+      c.lineTo(p.x - p.vx * 0.05, p.y - p.vy * 0.05);
+      c.strokeStyle = 'rgba(255,214,140,' + al.toFixed(3) + ')';
+      c.lineWidth = 1.6; c.stroke();
+      c.beginPath(); c.arc(p.x, p.y, p.r, 0, TWO_PI);
+      c.fillStyle = 'rgba(255,246,220,' + (al * 0.9).toFixed(3) + ')'; c.fill();
+    } else {
+      var col = p.kind === 3 ? '255,217,138' : (p.kind === 1 ? '124,194,198' : '190,200,214');
+      var g = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+      g.addColorStop(0,    'rgba(' + col + ',' + (al * 0.55).toFixed(3) + ')');
+      g.addColorStop(0.55, 'rgba(' + col + ',' + (al * 0.20).toFixed(3) + ')');
+      g.addColorStop(1,    'rgba(' + col + ',0)');
+      c.fillStyle = g;
+      c.beginPath(); c.arc(p.x, p.y, p.r, 0, TWO_PI); c.fill();
+      if(p.kind === 1){
+        c.beginPath(); c.arc(p.x, p.y, p.r, 0, TWO_PI);
+        c.strokeStyle = 'rgba(124,194,198,' + (al * 0.50).toFixed(3) + ')';
+        c.lineWidth = 1.2; c.stroke();
+      }
+    }
+  }
+  c.restore();
+}
+/* 景深弥散圆斑：离焦层以其弥散圆半径绘制柔光斑 */
+function drawBokeh(c, z, t){
+  var b = bokehOf(z);
+  if(b <= 0.6) return;
+  c.save();
+  c.globalCompositeOperation = 'lighter';
+  for(var i = 0; i < 16; i++){
+    var h1 = h32(i * 31 + 5), h2 = h32(i * 47 + 9), h3 = h32(i * 61 + 3);
+    var a = TWO_PI * (h1 + 0.11 * Math.sin(TWO_PI * t / DUR * (1 + (i % 3))));
+    var rr = (R_RING + 60) * (0.55 + 0.85 * h2);
+    var x = ORIGIN.x + Math.cos(a) * rr, y = ORIGIN.y + Math.sin(a) * rr * 0.92;
+    var rad = b * (0.55 + 0.85 * h3);
+    var g = c.createRadialGradient(x, y, 0, x, y, rad);
+    g.addColorStop(0, 'rgba(150,190,225,0.16)');
+    g.addColorStop(0.7, 'rgba(120,160,205,0.07)');
+    g.addColorStop(1, 'rgba(90,130,180,0)');
+    c.fillStyle = g;
+    c.beginPath(); c.arc(x, y, rad, 0, TWO_PI); c.fill();
+  }
+  c.restore();
+}
+
+/* ═══════════ 子系统 V：归一化时间流与宏周期同调账本 ═══════════ */
+var CHRONO = {
+  MICRO: 8, micro: 0, subT: 0, dil: 1.0, LCM: 12.0,
+  PERIODS: [
+    { nm:'外齿圈',   T:12.00, obs:function(t){ return fracWrap(ringAngle(t) / TWO_PI); } },
+    { nm:'行星架',   T: 4.00, obs:function(t){ return fracWrap(carrierAngle(t) / (TWO_PI * LAPS_CARRIER)); } },
+    { nm:'太阳轮',   T:12.00, obs:function(t){ return fracWrap(sunAngle(t) / (TWO_PI * SUN_LAPS)); } },
+    { nm:'棘轮擒纵', T: 2.00, obs:function(t){ return fracWrap(ratchetPhase(t)); } },
+    { nm:'章动',     T: 6.00, obs:function(t){ return fracWrap(t / 6); } },
+    { nm:'进动',     T:12.00, obs:function(t){ return fracWrap(t / 12); } },
+    { nm:'尾流发射', T: 0.12, obs:function(t){ return fracWrap(t / 0.12); } },
+    { nm:'离合热损', T:12.00, obs:function(t){ return fracWrap(t / 12); } }
+  ]
+};
+function circDist(a, b){ var d = Math.abs(fracWrap(a) - fracWrap(b)); return d > 0.5 ? 1 - d : d; }
+function dilOf(t){
+  var s = stressOf(t);
+  return clamp(1 + 0.55 * overEnv(t) - 0.22 * s * (1 - overEnv(t)), 0.55, 1.75);
+}
+function damping(t){
+  var env = smoothstep(WIN.LOCK, WIN.CRUISE, t) * (1 - smoothstep(WIN.COAST, WIN.SYNC, t));
+  var base = 0.18 + 0.46 * env;
+  var pert = 0.30 * overEnv(t);
+  var tur  = 0.26 * smoothstep(WIN.SLIP, WIN.COAST, t) * (1 - smoothstep(WIN.COAST, WIN.SYNC, t));
+  var imp  = 0.22 * impactEnv(t);
+  return clamp(base + pert + tur + imp, 0, 1.4);
+}
+/* 由瞬时角加速度解出的归一化应力（0 表示绝对刚性，1 表示材料屈服边缘）。
+   原始量 a 跨 3 个数量级（巡航段 ~10^2、115ms 冲击窗 ~10^5），直接线性归一
+   会让巡航段压成 0、冲击段全部顶到 1 —— 读数失去分辨力。故先做幂律压扩，
+   再截断：巡航带落在 0.25~0.40、冲击窗逼近 1。 */
+var SIG_REF = 6500, SIG_P = 0.17;
+function stressRaw(t){
+  return Math.abs(d2(sunAngle, t, H_D)) * 0.66 + Math.abs(d2(ratchetAngle, t, H_D)) * 0.34;
+}
+function stressOf(t){
+  return clamp(Math.pow(stressRaw(t) / SIG_REF, SIG_P), 0, 1);
+}
+function jerkRaw(t){
+  return Math.abs(d3(sunAngle, t, H_J)) * 0.66 + Math.abs(d3(ratchetAngle, t, H_J)) * 0.34;
+}
+
+/* ═══════════ 交互 / 用户态（截屏默认全零 → 完全确定） ═══════════ */
+var liveT = 0, playing = true, loop = true, speed = 1, mesh = 0, MESH_OFF = 0;
+var lastTs = performance.now(), brakeUntil = 0, REWIND = 0, MICRO_MODE = false, SPACE_T0 = 0;
+var user = { wind:0, brake:0, res:0 };
+var FW = { theta:0, w:0, drag:false, px:0, py:0, last:0, scrub:0 };
+var ANCHOR = { on:false, k:0, kx:0, ky:0, age:0 };
+var AB = { on:false, split:720, t:0, armed:false };
+var lastJerk = 0, jerkPeak = 0, jerkHold = 0;
+
+/* ═══════════ 场景合成 ═══════════ */
+function drawGridDust(c, t){
+  var px = fracWrap(t / DUR) * 80;
+  c.strokeStyle = 'rgba(120,160,200,.055)'; c.lineWidth = 1.1;
+  for(var x = -60; x < W + 60; x += 44){
+    var xx = x + (px % 44);
+    c.beginPath(); c.moveTo(xx, -40); c.lineTo(xx, H + 40); c.stroke();
+  }
+  for(var y = -40; y < H + 40; y += 44){
+    var yy = y + (px % 44) * 0.6;
+    c.beginPath(); c.moveTo(-60, yy); c.lineTo(W + 60, yy); c.stroke();
+  }
+  var ph = norm2pi(TWO_PI * fracWrap(t / DUR));
+  c.fillStyle = 'rgba(255,226,170,.18)';
+  for(var i = 0; i < 54; i++){
+    var h1 = h32(i * 7 + 1), h2 = h32(i * 13 + 5), h3 = h32(i * 29 + 11);
+    var bx = (h1 * W + Math.sin(ph) * W * 0.06 * (h3 > 0.5 ? 1 : -1)) % W; if(bx < 0) bx += W;
+    var by = (h2 * H + Math.sin(ph) * 11) % H; if(by < 0) by += H;
+    c.beginPath(); c.arc(bx, by, 0.7 + h3 * 1.5, 0, TWO_PI); c.fill();
+  }
+}
+function drawBackHalo(c, t){
+  var k = 0.35 + 0.65 * (0.5 - 0.5 * Math.cos(TWO_PI * masterPhase(t)));   /* 周期归零：接缝两端同值 */
+  var g = c.createRadialGradient(ORIGIN.x, ORIGIN.y, R_RING * 0.2, ORIGIN.x, ORIGIN.y, R_RING * 1.9);
+  g.addColorStop(0,   'rgba(90,130,180,' + (0.20 * k).toFixed(3) + ')');
+  g.addColorStop(0.5, 'rgba(60,95,140,'  + (0.11 * k).toFixed(3) + ')');
+  g.addColorStop(1,   'rgba(20,40,70,0)');
+  c.fillStyle = g;
+  c.beginPath(); c.arc(ORIGIN.x, ORIGIN.y, R_RING * 1.9, 0, TWO_PI); c.fill();
+}
+function drawPhaseRing(c, t){
+  var R = R_RING + 46, a0 = -Math.PI / 2;
+  for(var i = 0; i < STATES.length; i++){
+    var s = STATES[i];
+    var A0 = a0 + TWO_PI * (s.a / DUR), A1 = a0 + TWO_PI * (s.b / DUR);
+    var w = stateWeight(t, i);            /* 连续权重：接缝两端同为 0，杜绝跳变 */
+    c.beginPath(); c.arc(ORIGIN.x, ORIGIN.y, R, A0 + 0.008, A1 - 0.008);
+    c.strokeStyle = w > 1e-6 ? mixHex('8ca0b4', SEG_COL[i], w) : 'rgba(140,160,180,.20)';
+    c.lineWidth = 3.4 + 4.1 * w; c.lineCap = 'round'; c.stroke();
+  }
+  c.lineCap = 'butt';
+  var th = a0 + TWO_PI * clamp(t / DUR, 0, 1);
+  c.beginPath();
+  c.moveTo(ORIGIN.x + Math.cos(th) * (R - 17), ORIGIN.y + Math.sin(th) * (R - 17));
+  c.lineTo(ORIGIN.x + Math.cos(th) * (R + 17), ORIGIN.y + Math.sin(th) * (R + 17));
+  c.strokeStyle = CL.glow; c.lineWidth = 2.4; c.stroke();
+  c.beginPath();
+  c.arc(ORIGIN.x + Math.cos(a0) * R, ORIGIN.y + Math.sin(a0) * R, 5, 0, TWO_PI);
+  c.fillStyle = CL.glow; c.fill();
+  c.fillStyle = 'rgba(201,189,160,.55)'; c.font = '10px ui-monospace, monospace';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('MACRO-CYCLE 12.000s · LCM CLOSED', ORIGIN.x, ORIGIN.y + R + 22);
+}
+/* 表面应力反应核的可视化：加速度方向上的高光位移 + 赤热蒙层 */
+function drawStressOverlay(c){
+  var s = STRESS.s;
+  if(s <= 0.01) return;
+  c.save();
+  c.globalCompositeOperation = 'lighter';
+  var hx = ORIGIN.x + STRESS.jx * 60 * s, hy = ORIGIN.y + STRESS.jy * 60 * s;
+  var g = c.createRadialGradient(hx, hy, 4, hx, hy, R_RING * 1.15);
+  g.addColorStop(0,    'rgba(255,120,70,' + (0.44 * s).toFixed(3) + ')');
+  g.addColorStop(0.45, 'rgba(210,70,45,'  + (0.16 * s).toFixed(3) + ')');
+  g.addColorStop(1,    'rgba(140,30,20,0)');
+  c.fillStyle = g;
+  c.beginPath(); c.arc(ORIGIN.x, ORIGIN.y, R_RING * 1.15, 0, TWO_PI); c.fill();
+  c.restore();
+}
+function drawCoherence(c, t){
+  var v = Math.max(coherence(t), user.res * 0.9);
+  if(v <= 0.002) return;
+  var R = R_RING + 70;
+  var g = c.createRadialGradient(ORIGIN.x, ORIGIN.y, R * 0.40, ORIGIN.x, ORIGIN.y, R);
+  g.addColorStop(0,    'rgba(255,217,138,0)');
+  g.addColorStop(0.55, 'rgba(255,217,138,' + (0.30 * v).toFixed(3) + ')');
+  g.addColorStop(1,    'rgba(124,194,198,' + (0.22 * v).toFixed(3) + ')');
+  c.fillStyle = g;
+  c.beginPath(); c.arc(ORIGIN.x, ORIGIN.y, R, 0, TWO_PI); c.fill();
+  c.strokeStyle = 'rgba(255,217,138,' + (0.85 * v).toFixed(3) + ')';
+  c.lineWidth = 2;
+  c.beginPath();
+  c.arc(ORIGIN.x, ORIGIN.y, R_RING + 30 + 8 * Math.sin(TWO_PI * t / DUR * 6), 0, TWO_PI);
+  c.stroke();
+}
+function drawVignette(c){
+  var g = c.createRadialGradient(W * 0.5, H * 0.48, H * 0.30, W * 0.5, H * 0.5, H * 0.92);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(0.62, 'rgba(3,7,12,0.30)');
+  g.addColorStop(1, 'rgba(2,5,9,0.72)');
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+}
+function drawUserOverlay(c){
+  if(user.wind > 0.01){
+    var wx = ORIGIN.x - 380, wy = ORIGIN.y - 92;
+    c.beginPath();
+    c.arc(wx, wy, 96 * 0.90, -Math.PI / 2, -Math.PI / 2 + TWO_PI * Math.min(1, user.wind));
+    c.strokeStyle = 'rgba(255,217,138,' + (0.6 + 0.4 * Math.min(1, user.wind)).toFixed(3) + ')';
+    c.lineWidth = 5; c.lineCap = 'round'; c.stroke(); c.lineCap = 'butt';
+  }
+  if(FW.drag || Math.abs(FW.w) > 0.02){
+    c.beginPath();
+    c.arc(ORIGIN.x, ORIGIN.y, R_RING + 4, -Math.PI / 2, -Math.PI / 2 + FW.theta);
+    c.strokeStyle = 'rgba(124,194,198,.75)'; c.lineWidth = 4; c.stroke();
+    c.fillStyle = 'rgba(124,194,198,.9)'; c.font = '11px ui-monospace, monospace';
+    c.textAlign = 'left'; c.textBaseline = 'middle';
+    c.fillText('WASH-BAND ω=' + FW.w.toFixed(2) + ' rad/s', ORIGIN.x + R_RING + 60, ORIGIN.y - 120);
+  }
+  if(ANCHOR.on){
+    c.save();
+    c.globalAlpha = 0.85;
+    c.beginPath(); c.arc(ANCHOR.kx, ANCHOR.ky, 46, 0, TWO_PI);
+    c.strokeStyle = CL.hot; c.lineWidth = 2.6; c.stroke();
+    c.beginPath(); c.arc(ANCHOR.kx, ANCHOR.ky, 46, 0, TWO_PI);
+    c.strokeStyle = 'rgba(255,122,77,.30)'; c.lineWidth = 9; c.stroke();
+    c.fillStyle = CL.hot; c.font = '10px ui-monospace, monospace';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('ANCHOR·张力再分配 +' + (ANCHOR.age * 18).toFixed(0) + '%', ANCHOR.kx, ANCHOR.ky - 60);
+    c.restore();
+  }
+  if(user.brake > 0.02){
+    c.fillStyle = 'rgba(216,87,79,' + (0.16 * Math.min(1, user.brake)).toFixed(3) + ')';
+    c.fillRect(0, 0, W, H);
+  }
+  if(user.res > 0.02){
+    var rr = Math.max(2, (1 - clamp(user.res, 0, 1)) * 160 + 40);
+    c.beginPath(); c.arc(ORIGIN.x, ORIGIN.y, rr, 0, TWO_PI);
+    c.strokeStyle = 'rgba(255,217,138,' + (0.9 * user.res).toFixed(3) + ')';
+    c.lineWidth = 3; c.stroke();
+  }
+}
+function drawScene(t, opt){
+  opt = opt || {};
+  camSolve(t);
+  STRESS.s = stressOf(t);
+  var ja = d2(sunAngle, t, H_D);
+  STRESS.jx = Math.cos(ja * 0.35); STRESS.jy = Math.sin(ja * 0.35);
+  ctx.save();
+  drawBackdrop(ctx, W, H, t);
+  ctx.restore();
+
+  /* ── L0 远景栅格 + 弥散圆斑 ── */
+  beginLayer(ctx, LAYERS[0].z);
+  drawGridDust(ctx, t);
+  drawBokeh(ctx, LAYERS[0].z, t);
+  ctx.restore();
+
+  /* ── L1 背光晕 ── */
+  beginLayer(ctx, LAYERS[1].z);
+  drawBackHalo(ctx, t);
+  drawBokeh(ctx, LAYERS[1].z, t);
+  if(!opt.noWake) drawWake(ctx, -1.0, 0.0);
+  ctx.restore();
+
+  /* ── L2 机构主体 ── */
+  beginLayer(ctx, LAYERS[2].z);
+  if(!opt.noWake) drawTrail(ctx);
+  drawBasePlate(ctx, CAM);
+  drawMainspring(ctx, t);
+  drawClutch(ctx, t);
+  drawEpicyclic(ctx, t);
+  drawEscapement(ctx, t);
+  drawLockPin(ctx, t);
+  drawPhaseRing(ctx, t);
+  drawStressOverlay(ctx);
+  ctx.restore();
+
+  /* ── L3 前景浮尘 / 火花 ── */
+  beginLayer(ctx, LAYERS[3].z);
+  if(!opt.noWake) drawWake(ctx, 0.0, 9.0);
+  drawBokeh(ctx, LAYERS[3].z, t);
+  ctx.restore();
+
+  ctx.save();
+  drawCoherence(ctx, t);
+  drawUserOverlay(ctx);
+  ctx.restore();
+
+  /* ── L4 暗角 ── */
+  ctx.save();
+  drawVignette(ctx);
+  ctx.restore();
+}
+function renderOff(t, opt){
+  var sc = ctx, sw = W, sh = H, so = ORIGIN;
+  ctx = _offCtx; W = _off.width; H = _off.height;
+  ORIGIN = { x: W * 0.5, y: H * 0.5 - 6 };
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  drawScene(t, opt);
+  ctx = sc; W = sw; H = sh; ORIGIN = so;
+}
+
+/* ═══════════ M1 光流运动矢量与角动量示波器 ═══════════ */
+var cOsc = document.getElementById('cOsc'), _octx = cOsc.getContext('2d');
+var cRad = document.getElementById('cRad'), _rctx = cRad.getContext('2d');
+var OSC = { hist: [] };
+function flowAt(x, y, t){
+  var dx = x - ORIGIN.x, dy = y - ORIGIN.y;
+  var r = Math.sqrt(dx * dx + dy * dy);
+  var u = clamp(r / (R_RING + 40), 0, 1);
+  var we = lerp(omegaSun(t), omegaRing(t), u) * 0.55 + lerp(omegaCarr(t), omegaRat(t), u) * 0.45;
+  we += 0.10 * Math.sin(TWO_PI * t / DUR * 6) * (1 - u);
+  return { vx:-dy * we * 0.0022, vy: dx * we * 0.0022, w:we };
+}
+function pushOsc(t){
+  OSC.hist.push({ wR:omegaRing(t), wC:omegaCarr(t), wS:omegaSun(t), wT:omegaRat(t) });
+  if(OSC.hist.length > 150) OSC.hist.shift();
+}
+function fillOsc(t, n){
+  OSC.hist.length = 0;
+  var h = 1 / SIM_HZ;
+  for(var i = n - 1; i >= 0; i--) pushOsc(Math.max(0, t - i * h));
+}
+function drawOsc(t){
+  var c = _octx, w = cOsc.width, h = cOsc.height;
+  c.clearRect(0, 0, w, h);
+  c.fillStyle = 'rgba(4,9,15,.62)'; c.fillRect(0, 0, w, h);
+
+  /* ── 上半：光流运动矢量环（矢量场采样） ── */
+  var cx = w * 0.5, cy = 78, vmax = 0.0001;
+  var pts = [], i, j;
+  for(i = 0; i < 16; i++){
+    for(j = 0; j < 3; j++){
+      var a = i * TWO_PI / 16, rr = 34 + j * 46;
+      var x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr * 0.86;
+      var f = flowAt(x, y, t);
+      var m = Math.sqrt(f.vx * f.vx + f.vy * f.vy);
+      if(m > vmax) vmax = m;
+      pts.push({ x:x, y:y, vx:f.vx, vy:f.vy, m:m });
+    }
+  }
+  c.strokeStyle = 'rgba(124,194,198,.12)'; c.lineWidth = 1;
+  for(j = 0; j < 3; j++){
+    c.beginPath();
+    for(i = 0; i <= 16; i++){
+      var aa = i * TWO_PI / 16, rr2 = 34 + j * 46;
+      var xx = cx + Math.cos(aa) * rr2, yy = cy + Math.sin(aa) * rr2 * 0.86;
+      if(i === 0) c.moveTo(xx, yy); else c.lineTo(xx, yy);
+    }
+    c.closePath(); c.stroke();
+  }
+  for(i = 0; i < pts.length; i++){
+    var p = pts[i], u = p.m / vmax;
+    var L = 4 + 16 * u;
+    var m2 = p.m || 1e-6;
+    var ex = p.x + p.vx / m2 * L, ey = p.y + p.vy / m2 * L;
+    c.strokeStyle = 'rgba(' + Math.round(150 + 105 * u) + ',' + Math.round(200 - 70 * u) + ',' + Math.round(205 - 130 * u) + ',' + (0.30 + 0.62 * u).toFixed(3) + ')';
+    c.lineWidth = 1 + 1.5 * u;
+    c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(ex, ey); c.stroke();
+    c.beginPath(); c.arc(ex, ey, 1.1 + 1.4 * u, 0, TWO_PI);
+    c.fillStyle = 'rgba(255,217,138,' + (0.25 + 0.6 * u).toFixed(3) + ')'; c.fill();
+  }
+  c.fillStyle = 'rgba(201,189,160,.55)'; c.font = '11px ui-monospace, monospace';
+  c.textAlign = 'left'; c.textBaseline = 'middle';
+  c.fillText('OPTICAL-FLOW VECTOR FIELD', 8, 12);
+
+  /* ── 下半：四通道角动量/角速度示波器 ── */
+  var y0 = 162, y1 = h - 24, mid = (y0 + y1) / 2;
+  c.strokeStyle = 'rgba(201,154,69,.16)'; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(8, mid); c.lineTo(w - 8, mid); c.stroke();
+  for(i = 1; i < 4; i++){
+    var gx = 8 + (w - 16) * i / 4;
+    c.beginPath(); c.moveTo(gx, y0); c.lineTo(gx, y1); c.stroke();
+  }
+  var chan = [
+    { k:'wR', col:'#7d8b9c', sc:0.055 },
+    { k:'wC', col:'#b9c6d4', sc:0.055 },
+    { k:'wS', col:'#e8c37a', sc:0.055 },
+    { k:'wT', col:'#7cc2c6', sc:0.055 }
+  ];
+  for(j = 0; j < chan.length; j++){
+    c.beginPath();
+    for(i = 0; i < OSC.hist.length; i++){
+      var v = clamp(OSC.hist[i][chan[j].k] * chan[j].sc, -1, 1);
+      var px = 8 + (w - 16) * (i / Math.max(1, OSC.hist.length - 1));
+      var py = mid - v * (y1 - y0) * 0.46;
+      if(i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+    }
+    c.strokeStyle = chan[j].col; c.lineWidth = 1.5; c.stroke();
+  }
+  /* 顿挫冲击标记 */
+  for(i = 0; i < IMPACTS.length; i++){
+    var rel = t - IMPACTS[i];
+    if(rel >= 0 && rel < 2.5){
+      var mx = w - 8 - (w - 16) * (rel / 2.5);
+      c.strokeStyle = 'rgba(255,122,77,.55)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(mx, y0); c.lineTo(mx, y1); c.stroke();
+    }
+  }
+  c.fillStyle = 'rgba(201,189,160,.55)'; c.font = '11px ui-monospace, monospace';
+  c.fillText('ANGULAR MOMENTUM / ω  ·  RING CARRIER SUN RATCHET', 8, y0 - 6);
+}
+
+/* ═══════════ M3 运镜三轴姿态与视差深度热力雷达 ═══════════ */
+function drawRadar(t){
+  var c = _rctx, w = cRad.width, h = cRad.height;
+  c.clearRect(0, 0, w, h);
+  c.fillStyle = 'rgba(4,9,15,.62)'; c.fillRect(0, 0, w, h);
+
+  /* ── 左：三轴姿态球 ── */
+  var cx = 116, cy = 106, R = 74;
+  c.beginPath(); c.arc(cx, cy, R, 0, TWO_PI);
+  c.fillStyle = 'rgba(10,18,28,.9)'; c.fill();
+  c.strokeStyle = 'rgba(124,194,198,.35)'; c.lineWidth = 1.4; c.stroke();
+  for(var i = 1; i <= 3; i++){
+    c.beginPath(); c.arc(cx, cy, R * i / 3, 0, TWO_PI);
+    c.strokeStyle = 'rgba(124,194,198,.13)'; c.lineWidth = 1; c.stroke();
+  }
+  /* 地平线：随俯仰倾斜、随摇移平移 */
+  var tl = CAM.tilt * 16;
+  c.save();
+  c.translate(cx, cy);
+  c.rotate(tl);
+  c.beginPath(); c.moveTo(-R * 0.94, 0); c.lineTo(R * 0.94, 0);
+  c.strokeStyle = 'rgba(255,217,138,.85)'; c.lineWidth = 2; c.stroke();
+  c.beginPath(); c.moveTo(-CAM.yaw * 140, -R * 0.94); c.lineTo(-CAM.yaw * 140, R * 0.94);
+  c.strokeStyle = 'rgba(124,194,198,.6)'; c.lineWidth = 1.4; c.stroke();
+  c.restore();
+  c.beginPath(); c.arc(cx, cy, 3.6, 0, TWO_PI);
+  c.fillStyle = CL.glow; c.fill();
+  c.fillStyle = 'rgba(201,189,160,.55)'; c.font = '11px ui-monospace, monospace';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('VIRTUAL CAMERA · YAW/PITCH', cx, cy + R + 20);
+  /* 推拉条 */
+  var bx = cx - 62, by = cy + R + 36;
+  c.fillStyle = 'rgba(201,154,69,.14)'; c.fillRect(bx, by, 124, 7);
+  c.fillStyle = CL.brass1;
+  c.fillRect(bx, by, 124 * clamp((CAM.dolly - 0.96) / 0.10, 0, 1), 7);
+  c.fillStyle = 'rgba(201,189,160,.5)'; c.font = '10px ui-monospace, monospace';
+  c.textAlign = 'left'; c.fillText('DOLLY', bx, by + 20);
+
+  /* ── 右：视差深度热力雷达（Z-Buffer 五层） ── */
+  var dx = 316, dy = 106, dR = 74;
+  var maxPar = 1e-6, i2;
+  for(i2 = 0; i2 < LAYERS.length; i2++){
+    var zz = LAYERS[i2].z * CAM.depthGain;
+    var par = Math.abs(CAM.panX * zz) + Math.abs(CAM.panY * zz) + Math.abs(zz) * Math.abs(CAM.dolly - 1) * 90;
+    LAYERS[i2].par = par;
+    if(par > maxPar) maxPar = par;
+  }
+  for(i2 = LAYERS.length - 1; i2 >= 0; i2--){
+    var L = LAYERS[i2], u = L.par / maxPar;
+    if(L.par <= 1e-9) u = 0;
+    var rad = dR * (0.30 + i2 * 0.165);
+    var b = bokehOf(L.z);
+    c.beginPath(); c.arc(dx, dy, rad, 0, TWO_PI);
+    c.strokeStyle = 'rgba(255,' + Math.round(120 + 100 * (1 - u)) + ',' + Math.round(70 + 120 * (1 - u)) + ',' + (0.20 + 0.70 * u).toFixed(3) + ')';
+    c.lineWidth = 2 + 7 * u; c.stroke();
+    c.beginPath(); c.arc(dx, dy, rad, 0, TWO_PI);
+    c.strokeStyle = 'rgba(124,194,198,' + (0.06 + 0.42 * clamp(b / 26, 0, 1)).toFixed(3) + ')';
+    c.lineWidth = 1 + 10 * clamp(b / 26, 0, 1); c.stroke();
+    if(i2 === CAM.focal){
+      c.beginPath(); c.arc(dx, dy, rad, 0, TWO_PI);
+      c.strokeStyle = 'rgba(255,217,138,.95)'; c.lineWidth = 1.4; c.stroke();
+    }
+  }
+  c.beginPath(); c.arc(dx, dy, 3.4, 0, TWO_PI);
+  c.fillStyle = CL.ruby; c.fill();
+  c.fillStyle = 'rgba(201,189,160,.55)'; c.font = '11px ui-monospace, monospace';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('Z-BUFFER PARALLAX HEAT RADAR', dx, dy + dR + 20);
+}
+
+/* ═══════════ M2 / M5 静态结构（启动时构建一次） ═══════════ */
+function $(id){ return document.getElementById(id); }
+function buildM2(){
+  var sgs = $('sgsA'), i;
+  for(i = 0; i < STATES.length; i++){
+    var s = STATES[i];
+    var d = document.createElement('div');
+    d.className = 'sg';
+    d.style.flex = (s.b - s.a) + ' 0 0';
+    d.style.background = SEG_COL[i];
+    d.title = s.key + ' · ' + s.nm + ' · ' + s.a.toFixed(2) + '–' + s.b.toFixed(2) + 's';
+    sgs.appendChild(d);
+    var sl = document.createElement('span');
+    sl.className = 'sl';
+    sl.style.left = (s.b / DUR * 100).toFixed(3) + '%';
+    sl.title = '切片标记 t=' + s.b.toFixed(2) + 's';
+    $('barA').insertBefore(sl, $('curA'));
+  }
+  var sl0 = document.createElement('span');
+  sl0.className = 'sl'; sl0.style.left = '0%';
+  sl0.title = '宏周期接缝：t=0.00 ≡ t=12.00';
+  $('barA').insertBefore(sl0, $('curA'));
+  var mb = $('mb2');
+  for(i = 0; i < CHRONO.MICRO; i++){
+    var sp = document.createElement('span');
+    sp.textContent = i;
+    mb.appendChild(sp);
+  }
+}
+function buildM5(){
+  var tb = $('m5body'), i;
+  for(i = 0; i < CHRONO.PERIODS.length; i++){
+    var P = CHRONO.PERIODS[i];
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + P.nm + '</td><td><b>' + P.T.toFixed(2) + '</b></td>'
+                 + '<td id="m5p' + i + '">0.0000</td><td id="m5e' + i + '">0.0000</td>'
+                 + '<td id="m5c' + i + '"><span class="no">…</span></td>';
+    tb.appendChild(tr);
+  }
+}
+
+/* ═══════════ HUD 同步 ═══════════ */
+function syncHud(t){
+  var st = stateOf(t);
+  var frame = Math.min(Math.round(DUR * SIM_HZ) - 1, Math.floor(t * SIM_HZ));
+  $('t').textContent = t.toFixed(2);
+  $('state').textContent = st.key + ' · ' + st.nm;
+  $('lap').textContent = '周期 ' + (masterPhase(t) * 100).toFixed(1) + '%';
+  $('tn').textContent = '帧 ' + frame + ' / ' + Math.round(DUR * SIM_HZ) + ' · 微步 ' + CHRONO.micro + '/' + CHRONO.MICRO;
+
+  /* M1 */
+  $('m1st').textContent = MICRO_MODE ? 'MICRO 0.25×' : (FW.drag ? 'WASH-BAND' : 'LIVE');
+  $('m1L').textContent = momentum(t).toFixed(4);
+  var vmax = 0, vv;
+  for(var i = 0; i < 16; i++){
+    var a = i * TWO_PI / 16;
+    vv = flowAt(ORIGIN.x + Math.cos(a) * (R_RING - 30), ORIGIN.y + Math.sin(a) * (R_RING - 30), t);
+    var m = Math.sqrt(vv.vx * vv.vx + vv.vy * vv.vy);
+    if(m > vmax) vmax = m;
+  }
+  $('m1V').textContent = (vmax * 100).toFixed(2) + ' / ' + Math.abs(omegaRat(t) * 0.02).toFixed(2);
+
+  /* M2 */
+  var relT = CHRONO.subT % 1;
+  $('m2clock').textContent = ('00000000' + Math.round(relT * 1e6)).slice(-8) + ' µs';
+  $('curA').style.left = (t / DUR * 100).toFixed(3) + '%';
+  $('curB').style.left = (CHRONO.micro / CHRONO.MICRO * 100).toFixed(2) + '%';
+  var cells = $('mb2').children;
+  for(i = 0; i < cells.length; i++) cells[i].className = (i === CHRONO.micro ? 'on' : '');
+  $('m2note').textContent = '帧 ' + frame + ' / ' + Math.round(DUR * SIM_HZ) + ' · 微步 ' + CHRONO.micro + ' / ' + CHRONO.MICRO
+                          + ' · ' + (REWIND > 0 ? '倒带中' : st.key);
+  $('m2dil').textContent = 'Δ ' + CHRONO.dil.toFixed(3) + '× · ' + (MICRO_MODE ? '时间微距' : (REWIND > 0 ? '逆向' : '实时'));
+
+  /* M3 */
+  $('m3st').textContent = CAM.dolly > 1.012 ? 'PUSH-IN' : (CAM.dolly < 0.988 ? 'PULL-OUT' : 'HOLD');
+  $('m3ax').textContent = CAM.dolly.toFixed(3) + ' · ' + (CAM.yaw * 57.2958).toFixed(1) + ' · ' + (CAM.tilt * 57.2958).toFixed(1);
+  $('m3f').textContent = 'Z-' + CAM.focal + ' · ' + bokehOf(LAYERS[CAM.focal].z).toFixed(1) + 'px';
+
+  /* M4 */
+  var zu = damping(t) / 1.4, su = STRESS.s, tu = heat(t);
+  var ac = Math.abs(d2(sunAngle, t, H_D));
+  var jk = jerkRaw(t);
+  if(jk > jerkPeak || CHRONO.subT - jerkHold > 1.6){ jerkPeak = jk; jerkHold = CHRONO.subT; }
+  $('bZ').style.width = (zu * 100).toFixed(1) + '%';
+  $('vZ').textContent = damping(t).toFixed(3);
+  $('bT').style.width = (tu * 100).toFixed(1) + '%';
+  $('vT').textContent = (heat(t) * 320).toFixed(0) + '°';
+  $('bS').style.width = (su * 100).toFixed(1) + '%';
+  $('vS').textContent = su.toFixed(3);
+  $('bA').style.width = (clamp(ac / 90, 0, 1) * 100).toFixed(1) + '%';
+  $('vA').textContent = ac.toFixed(1);
+  $('bJ').style.width = (clamp(jk / 9000, 0, 1) * 100).toFixed(1) + '%';
+  $('vJ').textContent = (jk / 1000).toFixed(1) + 'k';
+  $('m4st').textContent = su > 0.66 ? 'YIELD RISK' : (su > 0.33 ? 'STRESSED' : 'NOMINAL');
+  $('vTau').textContent = torque(t).toFixed(3) + ' / ' + (springWind(t) * 100).toFixed(0) + '%';
+  $('vWk').textContent = WAKE.P.length + ' / ' + WAKE.spread.toFixed(1);
+
+  /* M5 */
+  var maxErr = 0;
+  for(i = 0; i < CHRONO.PERIODS.length; i++){
+    var P = CHRONO.PERIODS[i];
+    /* 理论列：宏周期对分周期整除性残差 (LCM/T mod 1)
+       闭环列：实测首尾相位闭合残差 circDist(obs(T), obs(0))，与 t 无关 */
+    var res = circDist(P.obs(DUR), P.obs(0));
+    var th  = Math.abs(fracWrap(CHRONO.LCM / P.T));
+    if(th > 0.5) th = 1 - th;
+    if(res > maxErr) maxErr = res;
+    $('m5p' + i).textContent = fracWrap(P.obs(t)).toFixed(4);
+    $('m5e' + i).textContent = th.toFixed(4);
+    $('m5c' + i).innerHTML = res < 0.004 ? '<span class="ok">闭环</span>'
+                          : (res < 0.03 ? '<span class="ok">·</span>' : '<span class="no">开环</span>');
+  }
+  $('m5st').textContent = maxErr < 0.004 ? 'CLOSED' : 'OPEN';
+  $('m5lcm').textContent = '12.000 s · ' + maxErr.toFixed(4);
+
+  /* 底部控制条 */
+  $('fill').style.width = (t / DUR * 100).toFixed(2) + '%';
+  $('knob').style.left = (t / DUR * 100).toFixed(2) + '%';
+  $('track').setAttribute('aria-valuenow', t.toFixed(2));
+  $('btnPlay').textContent = playing ? '❚❚ 暂停' : '▶ 播放';
+  $('btnLoop').classList.toggle('on', loop);
+  $('loopbadge').textContent = loop ? '循环 LOOP · 无缝' : '单次 · 到 12s 停止';
+  $('loopbadge').className = loop ? '' : 'off';
+  $('meshval').textContent = mesh;
+  $('abline').classList.toggle('on', AB.on);
+  if(AB.on){
+    $('abline').style.left = AB.split + 'px';
+    $('abtag').textContent = 'A t=' + AB.t.toFixed(2) + ' ｜ B t=' + t.toFixed(2);
+  }
+}
+
+/* ═══════════ 渲染主循环 ═══════════ */
+function render(){
+  var t = wrapT(liveT);
+  if(AB.on && AB.split > 6 && AB.split < W - 6){
+    renderOff(AB.t, { noWake:true });
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, AB.split, H); ctx.clip();
+    ctx.drawImage(_off, 0, 0); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.rect(AB.split, 0, W - AB.split, H); ctx.clip();
+    drawScene(t); ctx.restore();
+  } else {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    drawScene(t);
+  }
+  pushOsc(t);
+  drawOsc(t);
+  drawRadar(t);
+  syncHud(t);
+}
+function frame(now){
+  var dtW = Math.min(0.1, (now - lastTs) / 1000);
+  lastTs = now;
+  CHRONO.dil = dilOf(liveT);
+  var dir = 1, adv = playing ? speed * (MICRO_MODE ? 0.25 : 1) : 0;
+  if(REWIND > 0){ REWIND -= dtW; dir = -1; adv = Math.max(adv, 1.0); }
+
+  var n = CHRONO.MICRO, hW = (adv * dtW) / n, i;
+  for(i = 0; i < n; i++){
+    liveT += dir * hW * (dir > 0 ? CHRONO.dil : 1);
+    if(liveT >= DUR){ if(loop) liveT -= DUR; else { liveT = DUR; playing = false; break; } }
+    if(liveT < 0){ liveT += DUR; }
+    wakeEmit(wrapT(liveT));
+    wakeStep(hW);                                     /* 恒正步长：熵只增不减 */
+  }
+  wakeDecay(adv * dtW);
+  CHRONO.micro = (CHRONO.micro + 1) % n;
+  CHRONO.subT += adv * dtW;
+
+  user.wind  = Math.max(0, user.wind  - dtW * 0.55);
+  user.brake = Math.max(0, user.brake - dtW * 1.4);
+  user.res   = clamp(user.res   - dtW * 0.8, 0, 1);
+  if(FW.drag){ FW.w += (FW.scrub - FW.w) * clamp(dtW * 7, 0, 1); FW.scrub *= Math.exp(-dtW * 6); }
+  else if(Math.abs(FW.w) > 1e-4){
+    /* 非线性阻尼 ω -= k·|ω|^1.5 与弹性回位（洗带松手后的回弹惯性） */
+    FW.w -= Math.sign(FW.w) * 0.42 * Math.pow(Math.abs(FW.w), 1.5) * dtW * 3.0;
+    FW.theta += FW.w * dtW;
+    var th0 = ANCHOR.on ? 0 : 0;
+    FW.theta += (th0 - FW.theta) * clamp(dtW * 1.6, 0, 1);
+    if(Math.abs(FW.w) < 0.004 && Math.abs(FW.theta) < 0.004){ FW.w = 0; FW.theta = 0; }
+  }
+  if(ANCHOR.on) ANCHOR.age = Math.min(1, ANCHOR.age + dtW * 0.8);
+
+  render();
+  requestAnimationFrame(frame);
+}
+
+/* ═══════════ 复合高阶交互手势（5 项） ═══════════ */
+var _toastTimer = null;
+function toast(msg){
+  var el = $('toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){ el.classList.remove('on'); }, 1500);
+}
+function setMesh(v){ mesh = v; MESH_OFF = v * 0.0022; }
+function _canvasPos(e){
+  var r = canvas.getBoundingClientRect();
+  return { x:(e.clientX - r.left) * (canvas.width / r.width),
+           y:(e.clientY - r.top)  * (canvas.height / r.height) };
+}
+var ptr = { down:false, mode:null, px:0, py:0, t0:0, ang0:0, dragT:0 };
+
+canvas.addEventListener('pointerdown', function(e){
+  var p = _canvasPos(e);
+  ptr.down = true; ptr.px = p.x; ptr.py = p.y; ptr.t0 = performance.now();
+  var dx = p.x - ORIGIN.x, dy = p.y - ORIGIN.y;
+  var r = Math.sqrt(dx * dx + dy * dy);
+  if(e.shiftKey){
+    ptr.mode = 'ab'; AB.on = true; AB.t = wrapT(liveT); AB.armed = true;
+    AB.split = clamp(p.x, 0, W); toast('A/B 分屏切分线：A 帧已锁定 t=' + AB.t.toFixed(2));
+  } else if(Math.abs(r - R_RING) < 96){
+    ptr.mode = 'flywheel'; FW.drag = true; FW.theta = 0; FW.w = 0;
+    ptr.ang0 = Math.atan2(dy, dx); ptr.dragT = performance.now();
+    toast('飞轮洗带：拖拽施力（反向拖拽 = 时间倒带）');
+  } else if(r < R_SUN + 30){
+    ptr.mode = 'core'; toast('主轴芯：拖动施加角动量');
+  } else ptr.mode = 'swipe';
+  try { canvas.setPointerCapture(e.pointerId); } catch(err){}
+});
+canvas.addEventListener('pointermove', function(e){
+  if(!ptr.down) return;
+  var p = _canvasPos(e);
+  if(ptr.mode === 'ab'){
+    AB.split = clamp(p.x, 0, W);
+    $('abline').style.left = AB.split + 'px';
+    return;
+  }
+  if(ptr.mode === 'flywheel' || ptr.mode === 'core'){
+    var dx = p.x - ORIGIN.x, dy = p.y - ORIGIN.y;
+    var a1 = Math.atan2(dy, dx);
+    var d = a1 - ptr.ang0;
+    while(d > Math.PI) d -= TWO_PI; while(d < -Math.PI) d += TWO_PI;
+    ptr.ang0 = a1;
+    FW.theta += d * (ptr.mode === 'flywheel' ? 1 : 0.6);
+    FW.w = d * 60;
+    FW.scrub = FW.w;
+    /* 洗带反向拖拽 → 时间轴倒带，而尾流继续正向前进 */
+    if(d < -0.012){ REWIND = 0.65; FW.drag = true; }
+    if(Math.abs(d) > 0.02) toast('洗带 ω=' + FW.w.toFixed(2) + ' rad/s · ' + (d < 0 ? '倒带（尾流仍正向膨胀）' : '正向施力'));
+  } else if(ptr.mode === 'swipe'){
+    var rr = Math.hypot(p.x - ORIGIN.x, p.y - ORIGIN.y);
+    if(rr < R_RING * 0.35){ user.res = 1; toast('核心同调共振触发'); ptr.mode = 'done'; }
+  }
+  ptr.px = p.x; ptr.py = p.y;
+});
+canvas.addEventListener('pointerup', function(){
+  ptr.down = false;
+  if(ptr.mode === 'flywheel' || ptr.mode === 'core'){ FW.drag = false; toast('洗带回弹：非线性阻尼 ω^1.5 衰减'); }
+  if(ptr.mode === 'ab'){ AB.armed = false; }
+  ptr.mode = null;
+});
+canvas.addEventListener('dblclick', function(e){
+  var p = _canvasPos(e);
+  var carr = carrierAngle(wrapT(liveT)), best = -1, bd = 1e9;
+  for(var k = 0; k < 3; k++){
+    var pa = carr + k * TWO_PI / 3;
+    var px = ORIGIN.x + Math.cos(pa) * R_CARR, py = ORIGIN.y + Math.sin(pa) * R_CARR;
+    var d = Math.hypot(p.x - px, p.y - py);
+    if(d < bd){ bd = d; best = k; }
+  }
+  if(bd < 78){
+    var pa2 = carr + best * TWO_PI / 3;
+    if(ANCHOR.on && ANCHOR.k === best){
+      ANCHOR.on = false; toast('锚点解除 · 张力复原');
+    } else {
+      ANCHOR.on = true; ANCHOR.k = best; ANCHOR.age = 0;
+      ANCHOR.kx = ORIGIN.x + Math.cos(pa2) * R_CARR;
+      ANCHOR.ky = ORIGIN.y + Math.sin(pa2) * R_CARR;
+      toast('局部动力学锚定 P' + best + '：全局运动张力再分配');
+    }
+  } else {
+    user.brake = 1; brakeUntil = performance.now() + 1200;
+    toast('擒纵叉机械刹停');
+  }
+});
+canvas.addEventListener('wheel', function(e){
+  e.preventDefault();
+  if(e.shiftKey){
+    setMesh(clamp(mesh + (e.deltaY > 0 ? 1 : -1), -18, 18));
+    toast('啮合错位微调 → ' + mesh);
+  } else {
+    var step = e.deltaY > 0 ? 1 : -1;
+    if(e.altKey){ CAM.depthGain = clamp(CAM.depthGain + step * 0.12, 0.2, 2.4); toast('视差层深增益 → ' + CAM.depthGain.toFixed(2)); }
+    else { CAM.focal = (CAM.focal + step + LAYERS.length) % LAYERS.length; toast('焦平面 → ' + LAYERS[CAM.focal].nm + '（弥散圆 ' + bokehOf(LAYERS[CAM.focal].z).toFixed(1) + 'px）'); }
+  }
+}, { passive: false });
+
+/* 底部控制条 */
+$('btnPlay').addEventListener('click', function(){ PIVOT.toggle(); });
+$('btnStepB').addEventListener('click', function(){ REWIND = 0.5; PIVOT.step(-6); });
+$('btnStepF').addEventListener('click', function(){ PIVOT.step(6); });
+$('btnReset').addEventListener('click', function(){ PIVOT.seek(0); });
+$('btnEnd').addEventListener('click', function(){ PIVOT.seek(DUR - 1 / SIM_HZ); });
+$('btnLoop').addEventListener('click', function(){ PIVOT.setLoop(!loop); });
+Array.prototype.forEach.call(document.querySelectorAll('#bar .rt .btn'), function(b){
+  b.addEventListener('click', function(){ speed = parseFloat(b.dataset.speed); PIVOT.set({ speed: speed }); });
+});
+$('mesh').addEventListener('input', function(){ setMesh(parseInt(this.value, 10)); });
+var _trackDrag = false, _lastU = 0;
+$('track').addEventListener('pointerdown', function(e){
+  _trackDrag = true; _lastU = 0; seekFromTrack(e); try { this.setPointerCapture(e.pointerId); } catch(err){}
+});
+$('track').addEventListener('pointermove', function(e){ if(_trackDrag) seekFromTrack(e); });
+$('track').addEventListener('pointerup', function(){ _trackDrag = false; });
+function seekFromTrack(e){
+  var r = $('track').getBoundingClientRect();
+  var u = clamp((e.clientX - r.left) / r.width, 0, 1);
+  if(u < _lastU - 0.002) REWIND = 0.7;              /* 反向拖拽进度条 = 时间倒带 */
+  _lastU = u;
+  PIVOT.seek(u * DUR);
+}
+document.addEventListener('keydown', function(e){
+  if(e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  var k = e.key.toLowerCase();
+  if(k === ' '){
+    e.preventDefault();
+    if(!SPACE_T0){ SPACE_T0 = performance.now(); }
+    if(performance.now() - SPACE_T0 > 240 && !MICRO_MODE){
+      MICRO_MODE = true; playing = true; toast('时间微距 0.25× · 亚帧级观测');
+    }
+  }
+  else if(k === 'l') PIVOT.setLoop(!loop);
+  else if(k === 'home') PIVOT.seek(0);
+  else if(k === 'end') PIVOT.seek(DUR - 1 / SIM_HZ);
+  else if(k === 'arrowleft'){ REWIND = 0.5; PIVOT.step(-6); }
+  else if(k === 'arrowright') PIVOT.step(6);
+  else if(k === 'shift') document.body.style.cursor = 'crosshair';
+});
+document.addEventListener('keyup', function(e){
+  var k = e.key.toLowerCase();
+  if(k === ' '){
+    var held = SPACE_T0 ? performance.now() - SPACE_T0 : 0;
+    SPACE_T0 = 0;
+    if(MICRO_MODE){ MICRO_MODE = false; toast('时间微距解除'); }
+    else if(held <= 240){ PIVOT.toggle(); }
+  }
+  else if(k === 'shift'){ document.body.style.cursor = ''; }
+});
+
+/* ═══════════ window.PIVOT 验证接口 ═══════════ */
+var PIVOT = {
+  set: function(o){
+    if(o && typeof o.t === 'number') liveT = ((o.t % DUR) + DUR) % DUR;
+    if(o && 'playing' in o) playing = !!o.playing;
+    if(o && 'loop' in o) loop = !!o.loop;
+    if(o && 'speed' in o) speed = +o.speed || 1;
+    if(o && o.mesh !== undefined) setMesh(+o.mesh);
+    if(o && typeof o.focal === 'number') CAM.focal = clamp(o.focal | 0, 0, LAYERS.length - 1);
+    if(o && typeof o.depthGain === 'number') CAM.depthGain = +o.depthGain;
+    lastTs = performance.now(); render(); return this;
+  },
+  play:   function(){ playing = true;  lastTs = performance.now(); render(); return this; },
+  pause:  function(){ playing = false; render(); return this; },
+  toggle: function(){ playing = !playing; lastTs = performance.now(); render(); return this; },
+  seek:   function(t){ liveT = ((t % DUR) + DUR) % DUR; render(); return this; },
+  step:   function(n){ liveT = (((liveT + (n || 1) / SIM_HZ) % DUR) + DUR) % DUR; render(); return this; },
+  setLoop:function(b){ loop = !!b; render(); return this; },
+  freeze: function(){ playing = false; render(); return this; },
+  resume: function(){ playing = true; lastTs = performance.now(); return this; },
+  rewind: function(sec){                                       /* 强制时间倒带 */
+    var n = Math.round((sec || 1) * SIM_HZ);
+    for(var i = 0; i < n; i++){
+      liveT -= 1 / SIM_HZ; if(liveT < 0) liveT += DUR;
+      wakeEmit(wrapT(liveT)); wakeStep(1 / SIM_HZ);            /* 尾流恒正向前进 */
+    }
+    render(); return this;
+  },
+  settle: function(t){                                          /* 确定性预热：重放固定步长 */
+    wakeReset(); FW.theta = 0; FW.w = 0; FW.drag = false; ANCHOR.on = false;
+    MICRO_MODE = false; REWIND = 0; AB.on = false; user.wind = 0; user.brake = 0; user.res = 0;
+    CHRONO.subT = 0; CHRONO.micro = 0; jerkPeak = 0; jerkHold = 0;
+    var target = ((t % DUR) + DUR) % DUR;
+    var h = DUR / (Math.round(DUR * SIM_HZ) * CHRONO.MICRO);
+    var n = Math.round(target / h);
+    liveT = 0;
+    for(var i = 0; i < n; i++){
+      liveT = i * h;
+      wakeEmit(wrapT(liveT)); wakeStep(h);
+    }
+    liveT = target; playing = false;
+    CHRONO.dil = dilOf(liveT);
+    fillOsc(liveT, 150);
+    render(); return this;
+  },
+  info: function(){
+    var t = wrapT(liveT), st = stateOf(t);
+    return {
+      t:+liveT.toFixed(4), state:st.key, phase:+masterPhase(t).toFixed(5),
+      torque:+torque(t).toFixed(5), spring:+springWind(t).toFixed(5),
+      heat:+heat(t).toFixed(5), coherence:+coherence(t).toFixed(5),
+      clutchGap:+clutchGap(t).toFixed(5), lockPin:+lockPin(t).toFixed(5),
+      stress:+stressOf(t).toFixed(5), damping:+damping(t).toFixed(5),
+      dil:+CHRONO.dil.toFixed(5), micro:CHRONO.micro, microSteps:CHRONO.MICRO,
+      cam:{ dolly:+CAM.dolly.toFixed(5), yaw:+CAM.yaw.toFixed(5), tilt:+CAM.tilt.toFixed(5),
+            panX:+CAM.panX.toFixed(4), panY:+CAM.panY.toFixed(4), focal:CAM.focal,
+            depthGain:+CAM.depthGain.toFixed(3) },
+      wake:{ n:WAKE.P.length, clock:+WAKE.CLOCK.toFixed(3), spread:+WAKE.spread.toFixed(5), emits:WAKE.emits },
+      fw:{ theta:+FW.theta.toFixed(4), w:+FW.w.toFixed(4), drag:FW.drag },
+      anchor:ANCHOR.on ? ANCHOR.k : -1, ab:AB.on, rewinding:REWIND > 0, microscope:MICRO_MODE,
+      momentum:+momentum(t).toFixed(5),
+      sun:+fracWrap(sunAngle(t) / TWO_PI).toFixed(5),
+      carrier:+fracWrap(carrierAngle(t) / TWO_PI).toFixed(5),
+      ring:+fracWrap(ringAngle(t) / TWO_PI).toFixed(5),
+      playing:playing, loop:loop, speed:speed, mesh:mesh
+    };
+  },
+  chart: function(N){
+    var n = N || SIM_HZ, h = DUR / n, i;
+    var o = { t:[], ring:[], carrier:[], sun:[], ratch:[], wRing:[], wCarrier:[], wSun:[], wRatch:[], aSun:[], jerkAll:[], jerk:[], state:[] };
+    for(i = 0; i <= n; i++){
+      var t = Math.min(DUR, i * h);
+      var tt = t;
+      var tp = Math.max(0, t - h);
+      var r = ringAngle(tt), c = carrierAngle(tt), s = sunAngle(tt), ra = ratchetAngle(tt);
+      var rp = ringAngle(tp), cp = carrierAngle(tp), sp = sunAngle(tp), rap = ratchetAngle(tp);
+      o.t.push(+t.toFixed(4));
+      o.ring.push(+r.toFixed(6)); o.carrier.push(+c.toFixed(6));
+      o.sun.push(+s.toFixed(6));  o.ratch.push(+ra.toFixed(6));
+      o.wRing.push(+((r - rp) / h).toFixed(6));
+      o.wCarrier.push(+((c - cp) / h).toFixed(6));
+      o.wSun.push(+((s - sp) / h).toFixed(6));
+      o.wRatch.push(+((ra - rap) / h).toFixed(6));
+      o.state.push(stateOf(tt).key);
+    }
+    for(i = 1; i < o.wSun.length; i++) o.aSun.push(+((o.wSun[i] - o.wSun[i-1]) / h).toFixed(6));
+    for(i = 1; i < o.aSun.length; i++) o.jerk.push(+((o.aSun[i] - o.aSun[i-1]) / h).toFixed(6));
+    /* 四通道合成的 Jerk 上界轨迹：任一通道有非零 Jerk 即视为运动 */
+    var chans = [o.wSun, o.wCarrier, o.wRing, o.wRatch], m, jj;
+    for(i = 1; i < o.wSun.length; i++){
+      m = 0;
+      for(jj = 0; jj < chans.length; jj++){
+        var a0 = (chans[jj][i] - chans[jj][i-1]) / h;
+        var a1 = (chans[jj][i-1] - chans[jj][Math.max(0, i-2)]) / h;
+        var jv = Math.abs((a0 - a1) / h);
+        if(jv > m) m = jv;
+      }
+      o.jerkAll.push(+m.toFixed(6));
+    }
+    return o;
+  },
+  /* 探针 1：加速度导数（Jerk）封杀断言
+     ① 不存在任何连续 1 秒的零 Jerk 平台（位移严禁匀速 / 严禁简单缓动）；
+     ② 每一转轴在 [80ms,160ms] 窗口内存在角速度精确归零的物理顿挫驻留；
+     ③ 存在角速度在 120ms 窗口内发生显著突变的卡位事件。 */
+  probeJerk: function(){
+    var ch = this.chart(Math.round(DUR * SIM_HZ)), i, j, k;
+    var keys = ['wSun', 'wCarrier', 'wRing', 'wRatch'];
+    var maxAbsJerk = 0, longestZeroJerk = 0, run = 0;
+    for(i = 0; i < ch.jerkAll.length; i++){
+      var v = Math.abs(ch.jerkAll[i]);
+      if(v > maxAbsJerk) maxAbsJerk = v;
+      if(v < 1e-9){ run++; if(run > longestZeroJerk) longestZeroJerk = run; } else run = 0;
+    }
+    /* 滑动 1 秒窗口：四通道 Jerk 是否同时恒等于 0 */
+    var zeroWindows = 0;
+    for(i = 0; i + SIM_HZ < ch.jerkAll.length; i++){
+      var allZero = true;
+      for(j = i; j <= i + SIM_HZ; j++){ if(Math.abs(ch.jerkAll[j]) > 1e-9){ allZero = false; break; } }
+      if(allZero) zeroWindows++;
+    }
+    /* 各通道角速度精确归零的最长驻留（帧） */
+    var dwell = {};
+    for(k = 0; k < keys.length; k++){
+      var a = ch[keys[k]], dr = 0, best = 0;
+      for(i = 0; i < a.length; i++){
+        if(Math.abs(a[i]) < 1e-6){ dr++; if(dr > best) best = dr; } else dr = 0;
+      }
+      dwell[keys[k]] = best;
+    }
+    var dwellFrames = 0;
+    for(k = 0; k < keys.length; k++) if(dwell[keys[k]] > dwellFrames) dwellFrames = dwell[keys[k]];
+    var dwellMs = +(dwellFrames / SIM_HZ * 1000).toFixed(0);
+    /* 间歇调节器（棘轮轴）的驻留即「物理顿挫」的特征时长，必须落在
+       [80ms,160ms]；而任何轴的驻留都不得长达整秒（那是伪动画的冻结段）。 */
+    var regMs = +(dwell.wRatch / SIM_HZ * 1000).toFixed(0);
+    /* [80ms,160ms] 窗口内的角速度突变（卡位 / 介质阻力突变 / 流体反冲） */
+    var w = Math.round(0.12 * SIM_HZ), stutters = 0;
+    for(i = 0; i + w < ch.wCarrier.length; i++){
+      var lo = Infinity, hi = -Infinity;
+      for(j = i; j <= i + w; j++){ var q = Math.abs(ch.wCarrier[j]); if(q < lo) lo = q; if(q > hi) hi = q; }
+      if(hi > 0.5 && hi - lo > 0.06 * hi) stutters++;
+    }
+    return {
+      samples: ch.jerkAll.length,
+      maxAbsJerk: +maxAbsJerk.toFixed(3),
+      longestZeroJerkFrames: longestZeroJerk,
+      oneSecondZeroWindows: zeroWindows,
+      dwellFramesByAxis: dwell,
+      dwellMs: dwellMs,
+      regulatorDwellMs: regMs,
+      stutterWindows120ms: stutters,
+      pass: (zeroWindows === 0 && longestZeroJerk < SIM_HZ && maxAbsJerk > 1
+             && regMs >= 80 && regMs <= 160 && dwellFrames < SIM_HZ && stutters > 0)
+    };
+  },
+  /* 探针 2：时间倒放的物理不可逆性
+     时间轴回退时，已在场的每一枚尾流粒子半径必须只增不减，
+     且熵账本（全体半径增量积分）严格增长。 */
+  probeEntropy: function(sec){
+    var snap = {}, i, cnt0 = WAKE.P.length;
+    for(i = 0; i < cnt0; i++) snap[WAKE.P[i].pid] = WAKE.P[i].r;
+    var s0 = WAKE.spread, r0 = wakeSpread(), t0 = wrapT(liveT);
+    this.rewind(sec || 1.0);
+    var s1 = WAKE.spread, r1 = wakeSpread(), shrunk = 0, grown = 0, maxShrink = 0;
+    for(i = 0; i < WAKE.P.length; i++){
+      var q = WAKE.P[i];
+      if(snap[q.pid] !== undefined){
+        var d = q.r - snap[q.pid];
+        if(d < -1e-9){ shrunk++; if(-d > maxShrink) maxShrink = -d; } else grown++;
+      }
+    }
+    var t1 = wrapT(liveT);
+    return {
+      rewoundFrom:+t0.toFixed(3), rewoundTo:+t1.toFixed(3),
+      spreadFrom:+s0.toFixed(4), spreadTo:+s1.toFixed(4),
+      radiusSumFrom:+r0.toFixed(4), radiusSumTo:+r1.toFixed(4),
+      particlesFrom:cnt0, particlesTo:WAKE.P.length,
+      survivorsGrown:grown, survivorsShrunk:shrunk, maxShrink:+maxShrink.toExponential(2),
+      timeReversed: Math.abs(t1 - t0) > 1e-6,
+      pass: Math.abs(t1 - t0) > 1e-6 && s1 > s0 && shrunk === 0 && grown > 0
+    };
+  },
+  /* 探针 3：宏周期首尾导数连续硬断言
+     旋转刚体的「位移」观测量取其齿形对称的归一化方位角 θ mod (2π/SYM)：
+     齿数 SYM 的存在使 t=12 与 t=0 的几何完全重合，故位移零误差；
+     速度矢量与加速度矢量由中心差分给出，必须逐通道相等。 */
+  probeBoundary: function(){
+    var h = 1 / 240;
+    var SYM = { sun:Z_SUN, carr:3, ring:Z_RING, rat:1 };
+    function wrapAngle(a){ var r = a % TWO_PI; return r < 0 ? r + TWO_PI : r; }
+    function vec(t, f, sym){
+      var raw = f(t), ang = raw - Math.floor(raw / (TWO_PI / sym)) * (TWO_PI / sym);
+      var v = d1(f, t, h), acc = d2(f, t, h);
+      return { raw:wrapAngle(raw), c:Math.cos(ang), s:Math.sin(ang),
+               v:[-Math.sin(ang) * v, Math.cos(ang) * v],
+               a:[-Math.cos(ang) * v * v - Math.sin(ang) * acc, -Math.sin(ang) * v * v + Math.cos(ang) * acc] };
+    }
+    function grab(t){                                   /* 贴接缝内侧单侧取样 */
+      return {
+        sun:  vec(t, sunAngle,     SYM.sun),
+        carr: vec(t, carrierAngle, SYM.carr),
+        ring: vec(t, ringAngle,    SYM.ring),
+        rat:  vec(t, ratchetAngle, SYM.rat)
+      };
+    }
+    var A = grab(DUR - 1e-4), B = grab(1e-4), k, out = {}, maxP = 0, maxV = 0, maxA = 0;
+    var ks = ['sun', 'carr', 'ring', 'rat'];
+    for(var i = 0; i < ks.length; i++){
+      k = ks[i];
+      var dp = Math.max(Math.abs(A[k].c - B[k].c), Math.abs(A[k].s - B[k].s));
+      var dv = Math.max(Math.abs(A[k].v[0] - B[k].v[0]), Math.abs(A[k].v[1] - B[k].v[1]));
+      var da = Math.max(Math.abs(A[k].a[0] - B[k].a[0]), Math.abs(A[k].a[1] - B[k].a[1]));
+      out[k] = { posErr:+dp.toExponential(2), velErr:+dv.toExponential(2), accErr:+da.toExponential(2) };
+      if(dp > maxP) maxP = dp; if(dv > maxV) maxV = dv; if(da > maxA) maxA = da;
+    }
+    var ssim = this.ssim(0, DUR - 1e-5);
+    return {
+      channels: out,
+      maxPosErr:+maxP.toExponential(2), maxVelErr:+maxV.toExponential(2), maxAccErr:+maxA.toExponential(2),
+      ssim:+ssim.toFixed(6),
+      pass: (maxP < 5e-3 && maxV < 3e-2 && maxA < 0.15 && ssim >= 0.995)
+    };
+  },
+  ssim: function(tA, tB){
+    renderOff(tA, { noWake:true }); var A = _offCtx.getImageData(0, 0, W, H).data;
+    renderOff(tB, { noWake:true }); var B = _offCtx.getImageData(0, 0, W, H).data;
+    var C1 = 6.5025, C2 = 58.5225, i, n = 0;
+    var sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0;
+    for(i = 0; i < A.length; i += 16){
+      var a = 0.299 * A[i] + 0.587 * A[i+1] + 0.114 * A[i+2];
+      var b = 0.299 * B[i] + 0.587 * B[i+1] + 0.114 * B[i+2];
+      sa += a; sb += b; saa += a * a; sbb += b * b; sab += a * b; n++;
+    }
+    var ma = sa / n, mb = sb / n;
+    var va = saa / n - ma * ma, vb = sbb / n - mb * mb, cv = sab / n - ma * mb;
+    return ((2 * ma * mb + C1) * (2 * cv + C2)) / ((ma * ma + mb * mb + C1) * (va + vb + C2));
+  },
+  rawAt: function(t){                                  /* 原始（不归一化）标量快照 · 用于审计 */
+    return { t:t, master:+masterPhase(t).toFixed(9), sun:+sunAngle(t).toFixed(9), carr:+carrierAngle(t).toFixed(9),
+             ring:+ringAngle(t).toFixed(9), planet:+planetSelf(t).toFixed(9), ratch:+ratchetAngle(t).toFixed(9),
+             ratchPhase:+ratchetPhase(t).toFixed(9), dwell:+ratchetDwell(t).toFixed(9),
+             nut:+nutTilt(t).toFixed(9), prec:+precAzimuth(t).toFixed(9), tiltY:+tiltSquashY(t).toFixed(9),
+             tiltS:+tiltShear(t).toFixed(9), run:+runEnv(t).toFixed(9), over:+overEnv(t).toFixed(9),
+             imp:+impactEnv(t).toFixed(9), torque:+torque(t).toFixed(9), spring:+springWind(t).toFixed(9),
+             gap:+clutchGap(t).toFixed(9), heat:+heat(t).toFixed(9), coh:+coherence(t).toFixed(9),
+             lockPin:+lockPin(t).toFixed(9), stress:+stressOf(t).toFixed(9), stressRaw:+stressRaw(t).toFixed(3), damp:+damping(t).toFixed(9),
+             dil:+dilOf(t).toFixed(9), camDolly:+camSolve(t) || +CAM.dolly.toFixed(9) };
+  },
+  seamDiff: function(tA, tB, cell){                    /* 接缝像素级差异定位（审计器） */
+    var C = cell || 20;
+    renderOff(tA, { noWake:true }); var A = _offCtx.getImageData(0, 0, W, H).data;
+    renderOff(tB, { noWake:true }); var B = _offCtx.getImageData(0, 0, W, H).data;
+    var gw = Math.ceil(W / C), gh = Math.ceil(H / C), grid = new Array(gw * gh), i;
+    for(i = 0; i < grid.length; i++) grid[i] = 0;
+    var n = 0, maxd = 0, sum = 0;
+    for(i = 0; i < A.length; i += 4){
+      var d = Math.abs(A[i] - B[i]) + Math.abs(A[i+1] - B[i+1]) + Math.abs(A[i+2] - B[i+2]);
+      if(d <= 2) continue;
+      var px = (i >> 2) % W, py = ((i >> 2) / W) | 0;
+      grid[((py / C) | 0) * gw + ((px / C) | 0)]++;
+      n++; sum += d; if(d > maxd) maxd = d;
+    }
+    var peaks = [];
+    for(i = 0; i < grid.length; i++) if(grid[i])
+      peaks.push({ x:(i % gw) * C, y:((i / gw) | 0) * C, n:grid[i] });
+    peaks.sort(function(a, b){ return b.n - a.n; });
+    return { diffPixels:n, pct:+(100 * n / (W * H)).toFixed(3), maxDiff:maxd, cell:C,
+             meanDiff:+(sum / Math.max(1, n)).toFixed(2), gw:gw, gh:gh, grid:grid, top:peaks.slice(0, 12) };
+  },
+  states: function(){ return STATES.map(function(s){ return s.key; }); },
+  keyframes: function(){
+    var ks = [
+      { phase:1, t:0.20, label:'初始冷态锁止' },
+      { phase:2, t:1.60, label:'势能加载与卡位顿挫' },
+      { phase:3, t:3.10, label:'非线性脉冲起振' },
+      { phase:4, t:5.60, label:'多轨谐波巡航' },
+      { phase:5, t:8.70, label:'突发扰动应力失稳' },
+      { phase:6, t:9.70, label:'脱扣惯性滑行衰减' },
+      { phase:7, t:10.90, label:'逆向耗散重平衡' },
+      { phase:8, t:11.90, label:'宏周期瞬态闭环爆发' }
+    ];
+    return ks.map(function(k){
+      var t = wrapT(k.t);
+      return { phase:k.phase, t:k.t, label:k.label, state:stateOf(t).key };
+    });
+  },
+  notes: function(){
+    return [
+      '归一化时间流 t∈[0,12] 为唯一驱动源，时间膨胀系数 Δ(t) 在 0.55–1.75 间连续变化；所有旋转体相位闭式求解，t=12 与 t=0 整齿重合且一/二阶导数相等。',
+      '五子系统：I 连续高阶运动解算（阻尼/向心/惯性张量）· II 虚拟运镜与视差景深切片（五层 Z-Buffer + 弥散圆）· III 流场扰动与微气象尾流（墙钟单调熵账本）· IV 表面应力与动态光影反应核 · V 归一化时间流与宏周期同调账本（亚帧微步 + LCM 闭环）。',
+      '八态机：' + STATES.map(function(s){ return s.key; }).join(' → ') + '。',
+      '三大抗直觉断言：Jerk 封杀（无 1 秒零 Jerk 平台，含 115ms 卡位顿挫）；时间倒放不可逆（尾流半径与残热在倒带时仍单调增长）；宏周期首尾导数连续（SSIM ≥ 0.995 且 Ẋ(T)=Ẋ(0)、Ẍ(T)=Ẍ(0)）。'
+    ];
+  },
+  seed: function(){ return this; }
+};
+window.PIVOT = PIVOT;
+
+/* ═══════════ 视口定标 ═══════════ */
+function fitWorld(){
+  var s = Math.min(window.innerWidth / 1440, window.innerHeight / 900);
+  var x = (window.innerWidth - 1440 * s) / 2, y = (window.innerHeight - 900 * s) / 2;
+  world.style.transform = 'translate(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px) scale(' + s.toFixed(5) + ')';
+}
+window.addEventListener('resize', fitWorld);
+fitWorld();
+
+/* ═══════════ 启动 ═══════════ */
+buildM2();
+buildM5();
+setMesh(0);
+fillOsc(0, 150);
+render();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

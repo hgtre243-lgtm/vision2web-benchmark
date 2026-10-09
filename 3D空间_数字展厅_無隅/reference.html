@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>無隅 WUYU · 当代雕塑数字展厅</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; overflow:hidden; }
+  body {
+    background: #0d1013; color:#e9e7e2; font-size:13px; line-height:1.5;
+    font-family: system-ui, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  #gl { position:fixed; left:0; top:0; width:100%; height:100%; display:block; }
+
+  /* ---- 无 WebGL 兜底 ---- */
+  #nowebgl {
+    display:none; position:fixed; inset:0; z-index:99; place-items:center;
+    background:#0d1013; color:#c9c6c0; text-align:center; padding:40px;
+  }
+  #nowebgl b { display:block; font-size:16px; color:#fff; margin-bottom:8px; font-weight:600; }
+
+  /* ---- 顶栏 ---- */
+  #top {
+    position:fixed; left:0; right:0; top:0; height:58px; z-index:20;
+    display:flex; align-items:center; gap:16px; padding:0 18px;
+    background:linear-gradient(180deg, rgba(11,14,17,.95) 0%, rgba(11,14,17,.82) 62%, rgba(11,14,17,0) 100%);
+  }
+  #brand { display:flex; align-items:center; gap:10px; min-width:0; }
+  #mark {
+    width:30px; height:30px; border-radius:7px; flex:0 0 auto; display:grid; place-items:center;
+    background:linear-gradient(150deg,#e9e5dd,#b9b2a4); color:#15181c; font-weight:700; font-size:15px;
+  }
+  #bname { font-size:15px; font-weight:650; letter-spacing:.06em; white-space:nowrap; }
+  #bsub { font-size:11px; color:#8d918f; letter-spacing:.04em; white-space:nowrap; }
+  #presets { display:flex; gap:6px; flex-wrap:nowrap; }
+  .pbtn {
+    font:inherit; font-size:12px; color:#cfd2d0; background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.13); border-radius:7px; padding:6px 11px; cursor:pointer;
+    transition:background .15s, color .15s, border-color .15s; white-space:nowrap;
+  }
+  .pbtn:hover { background:rgba(255,255,255,.14); }
+  .pbtn[aria-pressed="true"] { background:#e9e5dd; color:#15181c; border-color:#e9e5dd; font-weight:600; }
+  #spacer { flex:1 1 auto; }
+  #src { display:flex; align-items:center; gap:7px; font-size:11.5px; color:#a9adaa; white-space:nowrap; }
+  #srcDot { width:7px; height:7px; border-radius:50%; background:#7fbf8f; box-shadow:0 0 0 3px rgba(127,191,143,.16); }
+  #fpsTag {
+    font-size:11px; color:#9fa3a1; background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.11); border-radius:6px; padding:4px 8px; white-space:nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- 右侧面板 ---- */
+  #panel {
+    position:fixed; right:18px; top:74px; width:292px; z-index:20;
+    max-height:calc(100% - 156px); overflow:auto; padding:14px;
+    background:rgba(14,17,21,.86); border:1px solid rgba(255,255,255,.11); border-radius:12px;
+    backdrop-filter:blur(9px);
+  }
+  #panel::-webkit-scrollbar { width:7px; }
+  #panel::-webkit-scrollbar-thumb { background:rgba(255,255,255,.16); border-radius:4px; }
+  .sec { margin-bottom:15px; }
+  .sec:last-child { margin-bottom:0; }
+  .secTtl {
+    font-size:10.5px; letter-spacing:.16em; color:#7e837f; text-transform:uppercase;
+    margin-bottom:8px; display:flex; align-items:baseline; gap:7px;
+  }
+  .secTtl i { font-style:normal; letter-spacing:.02em; color:#9aa09b; font-size:11px; }
+  #lightSeg { display:flex; gap:5px; }
+  .lbtn {
+    flex:1; font:inherit; font-size:11.5px; padding:7px 2px; cursor:pointer; color:#c8ccc9;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:7px;
+    transition:background .15s, color .15s;
+  }
+  .lbtn:hover { background:rgba(255,255,255,.13); }
+  .lbtn[aria-pressed="true"] { background:#cfd8e2; color:#14181d; border-color:#cfd8e2; font-weight:600; }
+  .chk { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:12.5px; color:#c9ccc9; cursor:pointer; }
+  .chk input { width:14px; height:14px; accent-color:#cfd8e2; cursor:pointer; }
+  #tourRow {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:7px 9px; border-radius:8px; background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.09); font-size:12.5px;
+  }
+  #stats { display:grid; grid-template-columns:1fr 1fr; gap:7px 10px; }
+  .st { background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.075); border-radius:8px; padding:7px 9px; }
+  .st b { display:block; font-size:14.5px; color:#f0eee9; font-weight:600; font-variant-numeric:tabular-nums; }
+  .st span { font-size:10.5px; color:#868b88; }
+  #listBody { display:flex; flex-direction:column; gap:4px; }
+  .row {
+    display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:8px; cursor:pointer;
+    border:1px solid transparent; transition:background .14s, border-color .14s;
+  }
+  .row:hover { background:rgba(255,255,255,.07); }
+  .row[aria-current="true"] { background:rgba(207,216,226,.16); border-color:rgba(207,216,226,.42); }
+  .sw { width:9px; height:9px; border-radius:2px; flex:0 0 auto; }
+  .row .id { font-size:11px; color:#8b908c; font-variant-numeric:tabular-nums; }
+  .row .nm { font-size:12.5px; color:#e6e4df; flex:1 1 auto; }
+  .row .au { font-size:11px; color:#878c88; }
+
+  /* ---- 悬停浮层 ---- */
+  #tip {
+    position:fixed; z-index:30; display:none; pointer-events:none; min-width:186px;
+    background:rgba(10,13,16,.94); border:1px solid rgba(255,255,255,.16);
+    border-radius:9px; padding:9px 11px; box-shadow:0 10px 30px rgba(0,0,0,.5);
+  }
+  #tipId { font-size:10.5px; letter-spacing:.12em; color:#8fb8c9; margin-bottom:3px; }
+  #tipName { font-size:14px; color:#fff; font-weight:600; margin-bottom:5px; }
+  #tipName em { font-style:normal; font-size:10.5px; color:#8b908c; letter-spacing:.08em; margin-left:6px; }
+  #tipRows { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; font-size:11.5px; }
+  #tipRows span:nth-child(odd) { color:#82878a; }
+  #tipRows span:nth-child(even) { color:#d3d6d3; }
+
+  /* ---- 作品详情卡 ---- */
+  #card {
+    position:fixed; left:18px; bottom:18px; width:292px; z-index:20; display:none;
+    background:rgba(14,17,21,.9); border:1px solid rgba(255,255,255,.13);
+    border-radius:12px; padding:14px 15px; backdrop-filter:blur(9px);
+  }
+  #cardHead { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px; }
+  #cardId { font-size:10.5px; letter-spacing:.14em; color:#8fb8c9; }
+  #cardName { font-size:19px; font-weight:650; color:#fff; line-height:1.2; }
+  #cardEn { font-size:10.5px; letter-spacing:.13em; color:#878c88; margin-top:2px; }
+  #cardClose {
+    font:inherit; font-size:15px; line-height:1; color:#9aa09b; background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.12); border-radius:6px; width:24px; height:24px; cursor:pointer; flex:0 0 auto;
+  }
+  #cardClose:hover { background:rgba(255,255,255,.16); color:#fff; }
+  #cardMeta { display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:12px; margin-bottom:10px; }
+  #cardMeta span:nth-child(odd) { color:#82878a; }
+  #cardMeta span:nth-child(even) { color:#d6d9d6; }
+  #cardDesc {
+    font-size:12px; color:#a8adaa; line-height:1.65; padding-top:9px;
+    border-top:1px solid rgba(255,255,255,.09);
+  }
+
+  /* ---- 展签：随相机投影的 DOM 标注 ---- */
+  #caps { position:fixed; inset:0; z-index:14; pointer-events:none; overflow:hidden; }
+  .cap {
+    position:absolute; left:0; top:0; white-space:nowrap; display:none;
+    font-size:10.5px; color:#eae8e3; letter-spacing:.02em;
+    background:rgba(12,15,18,.76); border:1px solid rgba(255,255,255,.17);
+    border-radius:5px; padding:2px 7px; will-change:transform;
+  }
+  .cap b { color:#8fb8c9; font-weight:600; margin-right:5px; font-variant-numeric:tabular-nums; }
+
+  /* ---- 底部提示 ---- */
+  #hint {
+    position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:20;
+    font-size:11.5px; color:#a4a8a5; background:rgba(14,17,21,.8);
+    border:1px solid rgba(255,255,255,.1); border-radius:20px; padding:7px 17px;
+    backdrop-filter:blur(9px); white-space:nowrap;
+  }
+  #hint b { color:#dcdad5; font-weight:600; }
+
+  /* ---- 响应式 ---- */
+  @media (max-width:1180px) {
+    #bsub { display:none; }
+    #panel { width:262px; }
+    #card { width:262px; }
+  }
+  @media (max-width:940px) {
+    #bname { font-size:13.5px; }
+    .pbtn { padding:6px 8px; font-size:11.5px; }
+    #panel { display:none; }
+    #hint { font-size:11px; padding:6px 13px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="caps"></div>
+
+<div id="nowebgl">
+  <div>
+    <b>当前环境未启用 WebGL</b>
+    本展厅需要 WebGL 支持，请在支持硬件加速的浏览器中打开。
+  </div>
+</div>
+
+<header id="top">
+  <div id="brand">
+    <div id="mark">無</div>
+    <div>
+      <div id="bname">無隅 WUYU</div>
+      <div id="bsub">当代雕塑数字展厅 · DIGITAL GALLERY</div>
+    </div>
+  </div>
+  <div id="presets"></div>
+  <div id="spacer"></div>
+  <div id="src"><span id="srcDot"></span><span id="srcTxt">数据源：内置展品表</span></div>
+  <div id="fpsTag">-- FPS</div>
+</header>
+
+<aside id="panel">
+  <div class="sec">
+    <div class="secTtl">照明模式 <i id="lightName">天光日间</i></div>
+    <div id="lightSeg"></div>
+  </div>
+  <div class="sec">
+    <div class="secTtl">图层</div>
+    <div id="layers"></div>
+    <div id="tourRow" style="margin-top:8px;">
+      <span>自动巡览</span>
+      <label class="chk" style="padding:0;"><input type="checkbox" id="tourChk"></label>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="secTtl">展厅读数</div>
+    <div id="stats"></div>
+  </div>
+  <div class="sec">
+    <div class="secTtl">展品清单 <i id="listCnt">6 件</i></div>
+    <div id="listBody"></div>
+  </div>
+</aside>
+
+<div id="tip">
+  <div id="tipId"></div>
+  <div id="tipName"></div>
+  <div id="tipRows"></div>
+</div>
+
+<section id="card">
+  <div id="cardHead">
+    <div>
+      <div id="cardId"></div>
+      <div id="cardName"></div>
+      <div id="cardEn"></div>
+    </div>
+    <button id="cardClose" type="button" title="关闭详情卡">×</button>
+  </div>
+  <div id="cardMeta"></div>
+  <div id="cardDesc"></div>
+</section>
+
+<div id="hint"><b>左键</b> 旋转 · <b>滚轮</b> 缩放 · <b>右键</b> 平移 · <b>悬停</b> 查看展品 · <b>单击</b> 聚焦</div>
+
+<script>
+(function(){
+'use strict';
+
+/* =========================================================================
+   0. 渲染器初始化（Renderer）
+   ========================================================================= */
+var canvas = document.getElementById('gl');
+var gl = null;
+try {
+  gl = canvas.getContext('webgl', { alpha:false, antialias:true, preserveDrawingBuffer:true, depth:true })
+    || canvas.getContext('experimental-webgl', { antialias:true, preserveDrawingBuffer:true, depth:true });
+} catch (e) { gl = null; }
+if (!gl) {
+  document.getElementById('nowebgl').style.display = 'grid';
+  return;
+}
+
+var TAU = Math.PI * 2;
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function smooth(t){ return t*t*(3-2*t); }
+function easeInOut(t){ return t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+function hex2rgb(h){
+  return [parseInt(h.substr(1,2),16)/255, parseInt(h.substr(3,2),16)/255, parseInt(h.substr(5,2),16)/255];
+}
+
+/* ---- 4x4 矩阵（列主序） ---- */
+function m4new(){ return new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]); }
+function m4ident(o){ o[0]=1;o[1]=0;o[2]=0;o[3]=0; o[4]=0;o[5]=1;o[6]=0;o[7]=0;
+  o[8]=0;o[9]=0;o[10]=1;o[11]=0; o[12]=0;o[13]=0;o[14]=0;o[15]=1; return o; }
+function m4trans(o,x,y,z){ m4ident(o); o[12]=x; o[13]=y; o[14]=z; return o; }
+function m4rotx(o,a){ var c=Math.cos(a), s=Math.sin(a); m4ident(o); o[5]=c; o[6]=s; o[9]=-s; o[10]=c; return o; }
+function m4roty(o,a){ var c=Math.cos(a), s=Math.sin(a); m4ident(o); o[0]=c; o[2]=-s; o[8]=s; o[10]=c; return o; }
+function m4rotz(o,a){ var c=Math.cos(a), s=Math.sin(a); m4ident(o); o[0]=c; o[1]=s; o[4]=-s; o[5]=c; return o; }
+/* o = a × b，内部用临时量，允许 o 与 a 或 b 同名 */
+function m4mulOut(o,a,b){
+  var t = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+  for (var c=0;c<4;c++){
+    var b0=b[c*4], b1=b[c*4+1], b2=b[c*4+2], b3=b[c*4+3];
+    t[c*4  ] = a[0]*b0 + a[4]*b1 + a[8 ]*b2 + a[12]*b3;
+    t[c*4+1] = a[1]*b0 + a[5]*b1 + a[9 ]*b2 + a[13]*b3;
+    t[c*4+2] = a[2]*b0 + a[6]*b1 + a[10]*b2 + a[14]*b3;
+    t[c*4+3] = a[3]*b0 + a[7]*b1 + a[11]*b2 + a[15]*b3;
+  }
+  for (var i=0;i<16;i++) o[i]=t[i];
+  return o;
+}
+/* 组合局部变换：T × Rz × Ry × Rx（不做缩放，法线才正确） */
+function m4o2o(o, tx,ty,tz, rx,ry,rz, base){
+  var Rx=m4new(), Ry=m4new(), Rz=m4new(), T=m4new(), A=m4new();
+  m4rotx(Rx,rx); m4roty(Ry,ry); m4rotz(Rz,rz);
+  m4mulOut(A, Rz, Ry); m4mulOut(A, A, Rx);
+  m4trans(T, tx,ty,tz); m4mulOut(A, T, A);
+  if (base) m4mulOut(o, base, A); else for (var i=0;i<16;i++) o[i]=A[i];
+  return o;
+}
+function xfp(m,x,y,z){
+  return [ m[0]*x+m[4]*y+m[8]*z+m[12], m[1]*x+m[5]*y+m[9]*z+m[13], m[2]*x+m[6]*y+m[10]*z+m[14] ];
+}
+function xfn(m,x,y,z){
+  var a=m[0]*x+m[4]*y+m[8]*z, b=m[1]*x+m[5]*y+m[9]*z, c=m[2]*x+m[6]*y+m[10]*z;
+  var l=Math.sqrt(a*a+b*b+c*c)||1;
+  return [a/l,b/l,c/l];
+}
+function m4persp(out, fovy, aspect, near, far){
+  var f=1/Math.tan(fovy/2), nf=1/(near-far);
+  out[0]=f/aspect; out[1]=0; out[2]=0; out[3]=0;
+  out[4]=0; out[5]=f; out[6]=0; out[7]=0;
+  out[8]=0; out[9]=0; out[10]=(far+near)*nf; out[11]=-1;
+  out[12]=0; out[13]=0; out[14]=2*far*near*nf; out[15]=0;
+  return out;
+}
+function m4lookat(out, ex,ey,ez, cx,cy,cz, ux,uy,uz){
+  var zx=ex-cx, zy=ey-cy, zz=ez-cz;
+  var zl=Math.sqrt(zx*zx+zy*zy+zz*zz)||1; zx/=zl; zy/=zl; zz/=zl;
+  var xx=uy*zz-uz*zy, xy=uz*zx-ux*zz, xz=ux*zy-uy*zx;
+  var xl=Math.sqrt(xx*xx+xy*xy+xz*xz)||1; xx/=xl; xy/=xl; xz/=xl;
+  var yx=zy*xz-zz*xy, yy=zz*xx-zx*xz, yz=zx*xy-zy*xx;
+  out[0]=xx; out[1]=yx; out[2]=zx; out[3]=0;
+  out[4]=xy; out[5]=yy; out[6]=zy; out[7]=0;
+  out[8]=xz; out[9]=yz; out[10]=zz; out[11]=0;
+  out[12]=-(xx*ex+xy*ey+xz*ez);
+  out[13]=-(yx*ex+yy*ey+yz*ez);
+  out[14]=-(zx*ex+zy*ey+zz*ez);
+  out[15]=1;
+  return out;
+}
+
+/* =========================================================================
+   1. 几何构建器与图元
+   顶点布局：位置3 + 法线3 + 颜色3 + 透明度1 = 10
+   ========================================================================= */
+var STRIDE = 10;
+function Builder(){ this.d = []; }
+Builder.prototype.triNV = function(a,na,aa, b,nb,ab, c,nc,ac, col){
+  var d = this.d;
+  d.push(a[0],a[1],a[2], na[0],na[1],na[2], col[0],col[1],col[2], aa);
+  d.push(b[0],b[1],b[2], nb[0],nb[1],nb[2], col[0],col[1],col[2], ab);
+  d.push(c[0],c[1],c[2], nc[0],nc[1],nc[2], col[0],col[1],col[2], ac);
+};
+Builder.prototype.tri = function(a,b,c, n, col, al){
+  this.triNV(a,n,al, b,n,al, c,n,al, col);
+};
+Builder.prototype.q = function(a,b,c,d, n, col, al){
+  this.triNV(a,n,al, b,n,al, c,n,al, col);
+  this.triNV(a,n,al, c,n,al, d,n,al, col);
+};
+/* 线段：LINES 模式每两个顶点成一条线，必须严格成对压入 */
+Builder.prototype.line = function(a,b, col, al){
+  var d = this.d;
+  d.push(a[0],a[1],a[2], 0,1,0, col[0],col[1],col[2], al);
+  d.push(b[0],b[1],b[2], 0,1,0, col[0],col[1],col[2], al);
+};
+Builder.prototype.count = function(){ return this.d.length/STRIDE; };
+Builder.prototype.arr = function(){ return new Float32Array(this.d); };
+
+/* 立方体（外表法线） */
+function addBox(B, M, w,h,d, col, al){
+  var x=w/2, y=h/2, z=d/2;
+  var P=function(a,b,c){ return xfp(M,a,b,c); }, N=function(a,b,c){ return xfn(M,a,b,c); };
+  var F = [
+    [[ x,-y, z],[ x,-y,-z],[ x, y,-z],[ x, y, z], [ 1,0,0]],
+    [[-x,-y,-z],[-x,-y, z],[-x, y, z],[-x, y,-z], [-1,0,0]],
+    [[-x, y, z],[ x, y, z],[ x, y,-z],[-x, y,-z], [0, 1,0]],
+    [[-x,-y,-z],[ x,-y,-z],[ x,-y, z],[-x,-y, z], [0,-1,0]],
+    [[-x,-y, z],[ x,-y, z],[ x, y, z],[-x, y, z], [0,0, 1]],
+    [[ x,-y,-z],[-x,-y,-z],[-x, y,-z],[ x, y,-z], [0,0,-1]]
+  ];
+  for (var i=0;i<6;i++){
+    var f=F[i], n=N(f[4][0],f[4][1],f[4][2]);
+    B.q(P(f[0][0],f[0][1],f[0][2]), P(f[1][0],f[1][1],f[1][2]),
+        P(f[2][0],f[2][1],f[2][2]), P(f[3][0],f[3][1],f[3][2]), n, col, al);
+  }
+}
+
+/* 圆柱 / 圆台 / 圆锥（rTop 传 0 即圆锥；aBot/aTop 为两端透明度） */
+function addCylinder(B, M, rBot, rTop, h, seg, col, aBot, aTop, capTop, capBot){
+  var ny = (rBot - rTop)/h, i;
+  for (i=0;i<seg;i++){
+    var u0=i/seg*TAU, u1=(i+1)/seg*TAU;
+    var c0=Math.cos(u0), s0=Math.sin(u0), c1=Math.cos(u1), s1=Math.sin(u1);
+    var p00=xfp(M, rBot*c0, 0, rBot*s0), p01=xfp(M, rBot*c1, 0, rBot*s1);
+    var p10=xfp(M, rTop*c0, h, rTop*s0), p11=xfp(M, rTop*c1, h, rTop*s1);
+    var n0=xfn(M, c0, ny, s0), n1=xfn(M, c1, ny, s1);
+    B.triNV(p00,n0,aBot, p10,n0,aTop, p11,n1,aTop, col);
+    B.triNV(p00,n0,aBot, p11,n1,aTop, p01,n1,aBot, col);
+  }
+  if (capTop){
+    var ct=xfp(M,0,h,0), nt=xfn(M,0,1,0);
+    for (i=0;i<seg;i++){
+      var v0=i/seg*TAU, v1=(i+1)/seg*TAU;
+      B.triNV(ct,nt,aTop, xfp(M,rTop*Math.cos(v0),h,rTop*Math.sin(v0)),nt,aTop,
+              xfp(M,rTop*Math.cos(v1),h,rTop*Math.sin(v1)),nt,aTop, col);
+    }
+  }
+  if (capBot){
+    var cb=xfp(M,0,0,0), nb=xfn(M,0,-1,0);
+    for (i=0;i<seg;i++){
+      var w0=i/seg*TAU, w1=(i+1)/seg*TAU;
+      B.triNV(cb,nb,aBot, xfp(M,rBot*Math.cos(w1),0,rBot*Math.sin(w1)),nb,aBot,
+              xfp(M,rBot*Math.cos(w0),0,rBot*Math.sin(w0)),nb,aBot, col);
+    }
+  }
+}
+
+/* 球 */
+function addSphere(B, M, r, seg, ring, col, al){
+  for (var j=0;j<ring;j++){
+    var t0=j/ring*Math.PI, t1=(j+1)/ring*Math.PI;
+    for (var i=0;i<seg;i++){
+      var u0=i/seg*TAU, u1=(i+1)/seg*TAU;
+      var p=[], n=[];
+      var C=[[u0,t0],[u0,t1],[u1,t1],[u1,t0]];
+      for (var k=0;k<4;k++){
+        var u=C[k][0], t=C[k][1], st=Math.sin(t);
+        n.push([st*Math.cos(u), Math.cos(t), st*Math.sin(u)]);
+        p.push(xfp(M, r*n[k][0], r*n[k][1], r*n[k][2]));
+      }
+      B.q(p[0],p[1],p[2],p[3],
+          xfn(M, (n[0][0]+n[1][0]+n[2][0]+n[3][0])/4, (n[0][1]+n[1][1]+n[2][1]+n[3][1])/4,
+                 (n[0][2]+n[1][2]+n[2][2]+n[3][2])/4), col, al);
+    }
+  }
+}
+
+/* 圆环（主圆在 XZ 平面，管轴在竖直面内） */
+function addTorus(B, M, R, r, seg, ring, col, al){
+  for (var i=0;i<seg;i++){
+    var u0=i/seg*TAU, u1=(i+1)/seg*TAU;
+    for (var j=0;j<ring;j++){
+      var v0=j/ring*TAU, v1=(j+1)/ring*TAU;
+      var p=[], n=[];
+      var C=[[u0,v0],[u0,v1],[u1,v1],[u1,v0]];
+      for (var k=0;k<4;k++){
+        var u=C[k][0], v=C[k][1], cu=Math.cos(u), su=Math.sin(u), cv=Math.cos(v), sv=Math.sin(v);
+        var nn=[cv*cu, sv, cv*su];
+        n.push(nn);
+        p.push(xfp(M, (R+r*cv)*cu, r*sv, (R+r*cv)*su));
+      }
+      B.q(p[0],p[1],p[2],p[3],
+          xfn(M, (n[0][0]+n[1][0]+n[2][0]+n[3][0])/4, (n[0][1]+n[1][1]+n[2][1]+n[3][1])/4,
+                 (n[0][2]+n[1][2]+n[2][2]+n[3][2])/4), col, al);
+    }
+  }
+}
+
+/* 水平面片：局部 z 轴方向为法线朝向 */
+function addQuad(B, M, w, d, col, al, lx,ly,lz){
+  var x=w/2, z=d/2, n=xfn(M,lx,ly,lz);
+  var a=xfp(M,-x,0,-z), b=xfp(M,x,0,-z), c=xfp(M,x,0,z), e=xfp(M,-x,0,z);
+  B.q(a,b,c,e, n, col, al);
+}
+/* 竖立面片：局部 x∈[-w/2,w/2]、y∈[0,h]、法线朝 +Z（可再旋转） */
+function addPanel(B, M, w, h, col, al){
+  var x=w/2, n=xfn(M,0,0,1);
+  var a=xfp(M,-x,0,0), b=xfp(M,x,0,0), c=xfp(M,x,h,0), d=xfp(M,-x,h,0);
+  B.q(a,b,c,d, n, col, al);
+}
+/* 地面圆盘（光斑），中心到边缘透明度渐变 */
+function addDisc(B, M, r, seg, col, aC, aE){
+  var c=xfp(M,0,0,0), n=xfn(M,0,1,0);
+  for (var i=0;i<seg;i++){
+    var u0=i/seg*TAU, u1=(i+1)/seg*TAU;
+    B.triNV(c,n,aC, xfp(M,r*Math.cos(u0),0,r*Math.sin(u0)),n,aE,
+            xfp(M,r*Math.cos(u1),0,r*Math.sin(u1)),n,aE, col);
+  }
+}
+/* 圆环线（LINES） */
+function addRingLine(B, M, r, seg, col, al){
+  for (var i=0;i<seg;i++){
+    var u0=i/seg*TAU, u1=(i+1)/seg*TAU;
+    B.line(xfp(M, r*Math.cos(u0),0,r*Math.sin(u0)), xfp(M, r*Math.cos(u1),0,r*Math.sin(u1)), col, al);
+  }
+}
+
+/* =========================================================================
+   2. 着色器与 WebGL 资源
+   ========================================================================= */
+var VS = [
+  'attribute vec3 aPos;',
+  'attribute vec3 aNormal;',
+  'attribute vec3 aColor;',
+  'attribute float aAlpha;',
+  'uniform mat4 uVP;',
+  'uniform mat4 uModel;',
+  'varying vec3 vN; varying vec3 vC; varying vec3 vW; varying float vA;',
+  'void main(){',
+  '  vec4 w = uModel * vec4(aPos, 1.0);',
+  '  vW = w.xyz;',
+  '  vN = mat3(uModel) * aNormal;',
+  '  vC = aColor;',
+  '  vA = aAlpha;',
+  '  gl_Position = uVP * w;',
+  '}'
+].join('\n');
+
+var FS = [
+  'precision mediump float;',
+  'varying vec3 vN; varying vec3 vC; varying vec3 vW; varying float vA;',
+  'uniform vec3 uLightDir; uniform vec3 uLightColor;',
+  'uniform vec3 uAmbTop; uniform vec3 uAmbBot;',
+  'uniform vec3 uFogColor; uniform float uFogNear; uniform float uFogFar;',
+  'uniform vec3 uEye;',
+  'uniform float uAlpha; uniform float uEmissive; uniform float uUnlit; uniform float uRim;',
+  'uniform float uGloss; uniform float uSpecPow;',
+  'void main(){',
+  '  vec3 base = vC;',
+  '  vec3 N = normalize(vN);',
+  '  float d = length(uEye - vW);',
+  '  vec3 col;',
+  '  if (uUnlit > 0.5){',
+  '    col = base;',
+  '  } else {',
+  '    float lam = max(dot(N, uLightDir), 0.0);',
+  '    float hemi = 0.5 + 0.5 * N.y;',
+  '    vec3 amb = mix(uAmbBot, uAmbTop, hemi);',
+  '    col = base * (amb + uLightColor * lam);',
+  '    vec3 V = normalize(uEye - vW);',
+  '    vec3 H = normalize(uLightDir + V);',
+  '    float spec = pow(max(dot(N, H), 0.0), uSpecPow) * uGloss;',
+  '    col += uLightColor * spec;',
+  '    float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0) * uRim;',
+  '    col += base * rim * 0.8 + vec3(rim * 0.05);',
+  '  }',
+  '  float f = clamp((d - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);',
+  '  f = f * f * (3.0 - 2.0 * f);',
+  '  col = mix(col, uFogColor, f);',
+  '  col = mix(col, vec3(1.0, 0.97, 0.90), uEmissive * 0.7);',
+  '  gl_FragColor = vec4(col, uAlpha * vA);',
+  '}'
+].join('\n');
+
+function compile(type, src){
+  var s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+var prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+gl.bindAttribLocation(prog, 0, 'aPos');
+gl.bindAttribLocation(prog, 1, 'aNormal');
+gl.bindAttribLocation(prog, 2, 'aColor');
+gl.bindAttribLocation(prog, 3, 'aAlpha');
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+
+var U = {};
+['uVP','uModel','uLightDir','uLightColor','uAmbTop','uAmbBot','uFogColor','uFogNear','uFogFar',
+ 'uEye','uAlpha','uEmissive','uUnlit','uRim','uGloss','uSpecPow'].forEach(function(n){
+  U[n] = gl.getUniformLocation(prog, n);
+});
+
+var IDENT = m4new();
+function makeMesh(){
+  return { buf:gl.createBuffer(), n:0, model:null };
+}
+function uploadMesh(m, data, count){
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.buf);
+  gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  m.n = count;
+}
+function uploadBuilder(m, B){ uploadMesh(m, B.arr(), B.count()); }
+function bindMesh(m){
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.buf);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, STRIDE*4, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, STRIDE*4, 12);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, STRIDE*4, 24);
+  gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, STRIDE*4, 36);
+}
+function drawMesh(m, mode, alpha, emissive, unlit, gloss, specPow){
+  if (!m || !m.n) return;
+  bindMesh(m);
+  gl.uniformMatrix4fv(U.uModel, false, m.model || IDENT);
+  gl.uniform1f(U.uAlpha, alpha === undefined ? 1 : alpha);
+  gl.uniform1f(U.uEmissive, emissive || 0);
+  gl.uniform1f(U.uUnlit, unlit || 0);
+  gl.uniform1f(U.uGloss, gloss || 0);
+  gl.uniform1f(U.uSpecPow, specPow || 24);
+  gl.drawArrays(mode, 0, m.n);
+}
+
+/* =========================================================================
+   3. 场景（Scene）常量与调色板
+   ========================================================================= */
+var RX = 11.0;      /* 展厅半宽（X）  => 22 m */
+var RZ = 11.0;      /* 展厅半深（Z）  => 22 m */
+var RH = 6.4;       /* 层高 */
+var PLINTH_R = 0.62;/* 展台半径 */
+var AREA = (RX*2)*(RZ*2);
+
+var COL = {
+  floor:    hex2rgb('#7c766c'),
+  floorOut: hex2rgb('#56534e'),
+  wall:     hex2rgb('#eae7e0'),
+  wallOut:  hex2rgb('#b6b3ac'),
+  skirt:    hex2rgb('#b0aca4'),
+  ceil:     hex2rgb('#ece9e3'),
+  ceilOut:  hex2rgb('#c0bdb7'),
+  strip:    hex2rgb('#fff3d8'),
+  sky:      hex2rgb('#ffffff'),
+  plinth:   hex2rgb('#f5f3ee'),
+  frame:    hex2rgb('#2a2b2e'),
+  grid:     hex2rgb('#5f5a53'),
+  route:    hex2rgb('#1d6ba6'),
+  shaft:    hex2rgb('#fff4dc'),
+  pool:     hex2rgb('#fff6e4'),
+  portal:   hex2rgb('#cdc9c1'),
+  shadow:   hex2rgb('#2f2c28'),
+  hi:       hex2rgb('#7fd8ff'),
+  sel:      hex2rgb('#ffd77a')
+};
+
+/* 三档照明模式 */
+var LIGHT = {
+  day:  { name:'天光日间', dir:[0.40,0.74,0.52], color:[0.58,0.57,0.53],
+          ambTop:[0.52,0.53,0.55], ambBot:[0.32,0.31,0.30], rim:0.10,
+          fog:[0.70,0.71,0.73], shaft:0.30, pool:0.26, sky:0.30, strip:0.26 },
+  spot: { name:'夜间射灯', dir:[0.16,0.94,-0.30], color:[0.20,0.19,0.17],
+          ambTop:[0.055,0.060,0.072], ambBot:[0.020,0.021,0.026], rim:0.36,
+          fog:[0.030,0.034,0.041], shaft:1.00, pool:0.95, sky:0.03, strip:1.00 },
+  cool: { name:'冷调展厅', dir:[-0.22,0.88,0.34], color:[0.30,0.42,0.58],
+          ambTop:[0.30,0.38,0.50], ambBot:[0.10,0.13,0.19], rim:0.28,
+          fog:[0.095,0.135,0.195], shaft:0.62, pool:0.56, sky:0.16, strip:0.66 }
+};
+var FOG_NEAR = 30, FOG_FAR = 92;
+
+/* =========================================================================
+   4. 数据：展品表（外部数据优先，失败回退到内置表）
+   ========================================================================= */
+var BUILTIN = [
+  { id:'W-01', name:'折叠', en:'FOLD',   author:'林一苇', year:'2021', mat:'青铜 · 热着色',
+    size:'1.5 × 0.6 × 1.5 m', px:-6.6, pz:-6.2, ph:0.95, scH:0.62, pickR:1.02,
+    color:'#c8813f', gloss:0.55, form:'fold',
+    desc:'三段铜板以 60° 等分交织，热着色由深褐过渡到金橙，受光面随视角改变。' },
+  { id:'W-02', name:'环',   en:'RING',   author:'周砚',   year:'2019', mat:'卡拉拉白 · 哑光',
+    size:'1.6 × 1.6 × 0.24 m', px:0.0, pz:-7.0, ph:1.15, scH:1.64, pickR:1.06,
+    color:'#e8e4dc', gloss:0.10, form:'ring', spin:true,
+    desc:'整块白料车削成环，外缘保留刀痕；环体沿竖直中轴持续自转。' },
+  { id:'W-03', name:'柱',   en:'COLUMN', author:'林一苇', year:'2022', mat:'阳极氧化铝',
+    size:'0.8 × 1.9 × 0.8 m', px:6.6, pz:-6.2, ph:0.85, scH:1.90, pickR:1.02,
+    color:'#7f93a8', gloss:0.62, form:'column',
+    desc:'四段铝材逐级收束，表面拉丝方向交替，转折处形成一圈亮边。' },
+  { id:'W-04', name:'棱',   en:'PRISM',  author:'许默',   year:'2020', mat:'陶土 · 无釉',
+    size:'1.3 × 1.5 × 1.3 m', px:-5.9, pz:-2.4, ph:1.05, scH:1.50, pickR:0.98,
+    color:'#b4543c', gloss:0.06, form:'prism',
+    desc:'两个同底锥体对接成双锥，无釉陶土表面粗糙，只在棱线处留下高光。' },
+  { id:'W-05', name:'云',   en:'CLOUD',  author:'许默',   year:'2023', mat:'不锈钢 · 镜面',
+    size:'1.5 × 0.9 × 1.3 m', px:-1.8, pz:-1.4, ph:0.75, scH:0.92, pickR:0.95,
+    color:'#c9ccd2', gloss:0.80, form:'cloud',
+    desc:'九枚镜面球体成簇悬浮，球面映出四周墙面与天花灯带。' },
+  { id:'W-06', name:'卷',   en:'VOLUME', author:'周砚',   year:'2024', mat:'铸铁 · 黑漆',
+    size:'1.0 × 1.7 × 1.0 m', px:4.9, pz:-2.4, ph:1.25, scH:1.68, pickR:0.98,
+    color:'#3a3f47', gloss:0.25, form:'volume',
+    desc:'铸铁板折成 U 形并悬挑一片方板，黑漆哑光，边缘倒角反出细线。' }
+];
+var EXHIBITS = BUILTIN.slice();
+var dataSource = '内置展品表';
+var dataNote = '未检测到同目录 exhibits.json，已使用内置展品表';
+
+/* ---- 雕塑构造（局部原点 = 展台顶面中心） ---- */
+function buildForm(B, M0, ex){
+  var rgb = hex2rgb(ex.color), i, L = m4new();
+  if (ex.form === 'fold'){
+    /* 三块铜板同一高度、以 60° 等分交织，各自绕长轴反向倾斜，形成互锁 */
+    var tilt = [0.24, -0.24, 0.24];
+    for (i=0;i<3;i++){
+      m4o2o(L, 0, 0.26, 0, tilt[i], i*Math.PI/3, 0, M0);
+      addBox(B, L, 1.50, 0.11, 0.34, rgb, 1);
+    }
+  } else if (ex.form === 'ring'){
+    m4o2o(L, 0, 0.82, 0, Math.PI/2, 0, 0, M0);
+    addTorus(B, L, 0.70, 0.12, 44, 14, rgb, 1);
+  } else if (ex.form === 'column'){
+    var segs = [[0.36,0.31,0.60,0.00],[0.31,0.25,0.60,0.60],[0.25,0.18,0.55,1.20],[0.18,0.18,0.15,1.75]];
+    for (i=0;i<segs.length;i++){
+      m4o2o(L, 0, segs[i][3], 0, 0,0,0, M0);
+      addCylinder(B, L, segs[i][0], segs[i][1], segs[i][2], 26, rgb, 1, 1, true, i===0);
+    }
+  } else if (ex.form === 'prism'){
+    m4o2o(L, 0, 0.00, 0, 0,0,0, M0);
+    addCylinder(B, L, 0, 0.66, 0.75, 4, rgb, 1, 1, false, false);
+    m4o2o(L, 0, 0.75, 0, 0,0,0, M0);
+    addCylinder(B, L, 0.66, 0, 0.75, 4, rgb, 1, 1, false, false);
+  } else if (ex.form === 'cloud'){
+    var SP = [[-0.42,0.30,0.10,0.30],[0.02,0.46,-0.16,0.36],[0.40,0.28,0.14,0.28],
+              [-0.20,0.16,-0.32,0.26],[0.24,0.62,0.22,0.22],[-0.34,0.60,-0.14,0.20],
+              [0.12,0.14,0.34,0.24],[-0.06,0.74,0.02,0.18],[0.44,0.52,-0.20,0.19]];
+    for (i=0;i<SP.length;i++){
+      m4o2o(L, SP[i][0], SP[i][1], SP[i][2], 0,0,0, M0);
+      addSphere(B, L, SP[i][3], 18, 11, rgb, 1);
+    }
+  } else {
+    m4o2o(L, 0, 0, 0, 0,0,0, M0);
+    addBox(B, L, 0.52, 1.35, 0.94, rgb, 1);
+    m4o2o(L, 0.22, 1.35, 0, 0,0,0, M0);
+    addBox(B, L, 0.96, 0.30, 0.94, rgb, 1);
+    m4o2o(L, -0.30, 1.05, 0.10, 0,0,0, M0);
+    addBox(B, L, 0.30, 0.22, 0.62, rgb, 1);
+  }
+}
+
+/* =========================================================================
+   5. 建场景
+   ========================================================================= */
+var T = m4new(), L = m4new();
+
+/* ---- 房间：地面 / 三面墙 / 天花 / 踢脚 / 入口门架 ---- */
+var roomMesh = makeMesh();
+(function buildRoom(){
+  var B = new Builder(), i;
+  /* 地面（外侧再铺一层朝下的面，避免从外部看穿） */
+  m4ident(T); addQuad(B, T, RX*2, RZ*2, COL.floor, 1, 0,1,0);
+  m4trans(T, 0, -0.06, 0); addQuad(B, T, RX*2, RZ*2, COL.floorOut, 1, 0,-1,0);
+  /* 后墙（+Z 面） */
+  m4trans(T, 0, 0, -RZ); addPanel(B, T, RX*2, RH, COL.wall, 1);
+  m4o2o(T, 0, 0, -RZ - 0.05, 0, Math.PI, 0); addPanel(B, T, RX*2, RH, COL.wallOut, 1);
+  /* 左墙（+X 面） */
+  m4o2o(T, -RX, 0, 0, 0, Math.PI/2, 0); addPanel(B, T, RZ*2, RH, COL.wall, 1);
+  m4o2o(T, -RX - 0.05, 0, 0, 0, -Math.PI/2, 0); addPanel(B, T, RZ*2, RH, COL.wallOut, 1);
+  /* 右墙（-X 面） */
+  m4o2o(T, RX, 0, 0, 0, -Math.PI/2, 0); addPanel(B, T, RZ*2, RH, COL.wall, 1);
+  m4o2o(T, RX + 0.05, 0, 0, 0, Math.PI/2, 0); addPanel(B, T, RZ*2, RH, COL.wallOut, 1);
+  /* 踢脚线 */
+  m4trans(T, 0, 0, -RZ + 0.05); addBox(B, T, RX*2, 0.16, 0.10, COL.skirt, 1);
+  m4trans(T, -RX + 0.05, 0, 0); addBox(B, T, 0.10, 0.16, RZ*2, COL.skirt, 1);
+  m4trans(T, RX - 0.05, 0, 0); addBox(B, T, 0.10, 0.16, RZ*2, COL.skirt, 1);
+  /* 入口门架（前侧开口） */
+  m4trans(T, -3.6, 0, RZ - 0.5); addBox(B, T, 0.60, RH, 0.60, COL.portal, 1);
+  m4trans(T,  3.6, 0, RZ - 0.5); addBox(B, T, 0.60, RH, 0.60, COL.portal, 1);
+  m4trans(T, 0, RH - 0.45, RZ - 0.5); addBox(B, T, 8.4, 0.45, 0.60, COL.portal, 1);
+  uploadBuilder(roomMesh, B);
+})();
+
+/* ---- 天花与灯带（可整体隐藏） ---- */
+var ceilMesh = makeMesh(), stripMesh = makeMesh(), skyMesh = makeMesh();
+(function buildCeiling(){
+  var B = new Builder();
+  m4trans(T, 0, RH, 0); addQuad(B, T, RX*2, RZ*2, COL.ceil, 1, 0,-1,0);
+  m4trans(T, 0, RH + 0.08, 0); addQuad(B, T, RX*2, RZ*2, COL.ceilOut, 1, 0,1,0);
+  uploadBuilder(ceilMesh, B);
+  var S = new Builder();
+  [-7.2, -2.4, 2.4, 7.2].forEach(function(z){
+    m4trans(T, 0, RH - 0.10, z); addBox(S, T, 19.0, 0.07, 0.30, COL.strip, 1);
+  });
+  uploadBuilder(stripMesh, S);
+  var K = new Builder();
+  m4trans(T, 0, RH - 0.03, -2.0); addQuad(K, T, 9.0, 5.6, COL.sky, 1, 0,-1,0);
+  uploadBuilder(skyMesh, K);
+})();
+
+/* ---- 展墙作品（后墙两幅 + 右墙一幅） ---- */
+var artMesh = makeMesh();
+(function buildArt(){
+  var B = new Builder();
+  /* ox/oz = 沿画框法线的外移量，避免画心与画框共面 */
+  var arts = [
+    { x:-7.4, y:3.30, z:-RZ + 0.07, w:3.0, h:2.0, ry:0,          ox:0,      oz: 0.014, c:'#33506f' },
+    { x: 7.4, y:3.30, z:-RZ + 0.07, w:3.0, h:2.0, ry:0,          ox:0,      oz: 0.014, c:'#a8573c' },
+    { x: RX - 0.07, y:3.20, z:-4.6, w:2.8, h:1.9, ry:-Math.PI/2, ox:-0.014, oz: 0,     c:'#4a6b52' }
+  ];
+  arts.forEach(function(a){
+    m4o2o(T, a.x, a.y - 0.07, a.z, 0, a.ry, 0);
+    addPanel(B, T, a.w + 0.14, a.h + 0.14, COL.frame, 1);
+    m4o2o(T, a.x + a.ox, a.y, a.z + a.oz, 0, a.ry, 0);
+    addPanel(B, T, a.w, a.h, hex2rgb(a.c), 1);
+  });
+  uploadBuilder(artMesh, B);
+})();
+
+/* ---- 展台 ---- */
+var plinthMesh = makeMesh();
+(function buildPlinths(){
+  var B = new Builder();
+  EXHIBITS.forEach(function(ex){
+    m4trans(T, ex.px, 0, ex.pz);
+    addCylinder(B, T, PLINTH_R, PLINTH_R, ex.ph, 30, COL.plinth, 1, 1, true, true);
+    /* 台面收边：整圈低于台面，避免与台面共面 */
+    m4trans(T, ex.px, ex.ph - 0.030, ex.pz);
+    addCylinder(B, T, PLINTH_R + 0.012, PLINTH_R + 0.012, 0.022, 30, COL.skirt, 1, 1, true, false);
+  });
+  uploadBuilder(plinthMesh, B);
+})();
+
+/* ---- 接地阴影：展台落地投影 + 台面接触暗区（廉价 AO，无阴影贴图） ---- */
+var shadowFloorMesh = makeMesh(), shadowTopMesh = makeMesh();
+(function buildShadows(){
+  var B = new Builder(), K = new Builder();
+  EXHIBITS.forEach(function(ex){
+    m4trans(T, ex.px, 0.012, ex.pz);
+    addDisc(B, T, PLINTH_R*1.85, 30, COL.shadow, 0.44, 0.0);
+    m4trans(T, ex.px, ex.ph + 0.002, ex.pz);
+    addDisc(K, T, ex.pickR*0.94, 26, COL.shadow, 0.32, 0.0);
+  });
+  uploadBuilder(shadowFloorMesh, B);
+  uploadBuilder(shadowTopMesh, K);
+})();
+
+/* ---- 六件雕塑（每件独立网格，便于各自设置材质与自转） ---- */
+(function buildSculptures(){
+  EXHIBITS.forEach(function(ex){
+    var B = new Builder();
+    m4trans(T, ex.px, ex.ph + 0.008, ex.pz);
+    buildForm(B, T, ex);
+    ex.mesh = makeMesh();
+    uploadBuilder(ex.mesh, B);
+    ex.model = m4new();
+  });
+})();
+
+/* ---- 展签改为 DOM 标注（见 layoutCaps），此处只保留展签底座 ---- */
+var labelMesh = makeMesh();
+(function buildLabels(){
+  var B = new Builder();
+  EXHIBITS.forEach(function(ex){
+    var z = ex.pz + PLINTH_R + 0.30, y = 0;
+    m4o2o(T, ex.px, y, z, 0, 0, 0);
+    addBox(B, T, 0.30, 0.02, 0.16, hex2rgb('#b0aca4'), 1);
+  });
+  uploadBuilder(labelMesh, B);
+})();
+
+/* ---- 地面砖缝 ---- */
+var gridMesh = makeMesh();
+(function buildGrid(){
+  var B = new Builder();
+  for (var x=-RX; x<=RX+0.001; x+=2){
+    B.line(xfp(T, x, 0.02, -RZ), xfp(T, x, 0.02, RZ), COL.grid, 0.55);
+  }
+  for (var z=-RZ; z<=RZ+0.001; z+=2){
+    B.line(xfp(T, -RX, 0.02, z), xfp(T, RX, 0.02, z), COL.grid, 0.55);
+  }
+  uploadBuilder(gridMesh, B);
+})();
+
+/* ---- 参观动线 ---- */
+var routeMesh = makeMesh();
+(function buildRoute(){
+  var B = new Builder();
+  var P = [[0,9.6],[-6.6,-0.8],[-6.6,-4.8],[0,-6.2],[6.6,-4.8],[6.6,-0.8],[0,0.6],[0,9.6]];
+  for (var i=0;i<P.length-1;i++){
+    B.line(xfp(T, P[i][0], 0.035, P[i][1]), xfp(T, P[i+1][0], 0.035, P[i+1][1]), COL.route, 0.9);
+  }
+  uploadBuilder(routeMesh, B);
+})();
+
+/* ---- 六束射灯锥 + 地面光斑（加法混合） ---- */
+var shaftMesh = makeMesh(), poolMesh = makeMesh();
+(function buildLights(){
+  var B = new Builder(), K = new Builder();
+  var shaftH = RH - 0.30;
+  EXHIBITS.forEach(function(ex){
+    m4trans(T, ex.px, 0.06, ex.pz);
+    addCylinder(B, T, 1.90, 0.45, shaftH, 30, COL.shaft, 0.030, 0.105, false, false);
+    m4trans(T, ex.px, 0.025, ex.pz);
+    addDisc(K, T, 1.90, 30, COL.pool, 0.105, 0.0);
+  });
+  uploadBuilder(shaftMesh, B);
+  uploadBuilder(poolMesh, K);
+})();
+
+/* ---- 高亮外框（单位立方体线框）与选中环 ---- */
+var hiMesh = makeMesh(), selRing = makeMesh();
+(function buildHelpers(){
+  var B = new Builder(), u = 0.5;
+  var V = [[-u,-u,-u],[u,-u,-u],[u,-u,u],[-u,-u,u],[-u,u,-u],[u,u,-u],[u,u,u],[-u,u,u]];
+  var E = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+  E.forEach(function(e){
+    B.line(xfp(IDENT, V[e[0]][0],V[e[0]][1],V[e[0]][2]),
+           xfp(IDENT, V[e[1]][0],V[e[1]][1],V[e[1]][2]), COL.hi, 1);
+  });
+  uploadBuilder(hiMesh, B);
+  var K = new Builder();
+  addRingLine(K, IDENT, 1.18, 48, COL.sel, 0.95);
+  uploadBuilder(selRing, K);
+  /* 两枚辅助网格的 model 矩阵常驻，避免逐帧新建对象 */
+  hiMesh.model = m4new();
+  selRing.model = m4new();
+})();
+
+/* =========================================================================
+   6. 相机（Camera）
+   ========================================================================= */
+var PRESETS = [
+  { key:'entry', name:'入口全景', az: 0.00, el: 0.20, dist:11.8, tx:1.45, ty:1.82, tz:-2.95, fov:48 },
+  { key:'focus', name:'中央展品', az: 0.34, el: 0.20, dist: 3.9, tx:0.00, ty:2.00, tz:-7.00, fov:38 },
+  { key:'along', name:'沿墙巡览', az: 0.95, el: 0.14, dist: 9.8, tx:0.20, ty:1.60, tz:-3.00, fov:42 },
+  { key:'plan',  name:'俯视平面', az: 0.00, el: 1.44, dist:17.2, tx:0.10, ty:0.00, tz:-4.00, fov:46 },
+  { key:'low',   name:'低角仰视', az:-0.55, el:-0.05, dist: 8.2, tx:0.60, ty:3.10, tz:-2.40, fov:42 }
+];
+var cam = { az:PRESETS[0].az, el:PRESETS[0].el, dist:PRESETS[0].dist,
+            tx:PRESETS[0].tx, ty:PRESETS[0].ty, tz:PRESETS[0].tz, fov:PRESETS[0].fov };
+var fly = null;
+var view = m4new(), proj = m4new(), vp = m4new();
+var EYE = [0,0,0], lastVP = m4new();
+
+function camEye(){
+  var ce = Math.cos(cam.el), se = Math.sin(cam.el);
+  return [ cam.tx + cam.dist*ce*Math.sin(cam.az),
+           cam.ty + cam.dist*se,
+           cam.tz + cam.dist*ce*Math.cos(cam.az) ];
+}
+function startFly(p){
+  var sel = p.sel || null;
+  fly = { t:0, dur:0.85,
+    from:{ az:cam.az, el:cam.el, dist:cam.dist, tx:cam.tx, ty:cam.ty, tz:cam.tz, fov:cam.fov },
+    to:{ az:p.az, el:p.el, dist:p.dist, tx:p.tx, ty:p.ty, tz:p.tz, fov:p.fov || 42 }, key:p.key || null };
+  if (p.key) setActivePreset(p.key); else setActivePreset(null);
+  if (sel) S.selected = findEx(sel); else if (p.clearSel) S.selected = null;
+  return sel;
+}
+function updateFly(dt){
+  if (!fly) return;
+  fly.t += dt/fly.dur;
+  var t = easeInOut(clamp(fly.t,0,1)), a = fly.from, b = fly.to;
+  cam.az = lerp(a.az,b.az,t); cam.el = lerp(a.el,b.el,t); cam.dist = lerp(a.dist,b.dist,t);
+  cam.tx = lerp(a.tx,b.tx,t); cam.ty = lerp(a.ty,b.ty,t); cam.tz = lerp(a.tz,b.tz,t);
+  cam.fov = lerp(a.fov,b.fov,t);
+  if (fly.t >= 1){ cam.az=b.az; cam.el=b.el; cam.dist=b.dist;
+    cam.tx=b.tx; cam.ty=b.ty; cam.tz=b.tz; cam.fov=b.fov; fly = null; }
+}
+
+/* =========================================================================
+   7. 状态与渲染（Renderer 主循环）
+   ========================================================================= */
+var S = {
+  light: 'day',
+  layers: { grid:false, shafts:true, ceiling:true, labels:true, route:false },
+  tour: false,
+  animT: 0,
+  freeze: false,
+  hover: null,
+  hoverPin: false,
+  selected: null,
+  spinDeg: 0
+};
+var W = 1, H = 1, DPR = 1;
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W*DPR); canvas.height = Math.round(H*DPR);
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+window.addEventListener('resize', resize);
+resize();
+
+function render(){
+  var LT = LIGHT[S.light];
+  gl.uniform3fv(U.uLightDir, new Float32Array(LT.dir));
+  gl.uniform3fv(U.uLightColor, new Float32Array(LT.color));
+  gl.uniform3fv(U.uAmbTop, new Float32Array(LT.ambTop));
+  gl.uniform3fv(U.uAmbBot, new Float32Array(LT.ambBot));
+  gl.uniform1f(U.uRim, LT.rim);
+  gl.uniform3fv(U.uFogColor, new Float32Array(LT.fog));
+  gl.uniform1f(U.uFogNear, FOG_NEAR);
+  gl.uniform1f(U.uFogFar, FOG_FAR);
+
+  var e = camEye();
+  EYE[0]=e[0]; EYE[1]=e[1]; EYE[2]=e[2];
+  gl.uniform3fv(U.uEye, new Float32Array(EYE));
+
+  m4persp(proj, cam.fov*Math.PI/180, W/H, 0.35, 340);
+  m4lookat(view, e[0],e[1],e[2], cam.tx,cam.ty,cam.tz, 0,1,0);
+  m4mulOut(vp, proj, view);
+  gl.uniformMatrix4fv(U.uVP, false, vp);
+  for (var i=0;i<16;i++) lastVP[i]=vp[i];
+
+  gl.clearColor(LT.fog[0], LT.fog[1], LT.fog[2], 1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);
+  gl.disable(gl.CULL_FACE);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  /* 建筑与展陈（不透明） */
+  gl.depthMask(true);
+  drawMesh(roomMesh, gl.TRIANGLES, 1, 0, 0, 0.26, 34);
+  if (S.layers.ceiling){
+    drawMesh(ceilMesh, gl.TRIANGLES, 1, 0, 0, 0.16, 24);
+    drawMesh(stripMesh, gl.TRIANGLES, 1, LT.strip, 1);
+    drawMesh(skyMesh, gl.TRIANGLES, LT.sky, 1, 1);
+  }
+  drawMesh(artMesh, gl.TRIANGLES, 1, 0.10, 0, 0.10, 14);
+  drawMesh(shadowFloorMesh, gl.TRIANGLES, 1, 0, 1);
+  drawMesh(plinthMesh, gl.TRIANGLES, 1, 0, 0, 0.20, 22);
+  drawMesh(shadowTopMesh, gl.TRIANGLES, 1, 0, 1);
+
+  /* 六件雕塑：各自材质 + 各自 model 矩阵（W-02 自转） */
+  if (S.tour && !S.freeze && !drag) S.animT += lastDT;
+  S.spinDeg = (S.animT * 31.5) % 360;
+  for (i=0;i<EXHIBITS.length;i++){
+    var ex = EXHIBITS[i];
+    if (ex.spin){
+      m4trans(T, ex.px, ex.ph, ex.pz);
+      m4roty(L, S.spinDeg*Math.PI/180);
+      m4mulOut(ex.model, T, L);
+    }
+    drawMesh(ex.mesh, gl.TRIANGLES, 1, 0, 0, ex.gloss, ex.gloss > 0.5 ? 42 : 16);
+  }
+  if (S.layers.labels) drawMesh(labelMesh, gl.TRIANGLES, 1, 0, 1);
+
+  /* 地面砖缝与参观动线 */
+  if (S.layers.grid){
+    gl.depthMask(false);
+    drawMesh(gridMesh, gl.LINES, 1, 0, 1);
+    gl.depthMask(true);
+  }
+  if (S.layers.route){
+    gl.depthMask(false);
+    drawMesh(routeMesh, gl.LINES, 1, 0, 1);
+    gl.depthMask(true);
+  }
+
+  /* 拾取高亮：外框 + 选中地面环 */
+  var hn = S.hover || S.selected;
+  if (hn){
+    var D = hiMesh.model, th = hn.ph + hn.scH;
+    m4ident(D);
+    D[0]  = hn.pickR * 2;
+    D[5]  = th + 0.14;
+    D[10] = hn.pickR * 2;
+    D[12] = hn.px;
+    D[13] = th / 2;
+    D[14] = hn.pz;
+    gl.depthMask(false);
+    drawMesh(hiMesh, gl.LINES, 1, 0, 1);
+    gl.depthMask(true);
+  }
+  if (S.selected){
+    m4trans(selRing.model, S.selected.px, 0.045, S.selected.pz);
+    gl.depthMask(false);
+    drawMesh(selRing, gl.LINES, 1, 0, 1);
+    gl.depthMask(true);
+  }
+
+  /* 射灯锥与地面光斑：加法混合 */
+  if (S.layers.shafts){
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    gl.depthMask(false);
+    drawMesh(shaftMesh, gl.TRIANGLES, LT.shaft, 0, 1);
+    drawMesh(poolMesh, gl.TRIANGLES, LT.pool, 0, 1);
+    gl.depthMask(true);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  }
+}
+
+/* =========================================================================
+   8. 拾取与投影
+   ========================================================================= */
+function project(x,y,z){
+  var m = lastVP;
+  var cx = m[0]*x + m[4]*y + m[8]*z + m[12];
+  var cy = m[1]*x + m[5]*y + m[9]*z + m[13];
+  var cw = m[3]*x + m[7]*y + m[11]*z + m[15];
+  if (cw <= 0.0001) return null;
+  return { x: (cx/cw*0.5 + 0.5)*W, y: (1 - (cy/cw*0.5 + 0.5))*H };
+}
+function raySphere(o, d, cx,cy,cz, r){
+  var ox=o[0]-cx, oy=o[1]-cy, oz=o[2]-cz;
+  var b = ox*d[0] + oy*d[1] + oz*d[2];
+  var c = ox*ox + oy*oy + oz*oz - r*r;
+  var disc = b*b - c;
+  if (disc < 0) return -1;
+  var s = Math.sqrt(disc), t = -b - s;
+  if (t < 0) t = -b + s;
+  return t < 0 ? -1 : t;
+}
+function pickRay(px, py){
+  var ndcX = (px/W)*2 - 1, ndcY = 1 - (py/H)*2;
+  var e = EYE;
+  var fx = cam.tx-e[0], fy = cam.ty-e[1], fz = cam.tz-e[2];
+  var fl = Math.sqrt(fx*fx+fy*fy+fz*fz)||1; fx/=fl; fy/=fl; fz/=fl;
+  var rxx = fy*0 - fz*1, ryy = fz*0 - fx*0, rzz = fx*1 - fy*0;
+  var rl = Math.sqrt(rxx*rxx+ryy*ryy+rzz*rzz)||1; rxx/=rl; ryy/=rl; rzz/=rl;
+  var upx = ryy*fz - rzz*fy, upy = rzz*fx - rxx*fz, upz = rxx*fy - ryy*fx;
+  var tanH = Math.tan(cam.fov*Math.PI/360), aspect = W/H;
+  var dx = fx + rxx*ndcX*tanH*aspect + upx*ndcY*tanH;
+  var dy = fy + ryy*ndcX*tanH*aspect + upy*ndcY*tanH;
+  var dz = fz + rzz*ndcX*tanH*aspect + upz*ndcY*tanH;
+  var dl = Math.sqrt(dx*dx+dy*dy+dz*dz)||1;
+  return { o:e, d:[dx/dl, dy/dl, dz/dl] };
+}
+function pick(px, py){
+  var r = pickRay(px, py), best = null, bestT = 1e9;
+  for (var i=0;i<EXHIBITS.length;i++){
+    var ex = EXHIBITS[i];
+    var t1 = raySphere(r.o, r.d, ex.px, ex.ph + ex.scH/2, ex.pz, ex.pickR);
+    var t2 = raySphere(r.o, r.d, ex.px, ex.ph/2, ex.pz, PLINTH_R + 0.30);
+    var t = Math.min(t1 < 0 ? 1e9 : t1, t2 < 0 ? 1e9 : t2);
+    if (t < bestT){ bestT = t; best = ex; }
+  }
+  return bestT > 1e8 ? null : best;
+}
+
+/* ---- 展签标注：DOM 覆盖层，逐帧跟随相机投影 ---- */
+var CAPS = [];
+function buildCaps(){
+  var box = $('caps');
+  box.innerHTML = '';
+  CAPS = [];
+  EXHIBITS.forEach(function(ex){
+    var d = document.createElement('div');
+    d.className = 'cap';
+    d.innerHTML = '<b>' + ex.id + '</b>' + ex.name;
+    box.appendChild(d);
+    CAPS.push({ el:d, ex:ex });
+  });
+}
+function layoutCaps(){
+  var on = !!S.layers.labels;
+  /* 聚焦/选中某件作品时，只保留该件的展签，避免其它展签压在主体上 */
+  var only = S.selected || null;
+  for (var i=0;i<CAPS.length;i++){
+    var el = CAPS[i].el, ex = CAPS[i].ex;
+    if (!on || (only && ex !== only)){
+      if (el.style.display !== 'none') el.style.display = 'none';
+      continue;
+    }
+    var p = project(ex.px, ex.ph*0.55, ex.pz + PLINTH_R + 0.05);
+    if (!p || p.x < -80 || p.x > W + 80 || p.y < 62 || p.y > H + 40){
+      if (el.style.display !== 'none') el.style.display = 'none';
+      continue;
+    }
+    if (el.style.display !== 'block') el.style.display = 'block';
+    if (CAPS[i].w === undefined && el.offsetWidth) CAPS[i].w = el.offsetWidth;
+    var hw = (CAPS[i].w || 36) * 0.5;
+    var capX = Math.min(Math.max(p.x, hw + 6), W - hw - 6);
+    el.style.transform = 'translate(' + Math.round(capX) + 'px,' + Math.round(p.y) + 'px) translate(-50%,-50%)';
+  }
+}
+
+/* =========================================================================
+   9. UI（顶栏 / 右侧面板 / 浮层 / 详情卡）
+   ========================================================================= */
+var $ = function(id){ return document.getElementById(id); };
+function findEx(id){
+  for (var i=0;i<EXHIBITS.length;i++) if (EXHIBITS[i].id === id) return EXHIBITS[i];
+  return null;
+}
+function refreshSource(){
+  $('srcTxt').textContent = '数据源：' + dataSource;
+  $('srcDot').style.background = (dataSource === 'exhibits.json') ? '#7fd8ff' : '#7fbf8f';
+  $('src').title = dataNote;
+}
+function setActivePreset(key){
+  var bs = document.querySelectorAll('#presets .pbtn');
+  for (var i=0;i<bs.length;i++){
+    bs[i].setAttribute('aria-pressed', bs[i].getAttribute('data-key') === key ? 'true' : 'false');
+  }
+}
+(function buildPresets(){
+  var box = $('presets');
+  PRESETS.forEach(function(p){
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'pbtn'; b.textContent = p.name;
+    b.setAttribute('data-key', p.key); b.setAttribute('aria-pressed','false');
+    b.addEventListener('click', function(){
+      S.selected = null; hideCard();
+      startFly(p);
+      syncRows();
+    });
+    box.appendChild(b);
+  });
+})();
+
+(function buildLightSeg(){
+  var box = $('lightSeg');
+  ['day','spot','cool'].forEach(function(k){
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'lbtn'; b.textContent = LIGHT[k].name;
+    b.setAttribute('data-light', k);
+    b.setAttribute('aria-pressed', k === S.light ? 'true' : 'false');
+    b.addEventListener('click', function(){ setLightMode(k); });
+    box.appendChild(b);
+  });
+})();
+function setLightMode(k){
+  S.light = k;
+  var bs = document.querySelectorAll('#lightSeg .lbtn');
+  for (var i=0;i<bs.length;i++){
+    bs[i].setAttribute('aria-pressed', bs[i].getAttribute('data-light') === k ? 'true' : 'false');
+  }
+  $('lightName').textContent = LIGHT[k].name;
+  updateStats();
+}
+
+var LAYER_DEF = [['grid','地面砖缝'],['shafts','射灯锥'],['ceiling','天花与灯带'],['labels','展签'],['route','参观动线']];
+(function buildLayers(){
+  var box = $('layers');
+  LAYER_DEF.forEach(function(l){
+    var w = document.createElement('label');
+    w.className = 'chk';
+    w.innerHTML = '<input type="checkbox" data-layer="' + l[0] + '"><span>' + l[1] + '</span>';
+    var inp = w.querySelector('input');
+    inp.checked = !!S.layers[l[0]];
+    inp.addEventListener('change', function(){ S.layers[l[0]] = this.checked; updateStats(); });
+    box.appendChild(w);
+  });
+})();
+$('tourChk').addEventListener('change', function(){
+  S.tour = this.checked;
+  if (!S.tour) S.freeze = false;
+  updateStats();
+});
+
+function updateStats(){
+  var box = $('stats');
+  box.innerHTML =
+    '<div class="st"><b>' + EXHIBITS.length + ' 件</b><span>在展作品</span></div>' +
+    '<div class="st"><b>' + AREA + ' m²</b><span>展区面积</span></div>' +
+    '<div class="st"><b>' + RH.toFixed(1) + ' m</b><span>层高</span></div>' +
+    '<div class="st"><b>' + cam.dist.toFixed(1) + ' m</b><span>相机距离</span></div>' +
+    '<div class="st"><b>' + LIGHT[S.light].name + '</b><span>照明模式</span></div>' +
+    '<div class="st"><b>' + S.spinDeg.toFixed(0) + '°</b><span>环体转角</span></div>';
+}
+var ROWS = [];
+function updateList(){
+  var box = $('listBody');
+  box.innerHTML = '';
+  ROWS = [];
+  EXHIBITS.forEach(function(ex){
+    var d = document.createElement('div');
+    d.className = 'row';
+    d.setAttribute('role','button');
+    d.innerHTML = '<span class="sw" style="background:' + ex.color + '"></span>' +
+                  '<span class="id">' + ex.id + '</span>' +
+                  '<span class="nm">' + ex.name + '</span>' +
+                  '<span class="au">' + ex.author + '</span>';
+    d.addEventListener('click', function(){ focusExhibit(ex.id); });
+    d.addEventListener('mouseenter', function(){ setHover(ex); });
+    d.addEventListener('mouseleave', function(){ setHover(null); });
+    box.appendChild(d);
+    ROWS.push({ el:d, ex:ex });
+  });
+  $('listCnt').textContent = EXHIBITS.length + ' 件';
+  syncRows();
+}
+/* 只改 aria-current，不重建节点，避免悬停时列表闪烁 */
+function syncRows(){
+  for (var i=0;i<ROWS.length;i++){
+    ROWS[i].el.setAttribute('aria-current', S.selected && S.selected.id === ROWS[i].ex.id ? 'true' : 'false');
+  }
+}
+
+/* ---- 悬停浮层 ---- */
+function placeTipAtExhibit(ex){
+  var tip = $('tip');
+  var p = project(ex.px, ex.ph + ex.scH + 0.42, ex.pz);
+  if (!p) { tip.style.display = 'none'; return false; }
+  tip.style.display = 'block';
+  tip.style.left = Math.round(clamp(p.x + 16, 8, Math.max(8, W - 240))) + 'px';
+  tip.style.top  = Math.round(clamp(p.y - 62, 68, Math.max(68, H - 200))) + 'px';
+  return true;
+}
+/* pin = true 表示由接口指定（浮层锚定展品），false 表示跟随鼠标 */
+function setHover(ex, pin){
+  S.hover = ex;
+  S.hoverPin = !!pin;
+  var tip = $('tip');
+  if (!ex){ tip.style.display = 'none'; return; }
+  $('tipId').textContent = ex.id + ' · 无隅藏品 № ' + ex.id.substr(2);
+  $('tipName').innerHTML = ex.name + '<em>' + ex.en + '</em>';
+  $('tipRows').innerHTML =
+    '<span>作者</span><span>' + ex.author + '</span>' +
+    '<span>年份</span><span>' + ex.year + '</span>' +
+    '<span>材质</span><span>' + ex.mat + '</span>' +
+    '<span>尺寸</span><span>' + ex.size + '</span>';
+  if (!placeTipAtExhibit(ex)) return;
+}
+function moveHoverTo(px, py){
+  if (!S.hover) return;
+  var tip = $('tip');
+  tip.style.left = Math.round(clamp(px + 16, 8, W - 222)) + 'px';
+  tip.style.top  = Math.round(clamp(py - 58, 68, H - 210)) + 'px';
+}
+
+/* ---- 作品详情卡 ---- */
+function showCard(ex){
+  $('cardId').textContent = ex.id + ' · 无隅当代雕塑数字展厅';
+  $('cardName').textContent = ex.name;
+  $('cardEn').textContent = ex.en + ' / ' + ex.year;
+  $('cardMeta').innerHTML =
+    '<span>作者</span><span>' + ex.author + '</span>' +
+    '<span>材质</span><span>' + ex.mat + '</span>' +
+    '<span>尺寸</span><span>' + ex.size + '</span>' +
+    '<span>展台高</span><span>' + ex.ph.toFixed(2) + ' m</span>' +
+    '<span>状态</span><span>在展 · ' + (ex.spin ? '沿中轴自转' : '静态陈列') + '</span>';
+  $('cardDesc').textContent = ex.desc;
+  $('card').style.display = 'block';
+}
+function hideCard(){ $('card').style.display = 'none'; }
+$('cardClose').addEventListener('click', function(){ S.selected = null; hideCard(); syncRows(); });
+
+function focusExhibit(id){
+  var ex = findEx(id);
+  if (!ex) return;
+  S.selected = ex;
+  showCard(ex);
+  syncRows();
+  startFly({ az: ex.pz < -5 ? 0.30 : 0.34, el: 0.19, dist: Math.max(3.1, ex.pickR*4.0),
+             tx: ex.px, ty: ex.ph + ex.scH/2, tz: ex.pz, fov: 38, sel: id });
+}
+
+/* =========================================================================
+   10. 交互：轨道相机
+   ========================================================================= */
+var drag = null;
+canvas.addEventListener('mousedown', function(ev){
+  drag = { x:ev.clientX, y:ev.clientY, btn:ev.button,
+           az:cam.az, el:cam.el, tx:cam.tx, ty:cam.ty };
+  canvas.style.cursor = 'grabbing';
+  if (ev.button !== 0) ev.preventDefault();
+});
+window.addEventListener('mouseup', function(){ drag = null; canvas.style.cursor = 'grab'; });
+window.addEventListener('mousemove', function(ev){
+  if (drag){
+    var dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+    if (drag.btn === 0){
+      cam.az = drag.az - dx*0.006;
+      cam.el = clamp(drag.el + dy*0.005, -0.40, 1.50);
+      fly = null; setActivePreset(null);
+    } else {
+      var sc = cam.dist*0.0022, ce = Math.cos(cam.az), se = Math.sin(cam.az);
+      cam.tx = drag.tx - (dx*ce)*sc*0.9 - (dy*se)*sc*0.9;
+      cam.ty = clamp(drag.ty + dy*sc*0.55, 0.4, 6.0);
+      fly = null;
+    }
+    return;
+  }
+  var ex = pick(ev.clientX, ev.clientY);
+  if (ex !== S.hover){ setHover(ex); }
+  else if (ex) moveHoverTo(ev.clientX, ev.clientY);
+});
+canvas.addEventListener('contextmenu', function(ev){ ev.preventDefault(); });
+canvas.addEventListener('wheel', function(ev){
+  ev.preventDefault();
+  cam.dist = clamp(cam.dist * Math.exp(ev.deltaY*0.0012), 2.2, 30);
+  fly = null; setActivePreset(null);
+  updateStats();
+}, { passive:false });
+canvas.addEventListener('click', function(ev){
+  var ex = pick(ev.clientX, ev.clientY);
+  if (ex) focusExhibit(ex.id);
+});
+canvas.style.cursor = 'grab';
+window.addEventListener('keydown', function(ev){
+  if (ev.key === 'Escape'){ S.selected = null; hideCard(); syncRows(); }
+  var n = parseInt(ev.key, 10);
+  if (n >= 1 && n <= PRESETS.length){
+    S.selected = null; hideCard(); syncRows();
+    startFly(PRESETS[n-1]);
+  }
+});
+
+/* =========================================================================
+   11. 外部展品表加载（失败回退内置表）
+   ========================================================================= */
+function applyExternal(list){
+  var out = [];
+  for (var i=0;i<list.length;i++){
+    var r = list[i];
+    if (!r || !r.id) continue;
+    var b = BUILTIN[i % BUILTIN.length];
+    out.push({
+      id:String(r.id), name:r.name || b.name, en:r.en || b.en,
+      author:r.author || b.author, year:r.year || b.year,
+      mat:r.mat || b.mat, size:r.size || b.size,
+      px:(typeof r.px === 'number') ? r.px : b.px,
+      pz:(typeof r.pz === 'number') ? r.pz : b.pz,
+      ph:(typeof r.ph === 'number') ? r.ph : b.ph,
+      scH:b.scH, pickR:b.pickR,
+      color:r.color || b.color, gloss:b.gloss, form:b.form, spin:b.spin,
+      desc:r.desc || b.desc
+    });
+  }
+  return out.length ? out : null;
+}
+function loadExhibits(done){
+  var finished = false;
+  function fallback(){
+    if (finished) return; finished = true;
+    dataSource = '内置展品表';
+    dataNote = '未检测到同目录 exhibits.json，已使用内置展品表';
+    refreshSource(); done();
+  }
+  try {
+    if (typeof fetch !== 'function'){ fallback(); return; }
+    var timer = setTimeout(fallback, 1200);
+    fetch('exhibits.json', { cache:'no-store' }).then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(j){
+      clearTimeout(timer);
+      if (finished) return; finished = true;
+      var list = (j && j.exhibits) ? applyExternal(j.exhibits) : null;
+      if (list){ EXHIBITS = list; dataSource = 'exhibits.json'; dataNote = '已读取同目录展品表 exhibits.json'; }
+      else { dataSource = '内置展品表'; dataNote = 'exhibits.json 内容无效，已回退内置展品表'; }
+      refreshSource(); done();
+    })['catch'](function(){ clearTimeout(timer); fallback(); });
+  } catch (e) { fallback(); }
+}
+
+/* =========================================================================
+   12. 主循环
+   ========================================================================= */
+var last = 0, started = 0, fps = 60, fpsAcc = 0, fpsN = 0, lastDT = 0, statAcc = 0;
+function frame(ts){
+  if (!started) { started = ts; last = ts; }
+  var dt = Math.min((ts - last)/1000 || 0, 0.05);
+  last = ts; lastDT = dt;
+
+  fpsAcc += dt; fpsN++;
+  if (fpsAcc >= 0.5){ fps = fpsN/fpsAcc; fpsAcc = 0; fpsN = 0; $('fpsTag').textContent = fps.toFixed(0) + ' FPS'; }
+  statAcc += dt;
+  if (statAcc >= 0.25){ statAcc = 0; updateStats(); }
+
+  if (fly) updateFly(dt);
+  else if (S.tour && !S.freeze && !drag) cam.az += dt*0.055;
+
+  render();
+  /* 覆盖层跟随相机：锚定式浮层与展签标注重新投影 */
+  layoutCaps();
+  if (S.hover && S.hoverPin) placeTipAtExhibit(S.hover);
+  requestAnimationFrame(frame);
+}
+
+/* 启动 */
+setLightMode('day');
+updateList();
+updateStats();
+buildCaps();
+setActivePreset('entry');
+loadExhibits(function(){ updateList(); updateStats(); buildCaps(); });
+
+/* 暴露少量状态接口，便于自动化核对与调试 */
+window.WUYU = {
+  state: S, cam: cam, presets: PRESETS,
+  exhibits: function(){ return EXHIBITS; },
+  set: function(o){
+    o = o || {};
+    if (o.light) setLightMode(o.light);
+    if (o.layers) for (var k in o.layers) if (k in S.layers) S.layers[k] = !!o.layers[k];
+    if (o.tour !== undefined) { S.tour = !!o.tour; $('tourChk').checked = S.tour; }
+    if (o.freeze !== undefined) S.freeze = !!o.freeze;
+    if (o.animT !== undefined) S.animT = o.animT;
+    /* 先定位相机，再决定选中与悬停，浮层才能落在正确位置 */
+    if (o.view){
+      if (typeof o.view === 'string'){
+        for (var i=0;i<PRESETS.length;i++) if (PRESETS[i].key === o.view){
+          var p = PRESETS[i];
+          cam.az=p.az; cam.el=p.el; cam.dist=p.dist; cam.tx=p.tx; cam.ty=p.ty; cam.tz=p.tz; cam.fov=p.fov;
+          setActivePreset(p.key);
+        }
+      } else {
+        var v = o.view;
+        if (v.az !== undefined) cam.az = v.az;
+        if (v.el !== undefined) cam.el = v.el;
+        if (v.dist !== undefined) cam.dist = v.dist;
+        if (v.tx !== undefined) cam.tx = v.tx;
+        if (v.ty !== undefined) cam.ty = v.ty;
+        if (v.tz !== undefined) cam.tz = v.tz;
+        if (v.fov !== undefined) cam.fov = v.fov;
+        setActivePreset(null);
+      }
+      fly = null;
+    }
+    if (o.select !== undefined){
+      S.selected = o.select ? findEx(o.select) : null;
+      if (S.selected){ showCard(S.selected); } else { hideCard(); }
+    }
+    if (o.hover !== undefined) setHover(o.hover ? findEx(o.hover) : null, true);
+    var cb = document.querySelectorAll('#layers input');
+    for (var j=0;j<cb.length;j++) cb[j].checked = !!S.layers[cb[j].getAttribute('data-layer')];
+    syncRows(); updateStats();
+  },
+  hoverAt: function(x,y){ setHover(pick(x,y)); },
+  hoverId: function(id){ setHover(id ? findEx(id) : null, true); return id; },
+  pickAt: function(x,y){ var ex = pick(x,y); if (ex) focusExhibit(ex.id); return ex ? ex.id : null; },
+  focus: function(id){ focusExhibit(id); return id; },
+  info: function(){
+    return {
+      source: dataSource,
+      exhibits: EXHIBITS.length,
+      light: S.light,
+      layers: S.layers,
+      tour: S.tour,
+      freeze: !!S.freeze,
+      hover: S.hover ? S.hover.id : null,
+      selected: S.selected ? S.selected.id : null,
+      spinDeg: +S.spinDeg.toFixed(1),
+      cam: { az:+cam.az.toFixed(3), el:+cam.el.toFixed(3), dist:+cam.dist.toFixed(2),
+             tx:+cam.tx.toFixed(2), ty:+cam.ty.toFixed(2), tz:+cam.tz.toFixed(2), fov:+cam.fov.toFixed(1) },
+      eye: [ +EYE[0].toFixed(2), +EYE[1].toFixed(2), +EYE[2].toFixed(2) ],
+      fps: +fps.toFixed(0)
+    };
+  }
+};
+
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

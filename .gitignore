@@ -1,0 +1,15 @@
+# 浏览器配置转储与自动化中间产物（约 333MB）
+_tools/
+
+# 数据恢复残留
+photorec.log
+photorec.se2
+
+# 编辑器 / 系统
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 常见临时文件
+*.tmp
+*.log

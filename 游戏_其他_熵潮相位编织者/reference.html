@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>熵潮 · 相位编织者 ENTROPY TIDE — PHASE WEAVER</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#05080e; --pane:#0a1018; --pane2:#0d1520; --line:#182432; --line2:#22323f;
+  --tx:#c8d6e4; --dim:#5f7386; --dim2:#3d4e5e;
+  --host:#ff3d7f; --ally:#35e0d0; --ener:#ffc247; --ent:#9a6bff; --ok:#4fd68a;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg); color:var(--tx);
+  font:12px/1.5 "Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.app{
+  height:100vh; display:grid; gap:6px; padding:6px;
+  grid-template-columns:250px minmax(0,1fr) 300px;
+  grid-template-rows:46px minmax(0,1fr) 198px;
+  grid-template-areas:"hdr hdr hdr" "cl main cr" "cl led cr";
+}
+.card{background:var(--pane);border:1px solid var(--line);border-radius:4px;overflow:hidden;position:relative}
+.card.fill{display:grid;grid-template-rows:26px minmax(0,1fr)}
+.ct{height:26px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 9px;border-bottom:1px solid var(--line);
+    font-size:10.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase}
+.ct b{color:var(--tx);font-weight:600;letter-spacing:.05em}
+.ct i{font-style:normal;font-size:9.5px;color:var(--dim2);letter-spacing:.1em}
+
+/* ---------- 顶栏 ---------- */
+.hdr{grid-area:hdr;display:flex;align-items:center;gap:0;
+     background:linear-gradient(180deg,#0c141f,#080d14);
+     border:1px solid var(--line);border-radius:4px;padding:0 14px}
+.brand{display:flex;align-items:baseline;gap:9px;padding-right:18px;border-right:1px solid var(--line)}
+.brand h1{font-size:15px;letter-spacing:.24em;font-weight:700;
+  background:linear-gradient(90deg,var(--ally),var(--ent) 62%,var(--host));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.brand span{font-size:9px;letter-spacing:.32em;color:var(--dim2)}
+.stats{display:flex;align-items:center;gap:0;margin-left:auto}
+.st{padding:0 15px;border-left:1px solid var(--line);text-align:right;min-width:74px}
+.st u{display:block;font-size:9px;letter-spacing:.17em;color:var(--dim2);text-decoration:none}
+.st b{display:block;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.st b small{font-size:9px;color:var(--dim);margin-left:2px;font-weight:400}
+#tEnt b{color:var(--ent)} #tEner b{color:var(--ener)} #tShld b{color:var(--ok)}
+#tHost b{color:var(--host)} #tAlly b{color:var(--ally)}
+
+/* ---------- 左栏 ---------- */
+.cl{grid-area:cl;display:grid;gap:6px;grid-template-rows:auto auto auto minmax(0,1fr);min-height:0}
+.brief{padding:9px 11px;font-size:11px;color:#94a8b8;line-height:1.62}
+.brief em{font-style:normal;color:var(--ally)}
+.brief s{text-decoration:none;color:var(--host)}
+.glist{padding:6px 8px 8px}
+.gi{display:grid;grid-template-columns:15px minmax(0,1fr);gap:7px;padding:4px 0;border-top:1px dashed #142030}
+.gi:first-child{border-top:0}
+.gi u{text-decoration:none;font-size:9.5px;color:var(--ent);font-variant-numeric:tabular-nums;
+      border:1px solid #2a2140;border-radius:2px;height:15px;line-height:13px;text-align:center}
+.gi b{display:block;font-size:10.5px;color:#b6c6d4;font-weight:600;letter-spacing:.03em}
+.gi s{display:block;text-decoration:none;font-size:9.5px;color:var(--dim);line-height:1.42;margin-top:1px}
+.fld{padding:5px 9px 8px}
+.fr{display:flex;justify-content:space-between;align-items:baseline;padding:3.5px 0;border-top:1px dashed #142030}
+.fr:first-child{border-top:0}
+.fr u{text-decoration:none;font-size:10px;color:var(--dim);letter-spacing:.05em}
+.fr b{font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--tx)}
+.radw{position:relative;min-height:0}
+.radw canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+/* ---------- 主视口 ---------- */
+.main{grid-area:main;display:grid;grid-template-rows:26px minmax(0,1fr);min-height:0}
+.arenaw{position:relative;min-height:0;background:#04060b}
+.arenaw canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.chips{position:absolute;top:8px;left:8px;right:8px;display:flex;flex-wrap:wrap;gap:5px;
+       max-width:calc(100% - 16px);pointer-events:none;justify-content:center}
+.chip{font-size:10px;letter-spacing:.05em;padding:3px 9px;border-radius:11px;
+      background:rgba(9,14,22,.82);border:1px solid var(--line2);color:#8fa3b4;white-space:nowrap}
+.chip b{color:var(--ally);font-weight:600;margin-left:3px;font-size:9px}
+.ovl{position:absolute;left:8px;right:8px;bottom:8px;display:flex;gap:8px;align-items:flex-end;pointer-events:none}
+.sband{display:flex;align-items:center;gap:8px;padding:5px 11px;border-radius:3px;
+       background:rgba(7,11,18,.9);border:1px solid var(--line2);backdrop-filter:blur(4px)}
+.sband i{width:8px;height:8px;border-radius:50%;background:var(--ally);flex:none}
+.sband b{font-size:11.5px;letter-spacing:.09em;font-weight:600}
+.sband s{text-decoration:none;font-size:10px;color:var(--dim)}
+.keys{margin-left:auto;font-size:9.5px;color:var(--dim2);letter-spacing:.05em;text-align:right;line-height:1.5}
+
+/* ---------- 右栏 ---------- */
+.cr{grid-area:cr;display:grid;gap:6px;grid-template-rows:236px auto minmax(0,1fr);min-height:0}
+.gauges{position:relative;min-height:0}
+.gauges canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.yield{padding:5px 9px 7px}
+.yr{display:grid;grid-template-columns:minmax(0,1fr) 52px 62px;gap:6px;align-items:baseline;
+    padding:3.5px 0;border-top:1px dashed #142030;font-size:10px}
+.yr:first-child{border-top:0}
+.yr u{text-decoration:none;color:var(--dim);letter-spacing:.04em}
+.yr b{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ener)}
+.yr s{text-decoration:none;text-align:right;color:var(--dim2);font-size:9.5px;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logw{overflow:hidden;padding:5px 8px 7px}
+.lg{display:grid;grid-template-columns:56px minmax(0,1fr);gap:6px;padding:2.5px 0;
+    border-top:1px dashed #142030;font-size:10px;line-height:1.45}
+.lg:first-child{border-top:0}
+.lg u{text-decoration:none;color:var(--dim2);font-variant-numeric:tabular-nums;font-size:9px;padding-top:1px}
+.lg b{font-weight:400;color:#9db0c0}
+.lg b i{font-style:normal;color:var(--ally)}
+.lg b s{text-decoration:none;color:var(--host)}
+.lg b em{font-style:normal;color:var(--ener)}
+
+/* ---------- 台账 ---------- */
+.led{grid-area:led;display:grid;grid-template-rows:26px minmax(0,1fr)}
+.lb{padding:6px 10px}
+.lr{display:grid;grid-template-columns:104px 92px minmax(0,1fr);gap:9px;align-items:baseline;
+    padding:4px 0;border-top:1px dashed #142030;font-size:10.5px}
+.lr:first-child{border-top:0}
+.lr u{text-decoration:none;color:var(--dim);letter-spacing:.04em}
+.lr b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--ally);font-size:12px}
+.lr s{text-decoration:none;color:var(--dim2);font-size:9.5px;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- 结算 ---------- */
+.settle{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+        background:rgba(3,5,9,.82);backdrop-filter:blur(3px)}
+.settle.on{display:flex}
+.sbox{width:min(760px,92vw);background:linear-gradient(180deg,#0d1520,#080e16);
+      border:1px solid var(--line2);border-radius:5px;
+      box-shadow:0 22px 70px rgba(0,0,0,.75);overflow:hidden}
+.shd{display:flex;align-items:baseline;gap:12px;padding:13px 18px;border-bottom:1px solid var(--line)}
+.shd b{font-size:15px;letter-spacing:.2em}
+.shd s{text-decoration:none;font-size:9.5px;letter-spacing:.28em;color:var(--dim2)}
+.shd i{margin-left:auto;font-style:normal;font-size:9.5px;color:var(--dim);letter-spacing:.1em}
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr)}
+.sc{padding:16px 18px;border-right:1px solid var(--line)}
+.sc:last-child{border-right:0}
+.sc u{display:block;text-decoration:none;font-size:10px;letter-spacing:.14em;color:var(--dim)}
+.sc b{display:block;font-size:34px;font-weight:700;line-height:1.22;font-variant-numeric:tabular-nums;
+      letter-spacing:-.01em;color:var(--ally)}
+.sc b small{font-size:13px;color:var(--dim);margin-left:3px;font-weight:400}
+.sc s{display:block;text-decoration:none;font-size:9.5px;color:var(--dim2);line-height:1.5;margin-top:5px}
+.sfoot{display:flex;align-items:center;gap:14px;padding:11px 18px;border-top:1px solid var(--line);
+       font-size:10px;color:var(--dim);letter-spacing:.05em}
+.sfoot button{margin-left:auto;font:600 11.5px/1 inherit;letter-spacing:.12em;color:#04121a;
+  background:linear-gradient(180deg,#5ff0dd,#25c3b3);border:0;border-radius:3px;
+  padding:9px 20px;cursor:pointer}
+.sfoot button:hover{filter:brightness(1.12)}
+
+@media (max-width:1220px){
+  .app{grid-template-columns:216px minmax(0,1fr) 264px}
+  .st{padding:0 10px;min-width:62px}
+  .st b{font-size:13px}
+}
+@media (max-width:980px){
+  .app{grid-template-columns:minmax(0,1fr) 252px;
+       grid-template-rows:44px minmax(0,1fr) 176px;
+       grid-template-areas:"hdr hdr" "main cr" "led cr"}
+  .cl{display:none}
+  .keys{display:none}
+}
+@media (max-width:719px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:44px minmax(0,1fr) 150px 168px;
+       grid-template-areas:"hdr" "main" "cr" "led";padding:4px;gap:4px}
+  .cr{grid-template-rows:190px auto minmax(0,1fr)}
+  .stats .st:nth-child(n+5){display:none}
+  .chips{display:none}
+  .sc b{font-size:26px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hdr">
+    <div class="brand"><h1>熵潮 · 相位编织者</h1><span>ENTROPY TIDE / PHASE WEAVER</span></div>
+    <div class="stats">
+      <div class="st"><u>波次</u><b id="tWave">1</b></div>
+      <div class="st"><u>种子</u><b id="tSeed">20261108</b></div>
+      <div class="st"><u>熵值</u><b id="tEnt">0<small>%</small></b></div>
+      <div class="st"><u>熵能</u><b id="tEner">0<small>%</small></b></div>
+      <div class="st"><u>护盾</u><b id="tShld">100<small>%</small></b></div>
+      <div class="st"><u>敌弹</u><b id="tHost">0</b></div>
+      <div class="st"><u>反演</u><b id="tAlly">0</b></div>
+      <div class="st"><u>极性</u><b id="tPol">吸附</b></div>
+    </div>
+  </header>
+
+  <aside class="cl">
+    <div class="card">
+      <div class="ct"><b>作战纲要</b><i>SEED <span id="bSeed">20261108</span></i></div>
+      <div class="brief">
+        相位核心被投入<em>熵潮海域</em>。海域内散布<em>引力井</em>，弹幕在其中穿行时受时空度量支配——
+        <s>同一时刻不同区域的弹速并不相同</s>。核心自身不产生能量：唯一回充途径是
+        <em>贴近敌方弹幕滑行</em>，而贴近会以更高的次幂侵蚀护盾。
+        静止不动时熵增加速，熵能随之加速流失——<em>越稳死得越快</em>。
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ct"><b>复合手势</b><i>5 GROUPS</i></div>
+      <div class="glist" id="glist"></div>
+    </div>
+
+    <div class="card">
+      <div class="ct"><b>场域读数</b><i>LIVE</i></div>
+      <div class="fld">
+        <div class="fr"><u>时空度量 μ</u><b id="fMet">1.000</b></div>
+        <div class="fr"><u>局部弹速增益</u><b id="fSpd">+0%</b></div>
+        <div class="fr"><u>敌弹密度</u><b id="fDen">0 / 0</b></div>
+        <div class="fr"><u>擦弹贴近度</u><b id="fGrz">0.00</b></div>
+        <div class="fr"><u>静止系数</u><b id="fStl">1.00</b></div>
+        <div class="fr"><u>相位冷却</u><b id="fCd">0 ms</b></div>
+        <div class="fr"><u>引力井</u><b id="fWell">0</b></div>
+      </div>
+    </div>
+
+    <div class="card fill">
+      <div class="ct"><b>弹幕拓扑雷达</b><i>俯视</i></div>
+      <div class="radw"><canvas id="cvRadar"></canvas></div>
+    </div>
+  </aside>
+
+  <main class="main card">
+    <div class="ct"><b>战场主视口</b><i id="tagR">μ 1.000</i></div>
+    <div class="arenaw">
+      <canvas id="cvArena"></canvas>
+      <div class="chips">
+        <div class="chip">聚焦<b>SHIFT</b></div>
+        <div class="chip">瞬切<b>E</b></div>
+        <div class="chip">反演<b>Q</b></div>
+        <div class="chip">冲刺<b>双击方向</b></div>
+        <div class="chip">结算<b>F</b></div>
+      </div>
+      <div class="ovl">
+        <div class="sband"><i id="stDot"></i><b id="stName">NEUTRAL_PATROL</b><s id="stSub">相位中立巡航</s></div>
+        <div class="keys">WASD / 方向键 推进 · SHIFT 聚焦滑行<br>Q 反演齐射 · E 相位瞬切 · 双击方向 相位冲刺</div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="cr">
+    <div class="card fill">
+      <div class="ct"><b>仪表阵列</b><i>DECK · 5 MODULES</i></div>
+      <div class="gauges"><canvas id="cvGauge"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="ct"><b>收益倍率表</b><i id="yMul">×1.000</i></div>
+      <div class="yield" id="yield"></div>
+    </div>
+
+    <div class="card fill">
+      <div class="ct"><b>事件流</b><i>只增不减</i></div>
+      <div class="logw" id="logBox"></div>
+    </div>
+  </aside>
+
+  <section class="led card">
+    <div class="ct"><b>实时因果台账</b><i>逐帧数组回溯 · <span id="ldN">0</span> 帧</i></div>
+    <div class="lb">
+      <div class="lr"><u>擦弹转化率</u><b id="ldA">0.0%</b><s>擦弹获得熵能 / （获得 + 熵值衰减流失）</s></div>
+      <div class="lr"><u>熵值时间均值</u><b id="ldB">0.0%</b><s>全时段熵值的加权时间积分均值</s></div>
+      <div class="lr"><u>反演收益率</u><b id="ldC">0.0%</b><s>被反演转化的弹幕数 / 累计生成弹幕数</s></div>
+    </div>
+  </section>
+
+</div>
+
+<div class="settle" id="settle">
+  <div class="sbox">
+    <div class="shd"><b>跃迁结算</b><s>RUN SETTLEMENT</s><i id="sRun">PW-3392-K · SEED 20261108</i></div>
+    <div class="sgrid">
+      <div class="sc"><u>擦弹转化率</u><b id="sA">0.0<small>%</small></b><s id="sAd">—</s></div>
+      <div class="sc"><u>熵值时间均值</u><b id="sB">0.0<small>%</small></b><s id="sBd">—</s></div>
+      <div class="sc"><u>反演收益率</u><b id="sC">0.0<small>%</small></b><s id="sCd">—</s></div>
+    </div>
+    <div class="sfoot"><span id="sFoot">—</span><button id="btnRestart">重新跃迁</button></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   熵潮 · 相位编织者  ENTROPY TIDE / PHASE WEAVER
+   世界事实层（确定性 · 无外部随机源 · 无网络资源）
+   ============================================================ */
+var SEED = 20261108;
+var RUNID = 'PW-3392-K';
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+var RNG = mulberry32(SEED);
+
+/* ---------- 物理常量（世界单位：像素 / 秒） ---------- */
+var PHYS = {
+  AW: 1600, AH: 1000,        // 战场世界尺寸
+  CORE_R: 10,                // 相位核心半径
+  HIT_R: 12,                 // 命中判定半径
+  GRAZE_R: 40,               // 擦弹判定半径
+  ACC: 2500,                 // 核心推进加速度
+  DRAG: 2.85,                // 无输入阻尼
+  MAXV: 385,                 // 额定巡航速度（归一化基准）
+  FOCUS_MUL: 0.42,           // 聚焦滑行的推进/限速倍率
+  FOCUS_GRAZE: 1.5,          // 聚焦滑行的擦弹半径倍率
+  GRAZE_GAIN: 54,            // 满强度擦弹的熵能获取（每秒）
+  SHIELD_DRAIN: 56,          // 满强度擦弹的护盾流失（每秒）
+  ENT_BASE: 0.050,           // 熵值基础增速（每秒）
+  ENT_STILL: 0.40,           // 静止附加熵增（每秒）
+  ENERGY_DECAY: 25,          // 熵能衰减系数（每秒 × 熵值）
+  ENERGY_MAX: 100,
+  SHIELD_MAX: 100,
+  HIT_COST: 31,              // 被弹幕命中的护盾损失
+  HIT_INV: 850,              // 命中后的无敌帧
+  POLAR_CD: 600,             // 相位瞬切冷却
+  POLAR_COST: 13,            // 相位瞬切熵能消耗
+  INV_MIN: 60,               // 反演齐射的熵能门槛
+  INV_R: 225,                // 反演作用半径
+  INV_SHIELD: 24,            // 反演回充护盾
+  INV_LIFE: 1900,            // 反演弹幕存活时长
+  DASH_COST: 22,             // 相位冲刺熵能消耗
+  DASH_V: 780,               // 冲刺初速
+  DASH_MS: 250,              // 冲刺持续
+  DASH_CD: 900,              // 冲刺冷却
+  DASH_INV: 320,             // 冲刺无敌帧
+  WELL_G: 2.6e7,             // 引力井强度
+  WELL_SOFT: 9.0e4,          // 引力软化项
+  WELL_SIG: 248,             // 时空度量影响尺度
+  METRIC_GAIN: 0.52,         // 时空度量最大增量
+  BULLET_R: 5,
+  WAVE_MS: 15000,            // 单波次时长
+  GAP_MS: 2600,              // 波次间歇时长
+  GAP_SHIELD: 15,            // 间歇回充护盾
+  BULLET_CAP: 460            // 场上弹幕硬上限
+};
+
+/* ---------- 时空度量（非欧：同一时刻不同区域弹速不同） ---------- */
+function metricAt(x, y, wells) {
+  var s = 0;
+  for (var i = 0; i < wells.length; i++) {
+    var w = wells[i];
+    var dx = x - w.x, dy = y - w.y;
+    s += w.m * Math.exp(-(dx * dx + dy * dy) / (2 * w.sig * w.sig));
+  }
+  return 1 + PHYS.METRIC_GAIN * s;
+}
+
+/* ---------- 引力井：绕战场中心缓慢公转 ---------- */
+function genWells(n) {
+  var list = [], r = mulberry32(SEED ^ 0x71A3);
+  for (var i = 0; i < n; i++) {
+    var a = r() * 6.283, rr = 205 + r() * 372;
+    list.push({
+      i: i,
+      cx: PHYS.AW / 2, cy: PHYS.AH / 2,
+      rr: rr, a0: a, orb: (0.085 + r() * 0.15) * (r() < 0.5 ? -1 : 1),
+      m: 0.78 + r() * 0.52, sig: 205 + r() * 112,
+      x: PHYS.AW / 2 + Math.cos(a) * rr, y: PHYS.AH / 2 + Math.sin(a) * rr,
+      spin: r()
+    });
+  }
+  return list;
+}
+
+/* ---------- 弹幕发射器：确定性环形布阵 ---------- */
+function genEmitters(n) {
+  var list = [], r = mulberry32(SEED ^ 0x2F19);
+  for (var i = 0; i < n; i++) {
+    var a = i * (6.283 / n) - 1.05;
+    var rx = 548 + r() * 118, ry = 330 + r() * 84;
+    list.push({
+      i: i,
+      x: PHYS.AW / 2 + Math.cos(a) * rx,
+      y: PHYS.AH / 2 + Math.sin(a) * ry,
+      arms: 3 + (i % 3),
+      spin: (0.26 + r() * 0.30) * (i % 2 ? -1 : 1),
+      base: r() * 6.283,
+      t: 0, cd: 0,
+      overload: 0, flash: 0
+    });
+  }
+  return list;
+}
+
+/* ---------- 星幕与星云种子点 ---------- */
+function genStars(n) {
+  var s = [], r = mulberry32(SEED ^ 0x5B21);
+  for (var i = 0; i < n; i++) s.push({ x: r(), y: r(), m: 0.22 + r() * 0.78, p: r() * 6.283 });
+  return s;
+}
+function genNebula(k) {
+  var o = [], r = mulberry32(SEED ^ (0x3D0 + k));
+  for (var i = 0; i < 7; i++) o.push({ x: r(), y: r(), rr: 0.10 + r() * 0.26, a: 0.05 + r() * 0.09 });
+  return o;
+}
+
+/* ---------- 状态机（12 个互斥状态） ---------- */
+var SN = [
+  'RUN_SETTLE',        // 0  跃迁结算
+  'CORE_BREACH',       // 1  相位核心击穿
+  'ENTROPY_FLOOD',     // 2  熵潮泛滥
+  'SHIELD_CRITICAL',   // 3  护盾临界
+  'INVERSION_BURST',   // 4  反演齐射
+  'POLAR_FLIP',        // 5  相位瞬切
+  'DILATION_ZONE',     // 6  时空膨胀域
+  'GRAZE_CHANNEL',     // 7  擦弹通道
+  'SATURATION_DRIFT',  // 8  饱和漂移
+  'FOCUS_CRAWL',       // 9  聚焦滑行
+  'INTERMISSION',      // 10 波次间歇
+  'NEUTRAL_PATROL'     // 11 相位中立巡航
+];
+var SC = ['跃迁结算', '相位核心击穿', '熵潮泛滥', '护盾临界', '反演齐射', '相位瞬切',
+          '时空膨胀域', '擦弹通道', '饱和漂移', '聚焦滑行', '波次间歇', '相位中立巡航'];
+var SK = ['#9a6bff', '#ff3d5e', '#9a6bff', '#ff3d5e', '#35e0d0', '#ffc247',
+          '#c47cff', '#35e0d0', '#ff3d7f', '#8fa6b8', '#4fd68a', '#5f7386'];
+
+/* ---------- 复合手势清单 ---------- */
+var GESTURES = [
+  { k: '长按聚焦滑行', d: '按住聚焦键：推进力与限速降至四成，但擦弹判定半径扩大一半；熵增不减速' },
+  { k: '贴弹滑行取能', d: '沿弹幕切线方向保持极小间距滑行，越贴近熵能回充越快，护盾流失以更高次幂放大' },
+  { k: '相位瞬切', d: '相位键瞬切极性：并非清除弹幕，而是把每颗弹幕的速度沿战场径向镜像，角动量整体反转' },
+  { k: '反演齐射', d: '熵能越过门槛后释放：将半径内敌方弹幕整批反演为己方弹幕，并回充护盾' },
+  { k: '相位冲刺', d: '双击方向键：消耗熵能获得短时爆发速度与无敌帧，但冲刺期间熵增速率翻倍' }
+];
+
+/* ---------- 反直觉陷阱 ---------- */
+var TRAPS = [
+  { k: 'T1 静止惩罚', d: '静止不动时熵增速率大幅提升，熵能衰减随熵值放大；越"稳"死得越快' },
+  { k: 'T2 瞬切反转角动量', d: '相位瞬切不做过滤、不做清除，而是把全部弹幕绕径向镜像；即将离场的弹幕会掉头折返' },
+  { k: 'T3 极限贴弹是陷阱', d: '熵能回充随贴近度以低次幂增长，护盾流失以高次幂增长；越过临界贴近度后净收益转负' },
+  { k: 'T4 局部时空度量', d: '弹幕速度由所在位置的时空度量决定，同一时刻不同区域弹速不同，靠近引力井更快' }
+];
+
+/* ---------- 结算指标定义（全部来自逐帧数组回溯聚合） ---------- */
+var LEDGER_DEF = [
+  { k: '擦弹转化率', u: '%', d: '逐帧回溯：擦弹获得的熵能 / （擦弹获得 + 熵值衰减流失）' },
+  { k: '熵值时间均值', u: '%', d: '逐帧回溯：全时段熵值的加权时间积分均值' },
+  { k: '反演收益率', u: '%', d: '逐帧回溯：被反演转化的弹幕数 / 累计生成弹幕数' }
+];
+
+</script>
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var STEP = 1000 / 60;
+  var VIEW = { s: 0.5 };
+
+  var cvA = $('cvArena'), cvG = $('cvGauge'), cvR = $('cvRadar');
+  var settleEl = $('settle');
+
+  var BL, EM, WL, P, G;
+  var STARS = genStars(190);
+  var NEB = [genNebula(0), genNebula(1), genNebula(2)];
+  var errs = [];
+  window.addEventListener('error', function (e) { errs.push(String(e.message)); });
+
+  var SN_ = SN, SC_ = SC, SK_ = SK;
+
+  /* ============================================================
+     重置 / 世界构建
+     ============================================================ */
+  function reset() {
+    RNG = mulberry32(SEED);
+    EM = genEmitters(5);
+    WL = genWells(3);
+    BL = [];
+    P = {
+      x: PHYS.AW / 2, y: PHYS.AH / 2 + 250, px: 0, py: 0, vx: 0, vy: 0,
+      r: PHYS.CORE_R, pol: 1, energy: 34, shield: PHYS.SHIELD_MAX, ent: 0.06,
+      focus: false, still: 1, graze: 0, inv: 0, polCd: 0, dashCd: 0, dashT: 0,
+      dvx: 0, dvy: 0, ang: 0, tilt: 0, alive: true
+    };
+    P.px = P.x; P.py = P.y;
+    G = {
+      t: 0, acc: 0, last: performance.now(), st: 11, settled: false, frozen: false,
+      frames: [], parts: [], log: [], pendEv: [], pendGain: 0, pendDecay: 0,
+      wave: 1, waveT: 0, inter: true, interT: PHYS.GAP_MS - 1400, activeEm: 2,
+      spawned: 0, converted: 0, hits: 0, flips: 0, inverts: 0, dashes: 0, grazes: 0,
+      gainSum: 0, decaySum: 0, drainSum: 0, peakEnt: 0, density: 0, fieldSign: 1,
+      invBurstT: -9999, flipT: -9999, grazeT: -9999, dashT0: -9999,
+      breachT: -9999, breachReason: '—', bestGraze: 0,
+      in: { left: false, right: false, up: false, down: false, focus: false },
+      tap: { k: -1, t: -9999 }, sig: {}
+    };
+    buildWave();
+    pushLog('<b>BOOT</b> 相位核心注入熵潮海域 · 引力井 <i>' + WL.length + '</i> 座 · 种子 ' + SEED);
+    pushLog('任务 ' + RUNID + ' 已装载，等待波次开启');
+  }
+
+  function buildWave() {
+    var w = G.wave;
+    G.activeEm = Math.min(5, 2 + Math.floor((w - 1) / 2));
+    for (var i = 0; i < EM.length; i++) {
+      var e = EM[i];
+      e.on = i < G.activeEm;
+      e.arms = 3 + ((w + i) % 4);
+      e.spin = (0.24 + 0.052 * w + (i % 3) * 0.045) * (i % 2 ? -1 : 1);
+      e.interval = Math.max(300, 880 - w * 46 - i * 20);
+      e.speed = 168 + w * 11;
+      e.cd = 320 + i * 85;
+      e.phase = e.base;
+      e.overload = 0;
+    }
+  }
+
+  /* ============================================================
+     物理
+     ============================================================ */
+  function physics(dt) {
+    if (G.settled) { stepParts(dt); return; }
+    G.t += dt * 1000;
+
+    stepWave(dt);
+    stepPlayer(dt);
+    stepEmitters(dt);
+    stepBullets(dt);
+    stepInteractions(dt);
+    stepParts(dt);
+
+    recordFrame();
+    evalState();
+  }
+
+  /* ---------- 波次调度 ---------- */
+  function stepWave(dt) {
+    if (G.inter) {
+      G.interT += dt * 1000;
+      if (G.interT >= PHYS.GAP_MS) {
+        G.inter = false; G.waveT = 0;
+        pushLog('<b>WAVE</b> 第 ' + G.wave + ' 波开启 · 发射器 <i>' + G.activeEm + '</i> 组 · 臂数 ' + EM[0].arms);
+      }
+      return;
+    }
+    G.waveT += dt * 1000;
+    if (G.waveT >= PHYS.WAVE_MS) {
+      if (G.wave >= 6) { doSettle('WAVE_CLEAR'); return; }
+      G.wave++; G.inter = true; G.interT = 0;
+      P.shield = Math.min(PHYS.SHIELD_MAX, P.shield + PHYS.GAP_SHIELD);
+      /* 清场：波次间歇把残余弹幕全部抹除 */
+      for (var i = 0; i < BL.length; i++) BL[i].alive = false;
+      pushLog('<i>GAP</i> 第 ' + (G.wave - 1) + ' 波清除 · 护盾回充 ' + PHYS.GAP_SHIELD + ' · 间歇 ' + PHYS.GAP_MS + 'ms');
+    }
+  }
+
+  /* ---------- 相位核心 ---------- */
+  function stepPlayer(dt) {
+    var dirx = (G.in.right ? 1 : 0) - (G.in.left ? 1 : 0);
+    var diry = (G.in.down ? 1 : 0) - (G.in.up ? 1 : 0);
+    var moving = (dirx !== 0 || diry !== 0);
+    var fm = P.focus ? PHYS.FOCUS_MUL : 1;
+    var lim = PHYS.MAXV * fm;
+    var acc = PHYS.ACC * fm;
+
+    if (P.dashT > 0) {
+      P.dashT -= dt * 1000;
+      P.vx = P.dvx; P.vy = P.dvy;
+      var dk = 1 - 2.4 * dt; P.dvx *= dk; P.dvy *= dk;
+    } else {
+      if (moving) {
+        var L = Math.hypot(dirx, diry);
+        P.vx += dirx / L * acc * dt;
+        P.vy += diry / L * acc * dt;
+      }
+      var dr = moving ? PHYS.DRAG * 0.42 : PHYS.DRAG;
+      P.vx -= P.vx * dr * dt;
+      P.vy -= P.vy * dr * dt;
+      var sp0 = Math.hypot(P.vx, P.vy);
+      if (sp0 > lim) { P.vx *= lim / sp0; P.vy *= lim / sp0; }
+    }
+
+    P.px = P.x; P.py = P.y;
+    P.x += P.vx * dt; P.y += P.vy * dt;
+    var m = 26;
+    if (P.x < m) { P.x = m; P.vx = Math.abs(P.vx) * 0.2; }
+    if (P.x > PHYS.AW - m) { P.x = PHYS.AW - m; P.vx = -Math.abs(P.vx) * 0.2; }
+    if (P.y < m) { P.y = m; P.vy = Math.abs(P.vy) * 0.2; }
+    if (P.y > PHYS.AH - m) { P.y = PHYS.AH - m; P.vy = -Math.abs(P.vy) * 0.2; }
+
+    var sp = Math.hypot(P.vx, P.vy);
+    P.still = Math.max(0, Math.min(1, 1 - sp / PHYS.MAXV));
+    if (P.polCd > 0) P.polCd -= dt * 1000;
+    if (P.dashCd > 0) P.dashCd -= dt * 1000;
+    if (P.inv > 0) P.inv -= dt * 1000;
+    G.fieldSign = P.pol;
+
+    /* ---- 熵增：静止时加速，冲刺时翻倍 ---- */
+    var entRate = PHYS.ENT_BASE + PHYS.ENT_STILL * P.still * P.still;
+    if (P.dashT > 0) entRate *= 2;
+    P.ent = Math.min(1, P.ent + entRate * dt);
+    if (P.ent > G.peakEnt) G.peakEnt = P.ent;
+
+    /* ---- 熵能衰减：随熵值放大 ---- */
+    var dec = PHYS.ENERGY_DECAY * P.ent * dt;
+    P.energy = Math.max(0, P.energy - dec);
+    G.pendDecay += dec;
+    G.decaySum += dec;
+
+    if (P.ang < 0) P.ang += 6.283;
+    P.tilt += ((sp > 20 ? Math.atan2(P.vy, P.vx) : P.tilt + 0) - P.tilt) * Math.min(1, dt * 7);
+  }
+
+  /* ---------- 弹幕发射器 ---------- */
+  function stepEmitters(dt) {
+    var hostiles = 0;
+    for (var i = 0; i < BL.length; i++) if (BL[i].alive && !BL[i].friendly) hostiles++;
+    G.density = hostiles;
+    for (var k = 0; k < EM.length; k++) {
+      var e = EM[k];
+      e.phase += e.spin * dt;
+      e.flash = Math.max(0, e.flash - dt * 3.2);
+      if (e.overload > 0) { e.overload -= dt * 1000; continue; }
+      if (!e.on || G.inter) continue;
+      e.cd -= dt * 1000;
+      if (e.cd > 0) continue;
+      if (hostiles >= PHYS.BULLET_CAP) { e.cd = 120; continue; }
+      e.cd = e.interval;
+      e.flash = 1;
+      var a0 = e.base + e.phase;
+      for (var j = 0; j < e.arms; j++) {
+        var a = a0 + j * (6.283 / e.arms);
+        var ca = Math.cos(a), sa = Math.sin(a);
+        BL.push({
+          x: e.x + ca * 30, y: e.y + sa * 30,
+          vx: ca * e.speed, vy: sa * e.speed, spd0: e.speed,
+          r: PHYS.BULLET_R, pol: (k % 2 ? 1 : -1), friendly: false,
+          life: 12000, age: 0, alive: true, hx: e.x, hy: e.y
+        });
+        G.spawned++;
+      }
+      burst(e.x + Math.cos(a0) * 30, e.y + Math.sin(a0) * 30, 4, '#ff3d7f', 90);
+    }
+  }
+
+  /* ---------- 弹幕推进（时空度量 + 引力井 + 极性场） ---------- */
+  function stepBullets(dt) {
+    for (var i = 0; i < BL.length; i++) {
+      var b = BL[i];
+      if (!b.alive) continue;
+      b.age += dt * 1000;
+
+      if (b.friendly) {
+        /* 己方弹幕：追踪最近发射器，接触即过载 */
+        var tg = null, bd = 1e9;
+        for (var q = 0; q < EM.length; q++) {
+          if (!EM[q].on || EM[q].overload > 0) continue;
+          var dd = (EM[q].x - b.x) * (EM[q].x - b.x) + (EM[q].y - b.y) * (EM[q].y - b.y);
+          if (dd < bd) { bd = dd; tg = EM[q]; }
+        }
+        if (tg) {
+          var ux = tg.x - b.x, uy = tg.y - b.y, L = Math.hypot(ux, uy) || 1;
+          b.vx += ux / L * 2100 * dt; b.vy += uy / L * 2100 * dt;
+        }
+        var fs = Math.hypot(b.vx, b.vy) || 1;
+        b.vx *= 540 / fs; b.vy *= 540 / fs;
+        b.x += b.vx * dt; b.y += b.vy * dt;
+        if (tg && (tg.x - b.x) * (tg.x - b.x) + (tg.y - b.y) * (tg.y - b.y) < 900) {
+          tg.overload = 1500; b.alive = false;
+          burst(b.x, b.y, 12, '#35e0d0', 200);
+          pushLog('<i>OVERLOAD</i> 发射器 #' + tg.i + ' 被反演弹幕过载 · 停火 1500ms');
+        }
+        b.life -= dt * 1000;
+        if (b.life <= 0 || b.x < -140 || b.x > PHYS.AW + 140 || b.y < -140 || b.y > PHYS.AH + 140) b.alive = false;
+        continue;
+      }
+
+      var ax = 0, ay = 0;
+      /* 引力井 */
+      for (var w = 0; w < WL.length; w++) {
+        var g0 = WL[w];
+        var dx = g0.x - b.x, dy = g0.y - b.y;
+        var d2 = dx * dx + dy * dy;
+        var f = PHYS.WELL_G * g0.m / (d2 + PHYS.WELL_SOFT);
+        var inv = 1 / (Math.sqrt(d2) + 1e-3);
+        ax += f * dx * inv; ay += f * dy * inv;
+      }
+      /* 极性场：随核心极性整体反转 */
+      var cxx = b.x - PHYS.AW / 2, cyy = b.y - PHYS.AH / 2;
+      var cl = Math.hypot(cxx, cyy) || 1;
+      ax += 92 * G.fieldSign * b.pol * (cxx / cl);
+      ay += 92 * G.fieldSign * b.pol * (cyy / cl);
+
+      b.vx += ax * dt; b.vy += ay * dt;
+      /* 非欧度量：速度模长由所在位置的时空度量决定 */
+      var mu = metricAt(b.x, b.y, WL);
+      var sp = Math.hypot(b.vx, b.vy);
+      if (sp > 1e-4) { var kk = b.spd0 * mu / sp; b.vx *= kk; b.vy *= kk; }
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      b.mu = mu;
+
+      b.life -= dt * 1000;
+      if (b.life <= 0 || b.x < -150 || b.x > PHYS.AW + 150 || b.y < -150 || b.y > PHYS.AH + 150) b.alive = false;
+    }
+    /* 紧凑化 */
+    var n = 0;
+    for (var z = 0; z < BL.length; z++) if (BL[z].alive) BL[n++] = BL[z];
+    BL.length = n;
+  }
+
+  /* ---------- 擦弹 / 命中 / 己方弹幕碰撞 ---------- */
+  function stepInteractions(dt) {
+    var gr = PHYS.GRAZE_R * (P.focus ? PHYS.FOCUS_GRAZE : 1);
+    var inner = PHYS.HIT_R + PHYS.BULLET_R;
+    var maxU = 0, gain = 0, drain = 0;
+    for (var i = 0; i < BL.length; i++) {
+      var b = BL[i];
+      if (!b.alive) continue;
+      var d = Math.hypot(b.x - P.x, b.y - P.y);
+      if (b.friendly) {
+        /* 己方弹幕摧毁敌方弹幕 */
+        for (var j = 0; j < BL.length; j++) {
+          var o = BL[j];
+          if (!o.alive || o.friendly) continue;
+          if (Math.hypot(o.x - b.x, o.y - b.y) < 18) { o.alive = false; burst(o.x, o.y, 3, '#8ef0e4', 80); }
+        }
+        continue;
+      }
+      if (d < inner) {
+        if (P.inv <= 0) {
+          b.alive = false;
+          P.shield -= PHYS.HIT_COST; P.inv = PHYS.HIT_INV;
+          G.hits++; G.pendEv.push({ e: 3, x: b.x, y: b.y, u: 1 });
+          burst(b.x, b.y, 14, '#ff3d5e', 220);
+          pushLog('<s>HIT</s> 核心被弹幕击中 · 护盾 −' + PHYS.HIT_COST + ' · 剩余 ' + Math.max(0, P.shield).toFixed(1));
+        }
+        continue;
+      }
+      if (d < gr) {
+        var u = 1 - (d - inner) / (gr - inner);
+        if (u > maxU) maxU = u;
+        var gg = PHYS.GRAZE_GAIN * Math.pow(u, 0.85) * dt;
+        var ss = PHYS.SHIELD_DRAIN * Math.pow(u, 3.1) * dt * (P.focus ? 0.78 : 1);
+        gain += gg; drain += ss;
+      }
+    }
+    if (gain > 0) {
+      P.energy = Math.min(PHYS.ENERGY_MAX, P.energy + gain);
+      G.pendGain += gain; G.gainSum += gain;
+      if (maxU > 0.05 && G.t - G.grazeT > 240) {
+        G.grazes++;
+        G.pendEv.push({ e: 1, u: maxU });
+      }
+    }
+    if (drain > 0) { P.shield -= drain; G.drainSum += drain; }
+    P.graze = maxU;
+    if (maxU > G.bestGraze) G.bestGraze = maxU;
+    if (maxU > 0.05) G.grazeT = G.t;
+
+    if (P.shield <= 0 && G.breachT < 0) {
+      P.shield = 0; G.breachT = G.t; P.alive = false;
+      pushLog('<s>BREACH</s> 相位核心护盾击穿 · 熵值 ' + (P.ent * 100).toFixed(0) + '% · 进入失败态');
+    }
+    if (G.breachT >= 0 && !G.settled && G.t - G.breachT > 900) doSettle('CORE_BREACH');
+  }
+
+  /* ---------- 粒子 ---------- */
+  function burst(x, y, n, c, sp) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * 6.283, v = sp * (0.35 + Math.random() * 0.9);
+      G.parts.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, l: 1, c: c, r: 1.4 + Math.random() * 2.2 });
+    }
+    if (G.parts.length > 620) G.parts.splice(0, G.parts.length - 620);
+  }
+  function stepParts(dt) {
+    for (var i = G.parts.length - 1; i >= 0; i--) {
+      var p = G.parts[i];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vx *= (1 - 2.1 * dt); p.vy *= (1 - 2.1 * dt);
+      p.l -= dt * 1.5;
+      if (p.l <= 0) G.parts.splice(i, 1);
+    }
+  }
+
+  /* ============================================================
+     逐帧账本 / 回溯聚合
+     ============================================================ */
+  function recordFrame() {
+    var nh = 0, nf = 0;
+    for (var i = 0; i < BL.length; i++) { if (!BL[i].alive) continue; if (BL[i].friendly) nf++; else nh++; }
+    G.frames.push({
+      t: G.t, x: P.x, y: P.y, spd: Math.hypot(P.vx, P.vy),
+      ent: P.ent, en: P.energy, sh: P.shield, grz: P.graze,
+      nh: nh, nf: nf, met: metricAt(P.x, P.y, WL), still: P.still,
+      gain: G.pendGain, dec: G.pendDecay, conv: G.pendConv || 0, spw: G.pendSpawn || 0,
+      evs: G.pendEv
+    });
+    G.pendGain = 0; G.pendDecay = 0; G.pendConv = 0; G.pendSpawn = 0; G.pendEv = [];
+    if (G.frames.length > 26000) G.frames.shift();
+  }
+
+  function aggregate() {
+    var f = G.frames, i, j, r, ev;
+    var gain = 0, dec = 0, entW = 0, tW = 0, conv = 0, spw = 0, hits = 0, flips = 0, inverts = 0;
+    for (i = 0; i < f.length; i++) {
+      r = f[i];
+      gain += r.gain || 0;
+      dec += r.dec || 0;
+      entW += (r.ent || 0);
+      tW += 1;
+      for (j = 0; j < r.evs.length; j++) {
+        ev = r.evs[j];
+        if (ev.e === 1) { /* 擦弹事件，已计入 gain */ }
+        else if (ev.e === 2) { conv += (ev.n || 0); }
+        else if (ev.e === 3) { hits++; }
+        else if (ev.e === 4) { conv += (ev.n || 0); }
+        else if (ev.e === 5) { flips++; }
+        else if (ev.e === 6) { inverts++; }
+      }
+    }
+    var tot = gain + dec;
+    return {
+      graze: tot > 0 ? (gain / tot) * 100 : 0,
+      ent: tW > 0 ? (entW / tW) * 100 : 0,
+      conv: G.spawned > 0 ? (G.converted / G.spawned) * 100 : 0,
+      n: f.length, gain: gain, decay: dec, convN: G.converted, spwN: G.spawned,
+      hits: hits, flips: flips, inverts: inverts
+    };
+  }
+
+  /* ============================================================
+     状态机
+     ============================================================ */
+  function evalState() {
+    if (G.settled) { G.st = 0; return; }
+    var nh = G.density, met = metricAt(P.x, P.y, WL);
+    var s;
+    if (G.breachT >= 0) s = 1;
+    else if (G.inter) s = 10;
+    else if (P.ent > 0.82) s = 2;
+    else if (P.shield < 22) s = 3;
+    else if (G.t - G.invBurstT < 700) s = 4;
+    else if (G.t - G.flipT < 520) s = 5;
+    else if (met > 1.34) s = 6;
+    else if (P.graze > 0.18) s = 7;
+    else if (nh > 58) s = 8;
+    else if (P.focus) s = 9;
+    else s = 11;
+    if (s !== G.st) {
+      G.st = s;
+      pushLog('<i>STATE</i> → ' + SN_[s] + ' (' + SC_[s] + ')');
+    }
+  }
+
+  /* ============================================================
+     动作
+     ============================================================ */
+  function flipPolarity() {
+    if (P.polCd > 0) { pushLog('<s>DENY</s> 相位瞬切冷却中 ' + Math.round(P.polCd) + 'ms'); return false; }
+    if (P.energy < PHYS.POLAR_COST) { pushLog('<s>DENY</s> 熵能不足 · 瞬切需 ' + PHYS.POLAR_COST); return false; }
+    P.energy -= PHYS.POLAR_COST;
+    P.pol = -P.pol; P.polCd = PHYS.POLAR_CD; G.flips++;
+    G.flipT = G.t;
+    G.pendEv.push({ e: 5 });
+    var cx = PHYS.AW / 2, cy = PHYS.AH / 2, n = 0;
+    for (var i = 0; i < BL.length; i++) {
+      var b = BL[i];
+      if (!b.alive || b.friendly) continue;
+      var ux = b.x - cx, uy = b.y - cy, L = Math.hypot(ux, uy) || 1;
+      ux /= L; uy /= L;
+      var par = b.vx * ux + b.vy * uy;
+      var px = b.vx - par * ux, py = b.vy - par * uy;
+      b.vx = par * ux - px; b.vy = par * uy - py;
+      n++;
+    }
+    pushLog('<b>PHASE</b> 相位瞬切 → ' + (P.pol > 0 ? '吸附' : '排斥') +
+      ' · 全场 ' + n + ' 颗弹幕角动量径向镜像 · 熵能 −' + PHYS.POLAR_COST);
+    burst(P.x, P.y, 18, '#ffc247', 210);
+    return true;
+  }
+
+  function invertBurst() {
+    if (P.energy < PHYS.INV_MIN) { pushLog('<s>DENY</s> 熵能不足 · 反演齐射需 ' + PHYS.INV_MIN); return false; }
+    if (G.t - G.invBurstT < 900) { pushLog('<s>DENY</s> 反演齐射冷却中'); return false; }
+    P.energy -= PHYS.INV_MIN;
+    var R2 = PHYS.INV_R * PHYS.INV_R, n = 0;
+    for (var i = 0; i < BL.length; i++) {
+      var b = BL[i];
+      if (!b.alive || b.friendly) continue;
+      var dx = b.x - P.x, dy = b.y - P.y;
+      if (dx * dx + dy * dy > R2) continue;
+      b.friendly = true; b.life = PHYS.INV_LIFE; b.spd0 = 480; n++;
+    }
+    if (n === 0) { pushLog('<s>MISS</s> 反演半径内无敌方弹幕 · 熵能已扣除'); }
+    P.shield = Math.min(PHYS.SHIELD_MAX, P.shield + PHYS.INV_SHIELD);
+    G.converted += n; G.inverts++; G.invBurstT = G.t;
+    G.pendEv.push({ e: 6, n: n });
+    pushLog('<b>INVERT</b> 反演齐射 · 转化 ' + n + ' 颗 · 护盾 +' + PHYS.INV_SHIELD + ' · 熵能 −' + PHYS.INV_MIN);
+    burst(P.x, P.y, 26, '#35e0d0', 300);
+    return true;
+  }
+
+  function phaseDash(dx, dy) {
+    if (P.dashCd > 0) { pushLog('<s>DENY</s> 相位冲刺冷却中 ' + Math.round(P.dashCd) + 'ms'); return false; }
+    if (P.energy < PHYS.DASH_COST) { pushLog('<s>DENY</s> 熵能不足 · 冲刺需 ' + PHYS.DASH_COST); return false; }
+    var L = Math.hypot(dx, dy) || 1;
+    P.energy -= PHYS.DASH_COST;
+    P.dashT = PHYS.DASH_MS; P.dashCd = PHYS.DASH_CD;
+    P.dvx = dx / L * PHYS.DASH_V; P.dvy = dy / L * PHYS.DASH_V;
+    P.inv = Math.max(P.inv, PHYS.DASH_INV);
+    G.dashes++; G.dashT0 = G.t;
+    pushLog('<b>DASH</b> 相位冲刺 · 初速 ' + PHYS.DASH_V + ' · 无敌 ' + PHYS.DASH_INV + 'ms · 冲刺期间熵增翻倍');
+    burst(P.x, P.y, 14, '#c47cff', 240);
+    return true;
+  }
+
+  /* ============================================================
+     结算
+     ============================================================ */
+  function forceSettle() { if (!G.settled) doSettle('MANUAL'); }
+  function doSettle(reason) {
+    G.settled = true; G.st = 0; G.breachReason = reason;
+    G.agg = aggregate();
+    pushLog('<b>SETTLE</b> 跃迁结算 · 原因 ' + reason + ' · 回溯 ' + G.agg.n + ' 帧');
+    renderSettle();
+    settleEl.classList.add('on');
+  }
+  function renderSettle() {
+    var a = G.agg || aggregate();
+    $('sA').innerHTML = a.graze.toFixed(1) + '<small>%</small>';
+    $('sB').innerHTML = a.ent.toFixed(1) + '<small>%</small>';
+    $('sC').innerHTML = a.conv.toFixed(1) + '<small>%</small>';
+    $('sAd').textContent = '回溯擦弹获得 ' + Math.round(a.gain) + ' / 衰减 ' + Math.round(a.decay);
+    $('sBd').textContent = '回溯 ' + a.n + ' 帧熵值加权积分均值';
+    $('sCd').textContent = '回溯转化 ' + a.convN + ' / 生成 ' + a.spwN + ' 颗弹幕';
+    $('sFoot').textContent = '原因 ' + G.breachReason + ' · 波次 ' + G.wave +
+      ' · 峰值熵值 ' + (G.peakEnt * 100).toFixed(0) + '% · 相位瞬切 ' + G.flips +
+      ' · 反演齐射 ' + G.inverts + ' · 被弹 ' + G.hits + ' · 帧样本 ' + a.n;
+  }
+
+  /* ============================================================
+     渲染：主战场
+     ============================================================ */
+  var SIZES = {};
+  function invalidate() { for (var k in SIZES) SIZES[k].dirty = true; bgDirty = true; }
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(invalidate);
+    ro.observe(cvA); ro.observe(cvG); ro.observe(cvR);
+  }
+  window.addEventListener('resize', invalidate);
+
+  function fit(cv) {
+    var s = SIZES[cv.id];
+    if (!s || s.dirty) {
+      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      var w = cv.clientWidth, h = cv.clientHeight;
+      s = SIZES[cv.id] = { w: w, h: h, dpr: dpr, dirty: false };
+      var tw = Math.max(1, Math.round(w * dpr)), th = Math.max(1, Math.round(h * dpr));
+      if (cv.width !== tw || cv.height !== th) { cv.width = tw; cv.height = th; }
+      s.g = cv.getContext('2d');
+    }
+    if (s.w < 2 || s.h < 2) return null;
+    s.g.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+    return { g: s.g, w: s.w, h: s.h, dpr: s.dpr };
+  }
+
+  /* ---------- 预烘焙：光晕精灵 ---------- */
+  function makeGlow(rgb) {
+    var c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    var x = c.getContext('2d');
+    var rg = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    rg.addColorStop(0, 'rgba(' + rgb + ',0.92)');
+    rg.addColorStop(0.28, 'rgba(' + rgb + ',0.38)');
+    rg.addColorStop(1, 'rgba(' + rgb + ',0)');
+    x.fillStyle = rg; x.fillRect(0, 0, 64, 64);
+    return c;
+  }
+  var GLOW = {
+    hp: makeGlow('255,61,127'), hn: makeGlow('255,140,90'),
+    al: makeGlow('53,224,208'), wl: makeGlow('154,107,255')
+  };
+
+  /* ---------- 预烘焙：星云底图 ---------- */
+  var bgCan = document.createElement('canvas'), bgDirty = true, bgKey = '';
+  function bakeBG(W, H, dpr, ox, oy, s) {
+    var k = W + 'x' + H + 'x' + dpr;
+    if (!bgDirty && bgKey === k) return;
+    bgKey = k; bgDirty = false;
+    bgCan.width = Math.max(1, Math.round(W * dpr));
+    bgCan.height = Math.max(1, Math.round(H * dpr));
+    var g = bgCan.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = '#04060b'; g.fillRect(0, 0, W, H);
+    g.save(); g.translate(ox, oy); g.scale(s, s);
+    var COL = ['53,224,208', '154,107,255', '255,61,127'];
+    for (var nb = 0; nb < NEB.length; nb++) {
+      var arr = NEB[nb];
+      for (var j = 0; j < arr.length; j++) {
+        var n = arr[j];
+        var cxp = n.x * PHYS.AW, cyp = n.y * PHYS.AH, rr = n.rr * PHYS.AW;
+        var rg = g.createRadialGradient(cxp, cyp, 0, cxp, cyp, rr);
+        rg.addColorStop(0, 'rgba(' + COL[nb] + ',' + n.a.toFixed(3) + ')');
+        rg.addColorStop(1, 'rgba(' + COL[nb] + ',0)');
+        g.fillStyle = rg;
+        g.beginPath(); g.arc(cxp, cyp, rr, 0, 6.283); g.fill();
+      }
+    }
+    g.restore();
+  }
+
+  function warp(x, y, k) {
+    var dx = 0, dy = 0;
+    for (var i = 0; i < WL.length; i++) {
+      var w = WL[i];
+      var ax = x - w.x, ay = y - w.y;
+      var d2 = ax * ax + ay * ay;
+      var f = w.m * Math.exp(-d2 / (2 * w.sig * w.sig)) * k;
+      dx -= ax * f; dy -= ay * f;
+    }
+    return [x + dx, y + dy];
+  }
+
+  function gridPass(g, COLS, ROWS, k, alpha, lw) {
+    var cx, ry, wp;
+    g.lineWidth = lw;
+    g.strokeStyle = 'rgba(53,224,208,' + alpha + ')';
+    g.beginPath();
+    for (cx = 0; cx <= COLS; cx++) {
+      for (ry = 0; ry <= ROWS; ry++) {
+        wp = warp(cx / COLS * PHYS.AW, ry / ROWS * PHYS.AH, k);
+        if (ry === 0) g.moveTo(wp[0], wp[1]); else g.lineTo(wp[0], wp[1]);
+      }
+    }
+    g.stroke();
+    g.beginPath();
+    for (ry = 0; ry <= ROWS; ry++) {
+      for (cx = 0; cx <= COLS; cx++) {
+        wp = warp(cx / COLS * PHYS.AW, ry / ROWS * PHYS.AH, k);
+        if (cx === 0) g.moveTo(wp[0], wp[1]); else g.lineTo(wp[0], wp[1]);
+      }
+    }
+    g.stroke();
+  }
+
+  var painted = { cvArena: 0, cvGauge: 0, cvRadar: 0 };
+
+  function drawArena() {
+    var F = fit(cvA); if (!F) return;
+    var g = F.g, W = F.w, H = F.h;
+    var s = Math.min(W / PHYS.AW, H / PHYS.AH);
+    VIEW.s = s; G.vs = s; G.vw = W; G.vh = H;
+    var ox = W / 2 - PHYS.AW / 2 * s, oy = H / 2 - PHYS.AH / 2 * s;
+
+    bakeBG(W, H, F.dpr, ox, oy, s);
+    g.drawImage(bgCan, 0, 0, W, H);
+
+    /* 星幕 */
+    for (var i = 0; i < STARS.length; i++) {
+      var st = STARS[i];
+      var tw = 0.45 + 0.55 * Math.abs(Math.sin(G.t * 0.0009 + st.p));
+      g.fillStyle = 'rgba(150,190,225,' + (st.m * tw * 0.55).toFixed(3) + ')';
+      g.fillRect(st.x * W, st.y * H, 1.5, 1.5);
+    }
+
+    g.save();
+    g.translate(ox, oy); g.scale(s, s);
+
+    /* ---- 时空曲率网格（非欧度量可视化）：细网格 + 粗网格双层 ---- */
+    gridPass(g, 26, 17, 0.26, 0.12, 1.3);
+    gridPass(g, 13, 9, 0.26, 0.30, 2.2);
+
+    /* ---- 引力井 ---- */
+    for (var wi = 0; wi < WL.length; wi++) {
+      var wl = WL[wi];
+      var pulse = 0.5 + 0.5 * Math.sin(G.t * 0.0016 + wl.spin * 6.283);
+      g.globalAlpha = 0.44 + 0.24 * pulse;
+      g.drawImage(GLOW.wl, wl.x - wl.sig * 1.5, wl.y - wl.sig * 1.5, wl.sig * 3, wl.sig * 3);
+      g.globalAlpha = 1;
+
+      g.strokeStyle = 'rgba(196,124,255,0.34)'; g.lineWidth = 1.5;
+      for (var ri = 0; ri < 3; ri++) {
+        var rr = 34 + ri * 26 + pulse * 7;
+        g.beginPath(); g.arc(wl.x, wl.y, rr, 0, 6.283); g.stroke();
+      }
+      g.fillStyle = '#e6d4ff';
+      g.beginPath(); g.arc(wl.x, wl.y, 9 + pulse * 2.5, 0, 6.283); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 2;
+      g.beginPath(); g.arc(wl.x, wl.y, 25, wl.spin * 6.283 + G.t * 0.0012, wl.spin * 6.283 + G.t * 0.0012 + 1.5); g.stroke();
+    }
+
+    /* ---- 发射器 ---- */
+    for (var ei = 0; ei < EM.length; ei++) {
+      var e = EM[ei];
+      if (!e.on) continue;
+      var over = e.overload > 0;
+      g.save();
+      g.translate(e.x, e.y);
+      g.rotate(e.base + e.phase * 0.34);
+      g.globalAlpha = 0.5 + 0.3 * e.flash;
+      g.drawImage(GLOW.hp, e.x - 62, e.y - 62, 124, 124);
+      g.globalAlpha = 1;
+      g.strokeStyle = over ? 'rgba(255,194,71,0.9)' : 'rgba(255,61,127,0.8)';
+      g.lineWidth = 4;
+      g.beginPath();
+      for (var a1 = 0; a1 < 6; a1++) {
+        var aa = a1 * 1.0472;
+        var px1 = Math.cos(aa) * 38, py1 = Math.sin(aa) * 38;
+        if (a1 === 0) g.moveTo(px1, py1); else g.lineTo(px1, py1);
+      }
+      g.closePath(); g.stroke();
+      g.rotate(e.phase);
+      g.strokeStyle = over ? 'rgba(255,194,71,0.5)' : 'rgba(255,61,127,0.6)';
+      g.lineWidth = 3.2;
+      for (var sp = 0; sp < e.arms; sp++) {
+        var sa2 = sp * (6.283 / e.arms);
+        g.beginPath(); g.moveTo(0, 0);
+        g.lineTo(Math.cos(sa2) * 50, Math.sin(sa2) * 50); g.stroke();
+      }
+      g.restore();
+      var core = over ? 'rgba(255,194,71,' : 'rgba(255,61,127,';
+      g.fillStyle = core + (0.65 + 0.35 * e.flash).toFixed(2) + ')';
+      g.beginPath(); g.arc(e.x, e.y, 15 + e.flash * 6, 0, 6.283); g.fill();
+      g.fillStyle = '#0a1018';
+      g.font = '700 17px system-ui, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('#' + e.i, e.x, e.y + 0.5);
+    }
+
+    /* ---- 弹幕 ---- */
+    for (var bi = 0; bi < BL.length; bi++) {
+      var b = BL[bi];
+      if (!b.alive) continue;
+      var isF = b.friendly;
+      var bs = Math.hypot(b.vx, b.vy);
+      if (bs > 40) {
+        var tl = 6 + Math.min(22, bs * 0.055);
+        g.strokeStyle = isF ? 'rgba(53,224,208,0.42)' : 'rgba(255,61,127,0.34)';
+        g.lineWidth = 4.2;
+        g.beginPath();
+        g.moveTo(b.x - b.vx / bs * tl, b.y - b.vy / bs * tl);
+        g.lineTo(b.x, b.y); g.stroke();
+      }
+      g.drawImage(isF ? GLOW.al : (b.pol > 0 ? GLOW.hp : GLOW.hn), b.x - 21, b.y - 21, 42, 42);
+      g.fillStyle = isF ? '#35e0d0' : (b.pol > 0 ? '#ff3d7f' : '#ff8c5a');
+      g.beginPath(); g.arc(b.x, b.y, PHYS.BULLET_R + 1.4, 0, 6.283); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.9)';
+      g.beginPath(); g.arc(b.x, b.y, PHYS.BULLET_R * 0.42, 0, 6.283); g.fill();
+    }
+
+    /* ---- 粒子 ---- */
+    for (var pi = 0; pi < G.parts.length; pi++) {
+      var pt = G.parts[pi];
+      g.globalAlpha = Math.max(0, pt.l) * 0.85;
+      g.fillStyle = pt.c;
+      g.beginPath(); g.arc(pt.x, pt.y, pt.r * (0.4 + pt.l * 0.8), 0, 6.283); g.fill();
+    }
+    g.globalAlpha = 1;
+
+    /* ---- 相位核心 ---- */
+    var grr = PHYS.GRAZE_R * (P.focus ? PHYS.FOCUS_GRAZE : 1);
+    var gcol = P.pol > 0 ? '255,194,71' : '53,224,208';
+    g.strokeStyle = 'rgba(' + gcol + ',' + (0.18 + P.graze * 0.72).toFixed(3) + ')';
+    g.lineWidth = 2 + P.graze * 4;
+    g.setLineDash([7, 6]);
+    g.beginPath(); g.arc(P.x, P.y, grr, 0, 6.283); g.stroke();
+    g.setLineDash([]);
+
+    if (P.inv > 0) {
+      g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 2.4;
+      g.beginPath(); g.arc(P.x, P.y, 25 + Math.sin(G.t * 0.02) * 3, 0, 6.283); g.stroke();
+    }
+    g.globalAlpha = 0.55;
+    g.drawImage(GLOW.hp, P.x - 54, P.y - 54, 108, 108);
+    g.globalAlpha = 1;
+    g.save();
+    g.translate(P.x, P.y);
+    g.rotate(P.tilt);
+    var pr = P.r * 2.2;
+    g.fillStyle = 'rgba(' + gcol + ',0.98)';
+    g.beginPath();
+    g.moveTo(pr * 1.5, 0); g.lineTo(-pr * 0.85, pr * 0.95); g.lineTo(-pr * 0.3, 0); g.lineTo(-pr * 0.85, -pr * 0.95);
+    g.closePath(); g.fill();
+    g.restore();
+    g.strokeStyle = 'rgba(' + gcol + ',0.9)'; g.lineWidth = 2.6;
+    g.beginPath(); g.arc(P.x, P.y, 22, G.t * 0.0035, G.t * 0.0035 + 2.1); g.stroke();
+    g.beginPath(); g.arc(P.x, P.y, 22, G.t * 0.0035 + 3.1416, G.t * 0.0035 + 3.1416 + 2.1); g.stroke();
+
+    g.restore();
+    painted.cvArena++;
+  }
+
+  /* ============================================================
+     渲染：仪表阵列（独立画布）
+     ============================================================ */
+  function panel(g, x, y, w, h, title, val, col) {
+    g.fillStyle = 'rgba(10,16,24,0.92)';
+    g.fillRect(x, y, w, h);
+    g.strokeStyle = '#182432'; g.lineWidth = 1;
+    g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    g.fillStyle = '#5f7386';
+    g.font = '9px system-ui, sans-serif';
+    g.textAlign = 'left'; g.textBaseline = 'top';
+    g.fillText(title, x + 8, y + 6);
+    g.fillStyle = col || '#c8d6e4';
+    g.font = '600 12px system-ui, sans-serif';
+    g.textAlign = 'right';
+    g.fillText(val, x + w - 8, y + 5);
+  }
+
+  var hEnt = [], hSpd = [];
+
+  function drawGauge() {
+    var F = fit(cvG); if (!F) return;
+    var g = F.g, W = F.w, H = F.h;
+    g.clearRect(0, 0, W, H);
+    var cw = (W - 6) / 2, ch = (H - 78) / 2;
+
+    /* ① 相位罗盘 */
+    var x = 0, y = 0;
+    panel(g, x, y, cw, ch, '相位罗盘', P.pol > 0 ? '吸附 +' : '排斥 −', P.pol > 0 ? '#ffc247' : '#35e0d0');
+    var ccx = x + cw / 2, ccy = y + ch / 2 + 8, cr = Math.min(cw, ch) / 2 - 20;
+    g.strokeStyle = '#1e2c3a'; g.lineWidth = 1.4;
+    g.beginPath(); g.arc(ccx, ccy, cr, 0, 6.283); g.stroke();
+    g.beginPath(); g.arc(ccx, ccy, cr * 0.55, 0, 6.283); g.stroke();
+    for (var t = 0; t < 12; t++) {
+      var ta = t * 0.5236;
+      g.strokeStyle = t % 3 === 0 ? '#33475c' : '#1e2c3a';
+      g.beginPath();
+      g.moveTo(ccx + Math.cos(ta) * cr * 0.86, ccy + Math.sin(ta) * cr * 0.86);
+      g.lineTo(ccx + Math.cos(ta) * cr, ccy + Math.sin(ta) * cr);
+      g.stroke();
+    }
+    var fdir = Math.atan2(P.y - PHYS.AH / 2, P.x - PHYS.AW / 2);
+    g.strokeStyle = P.pol > 0 ? '#ffc247' : '#35e0d0'; g.lineWidth = 2.4;
+    g.beginPath(); g.moveTo(ccx, ccy);
+    g.lineTo(ccx + Math.cos(fdir) * cr * 0.82, ccy + Math.sin(fdir) * cr * 0.82); g.stroke();
+    g.fillStyle = P.pol > 0 ? '#ffc247' : '#35e0d0';
+    g.beginPath(); g.arc(ccx + Math.cos(fdir) * cr * 0.82, ccy + Math.sin(fdir) * cr * 0.82, 4.2, 0, 6.283); g.fill();
+    g.fillStyle = '#9a6bff';
+    g.beginPath(); g.arc(ccx, ccy, 3.4, 0, 6.283); g.fill();
+    g.fillStyle = '#3d4e5e'; g.font = '8.5px system-ui,sans-serif'; g.textAlign = 'center';
+    g.fillText('场向', ccx, ccy + cr + 5);
+
+    /* ② 熵潮示波条（时序波形） */
+    x = cw + 6;
+    hEnt.push(P.ent); if (hEnt.length > 120) hEnt.shift();
+    panel(g, x, y, cw, ch, '熵潮示波条', (P.ent * 100).toFixed(0) + '%', '#9a6bff');
+    var gx = x + 8, gy = y + 24, gw = cw - 16, gh = ch - 34;
+    g.strokeStyle = '#16202e'; g.lineWidth = 1;
+    for (var gl = 0; gl <= 4; gl++) {
+      g.beginPath(); g.moveTo(gx, gy + gh * gl / 4); g.lineTo(gx + gw, gy + gh * gl / 4); g.stroke();
+    }
+    g.strokeStyle = '#9a6bff'; g.lineWidth = 1.8;
+    g.beginPath();
+    for (var hi = 0; hi < hEnt.length; hi++) {
+      var hx = gx + gw * (hi / (hEnt.length - 1 || 1));
+      var hy = gy + gh * (1 - hEnt[hi]);
+      if (hi === 0) g.moveTo(hx, hy); else g.lineTo(hx, hy);
+    }
+    g.stroke();
+    g.fillStyle = 'rgba(154,107,255,0.16)';
+    g.lineTo(gx + gw, gy + gh); g.lineTo(gx, gy + gh); g.closePath(); g.fill();
+
+    /* ③ 弹幕密度环 */
+    x = 0; y = ch + 6;
+    panel(g, x, y, cw, ch, '弹幕密度环', String(G.density), '#ff3d7f');
+    var dcx = x + cw / 2, dcy = y + ch / 2 + 7, dR = Math.min(cw, ch) / 2 - 20;
+    var frac = Math.min(1, G.density / 120);
+    g.strokeStyle = '#16202e'; g.lineWidth = 7;
+    g.beginPath(); g.arc(dcx, dcy, dR, 0, 6.283); g.stroke();
+    g.strokeStyle = frac > 0.75 ? '#ff3d5e' : (frac > 0.4 ? '#ff3d7f' : '#4fd68a');
+    g.lineWidth = 7; g.lineCap = 'round';
+    g.beginPath(); g.arc(dcx, dcy, dR, -1.5708, -1.5708 + frac * 6.283); g.stroke();
+    g.lineCap = 'butt';
+    g.fillStyle = '#c8d6e4'; g.font = '600 15px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(String(G.density), dcx, dcy - 3);
+    g.fillStyle = '#3d4e5e'; g.font = '8.5px system-ui,sans-serif';
+    g.fillText('敌弹', dcx, dcy + 12);
+    g.fillStyle = '#35e0d0';
+    g.fillText('己方 ' + BL.filter(function (b) { return b.alive && b.friendly; }).length, dcx, dcy + 24);
+
+    /* ④ 时空曲率仪 */
+    x = cw + 6;
+    var met = metricAt(P.x, P.y, WL);
+    panel(g, x, y, cw, ch, '时空曲率仪', 'μ ' + met.toFixed(3), '#c47cff');
+    var mx = x + 8, my = y + 24, mw = cw - 16, mh = ch - 34;
+    g.save();
+    g.beginPath(); g.rect(mx, my, mw, mh); g.clip();
+    g.strokeStyle = 'rgba(196,124,255,0.42)'; g.lineWidth = 1;
+    var DX = P.x - PHYS.AW / 2, DY = P.y - PHYS.AH / 2;
+    for (var lx = -HALF_W; lx <= HALF_W; lx += 30) {
+      g.beginPath();
+      for (var ly = -HALF_H; ly <= HALF_H; ly += 12) {
+        var wp3 = warp(P.x + lx, P.y + ly, 0.19);
+        var sx = mx + mw / 2 + (wp3[0] - P.x) * 0.4;
+        var sy = my + mh / 2 + (wp3[1] - P.y) * 0.4;
+        if (ly === -HALF_H) g.moveTo(sx, sy); else g.lineTo(sx, sy);
+      }
+      g.stroke();
+    }
+    for (var ly2 = -HALF_H; ly2 <= HALF_H; ly2 += 30) {
+      g.beginPath();
+      for (var lx2 = -HALF_W; lx2 <= HALF_W; lx2 += 12) {
+        var wp4 = warp(P.x + lx2, P.y + ly2, 0.19);
+        var sx2 = mx + mw / 2 + (wp4[0] - P.x) * 0.4;
+        var sy2 = my + mh / 2 + (wp4[1] - P.y) * 0.4;
+        if (lx2 === -HALF_W) g.moveTo(sx2, sy2); else g.lineTo(sx2, sy2);
+      }
+      g.stroke();
+    }
+    g.fillStyle = '#ffc247';
+    g.beginPath(); g.arc(mx + mw / 2, my + mh / 2, 3.2, 0, 6.283); g.fill();
+    g.restore();
+    g.fillStyle = '#5f7386'; g.font = '8.5px system-ui,sans-serif'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+    g.fillText('局部弹速 ×' + met.toFixed(2), mx, my + mh + 9);
+
+    /* ⑤ 熵能 · 护盾双条 */
+    x = 0; y = (ch + 6) * 2;
+    var fw = W - 6, fh = H - y;
+    panel(g, x, y, fw, fh, '熵能 · 护盾双条', P.energy.toFixed(0) + ' / ' + P.shield.toFixed(0), '#ffc247');
+    var bx = x + 8, by = y + 26, bw = fw - 16, bh = 9;
+    g.fillStyle = '#111a24'; g.fillRect(bx, by, bw, bh);
+    g.fillStyle = P.energy > PHYS.INV_MIN ? '#ffc247' : '#8a6a2a';
+    g.fillRect(bx, by, bw * Math.min(1, P.energy / PHYS.ENERGY_MAX), bh);
+    g.strokeStyle = '#22323f'; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+    g.fillStyle = '#5f7386'; g.font = '9px system-ui,sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';
+    g.fillText('熵能', bx, by + bh + 11);
+    g.fillStyle = '#ffc247'; g.textAlign = 'right';
+    g.fillText(P.energy.toFixed(1) + ' / 门槛 ' + PHYS.INV_MIN, bx + bw, by + bh + 11);
+
+    var sy = by + bh + 22;
+    g.fillStyle = '#111a24'; g.fillRect(bx, sy, bw, bh);
+    g.fillStyle = P.shield < 22 ? '#ff3d5e' : '#4fd68a';
+    g.fillRect(bx, sy, bw * Math.min(1, P.shield / PHYS.SHIELD_MAX), bh);
+    g.strokeStyle = '#22323f'; g.strokeRect(bx + 0.5, sy + 0.5, bw - 1, bh - 1);
+    g.fillStyle = '#5f7386'; g.textAlign = 'left';
+    g.fillText('护盾', bx, sy + bh + 11);
+    g.fillStyle = P.shield < 22 ? '#ff3d5e' : '#4fd68a'; g.textAlign = 'right';
+    g.fillText(P.shield.toFixed(1) + ' / ' + PHYS.SHIELD_MAX, bx + bw, sy + bh + 11);
+
+    painted.cvGauge++;
+  }
+  var HALF_W = 200, HALF_H = 130;
+
+  /* ============================================================
+     渲染：弹幕拓扑雷达（独立画布）
+     ============================================================ */
+  function drawRadar() {
+    var F = fit(cvR); if (!F) return;
+    var g = F.g, W = F.w, H = F.h;
+    g.clearRect(0, 0, W, H);
+    g.fillStyle = '#070b12'; g.fillRect(0, 0, W, H);
+    var pad = 6;
+    var sx = (W - pad * 2) / PHYS.AW, sy = (H - pad * 2) / PHYS.AH;
+    var sc = Math.min(sx, sy);
+    var ox = (W - PHYS.AW * sc) / 2, oy = (H - PHYS.AH * sc) / 2;
+    var X = function (v) { return ox + v * sc; }, Y = function (v) { return oy + v * sc; };
+
+    /* 密度热格 */
+    var GX = 16, GY = 11;
+    var cell = [];
+    for (var i = 0; i < GX * GY; i++) cell.push(0);
+    for (var b = 0; b < BL.length; b++) {
+      var bb = BL[b];
+      if (!bb.alive || bb.friendly) continue;
+      var gx = Math.max(0, Math.min(GX - 1, Math.floor(bb.x / PHYS.AW * GX)));
+      var gy = Math.max(0, Math.min(GY - 1, Math.floor(bb.y / PHYS.AH * GY)));
+      cell[gy * GX + gx]++;
+    }
+    for (var cy = 0; cy < GY; cy++) {
+      for (var cx = 0; cx < GX; cx++) {
+        var v = cell[cy * GX + cx];
+        if (!v) continue;
+        var al = Math.min(0.55, v * 0.055);
+        g.fillStyle = 'rgba(255,61,127,' + al.toFixed(3) + ')';
+        g.fillRect(X(cx / GX * PHYS.AW), Y(cy / GY * PHYS.AH), PHYS.AW / GX * sc, PHYS.AH / GY * sc);
+      }
+    }
+
+    g.strokeStyle = 'rgba(53,224,208,0.16)'; g.lineWidth = 1;
+    g.strokeRect(X(0) + 0.5, Y(0) + 0.5, PHYS.AW * sc - 1, PHYS.AH * sc - 1);
+
+    /* 引力井 */
+    for (var w = 0; w < WL.length; w++) {
+      g.strokeStyle = 'rgba(154,107,255,0.55)'; g.lineWidth = 1.2;
+      g.beginPath(); g.arc(X(WL[w].x), Y(WL[w].y), WL[w].sig * sc * 0.55, 0, 6.283); g.stroke();
+      g.fillStyle = '#c47cff';
+      g.beginPath(); g.arc(X(WL[w].x), Y(WL[w].y), 2.6, 0, 6.283); g.fill();
+    }
+
+    /* 发射器 */
+    for (var e = 0; e < EM.length; e++) {
+      if (!EM[e].on) continue;
+      g.fillStyle = EM[e].overload > 0 ? '#ffc247' : '#ff3d7f';
+      g.beginPath();
+      g.moveTo(X(EM[e].x), Y(EM[e].y) - 4);
+      g.lineTo(X(EM[e].x) + 4, Y(EM[e].y) + 3);
+      g.lineTo(X(EM[e].x) - 4, Y(EM[e].y) + 3);
+      g.closePath(); g.fill();
+    }
+
+    /* 弹幕点阵 */
+    for (var k = 0; k < BL.length; k++) {
+      var bl = BL[k];
+      if (!bl.alive) continue;
+      g.fillStyle = bl.friendly ? '#35e0d0' : '#ff3d7f';
+      var rr = bl.friendly ? 1.7 : 1.2;
+      g.fillRect(X(bl.x) - rr / 2, Y(bl.y) - rr / 2, rr, rr);
+    }
+
+    /* 核心 */
+    g.strokeStyle = P.pol > 0 ? '#ffc247' : '#35e0d0'; g.lineWidth = 1.6;
+    g.beginPath(); g.arc(X(P.x), Y(P.y), 6 + P.graze * 5, 0, 6.283); g.stroke();
+    g.fillStyle = '#ffffff';
+    g.beginPath(); g.arc(X(P.x), Y(P.y), 2.4, 0, 6.283); g.fill();
+
+    /* 扫描线 */
+    var sw = (G.t * 0.00042) % 1;
+    g.strokeStyle = 'rgba(53,224,208,0.30)'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(X(sw * PHYS.AW), Y(0)); g.lineTo(X(sw * PHYS.AW), Y(PHYS.AH)); g.stroke();
+
+    painted.cvRadar++;
+  }
+
+  /* ============================================================
+     DOM 渲染
+     ============================================================ */
+  function setTxt(id, v) { var el = $(id); if (el && el.textContent !== v) el.textContent = v; }
+  function pushLog(h) {
+    G.log.push(h);
+    if (G.log.length > 320) G.log.shift();
+    G.sig.l = -1;
+  }
+
+  function renderDom() {
+    setTxt('tWave', String(G.wave));
+    setTxt('tSeed', String(SEED));
+    $('tEnt').innerHTML = (P.ent * 100).toFixed(0) + '<small>%</small>';
+    $('tEner').innerHTML = P.energy.toFixed(0) + '<small>%</small>';
+    $('tShld').innerHTML = Math.max(0, P.shield).toFixed(0) + '<small>%</small>';
+    var nh = 0, nf = 0;
+    for (var i = 0; i < BL.length; i++) { if (!BL[i].alive) continue; if (BL[i].friendly) nf++; else nh++; }
+    setTxt('tHost', String(nh));
+    setTxt('tAlly', String(nf));
+    setTxt('tPol', P.pol > 0 ? '吸附' : '排斥');
+
+    var met = metricAt(P.x, P.y, WL);
+    setTxt('fMet', met.toFixed(3));
+    setTxt('fSpd', '+' + ((met - 1) * 100).toFixed(0) + '%');
+    setTxt('fDen', nh + ' / ' + PHYS.BULLET_CAP);
+    setTxt('fGrz', P.graze.toFixed(2));
+    setTxt('fStl', P.still.toFixed(2));
+    setTxt('fCd', Math.max(0, P.polCd).toFixed(0) + ' ms');
+    setTxt('fWell', String(WL.length));
+    setTxt('tagR', 'μ ' + met.toFixed(3) + ' · 波次 ' + G.wave);
+
+    var met2 = met;
+    var mulG = 1 + P.graze * 0.9;
+    var mulE = 1 - P.ent * 0.55;
+    var mulP = P.pol > 0 ? 1.12 : 1.18;
+    var mulI = 1 + (P.energy / 100) * 0.42;
+    var mulS = 1 + (P.shield / 100) * 0.30;
+    var tot = mulG * mulE * mulP * mulI * mulS;
+    var ysig = tot.toFixed(3) + '|' + mulG.toFixed(3);
+    if (G.sig.y !== ysig) {
+      G.sig.y = ysig;
+      $('yMul').textContent = '×' + tot.toFixed(3);
+      $('yield').innerHTML =
+        yrow('擦弹增益', '×' + mulG.toFixed(3), '贴近度 ' + P.graze.toFixed(2)) +
+        yrow('熵值压制', '×' + mulE.toFixed(3), '熵值 ' + (P.ent * 100).toFixed(0) + '%') +
+        yrow('相位契合', '×' + mulP.toFixed(3), P.pol > 0 ? '吸附' : '排斥') +
+        yrow('反演储备', '×' + mulI.toFixed(3), '熵能 ' + P.energy.toFixed(0)) +
+        yrow('护盾稳态', '×' + mulS.toFixed(3), '护盾 ' + P.shield.toFixed(0));
+    }
+
+    G.domN = (G.domN || 0) + 1;
+    if (G.domN % 8 === 1 || !G.lastAgg) G.lastAgg = aggregate();
+    var a = G.lastAgg;
+    var lsig = a.graze.toFixed(1) + '|' + a.ent.toFixed(1) + '|' + a.conv.toFixed(1) + '|' + a.n;
+    if (G.sig.a !== lsig) {
+      G.sig.a = lsig;
+      $('ldA').textContent = a.graze.toFixed(1) + '%';
+      $('ldB').textContent = a.ent.toFixed(1) + '%';
+      $('ldC').textContent = a.conv.toFixed(1) + '%';
+      setTxt('ldN', String(a.n));
+    }
+
+    var stEl = $('stName');
+    if (stEl.textContent !== SN_[G.st]) {
+      stEl.textContent = SN_[G.st];
+      $('stSub').textContent = SC_[G.st];
+      var dot = $('stDot');
+      dot.style.background = SK_[G.st];
+      dot.style.boxShadow = '0 0 8px ' + SK_[G.st];
+    }
+
+    if (G.sig.l !== G.log.length) {
+      G.sig.l = G.log.length;
+      var out = [], n = Math.max(0, G.log.length - 8);
+      for (var q = G.log.length - 1; q >= n; q--) {
+        out.push('<div class="lg"><u>' + (G.t / 1000).toFixed(1) + 's</u><b>' + G.log[q] + '</b></div>');
+      }
+      $('logBox').innerHTML = out.join('');
+    }
+  }
+  function yrow(k, v, why) {
+    return '<div class="yr"><u>' + k + '</u><b>' + v + '</b><s>' + why + '</s></div>';
+  }
+
+  /* ============================================================
+     输入
+     ============================================================ */
+  function tapDir(k) {
+    var now = G.t;
+    if (G.tap.k === k && now - G.tap.t < 290) {
+      G.tap.t = -9999;
+      var d = { 0: [-1, 0], 1: [1, 0], 2: [0, -1], 3: [0, 1] }[k];
+      phaseDash(d[0], d[1]);
+      return true;
+    }
+    G.tap.k = k; G.tap.t = now;
+    return false;
+  }
+
+  window.addEventListener('keydown', function (e) {
+    var c = e.key;
+    if (c === 'ArrowLeft' || c === 'a' || c === 'A') { if (!G.in.left) tapDir(0); G.in.left = true; e.preventDefault(); }
+    else if (c === 'ArrowRight' || c === 'd' || c === 'D') { if (!G.in.right) tapDir(1); G.in.right = true; e.preventDefault(); }
+    else if (c === 'ArrowUp' || c === 'w' || c === 'W') { if (!G.in.up) tapDir(2); G.in.up = true; e.preventDefault(); }
+    else if (c === 'ArrowDown' || c === 's' || c === 'S') { if (!G.in.down) tapDir(3); G.in.down = true; e.preventDefault(); }
+    else if (c === 'Shift') { G.in.focus = true; P.focus = true; }
+    else if (c === 'q' || c === 'Q') { if (!e.repeat) invertBurst(); }
+    else if (c === 'e' || c === 'E') { if (!e.repeat) flipPolarity(); }
+    else if (c === 'f' || c === 'F') { if (!e.repeat) forceSettle(); }
+  });
+  window.addEventListener('keyup', function (e) {
+    var c = e.key;
+    if (c === 'ArrowLeft' || c === 'a' || c === 'A') G.in.left = false;
+    else if (c === 'ArrowRight' || c === 'd' || c === 'D') G.in.right = false;
+    else if (c === 'ArrowUp' || c === 'w' || c === 'W') G.in.up = false;
+    else if (c === 'ArrowDown' || c === 's' || c === 'S') G.in.down = false;
+    else if (c === 'Shift') { G.in.focus = false; P.focus = false; }
+  });
+  window.addEventListener('blur', function () {
+    G.in.left = G.in.right = G.in.up = G.in.down = G.in.focus = false;
+    P.focus = false;
+  });
+  $('btnRestart').addEventListener('click', function () {
+    settleEl.classList.remove('on');
+    reset();
+    G.frozen = false;
+    G.last = performance.now();
+  });
+
+  /* ============================================================
+     启动
+     ============================================================ */
+  reset();
+  $('glist').innerHTML = GESTURES.map(function (g2, i) {
+    return '<div class="gi"><u>' + (i + 1) + '</u><div><b>' + g2.k + '</b><s>' + g2.d + '</s></div></div>';
+  }).join('');
+
+  var lw = 0, lg = 0, lr = 0, ldom = 0;
+
+  function loopArena(now) {
+    var dt = now - G.last; G.last = now;
+    if (dt > 120) dt = 120;
+    if (!G.frozen) {
+      G.acc += dt;
+      var n = 0;
+      while (G.acc >= STEP && n < 6) { physics(STEP / 1000); G.acc -= STEP; n++; }
+      if (G.acc > STEP * 6) G.acc = 0;
+    }
+    if (now - lw > 8) { lw = now; drawArena(); }
+    if (now - ldom > 30) { ldom = now; renderDom(); }
+    requestAnimationFrame(loopArena);
+  }
+  function loopGauge(now) {
+    if (now - lg > 45) { lg = now; drawGauge(); }
+    requestAnimationFrame(loopGauge);
+  }
+  function loopRadar(now) {
+    if (now - lr > 15) { lr = now; drawRadar(); }
+    requestAnimationFrame(loopRadar);
+  }
+  requestAnimationFrame(loopArena);
+  requestAnimationFrame(loopGauge);
+  requestAnimationFrame(loopRadar);
+
+  /* ============================================================
+     测试接口
+     ============================================================ */
+  window.PW = {
+    freeze: function () { G.frozen = true; },
+    unfreeze: function () { G.frozen = false; G.last = performance.now(); },
+    step: function (n) { n = n || 1; for (var i = 0; i < n; i++) { physics(STEP / 1000); if (G.settled) break; } },
+    reset: function () { reset(); },
+    state: function () { return SN_[G.st]; },
+    stateIdx: function () { return G.st; },
+    stats: function () {
+      return {
+        st: SN_[G.st], t: G.t, wave: G.wave, inter: G.inter,
+        spawned: G.spawned, converted: G.converted, hits: G.hits, flips: G.flips,
+        inverts: G.inverts, dashes: G.dashes, grazes: G.grazes,
+        ent: P.ent, energy: P.energy, shield: P.shield, density: G.density,
+        settled: G.settled, reason: G.breachReason, frames: G.frames.length,
+        peakEnt: G.peakEnt, wells: WL.length, emitters: EM.length, bullets: BL.length
+      };
+    },
+    probe: function () {
+      var nh = 0, nf = 0;
+      for (var i = 0; i < BL.length; i++) { if (!BL[i].alive) continue; if (BL[i].friendly) nf++; else nh++; }
+      return {
+        x: P.x, y: P.y, vx: P.vx, vy: P.vy, spd: Math.hypot(P.vx, P.vy),
+        pol: P.pol, polCd: P.polCd, dashCd: P.dashCd, dashT: P.dashT, inv: P.inv,
+        focus: P.focus, ent: P.ent, energy: P.energy, shield: P.shield,
+        still: P.still, graze: P.graze, met: metricAt(P.x, P.y, WL),
+        nh: nh, nf: nf, settled: G.settled, reason: G.breachReason, st: SN_[G.st]
+      };
+    },
+    painted: function () { return { cvArena: painted.cvArena, cvGauge: painted.cvGauge, cvRadar: painted.cvRadar }; },
+    bullets: function () {
+      var o = [];
+      for (var i = 0; i < BL.length; i++) {
+        var b = BL[i];
+        if (!b.alive) continue;
+        o.push({ x: b.x, y: b.y, vx: b.vx, vy: b.vy, spd0: b.spd0, spd: Math.hypot(b.vx, b.vy),
+                 mu: metricAt(b.x, b.y, WL), pol: b.pol, friendly: b.friendly, life: b.life });
+      }
+      return o;
+    },
+    emitters: function () {
+      return EM.map(function (e) {
+        return { i: e.i, x: e.x, y: e.y, on: e.on, arms: e.arms, spin: e.spin,
+                 interval: e.interval, speed: e.speed, cd: e.cd, overload: e.overload, phase: e.phase };
+      });
+    },
+    wells: function () { return WL.map(function (w) { return { x: w.x, y: w.y, m: w.m, sig: w.sig, rr: w.rr }; }); },
+    teleport: function (x, y) { P.x = x; P.y = y; P.px = x; P.py = y; P.vx = 0; P.vy = 0; },
+    setVel: function (vx, vy) { P.vx = vx; P.vy = vy; },
+    setEnergy: function (v) { P.energy = Math.max(0, Math.min(PHYS.ENERGY_MAX, v)); },
+    setShield: function (v) { P.shield = Math.max(0.01, Math.min(PHYS.SHIELD_MAX, v)); G.breachT = -1; P.alive = true; },
+    setEntropy: function (v) { P.ent = Math.max(0, Math.min(1, v)); },
+    setFocus: function (v) { P.focus = !!v; G.in.focus = !!v; },
+    hold: function (k, v) { if (k in G.in) G.in[k] = !!v; if (k === 'focus') P.focus = !!v; },
+    flip: function () { return flipPolarity(); },
+    invert: function () { return invertBurst(); },
+    dash: function (x, y) { return phaseDash(x, y); },
+    setWave: function (w) { G.wave = w; G.waveT = 0; G.inter = false; buildWave(); },
+    intermission: function (v) { G.inter = !!v; G.interT = v ? 0 : PHYS.GAP_MS; },
+    spawnAt: function (x, y) {
+      var a = Math.random() * 6.283;
+      BL.push({ x: x, y: y, vx: Math.cos(a) * 60, vy: Math.sin(a) * 60, spd0: 60,
+                r: PHYS.BULLET_R, pol: 1, friendly: false, life: 60000, age: 0, alive: true });
+      G.spawned++;
+    },
+    clearBullets: function () { for (var i = 0; i < BL.length; i++) BL[i].alive = false; },
+    spawn: function (x, y, vx, vy) {
+      var s = Math.hypot(vx, vy) || 60;
+      BL.push({ x: x, y: y, vx: vx, vy: vy, spd0: s, r: PHYS.BULLET_R, pol: 1,
+                friendly: false, life: 60000, age: 0, alive: true });
+      G.spawned++;
+    },
+    drain: function () { return { gain: G.gainSum, drain: G.drainSum, decay: G.decaySum }; },
+    zeroLedger: function () { G.gainSum = 0; G.drainSum = 0; G.decaySum = 0; },
+    findCalm: function () {
+      var best = null, bs = 1e9;
+      for (var x = 90; x < PHYS.AW - 90; x += 40) {
+        for (var y = 90; y < PHYS.AH - 90; y += 40) {
+          var m = metricAt(x, y, WL);
+          if (m < bs) { bs = m; best = [x, y]; }
+        }
+      }
+      return { x: best[0], y: best[1], met: bs };
+    },
+    settle: function () {
+      if (G.settled) { G.agg = aggregate(); renderSettle(); settleEl.classList.add('on'); }
+      else forceSettle();
+    },
+    agg: function () { return aggregate(); },
+    framesN: function () { return G.frames.length; },
+    frameAt: function (i) { return G.frames[Math.min(i, G.frames.length - 1)] || null; },
+    log: function () { return G.log.slice(); },
+    err: function () { return errs.slice(); }
+  };
+})();
+
+</script>
+</body>
+</html>

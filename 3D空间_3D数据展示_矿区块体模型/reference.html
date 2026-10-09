@@ -1,0 +1,1371 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>矿脉 OREVEIN · 三维块体模型分析平台</title>
+<style>
+  :root{
+    --bg:#080c11; --panel:rgba(12,18,26,.82); --panel-b:rgba(94,132,168,.30);
+    --ink:#dbe7f2; --ink2:#8fa6bd; --ink3:#5d738a;
+    --key:#ffb454; --fill:#5fd8ff; --warn:#ff6b5e; --ok:#5ef2b0;
+    --accent:#7fd4ff;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",monospace;
+    --sans:"Segoe UI",Roboto,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+  #gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+  #gl.dragging{cursor:grabbing}
+  .wm{position:fixed;left:16px;top:10px;z-index:6;pointer-events:none;
+    font-size:19px;letter-spacing:.42em;font-weight:600;color:rgba(180,214,240,.30)}
+  #stateToken{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:7;
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;padding:5px 14px;border-radius:3px;
+    background:rgba(10,16,24,.86);border:1px solid rgba(127,212,255,.42);color:var(--accent);
+    white-space:nowrap;pointer-events:none}
+  #stateToken b{color:#fff;font-weight:600}
+  .hud{position:fixed;inset:0;z-index:5;pointer-events:none}
+  .panel{position:absolute;pointer-events:auto;background:var(--panel);border:1px solid var(--panel-b);
+    border-radius:4px;padding:9px 11px 10px;backdrop-filter:blur(7px);min-width:0}
+  .panel h2{margin:0 0 7px;font-size:10.5px;font-weight:600;letter-spacing:.19em;color:var(--ink2);
+    text-transform:uppercase;display:flex;justify-content:space-between;gap:10px}
+  .panel h2 span{color:var(--accent);font-family:var(--mono);letter-spacing:.04em}
+  #p-cam{left:16px;top:42px;width:266px}
+  #p-light{right:16px;top:42px;width:268px}
+  #p-frustum{right:16px;top:296px;width:268px}
+  #p-shade{left:16px;bottom:16px;width:266px}
+  #p-pipe{right:16px;bottom:16px;width:268px}
+  table.kv{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+  table.kv td{padding:2.5px 0;vertical-align:baseline}
+  table.kv td:first-child{color:var(--ink3);white-space:nowrap;padding-right:8px}
+  table.kv td:last-child{text-align:right;color:var(--ink);white-space:nowrap}
+  table.kv td.last b{color:var(--accent);font-weight:600}
+  .scope{width:100%;height:106px;display:block;margin:2px 0 6px}
+  .swatch{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;
+    vertical-align:middle;transform:translateY(-1px)}
+  .bar{height:5px;border-radius:3px;background:rgba(127,212,255,.14);overflow:hidden;margin-top:3px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,#2f7fb5,#7fd4ff)}
+  .ctl{display:flex;align-items:center;gap:8px;margin:6px 0 2px}
+  .ctl label{flex:0 0 84px;font-size:10.5px;color:var(--ink3);letter-spacing:.05em}
+  .ctl input[type=range]{flex:1;min-width:0;height:16px;accent-color:#7fd4ff;background:transparent}
+  .ctl output{flex:0 0 46px;text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--ink)}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+  .chip{font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:3px 7px;border-radius:3px;
+    border:1px solid var(--panel-b);color:var(--ink2);background:rgba(255,255,255,.03);cursor:pointer;
+    pointer-events:auto}
+  .chip:hover{border-color:rgba(127,212,255,.6);color:var(--ink)}
+  .chip.on{background:rgba(127,212,255,.16);border-color:rgba(127,212,255,.75);color:#fff}
+  .hint{margin-top:7px;font-size:10px;line-height:1.55;color:var(--ink3)}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:8;
+    font-family:var(--mono);font-size:11.5px;padding:7px 15px;border-radius:3px;
+    background:rgba(10,16,24,.92);border:1px solid rgba(127,212,255,.5);color:var(--accent);
+    opacity:0;transition:opacity .22s;pointer-events:none;white-space:nowrap}
+  #toast.on{opacity:1}
+  #audit{position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden}
+  #anno{position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none}
+  #anno line{stroke:rgba(127,212,255,.58);stroke-width:1;stroke-dasharray:3 3}
+  #anno circle{fill:none;stroke:rgba(127,212,255,.85);stroke-width:1.2}
+  #anno text{font-family:var(--mono);font-size:10.5px;fill:#b6d2e8;
+    paint-order:stroke;stroke:#04070a;stroke-width:3.4;stroke-linejoin:round}
+  #anno text tspan.k{fill:#7fd4ff}
+  @media (max-width:1180px){ #p-frustum{display:none} }
+  @media (max-width:900px){ .hud{display:none} #toast{font-size:10px} }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="wm">OREVEIN · 矿脉</div>
+<div id="stateToken">STATE <b>—</b></div>
+<div class="hud">
+  <section class="panel" id="p-cam" aria-label="空间相机方位仪">
+    <h2>空间相机方位仪 <span id="camClock">--</span></h2>
+    <table class="kv">
+      <tr><td>eye x / y / z</td><td class="last" id="camEye">—</td></tr>
+      <tr><td>方位角 az</td><td id="camAz">—</td></tr>
+      <tr><td>极角 el</td><td id="camEl">—</td></tr>
+      <tr><td>轨道半径 r</td><td id="camR">—</td></tr>
+      <tr><td>look-at</td><td id="camT">—</td></tr>
+      <tr><td>角速度 ω</td><td id="camW">—</td></tr>
+    </table>
+  </section>
+  <section class="panel" id="p-light" aria-label="双光源轨道示波">
+    <h2>双光源轨道示波 <span id="lgtMode">双点光</span></h2>
+    <svg class="scope" id="scope" viewBox="0 0 236 106" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <radialGradient id="scG"><stop offset="0" stop-color="#7fd4ff" stop-opacity=".16"/><stop offset="1" stop-color="#7fd4ff" stop-opacity="0"/></radialGradient>
+      </defs>
+      <rect x="0" y="0" width="236" height="106" fill="none"/>
+      <circle cx="118" cy="53" r="46" fill="url(#scG)"/>
+      <circle cx="118" cy="53" r="46" fill="none" stroke="rgba(127,212,255,.16)" stroke-width="1"/>
+      <circle cx="118" cy="53" r="30" fill="none" stroke="rgba(127,212,255,.13)" stroke-width="1"/>
+      <circle cx="118" cy="53" r="14" fill="none" stroke="rgba(127,212,255,.10)" stroke-width="1"/>
+      <line x1="72" y1="53" x2="164" y2="53" stroke="rgba(127,212,255,.13)" stroke-width="1"/>
+      <line x1="118" y1="7" x2="118" y2="99" stroke="rgba(127,212,255,.13)" stroke-width="1"/>
+      <line id="scRay0" x1="118" y1="53" x2="118" y2="53" stroke="#ffb454" stroke-width="1" stroke-dasharray="3 2" opacity=".7"/>
+      <line id="scRay1" x1="118" y1="53" x2="118" y2="53" stroke="#5fd8ff" stroke-width="1" stroke-dasharray="3 2" opacity=".7"/>
+      <circle id="scL0" cx="118" cy="53" r="5" fill="#ffb454" stroke="#1a1206" stroke-width="1.4"/>
+      <circle id="scL1" cx="118" cy="53" r="5" fill="#5fd8ff" stroke="#06161c" stroke-width="1.4"/>
+      <circle cx="118" cy="53" r="2.2" fill="#dbe7f2"/>
+      <text x="6" y="102" font-family="monospace" font-size="8" fill="#5d738a">XZ 轨道面投影 · 衰减常数 0.09 / 0.032</text>
+    </svg>
+    <table class="kv">
+      <tr><td><i class="swatch" style="background:#ffb454"></i>主光 L0</td><td class="last" id="lgt0">—</td></tr>
+      <tr><td><i class="swatch" style="background:#5fd8ff"></i>辅光 L1</td><td class="last" id="lgt1">—</td></tr>
+      <tr><td>L0 衰减 a(d)</td><td id="att0">—</td></tr>
+      <tr><td>L1 衰减 a(d)</td><td id="att1">—</td></tr>
+      <tr><td>光强过载</td><td id="lgtOD">—</td></tr>
+    </table>
+  </section>
+  <section class="panel" id="p-frustum" aria-label="视锥体参数监视窗">
+    <h2>视锥体参数监视窗 <span id="frMode">透视</span></h2>
+    <div class="ctl"><label>视场角 fov</label><input id="rFov" type="range" min="24" max="82" step="1" value="48"><output id="oFov">48°</output></div>
+    <div class="ctl"><label>近裁剪 n</label><input id="rNear" type="range" min="2" max="120" step="1" value="12"><output id="oNear">12</output></div>
+    <div class="ctl"><label>远裁剪 f</label><input id="rFar" type="range" min="900" max="6000" step="50" value="3200"><output id="oFar">3200</output></div>
+    <table class="kv" style="margin-top:5px">
+      <tr><td>宽高比 aspect</td><td id="frAsp">—</td></tr>
+      <tr><td>近/远比</td><td id="frRat">—</td></tr>
+      <tr><td>相机—包围球间距 d</td><td class="last" id="frGap">—</td></tr>
+      <tr><td>裁剪裕度</td><td id="frSafe">—</td></tr>
+    </table>
+  </section>
+  <section class="panel" id="p-shade" aria-label="曲率与法线摄动强度">
+    <h2>曲率与法线摄动 <span id="shModel">Blinn-Phong</span></h2>
+    <div class="ctl"><label>法线摄动 σ</label><input id="rNorm" type="range" min="0" max="100" step="1" value="18"><output id="oNorm">0.18</output></div>
+    <div class="ctl"><label>高光指数 n</label><input id="rShin" type="range" min="4" max="128" step="1" value="46"><output id="oShin">46</output></div>
+    <div class="ctl"><label>高光增益 k</label><input id="rSpec" type="range" min="0" max="200" step="1" value="72"><output id="oSpec">0.72</output></div>
+    <div class="ctl"><label>剖面切面 x</label><input id="rClip" type="range" min="-312" max="312" step="4" value="312"><output id="oClip">关</output></div>
+    <div class="chips">
+      <button class="chip on" id="cSolid" type="button">实体着色</button>
+      <button class="chip" id="cWire" type="button">线框混合</button>
+      <button class="chip" id="cOver" type="button">光照过载</button>
+      <button class="chip" id="cClip" type="button">剖面开启</button>
+    </div>
+    <div class="hint">左键拖拽环绕（松手后惯性滑行）· 滚轮非线性缩放 · 右键拖拽平移 · 双击射线拾取聚焦 · Shift+拖拽移动辅光</div>
+  </section>
+  <section class="panel" id="p-pipe" aria-label="渲染管线监控">
+    <h2>渲染管线监控 <span id="pipeApi">webgl</span></h2>
+    <table class="kv">
+      <tr><td>图元类型</td><td id="ppPrim">—</td></tr>
+      <tr><td>三角形数</td><td class="last" id="ppTri">—</td></tr>
+      <tr><td>线段数</td><td id="ppLine">—</td></tr>
+      <tr><td>顶点缓冲 VBO</td><td id="ppVbo">—</td></tr>
+      <tr><td>帧率 fps</td><td class="last" id="ppFps">—</td></tr>
+      <tr><td>绘制调用</td><td id="ppCalls">—</td></tr>
+      <tr><td>拾取实体</td><td id="ppPick">—</td></tr>
+    </table>
+    <div class="bar"><i id="ppBar" style="width:0%"></i></div>
+  </section>
+</div>
+<svg id="anno" aria-hidden="true"></svg>
+<div id="toast"></div>
+<div id="audit" aria-hidden="true"></div>
+<script>
+"use strict";
+/* =======================================================================
+   矿脉 OREVEIN · 原生 WebGL 三维块体模型分析平台
+   零外部依赖：几何、法线、色彩缓冲全部由本文件内的 JavaScript 数学过程生成。
+   ======================================================================= */
+(function(){
+
+/* ---------- 0. 基础工具 ---------- */
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function smooth(t){ return t*t*(3-2*t); }
+
+function mulberry32(a){
+  return function(){
+    a|=0; a=(a+0x6D2B79F5)|0;
+    var t=Math.imul(a^(a>>>15),1|a);
+    t=(t+Math.imul(t^(t>>>7),61|t))^t;
+    return ((t^(t>>>14))>>>0)/4294967296;
+  };
+}
+var PERM=(function(){
+  var r=mulberry32(20260917), p=new Uint8Array(512), i, j, t;
+  for(i=0;i<256;i++) p[i]=i;
+  for(i=255;i>0;i--){ j=(r()*(i+1))|0; t=p[i]; p[i]=p[j]; p[j]=t; }
+  for(i=0;i<256;i++) p[i+256]=p[i];
+  return p;
+})();
+function h3(x,y,z){ return PERM[(PERM[(PERM[x&255]+y)&255]+z)&255]/255; }
+function vnoise(x,y,z){
+  var xi=Math.floor(x), yi=Math.floor(y), zi=Math.floor(z);
+  var xf=x-xi, yf=y-yi, zf=z-zi;
+  var u=smooth(xf), v=smooth(yf), w=smooth(zf);
+  var c000=h3(xi,yi,zi),     c100=h3(xi+1,yi,zi);
+  var c010=h3(xi,yi+1,zi),   c110=h3(xi+1,yi+1,zi);
+  var c001=h3(xi,yi,zi+1),   c101=h3(xi+1,yi,zi+1);
+  var c011=h3(xi,yi+1,zi+1), c111=h3(xi+1,yi+1,zi+1);
+  var x00=lerp(c000,c100,u), x10=lerp(c010,c110,u);
+  var x01=lerp(c001,c101,u), x11=lerp(c011,c111,u);
+  return lerp(lerp(x00,x10,v), lerp(x01,x11,v), w);
+}
+function fbm(x,y,z,oct){
+  var s=0,a=0.5,f=1,n=0;
+  for(var i=0;i<oct;i++){ s+=a*vnoise(x*f,y*f,z*f); n+=a; a*=0.5; f*=2.07; }
+  return s/n;
+}
+
+/* ---------- 1. 手工 4x4 矩阵核（列主序，无任何矩阵库） ---------- */
+function m4(){ return new Float32Array(16); }
+function m4Identity(o){
+  o[0]=1;o[1]=0;o[2]=0;o[3]=0; o[4]=0;o[5]=1;o[6]=0;o[7]=0;
+  o[8]=0;o[9]=0;o[10]=1;o[11]=0; o[12]=0;o[13]=0;o[14]=0;o[15]=1; return o;
+}
+function m4Perspective(o,fovy,aspect,near,far){
+  var f=1/Math.tan(fovy*0.5), nf=1/(near-far);
+  o[0]=f/aspect;o[1]=0;o[2]=0;o[3]=0;
+  o[4]=0;o[5]=f;o[6]=0;o[7]=0;
+  o[8]=0;o[9]=0;o[10]=(far+near)*nf;o[11]=-1;
+  o[12]=0;o[13]=0;o[14]=2*far*near*nf;o[15]=0;
+  return o;
+}
+function m4LookAt(o,ex,ey,ez,cx,cy,cz,ux,uy,uz){
+  var zx=ex-cx, zy=ey-cy, zz=ez-cz;
+  var zl=Math.sqrt(zx*zx+zy*zy+zz*zz)||1; zx/=zl; zy/=zl; zz/=zl;
+  var xx=uy*zz-uz*zy, xy=uz*zx-ux*zz, xz=ux*zy-uy*zx;
+  var xl=Math.sqrt(xx*xx+xy*xy+xz*xz)||1; xx/=xl; xy/=xl; xz/=xl;
+  var yx=zy*xz-zz*xy, yy=zz*xx-zx*xz, yz=zx*xy-zy*xx;
+  o[0]=xx;o[1]=yx;o[2]=zx;o[3]=0;
+  o[4]=xy;o[5]=yy;o[6]=zy;o[7]=0;
+  o[8]=xz;o[9]=yz;o[10]=zz;o[11]=0;
+  o[12]=-(xx*ex+xy*ey+xz*ez);
+  o[13]=-(yx*ex+yy*ey+yz*ez);
+  o[14]=-(zx*ex+zy*ey+zz*ez);
+  o[15]=1; return o;
+}
+function m4Mul(o,a,b){
+  for(var c=0;c<4;c++){
+    var b0=b[c*4],b1=b[c*4+1],b2=b[c*4+2],b3=b[c*4+3];
+    o[c*4  ]=a[0]*b0+a[4]*b1+a[8 ]*b2+a[12]*b3;
+    o[c*4+1]=a[1]*b0+a[5]*b1+a[9 ]*b2+a[13]*b3;
+    o[c*4+2]=a[2]*b0+a[6]*b1+a[10]*b2+a[14]*b3;
+    o[c*4+3]=a[3]*b0+a[7]*b1+a[11]*b2+a[15]*b3;
+  }
+  return o;
+}
+function m4Invert(o,m){
+  var a00=m[0],a01=m[1],a02=m[2],a03=m[3], a10=m[4],a11=m[5],a12=m[6],a13=m[7],
+      a20=m[8],a21=m[9],a22=m[10],a23=m[11], a30=m[12],a31=m[13],a32=m[14],a33=m[15];
+  var b00=a00*a11-a01*a10, b01=a00*a12-a02*a10, b02=a00*a13-a03*a10,
+      b03=a01*a12-a02*a11, b04=a01*a13-a03*a11, b05=a02*a13-a03*a12,
+      b06=a20*a31-a21*a30, b07=a20*a32-a22*a30, b08=a20*a33-a23*a30,
+      b09=a21*a32-a22*a31, b10=a21*a33-a23*a31, b11=a22*a33-a23*a32;
+  var det=b00*b11-b01*b10+b02*b09+b03*b08-b04*b07+b05*b06;
+  if(!det) return null;
+  det=1/det;
+  o[0]=(a11*b11-a12*b10+a13*b09)*det;  o[1]=(a02*b10-a01*b11-a03*b09)*det;
+  o[2]=(a31*b05-a32*b04+a33*b03)*det;  o[3]=(a22*b04-a21*b05-a23*b03)*det;
+  o[4]=(a12*b08-a10*b11-a13*b07)*det;  o[5]=(a00*b11-a02*b08+a03*b07)*det;
+  o[6]=(a32*b02-a30*b05-a33*b01)*det;  o[7]=(a20*b05-a22*b02+a23*b01)*det;
+  o[8]=(a10*b10-a11*b08+a13*b06)*det;  o[9]=(a01*b08-a00*b10-a03*b06)*det;
+  o[10]=(a30*b04-a31*b02+a33*b00)*det; o[11]=(a21*b02-a20*b04-a23*b00)*det;
+  o[12]=(a11*b07-a10*b09-a12*b06)*det; o[13]=(a00*b09-a01*b07+a02*b06)*det;
+  o[14]=(a31*b01-a30*b03-a32*b00)*det; o[15]=(a20*b03-a21*b01+a22*b00)*det;
+  return o;
+}
+function m4Translate(o,x,y,z){ m4Identity(o); o[12]=x; o[13]=y; o[14]=z; return o; }
+function m4Scale(o,x,y,z){ m4Identity(o); o[0]=x; o[5]=y; o[10]=z; return o; }
+
+/* ---------- 2. 地质体域模型：24x20x24 块体 · 三条高斯透镜矿体 ---------- */
+var NX=24, NY=20, NZ=24;
+var CS=26, CZ=26, CELL_H=12, BLOCK_TOP=12;
+var HALF_X=NX*CS*0.5, HALF_Z=NZ*CZ*0.5;
+var MIN_Y=BLOCK_TOP-NY*CELL_H;
+
+var BLOCK_U=26;               /* 一个块体边长 = 1 个世界单位，供点光衰减公式使用 */
+var CUTOFF=0.12;              /* 边界品位 Cu % */
+var BODIES=[
+  /* 主矿体：中心 E13 / 标高 -85 / N13，半轴 133x72x122，倾伏 20° */
+  {cx:13,    cy:-85, cz:13,   ax:133, ay:72, az:122, dip:20*Math.PI/180, w:1.00, cu:1.85},
+  /* 近地表卫星体：中心 E-101 / -16 / N-55 */
+  {cx:-101,  cy:-16, cz:-55,  ax:109, ay:29, az:101, dip:20*Math.PI/180, w:0.72, cu:1.12},
+  /* 深部卫星体：中心 E164 / -121 / N122 */
+  {cx:164,   cy:-121,cz:122,  ax:73,  ay:34, az:68,  dip:29*Math.PI/180, w:0.58, cu:0.94}
+];
+
+var NC=NX*NY*NZ;
+var grade=new Float32Array(NC);
+var lith =new Uint8Array(NC);
+var conf =new Float32Array(NC);
+var idxOf=function(ix,iy,iz){ return (iy*NZ+iz)*NX+ix; };
+
+function gradeAt(x,y,z){
+  var g=0;
+  for(var b=0;b<BODIES.length;b++){
+    var B=BODIES[b];
+    var dx=x-B.cx, dy=y-B.cy, dz=z-B.cz;
+    var ca=Math.cos(B.dip), sa=Math.sin(B.dip);
+    var u= dx*ca - dy*sa, v= dx*sa + dy*ca, w=dz;
+    var q=(u*u)/(B.ax*B.ax)+(v*v)/(B.ay*B.ay)+(w*w)/(B.az*B.az);
+    g+=B.w*B.cu*Math.exp(-q*1.42);
+  }
+  var n=(fbm(x*0.012+7.7,y*0.012+2.3,z*0.012-4.1,2)-0.5)*1.7
+       +(fbm(x*0.043-3.1,y*0.043+9.4,z*0.043+1.6,2)-0.5)*0.62;
+  return Math.max(0,g*(1+n));
+}
+function terrainH(x,z){
+  var r=Math.max(Math.abs(x),Math.abs(z));
+  var pit=-142*Math.exp(-Math.pow((r-330)/208,2));
+  var base=30+34*fbm(x*0.0034+3.1,0.7,z*0.0034-1.7,3);
+  return base+pit;
+}
+function buildModel(){
+  var rnd=mulberry32(20260917);
+  for(var iy=0;iy<NY;iy++){
+    for(var iz=0;iz<NZ;iz++){
+      for(var ix=0;ix<NX;ix++){
+        var i=idxOf(ix,iy,iz);
+        var x=-HALF_X+(ix+0.5)*CS;
+        var y=BLOCK_TOP-(iy+0.5)*CELL_H;
+        var z=-HALF_Z+(iz+0.5)*CZ;
+        var g=gradeAt(x,y,z);
+        grade[i]=g;
+        lith[i]= g>=CUTOFF?1 : (g>=CUTOFF*0.42?2 : (g>=CUTOFF*0.16?3:0));
+        /* 置信度：距最近可采块体的距离衰减 + 噪声，模拟钻孔控制程度 */
+        conf[i]=g>=CUTOFF ? clamp(0.94-0.30*rnd(),0,1) : clamp(0.22+0.5*rnd(),0,1);
+      }
+    }
+  }
+}
+/* 钻孔：14 个孔口与其测斜轨迹 */
+var DRILLS=(function(){
+  var r=mulberry32(88117), out=[], k;
+  for(k=0;k<14;k++){
+    var a=(k/14)*Math.PI*2+0.4;
+    var rr=118+r()*168;
+    var ox=Math.cos(a)*rr, oz=Math.sin(a)*rr;
+    var depth=150+r()*180;
+    var tilt=0.30+r()*0.36;
+    out.push({x:ox,z:oz,top:terrainH(ox,oz),depth:depth,tilt:tilt,az:a+Math.PI});
+  }
+  return out;
+})();
+function drillPoint(d,t){
+  /* t in [0,1] 沿孔深 */
+  var L=d.depth*t;
+  var hx=Math.sin(d.tilt)*Math.cos(d.az), hz=Math.sin(d.tilt)*Math.sin(d.az);
+  return [ d.x+hx*L, d.top-Math.cos(d.tilt)*L, d.z+hz*L ];
+}
+
+/* ---------- 3. 配色映射 ---------- */
+function rampAt(stops,t){
+  t=clamp(t,0,1);
+  for(var i=0;i<stops.length-1;i++){
+    var a=stops[i], b=stops[i+1];
+    if(t<=b[0]){
+      var u=(t-a[0])/Math.max(1e-6,b[0]-a[0]);
+      return [a[1]+(b[1]-a[1])*u, a[2]+(b[2]-a[2])*u, a[3]+(b[3]-a[3])*u];
+    }
+  }
+  var e=stops[stops.length-1]; return [e[1],e[2],e[3]];
+}
+var RAMP_GRADE=[
+  [0.00,0.34,0.14,0.07],[0.16,0.52,0.20,0.07],[0.34,0.74,0.32,0.09],
+  [0.52,0.90,0.50,0.11],[0.70,0.98,0.72,0.20],[0.86,1.00,0.90,0.42],
+  [1.00,1.00,0.98,0.82]
+];
+var RAMP_LITH={
+  1:[0.90,0.66,0.22], 2:[0.50,0.60,0.52], 3:[0.30,0.40,0.48], 0:[0.18,0.23,0.29]
+};
+var TERRAIN_LOW=[0.085,0.115,0.145], TERRAIN_HIGH=[0.30,0.33,0.30];
+
+/* ---------- 4. 网格构建（全部程序化写入 Float32Array） ---------- */
+var FACES=[
+  {n:[ 1,0,0], v:[[1,0,0],[1,1,0],[1,1,1],[1,0,1]]},
+  {n:[-1,0,0], v:[[0,1,0],[0,0,0],[0,0,1],[0,1,1]]},
+  {n:[0, 1,0], v:[[0,1,1],[1,1,1],[1,1,0],[0,1,0]]},
+  {n:[0,-1,0], v:[[0,0,0],[1,0,0],[1,0,1],[0,0,1]]},
+  {n:[0,0, 1], v:[[1,0,1],[1,1,1],[0,1,1],[0,0,1]]},
+  {n:[0,0,-1], v:[[0,0,0],[0,1,0],[1,1,0],[1,0,0]]}
+];
+var QUAD_TRI=[0,1,2, 0,2,3];
+var QUAD_EDGE=[0,1, 1,2, 2,3, 3,0];
+
+function Mesh(){
+  this.tri=[]; this.line=[]; this.cells=[];
+}
+Mesh.prototype.quad=function(p0,p1,p2,p3,nrm,col,alsoLine){
+  var q=[p0,p1,p2,p3], k, t=QUAD_TRI;
+  for(k=0;k<6;k++){
+    var a=q[t[k]];
+    this.tri.push(a[0],a[1],a[2], nrm[0],nrm[1],nrm[2], col[0],col[1],col[2]);
+  }
+  if(alsoLine!==false){
+    var e=QUAD_EDGE;
+    for(k=0;k<8;k++){
+      var b=q[e[k]];
+      this.line.push(b[0],b[1],b[2], nrm[0],nrm[1],nrm[2], col[0],col[1],col[2]);
+    }
+  }
+};
+/* 由顶点缠绕方向反解面法线：normalize(cross(p1-p0, p2-p0)) */
+Mesh.prototype.quadN=function(p0,p1,p2,p3,col,alsoLine){
+  var ux=p1[0]-p0[0], uy=p1[1]-p0[1], uz=p1[2]-p0[2];
+  var vx=p2[0]-p0[0], vy=p2[1]-p0[1], vz=p2[2]-p0[2];
+  var nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+  var nl=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
+  this.quad(p0,p1,p2,p3,[nx/nl,ny/nl,nz/nl],col,alsoLine);
+};
+Mesh.prototype.seg=function(a,b,col){
+  this.line.push(a[0],a[1],a[2], 0,1,0, col[0],col[1],col[2]);
+  this.line.push(b[0],b[1],b[2], 0,1,0, col[0],col[1],col[2]);
+};
+
+var CELL_COLOR=new Array(NC);
+function colorOf(i){
+  var g=grade[i], L=lith[i], c;
+  if(L===1){ c=rampAt(RAMP_GRADE, Math.pow(clamp((g-0.09)/1.05,0,1),0.62)); }
+  else { c=RAMP_LITH[L]; }
+  return c;
+}
+function buildVoxelMesh(){
+  var m=new Mesh(), i, ix,iy,iz;
+  for(i=0;i<NC;i++) CELL_COLOR[i]=colorOf(i);
+  for(iy=0;iy<NY;iy++) for(iz=0;iz<NZ;iz++) for(ix=0;ix<NX;ix++){
+    i=idxOf(ix,iy,iz);
+    if(lith[i]!==1) continue;                     /* 仅矿化块体成壳 */
+    var x0=-HALF_X+ix*CS, y0=BLOCK_TOP-(iy+1)*CELL_H, z0=-HALF_Z+iz*CZ;
+    var x1=x0+CS, y1=y0+CELL_H, z1=z0+CZ;
+    var col=CELL_COLOR[i];
+    var box=[[x0,y0,z0],[x1,y1,z1]];
+    var boxAABB=[x0,y0,z0,x1,y1,z1];
+    var emitted=false;
+    for(var f=0;f<6;f++){
+      var F=FACES[f];
+      var nx2=ix+F.n[0], ny2=iy+F.n[1], nz2=iz+F.n[2];
+      var outside = nx2<0||nx2>=NX||ny2<0||ny2>=NY||nz2<0||nz2>=NZ;
+      if(!outside && lith[idxOf(nx2,ny2,nz2)]===1) continue;   /* 仅保留朝外的面 */
+      var q=[], k;
+      for(k=0;k<4;k++){
+        var V=F.v[k];
+        q.push([ box[V[0]][0], box[V[1]][1], box[V[2]][2] ]);
+      }
+      m.quad(q[0],q[1],q[2],q[3], F.n, col, true);
+      emitted=true;
+    }
+    if(emitted) m.cells.push({aabb:boxAABB, i:i, c:[(x0+x1)*0.5,(y0+y1)*0.5,(z0+z1)*0.5]});
+  }
+  return m;
+}
+function buildTerrainMesh(){
+  var m=new Mesh(), N=52, EXT=460, step=EXT*2/N, ix, iz;
+  function H(x,z){ return terrainH(x,z); }
+  for(iz=0;iz<N;iz++) for(ix=0;ix<N;ix++){
+    var x0=-EXT+ix*step, z0=-EXT+iz*step, x1=x0+step, z1=z0+step;
+    var cx=(x0+x1)*0.5, cz=(z0+z1)*0.5;
+    if(Math.abs(cx)<352 && Math.abs(cz)<352) continue;   /* 中央开挖区留空 */
+    var h00=H(x0,z0), h10=H(x1,z0), h11=H(x1,z1), h01=H(x0,z1);
+    var hm=(h00+h10+h11+h01)*0.25;
+    var t=clamp((hm+60)/120,0,1);
+    var col=[ lerp(TERRAIN_LOW[0],TERRAIN_HIGH[0],t),
+              lerp(TERRAIN_LOW[1],TERRAIN_HIGH[1],t),
+              lerp(TERRAIN_LOW[2],TERRAIN_HIGH[2],t) ];
+    m.quadN([x0,h00,z0],[x0,h01,z1],[x1,h11,z1],[x1,h10,z0], col, false);
+    m.seg([x0,h00,z0],[x1,h10,z0],[0.24,0.31,0.34]);
+    m.seg([x1,h10,z0],[x1,h11,z1],[0.24,0.31,0.34]);
+  }
+  return m;
+}
+function buildGridMesh(){
+  var m=new Mesh(), c=[0.20,0.29,0.35], k;
+  function P(ix,iy,iz){ return [-HALF_X+ix*CS, BLOCK_TOP-iy*CELL_H, -HALF_Z+iz*CZ]; }
+  for(k=0;k<=NX;k+=4){ m.seg(P(k,NY,0),P(k,NY,NZ),c); }
+  for(k=0;k<=NZ;k+=4){ m.seg(P(0,NY,k),P(NX,NY,k),c); }
+  for(k=0;k<=NY;k+=4){ m.seg(P(0,k,0),P(NX,k,0),c); m.seg(P(0,k,NZ),P(NX,k,NZ),c); }
+  for(k=0;k<=NY;k+=4){ m.seg(P(0,k,0),P(0,k,NZ),c); m.seg(P(NX,k,0),P(NX,k,NZ),c); }
+  var e=[0.36,0.52,0.64];
+  var C=[[-HALF_X,MIN_Y,-HALF_Z],[-HALF_X,MIN_Y,HALF_Z],[-HALF_X,BLOCK_TOP,HALF_Z],[-HALF_X,BLOCK_TOP,-HALF_Z],
+         [ HALF_X,MIN_Y,-HALF_Z],[ HALF_X,MIN_Y,HALF_Z],[ HALF_X,BLOCK_TOP,HALF_Z],[ HALF_X,BLOCK_TOP,-HALF_Z]];
+  var E=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+  for(k=0;k<E.length;k++) m.seg(C[E[k][0]],C[E[k][1]],e);
+  return m;
+}
+function buildDrillMesh(){
+  var m=new Mesh(), i, j, SEG=22;
+  for(i=0;i<DRILLS.length;i++){
+    var d=DRILLS[i], prev=null;
+    for(j=0;j<=SEG;j++){
+      var p=drillPoint(d,j/SEG);
+      if(prev) m.seg(prev,p,[0.92,0.78,0.36]);
+      prev=p;
+    }
+    /* 孔口环 */
+    var R=9, k, prevR=null, first=null;
+    for(k=0;k<=12;k++){
+      var a=k/12*Math.PI*2;
+      var q=[d.x+Math.cos(a)*R, d.top, d.z+Math.sin(a)*R];
+      if(prevR) m.seg(prevR,q,[0.98,0.86,0.46]);
+      else first=q;
+      prevR=q;
+    }
+    m.seg(prevR,first,[0.98,0.86,0.46]);
+    m.seg([d.x,d.top,d.z],[d.x,d.top+16,d.z],[0.98,0.86,0.46]);
+  }
+  return m;
+}
+function buildOrbitRing(){
+  var m=new Mesh(), k, prev=null, first=null, R=1;
+  for(k=0;k<=64;k++){
+    var a=k/64*Math.PI*2;
+    var p=[LIGHT_ORBIT*Math.cos(a), 210, LIGHT_ORBIT*Math.sin(a)];
+    if(prev) m.seg(prev,p,[0.42,0.30,0.16]);
+    else first=p;
+    prev=p;
+  }
+  m.seg(prev,first,[0.42,0.30,0.16]);
+  return m;
+}
+function buildGizmo(){
+  var m=new Mesh(), L=96, o=[-HALF_X-40, MIN_Y-30, -HALF_Z-40];
+  m.seg(o,[o[0]+L,o[1],o[2]],[0.92,0.36,0.32]);
+  m.seg(o,[o[0],o[1]+L,o[2]],[0.42,0.88,0.46]);
+  m.seg(o,[o[0],o[1],o[2]+L],[0.36,0.58,0.95]);
+  return m;
+}
+var LIGHT_ORBIT=340;
+
+/* ---------- 5. WebGL 初始化 ---------- */
+var canvas=document.getElementById('gl');
+var gl=canvas.getContext('webgl',{antialias:true,alpha:false,preserveDrawingBuffer:true,depth:true})
+     || canvas.getContext('experimental-webgl',{antialias:true,alpha:false,preserveDrawingBuffer:true,depth:true});
+if(!gl){ document.body.insertAdjacentHTML('beforeend','<p style="color:#f66;padding:20px">当前环境不支持 WebGL</p>'); return; }
+
+var VS=[
+'attribute vec3 aPos;',
+'attribute vec3 aNormal;',
+'attribute vec3 aColor;',
+'uniform mat4 uVP;',
+'uniform mat4 uModel;',
+'uniform float uNormalPerturb;',
+'uniform float uTime;',
+'uniform float uPointSize;',
+'varying vec3 vN;',
+'varying vec3 vC;',
+'varying vec3 vW;',
+'void main(){',
+'  vec3 p = aPos;',
+'  float ph = dot(aPos, vec3(0.0731, 0.1297, 0.0953)) + uTime * 0.55;',
+'  vec3 bump = vec3(sin(ph), sin(ph * 1.37 + 1.1), sin(ph * 0.83 + 2.3));',
+'  vec3 n = normalize(aNormal + uNormalPerturb * bump);',
+'  vec4 w = uModel * vec4(p, 1.0);',
+'  vW = w.xyz;',
+'  vN = mat3(uModel) * n;',
+'  vC = aColor;',
+'  gl_PointSize = uPointSize;',
+'  gl_Position = uVP * w;',
+'}'
+].join('\n');
+
+var FS=[
+'precision highp float;',
+'varying vec3 vN;',
+'varying vec3 vC;',
+'varying vec3 vW;',
+'uniform vec3  uLightPos[2];',
+'uniform vec3  uLightColor[2];',
+'uniform float uLightPower[2];',
+'uniform vec3  uEye;',
+'uniform vec3  uAmbTop;',
+'uniform vec3  uAmbBot;',
+'uniform vec3  uFogColor;',
+'uniform float uFogNear;',
+'uniform float uFogFar;',
+'uniform float uShininess;',
+'uniform float uSpecStrength;',
+'uniform float uRim;',
+'uniform float uOverdrive;',
+'uniform float uHighlight;',
+'uniform vec3  uPickMin;',
+'uniform vec3  uPickMax;',
+'uniform float uClipX;',
+'uniform float uClipOn;',
+'uniform float uAlpha;',
+'uniform float uUnlit;',
+'void main(){',
+'  if(uClipOn > 0.5 && vW.x > uClipX) discard;',
+'  vec3 N = normalize(vN);',
+'  vec3 V = normalize(uEye - vW);',
+'  vec3 base = vC;',
+'  vec3 col = vec3(0.0);',
+'  for(int i = 0; i < 2; i++){',
+'    vec3 Lv = uLightPos[i] - vW;',
+'    float d = length(Lv);',
+'    vec3 L = Lv / max(d, 0.0001);',
+'    float att = 1.0 / (1.0 + 0.09 * d + 0.032 * d * d);',
+'    float lam = max(dot(N, L), 0.0);',
+'    vec3 H = normalize(L + V);',
+'    float spec = pow(max(dot(N, H), 0.0), uShininess);',
+'    col += uLightColor[i] * uLightPower[i] * att * (base * lam + vec3(spec) * uSpecStrength);',
+'  }',
+'  float hemi = 0.5 + 0.5 * N.y;',
+'  col += base * mix(uAmbBot, uAmbTop, hemi);',
+'  float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0);',
+'  col += base * rim * uRim;',
+'  col += base * uOverdrive * 0.95 + vec3(0.09, 0.05, 0.0) * uOverdrive;',
+'  /* 拾取高亮只作用于被射线命中的那一个块体的 AABB 之内，其余场景整体压暗 */',
+'  vec3 lo = step(uPickMin, vW);',
+'  vec3 hi = step(vW, uPickMax);',
+'  float inCell = lo.x * lo.y * lo.z * hi.x * hi.y * hi.z;',
+'  col *= mix(1.0, 0.62, uHighlight);',
+'  col = mix(col, base * 1.15, uUnlit);',
+'  col = mix(col, vec3(0.42, 1.25, 1.05), inCell * uHighlight * 0.85);',
+'  float f = clamp((length(uEye - vW) - uFogNear) / max(1.0, uFogFar - uFogNear), 0.0, 1.0);',
+'  f = f * f * (3.0 - 2.0 * f);',
+'  col = mix(col, uFogColor, f);',
+'  gl_FragColor = vec4(col, uAlpha);',
+'}'
+].join('\n');
+
+function compile(type,src){
+  var s=gl.createShader(type);
+  gl.shaderSource(s,src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){
+    throw new Error('shader: '+gl.getShaderInfoLog(s));
+  }
+  return s;
+}
+var prog=gl.createProgram();
+gl.attachShader(prog,compile(gl.VERTEX_SHADER,VS));
+gl.attachShader(prog,compile(gl.FRAGMENT_SHADER,FS));
+gl.linkProgram(prog);
+if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){
+  throw new Error('link: '+gl.getProgramInfoLog(prog));
+}
+gl.useProgram(prog);
+var A={ pos:gl.getAttribLocation(prog,'aPos'),
+        nrm:gl.getAttribLocation(prog,'aNormal'),
+        col:gl.getAttribLocation(prog,'aColor') };
+var U={};
+['uVP','uModel','uNormalPerturb','uTime','uPointSize','uEye','uAmbTop','uAmbBot',
+ 'uFogColor','uFogNear','uFogFar','uShininess','uSpecStrength','uRim','uOverdrive',
+ 'uHighlight','uPickMin','uPickMax','uClipX','uClipOn','uAlpha','uUnlit',
+ 'uLightPos[0]','uLightColor[0]','uLightPower[0]'].forEach(function(k){
+   U[k]=gl.getUniformLocation(prog,k); });
+gl.enableVertexAttribArray(A.pos);
+gl.enableVertexAttribArray(A.nrm);
+gl.enableVertexAttribArray(A.col);
+
+var STRIDE=9*4;
+
+function uploadMesh(m){
+  var vboTri=gl.createBuffer();
+  var tri=new Float32Array(m.tri);
+  gl.bindBuffer(gl.ARRAY_BUFFER,vboTri);
+  gl.bufferData(gl.ARRAY_BUFFER,tri,gl.STATIC_DRAW);
+  var vboLine=null;
+  if(m.line.length){
+    vboLine=gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER,vboLine);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(m.line),gl.STATIC_DRAW);
+  }
+  return { vboTri:vboTri, vboLine:vboLine,
+           triVerts:tri.length/9,
+           lineVerts:m.line.length?m.line.length/9:0,
+           bytes:(tri.length+(m.line.length||0))*4 };
+}
+function bindVBO(vbo){
+  gl.bindBuffer(gl.ARRAY_BUFFER,vbo);
+  gl.vertexAttribPointer(A.pos,3,gl.FLOAT,false,STRIDE,0);
+  gl.vertexAttribPointer(A.nrm,3,gl.FLOAT,false,STRIDE,12);
+  gl.vertexAttribPointer(A.col,3,gl.FLOAT,false,STRIDE,24);
+}
+
+/* ---------- 6. 场景装配 ---------- */
+buildModel();
+var meshVoxel=buildVoxelMesh();
+var meshTerrain=buildTerrainMesh();
+var meshGrid=buildGridMesh();
+var meshDrill=buildDrillMesh();
+var meshOrbit=buildOrbitRing();
+var meshGizmo=buildGizmo();
+
+var BUF={
+  voxel:uploadMesh(meshVoxel),
+  terrain:uploadMesh(meshTerrain),
+  grid:uploadMesh(meshGrid),
+  drill:uploadMesh(meshDrill),
+  orbit:uploadMesh(meshOrbit),
+  gizmo:uploadMesh(meshGizmo)
+};
+/* 双光源的场内位置代币：动态缓冲，每帧写入两个点 */
+var LIGHT_VBO=gl.createBuffer();
+var LIGHT_DATA=new Float32Array(2*9);
+gl.bindBuffer(gl.ARRAY_BUFFER,LIGHT_VBO);
+gl.bufferData(gl.ARRAY_BUFFER,LIGHT_DATA,gl.DYNAMIC_DRAW);
+BUF.lights={ vboTri:LIGHT_VBO, triVerts:2, lineVerts:0, bytes:72, dynamic:true };
+
+/* 被拾取块体的 12 条棱：动态线缓冲，每帧重写 */
+var PICK_VBO=gl.createBuffer();
+var PICK_DATA=new Float32Array(24*9);
+gl.bindBuffer(gl.ARRAY_BUFFER,PICK_VBO);
+gl.bufferData(gl.ARRAY_BUFFER,PICK_DATA,gl.DYNAMIC_DRAW);
+var PICK_EDGES=[[0,1],[1,3],[3,2],[2,0],[4,5],[5,7],[7,6],[6,4],[0,4],[1,5],[2,6],[3,7]];
+function fillPickBox(bb){
+  var o=0, C=[];
+  for(var k=0;k<8;k++){
+    C.push([ bb[(k&1)?3:0]*S, bb[(k&2)?4:1]*S, bb[(k&4)?5:2]*S ]);
+  }
+  for(var e=0;e<12;e++){
+    var a=C[PICK_EDGES[e][0]], b=C[PICK_EDGES[e][1]];
+    PICK_DATA[o++]=a[0];PICK_DATA[o++]=a[1];PICK_DATA[o++]=a[2];
+    PICK_DATA[o++]=0;PICK_DATA[o++]=1;PICK_DATA[o++]=0;
+    PICK_DATA[o++]=0.55;PICK_DATA[o++]=1.35;PICK_DATA[o++]=1.15;
+    PICK_DATA[o++]=b[0];PICK_DATA[o++]=b[1];PICK_DATA[o++]=b[2];
+    PICK_DATA[o++]=0;PICK_DATA[o++]=1;PICK_DATA[o++]=0;
+    PICK_DATA[o++]=0.55;PICK_DATA[o++]=1.35;PICK_DATA[o++]=1.15;
+  }
+}
+
+var TOTAL_VERTS=BUF.voxel.triVerts+BUF.terrain.triVerts+BUF.grid.triVerts
+               +BUF.drill.triVerts+BUF.orbit.triVerts+BUF.gizmo.triVerts
+               +BUF.voxel.lineVerts+BUF.terrain.lineVerts+BUF.grid.lineVerts
+               +BUF.drill.lineVerts+BUF.orbit.lineVerts+BUF.gizmo.lineVerts;
+
+var BOUND_R=Math.sqrt(HALF_X*HALF_X+((BLOCK_TOP-MIN_Y)*0.5)*((BLOCK_TOP-MIN_Y)*0.5)+HALF_Z*HALF_Z);
+var SCENE_C=[0,(BLOCK_TOP+MIN_Y)*0.5,0];
+
+/* ---------- 7. 状态机（8 个互斥渲染状态） ---------- */
+var STATES={
+  INIT_BUFFER_ALLOCATED:'缓冲装配完成',
+  ORBIT_IDLE_SPINNING:'环绕自旋待机',
+  CAMERA_ORBIT_DRAGGING:'相机环绕拖拽',
+  TARGET_ENTITY_HOVER:'实体射线悬停',
+  ENTITY_FOCUSED_ZOOM:'实体聚焦推近',
+  LIGHTING_OVERDRIVE:'光照过载重铸',
+  SHADING_WIREFRAME_HYBRID:'实体线框混合',
+  FRUSTUM_RESET_HOMING:'视锥复位归位'
+};
+var FSM={
+  current:'INIT_BUFFER_ALLOCATED',
+  prev:'INIT_BUFFER_ALLOCATED',
+  history:['INIT_BUFFER_ALLOCATED'],
+  transitions:0,
+  t0:performance.now(),
+  go:function(next,via){
+    if(!STATES[next]||next===this.current) return false;
+    this.prev=this.current; this.current=next;
+    this.history.push(next); this.transitions++;
+    this.t0=performance.now();
+    document.getElementById('stateToken').innerHTML='STATE <b>'+next+'</b>';
+    audit.lastTransition={from:this.prev,to:next,via:via||'',at:Math.round(this.t0)};
+    return true;
+  }
+};
+var audit={ lastTransition:null, pick:null, frames:0 };
+
+/* ---------- 8. 相机 / 光源 / 渲染参数 ---------- */
+var cam={
+  theta:0.72, phi:1.06, dist:1180,
+  target:[SCENE_C[0],SCENE_C[1],SCENE_C[2]],
+  tTheta:0.72, tPhi:1.06, tDist:1180,
+  tTarget:[SCENE_C[0],SCENE_C[1],SCENE_C[2]],
+  vTheta:0, vPhi:0,
+  drag:false, glide:false, glideT:0,
+  home:{theta:0.72,phi:1.06,dist:1180,target:[SCENE_C[0],SCENE_C[1],SCENE_C[2]]}
+};
+var R={
+  fov:48*Math.PI/180, near:12, far:3200,
+  normPerturb:0.18, shininess:46, spec:0.72,
+  overdrive:0, wireMix:0, highlight:0,
+  clipOn:0, clipX:312,
+  focusR:BOUND_R              /* 当前被聚焦实体的包围球半径，随射线拾取收缩 */
+};
+var BLOCK_R=Math.sqrt(CS*CS+CELL_H*CELL_H+CZ*CZ)*0.5;   /* 单块体半对角 ≈ 19.4 m */
+var lights=[
+  { theta:0.9, phi:1.02, radius:LIGHT_ORBIT, y:330, color:[1.00,0.76,0.42], power:20 },
+  { theta:0.9+2.35, phi:1.30, radius:430, y:-150, color:[0.36,0.80,1.00], power:13 }
+];
+function lightPos(L){
+  return [ Math.cos(L.theta)*L.radius, L.y, Math.sin(L.theta)*L.radius ];
+}
+function eyePos(){
+  var sp=Math.sin(cam.phi), cp=Math.cos(cam.phi);
+  return [ cam.target[0]+cam.dist*sp*Math.cos(cam.theta),
+           cam.target[1]+cam.dist*cp,
+           cam.target[2]+cam.dist*sp*Math.sin(cam.theta) ];
+}
+function minDist(){
+  /* 反穿模引信：相机到被聚焦实体包围球表面的距离必须恒 >= 0.5 单位 */
+  return R.focusR+0.5;
+}
+
+var mProj=m4(), mView=m4(), mVP=m4(), mInv=m4(), mModel=m4(), mMVP=m4();
+/* 场景以「块体」为世界单位（1 单位 = 26 m），使点光平方反比衰减落在有效区间 */
+var S=1/BLOCK_U;
+m4Scale(mModel,S,S,S);
+
+/* ---------- 9. 射线拾取引擎 ---------- */
+var ray={ o:[0,0,0], d:[0,0,1], hit:null };
+function buildRay(ndcX,ndcY){
+  /* 求逆 (VP · M)：NDC -> 模型空间射线，与块体 AABB 同处一套米制坐标 */
+  m4Mul(mMVP,mVP,mModel);
+  if(!m4Invert(mInv,mMVP)) return false;
+  function unproject(x,y,z){
+    var w=0;
+    var ox=mInv[0]*x+mInv[4]*y+mInv[8]*z+mInv[12];
+    var oy=mInv[1]*x+mInv[5]*y+mInv[9]*z+mInv[13];
+    var oz=mInv[2]*x+mInv[6]*y+mInv[10]*z+mInv[14];
+    w     =mInv[3]*x+mInv[7]*y+mInv[11]*z+mInv[15];
+    if(!w) return null;
+    return [ox/w,oy/w,oz/w];
+  }
+  var a=unproject(ndcX,ndcY,-1);
+  var b=unproject(ndcX,ndcY, 1);
+  if(!a||!b) return false;
+  ray.o=a;
+  var dx=b[0]-a[0], dy=b[1]-a[1], dz=b[2]-a[2];
+  var l=Math.sqrt(dx*dx+dy*dy+dz*dz)||1;
+  ray.d=[dx/l,dy/l,dz/l];
+  return true;
+}
+function rayAABB(o,d,bb){
+  var t0=-1e9, t1=1e9, k;
+  for(k=0;k<3;k++){
+    var inv=1/(d[k]||1e-9);
+    var ta=(bb[k]-o[k])*inv, tb=(bb[k+3]-o[k])*inv;
+    if(ta>tb){ var s=ta; ta=tb; tb=s; }
+    if(ta>t0) t0=ta;
+    if(tb<t1) t1=tb;
+    if(t0>t1) return -1;
+  }
+  return t1<0? -1 : (t0>0? t0 : t1);
+}
+function pick(ndcX,ndcY){
+  if(!buildRay(ndcX,ndcY)){ ray.hit=null; return null; }
+  var best=-1, bi=-1, k;
+  for(k=0;k<meshVoxel.cells.length;k++){
+    var c=meshVoxel.cells[k];
+    if(R.clipOn>0.5 && c.c[0]>R.clipX) continue;
+    var t=rayAABB(ray.o,ray.d,c.aabb);
+    if(t>=0 && (best<0||t<best)){ best=t; bi=k; }
+  }
+  if(bi<0){ ray.hit=null; audit.pick=null; return null; }
+  var cell=meshVoxel.cells[bi];
+  ray.hit={ t:best, cell:cell, point:[ray.o[0]+ray.d[0]*best, ray.o[1]+ray.d[1]*best, ray.o[2]+ray.d[2]*best] };
+  audit.pick={ index:cell.i, grade:+grade[cell.i].toFixed(3), lith:lith[cell.i],
+               conf:+conf[cell.i].toFixed(3), t:+best.toFixed(2),
+               pt:cell.c.slice(), hit:ray.hit.point.map(function(v){return +v.toFixed(1);}) };
+  return ray.hit;
+}
+
+/* ---------- 10. 手势交互（五种复合手势） ---------- */
+var GLIDE_MIN_MS=800;      /* 松手后惯性滑行至少 800ms */
+var DRAG_DAMP=0.965;
+var dragging=false, dragBtn=-1, lastX=0, lastY=0, shiftLight=false;
+var lightDrag=false;
+
+function pointerNDC(ev){
+  var r=canvas.getBoundingClientRect();
+  return [ ((ev.clientX-r.left)/r.width)*2-1, -(((ev.clientY-r.top)/r.height)*2-1) ];
+}
+canvas.addEventListener('contextmenu',function(e){ e.preventDefault(); });
+canvas.addEventListener('pointerdown',function(e){
+  canvas.setPointerCapture&&canvas.setPointerCapture(e.pointerId);
+  dragging=true; canvas.classList.add('dragging');
+  dragBtn=e.button; lastX=e.clientX; lastY=e.clientY;
+  cam.vTheta=0; cam.vPhi=0; cam.glide=false;
+  if(e.shiftKey){ shiftLight=true; lightDrag=true; FSM.go('LIGHTING_OVERDRIVE','shift-drag'); }
+  else if(e.button===2){ FSM.go('CAMERA_ORBIT_DRAGGING','right-drag-pan'); }
+  else { FSM.go('CAMERA_ORBIT_DRAGGING','left-drag-orbit'); }
+  e.preventDefault();
+});
+window.addEventListener('pointermove',function(e){
+  var ndc=pointerNDC(e);
+  if(!dragging){
+    /* 悬停射线检测（节流） */
+    if(hoverTick++%3===0){
+      var h=pick(ndc[0],ndc[1]);
+      R.highlight=h?1:0;
+      if(h && FSM.current!=='ENTITY_FOCUSED_ZOOM') FSM.go('TARGET_ENTITY_HOVER','raycast-hover');
+      else if(!h && FSM.current==='TARGET_ENTITY_HOVER') FSM.go('ORBIT_IDLE_SPINNING','raycast-leave');
+    }
+    return;
+  }
+  var dx=e.clientX-lastX, dy=e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
+  if(lightDrag){
+    var L=lights[1];
+    L.theta+=dx*0.0075; L.phi=clamp(L.phi+dy*0.006,0.12,2.9);
+    L.y=Math.cos(L.phi)*640; L.radius=Math.max(120,Math.sin(L.phi)*640);
+    return;
+  }
+  if(dragBtn===2){
+    /* 右键平移注视点：沿相机右/上基向量 */
+    var ex=eyePos();
+    var fx=ex[0]-cam.target[0], fy=ex[1]-cam.target[1], fz=ex[2]-cam.target[2];
+    var fl=Math.sqrt(fx*fx+fy*fy+fz*fz)||1; fx/=fl; fy/=fl; fz/=fl;
+    var rx=fz*0-fy*0, ry_=0, rz=0;
+    var ux=0,uy=1,uz=0;
+    var rxv=uy*fz-uz*fy, ryv=uz*fx-ux*fz, rzv=ux*fy-uy*fx;
+    var rl=Math.sqrt(rxv*rxv+ryv*ryv+rzv*rzv)||1; rxv/=rl; ryv/=rl; rzv/=rl;
+    var uvx=fy*rzv-fz*ryv, uvy=fz*rxv-fx*rzv, uvz=fx*ryv-fy*rxv;
+    var k=cam.dist*0.0016;
+    cam.tTarget[0]+= (-rxv*dx + uvx*dy)*k;
+    cam.tTarget[1]+= (-ryv*dx + uvy*dy)*k;
+    cam.tTarget[2]+= (-rzv*dx + uvz*dy)*k;
+    cam.tTarget[1]=clamp(cam.tTarget[1], MIN_Y-160, BLOCK_TOP+220);
+    return;
+  }
+  cam.tTheta-=dx*0.0062;
+  cam.tPhi=clamp(cam.tPhi-dy*0.0055,0.14,2.92);
+  cam.vTheta=-dx*0.0062; cam.vPhi=-dy*0.0055;
+});
+window.addEventListener('pointerup',function(e){
+  if(dragging && !lightDrag && (Math.abs(cam.vTheta)>1e-4||Math.abs(cam.vPhi)>1e-4)){
+    cam.glide=true; cam.glideT=performance.now();
+    if(FSM.current==='CAMERA_ORBIT_DRAGGING') FSM.go('ORBIT_IDLE_SPINNING','release-glide');
+  }
+  dragging=false; lightDrag=false; shiftLight=false;
+  canvas.classList.remove('dragging');
+});
+canvas.addEventListener('wheel',function(e){
+  e.preventDefault();
+  /* 非线性缩放：接近近裁剪面时呈指数阻尼，永不穿模 */
+  var md=minDist();
+  var over=Math.max(0,cam.tDist-md);
+  var resist=1-Math.exp(-over/260);               /* 越接近近裁剪面阻力越大 */
+  var step=Math.sign(e.deltaY)*Math.max(12,cam.tDist*0.11)*Math.max(0.06,resist);
+  cam.tDist=Math.max(md, cam.tDist+step);
+  if(FSM.current==='ORBIT_IDLE_SPINNING') FSM.go('FRUSTUM_RESET_HOMING','wheel-zoom');
+},{passive:false});
+canvas.addEventListener('dblclick',function(e){
+  var ndc=pointerNDC(e);
+  var h=pick(ndc[0],ndc[1]);
+  if(h){
+    R.focusR=BLOCK_R;                              /* 引信切换到被拾取块体的包围球 */
+    cam.tTarget=[h.point[0],h.point[1],h.point[2]];
+    cam.tDist=Math.max(minDist(), BLOCK_R*9);
+    FSM.go('ENTITY_FOCUSED_ZOOM','dblclick-ray-focus');
+    toast('射线命中块体 #'+h.cell.i+' · Cu '+grade[h.cell.i].toFixed(2)+'%');
+  } else {
+    toast('射线未命中矿化块体');
+  }
+});
+window.addEventListener('keydown',function(e){
+  if(e.key==='r'||e.key==='R'){ resetView(); }
+  if(e.key==='w'||e.key==='W'){ setMode(R.wireMix>0.5?'solid':'hybrid'); }
+  if(e.key==='o'||e.key==='O'){ setMode(R.overdrive>0.5?'solid':'overdrive'); }
+  if(e.key==='Escape'){ R.highlight=0; resetView(); }
+});
+
+var hoverTick=0;
+function resetView(){
+  cam.tTheta=cam.home.theta; cam.tPhi=cam.home.phi; cam.tDist=cam.home.dist;
+  cam.tTarget=cam.home.target.slice();
+  cam.vTheta=0; cam.vPhi=0; cam.glide=false;
+  R.overdrive=0; R.wireMix=0; R.highlight=0;
+  R.focusR=BOUND_R; R.clipOn=0; R.clipX=312;
+  ray.hit=null; audit.pick=null;
+  document.getElementById('rClip').value=312; syncClipLabel();
+  setChips();
+  FSM.go('FRUSTUM_RESET_HOMING','reset');
+  setTimeout(function(){
+    if(FSM.current==='FRUSTUM_RESET_HOMING') FSM.go('ORBIT_IDLE_SPINNING','homed');
+  },900);
+  toast('视锥参数与轨道已复位');
+}
+function setMode(m){
+  if(m==='solid'){ R.wireMix=0; R.overdrive=0; FSM.go('ORBIT_IDLE_SPINNING','mode-solid'); }
+  if(m==='hybrid'){ R.wireMix=1; R.overdrive=0; FSM.go('SHADING_WIREFRAME_HYBRID','mode-hybrid'); }
+  if(m==='overdrive'){ R.overdrive=1; R.wireMix=0; FSM.go('LIGHTING_OVERDRIVE','mode-overdrive'); }
+  setChips();
+}
+function setChips(){
+  document.getElementById('cSolid').classList.toggle('on',R.wireMix<0.5&&R.overdrive<0.5);
+  document.getElementById('cWire').classList.toggle('on',R.wireMix>0.5);
+  document.getElementById('cOver').classList.toggle('on',R.overdrive>0.5);
+  document.getElementById('cClip').classList.toggle('on',R.clipOn>0.5);
+}
+var toastT=0;
+function toast(s){
+  var t=document.getElementById('toast');
+  t.textContent=s; t.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.remove('on'); },1800);
+}
+document.getElementById('cSolid').onclick=function(){ setMode('solid'); };
+document.getElementById('cWire').onclick=function(){ setMode('hybrid'); };
+document.getElementById('cOver').onclick=function(){ setMode('overdrive'); };
+document.getElementById('cClip').onclick=function(){
+  R.clipOn=R.clipOn>0.5?0:1;
+  if(R.clipOn){ R.clipX=Math.min(R.clipX,60); document.getElementById('rClip').value=R.clipX; }
+  setChips(); syncClipLabel();
+};
+function syncClipLabel(){
+  document.getElementById('oClip').textContent = R.clipOn>0.5? ('x='+R.clipX) : '关';
+}
+
+/* ---------- 11. 视口 ---------- */
+var VW=1280, VH=720, DPR=1;
+function onResize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  VW=Math.max(320,canvas.clientWidth||window.innerWidth);
+  VH=Math.max(240,canvas.clientHeight||window.innerHeight);
+  canvas.width=Math.round(VW*DPR); canvas.height=Math.round(VH*DPR);
+  gl.viewport(0,0,canvas.width,canvas.height);
+}
+window.addEventListener('resize',onResize);
+onResize();
+
+/* ---------- 12. 渲染循环 ---------- */
+gl.enable(gl.DEPTH_TEST);
+gl.depthFunc(gl.LEQUAL);
+gl.enable(gl.CULL_FACE);
+gl.cullFace(gl.BACK);
+gl.clearColor(0.031,0.047,0.067,1);
+
+var t0=performance.now(), lastF=performance.now(), frames=0, fps=0, drawCalls=0;
+var triDrawn=0, lineDrawn=0;
+
+function drawMesh(buf,mode){
+  bindVBO(buf.vboTri);
+  gl.drawArrays(gl.TRIANGLES,0,buf.triVerts);
+  drawCalls++; triDrawn+=buf.triVerts/3;
+  if(R.wireMix>0.5 && buf===BUF.voxel){}
+}
+function drawLines(buf){
+  if(!buf.vboLine) return;
+  bindVBO(buf.vboLine);
+  gl.drawArrays(gl.LINES,0,buf.lineVerts);
+  drawCalls++; lineDrawn+=buf.lineVerts/2;
+}
+
+function frame(now){
+  var dt=Math.min(0.05,(now-t0)/1000); t0=now;
+  frames++;
+  if(now-lastF>420){ fps=Math.round(frames*1000/(now-lastF)); frames=0; lastF=now; }
+
+  /* --- 相机惯性阻尼滑行 --- */
+  if(cam.glide){
+    cam.tTheta+=cam.vTheta; cam.tPhi=clamp(cam.tPhi+cam.vPhi,0.14,2.92);
+    cam.vTheta*=DRAG_DAMP; cam.vPhi*=DRAG_DAMP;
+    if(Math.abs(cam.vTheta)<3e-4 && Math.abs(cam.vPhi)<3e-4 && now-cam.glideT>GLIDE_MIN_MS) cam.glide=false;
+    else if(now-cam.glideT>4200) cam.glide=false;
+  } else if(!dragging && FSM.current==='ORBIT_IDLE_SPINNING'){
+    cam.tTheta+=dt*0.085;                       /* 空闲自旋 */
+  }
+  var k=1-Math.pow(0.0016,dt);
+  cam.theta+= (cam.tTheta-cam.theta)*k;
+  cam.phi  += (cam.tPhi-cam.phi)*k;
+  cam.dist += (cam.tDist-cam.dist)*k;
+  for(var q=0;q<3;q++) cam.target[q]+=(cam.tTarget[q]-cam.target[q])*k;
+
+  /* 反穿模引信：硬性维持 d >= 0.5 */
+  var md=minDist();
+  if(cam.dist<md) cam.dist=md;
+
+  /* --- 主光自动巡轨 --- */
+  if(!lightDrag) lights[0].theta+=dt*0.30;
+
+  var eye=eyePos();
+  var asp=VW/Math.max(1,VH);
+  /* 近远裁剪面同样换算到块体单位，与几何/光源共处一套尺度 */
+  m4Perspective(mProj,R.fov,asp,R.near*S,R.far*S);
+  m4LookAt(mView,eye[0]*S,eye[1]*S,eye[2]*S,
+                 cam.target[0]*S,cam.target[1]*S,cam.target[2]*S,0,1,0);
+  m4Mul(mVP,mProj,mView);
+
+  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.useProgram(prog);
+  gl.uniformMatrix4fv(U.uVP,false,mVP);
+  gl.uniformMatrix4fv(U.uModel,false,mModel);
+  gl.uniform1f(U.uTime,(now/1000)%1000);
+  gl.uniform1f(U.uNormalPerturb,R.normPerturb);
+  gl.uniform1f(U.uPointSize,1);
+  gl.uniform3f(U.uEye,eye[0]*S,eye[1]*S,eye[2]*S);
+  gl.uniform3f(U.uAmbTop,0.155,0.195,0.265);
+  gl.uniform3f(U.uAmbBot,0.030,0.040,0.058);
+  gl.uniform3f(U.uFogColor,0.031,0.047,0.067);
+  gl.uniform1f(U.uFogNear,(cam.dist*1.10+280)*S);
+  gl.uniform1f(U.uFogFar, (cam.dist*2.70+950)*S);
+  gl.uniform1f(U.uShininess,R.shininess);
+  gl.uniform1f(U.uSpecStrength,R.spec);
+  gl.uniform1f(U.uRim,0.50);
+  gl.uniform1f(U.uOverdrive,R.overdrive);
+  gl.uniform1f(U.uHighlight,R.highlight);
+  var pb=ray.hit?ray.hit.cell.aabb:null;
+  gl.uniform3f(U.uPickMin, pb?pb[0]*S:0, pb?pb[1]*S:0, pb?pb[2]*S:0);
+  gl.uniform3f(U.uPickMax, pb?pb[3]*S:0, pb?pb[4]*S:0, pb?pb[5]*S:0);
+  gl.uniform1f(U.uClipX,R.clipX);
+  gl.uniform1f(U.uClipOn,R.clipOn);
+  gl.uniform1f(U.uAlpha,1);
+  gl.uniform1f(U.uUnlit,0);
+
+  var p0=lightPos(lights[0]), p1=lightPos(lights[1]);
+  gl.uniform3fv(U['uLightPos[0]'],[p0[0]*S,p0[1]*S,p0[2]*S,p1[0]*S,p1[1]*S,p1[2]*S]);
+  gl.uniform3fv(U['uLightColor[0]'],[lights[0].color[0],lights[0].color[1],lights[0].color[2],
+                                    lights[1].color[0],lights[1].color[1],lights[1].color[2]]);
+  gl.uniform1fv(U['uLightPower[0]'],[lights[0].power,lights[1].power]);
+
+  drawCalls=0; triDrawn=0; lineDrawn=0;
+
+  /* 实体/线框混合：填充面沿深度正方向偏移，线框以 LEQUAL 覆盖其上 */
+  if(R.wireMix>0.5){ gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1.4,2.6); }
+  else { gl.disable(gl.POLYGON_OFFSET_FILL); }
+
+  gl.disable(gl.BLEND);
+  drawMesh(BUF.terrain);
+  drawMesh(BUF.voxel);
+  gl.disable(gl.POLYGON_OFFSET_FILL);
+
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  gl.depthMask(false);
+
+  if(R.wireMix>0.5){
+    gl.uniform1f(U.uUnlit,1);
+    drawLines(BUF.voxel);
+    gl.uniform1f(U.uUnlit,0);
+  } else {
+    drawLines(BUF.grid); drawLines(BUF.gizmo); drawLines(BUF.orbit);
+  }
+  drawLines(BUF.drill);
+  if(R.wireMix>0.5) drawLines(BUF.grid);
+
+  gl.depthMask(true);
+
+  /* 双光源位置代币：每帧重写两个顶点的位置与颜色 */
+  var L0=lights[0], L1=lights[1], o=0;
+  var LD=LIGHT_DATA;
+  LD[o++]=p0[0]*S; LD[o++]=p0[1]*S; LD[o++]=p0[2]*S; LD[o++]=0;LD[o++]=1;LD[o++]=0;
+  LD[o++]=L0.color[0];LD[o++]=L0.color[1];LD[o++]=L0.color[2];
+  LD[o++]=p1[0]*S; LD[o++]=p1[1]*S; LD[o++]=p1[2]*S; LD[o++]=0;LD[o++]=1;LD[o++]=0;
+  LD[o++]=L1.color[0];LD[o++]=L1.color[1];LD[o++]=L1.color[2];
+  gl.bindBuffer(gl.ARRAY_BUFFER,LIGHT_VBO);
+  gl.bufferSubData(gl.ARRAY_BUFFER,0,LD);
+  bindVBO(LIGHT_VBO);
+  /* 被拾取块体的高亮棱框 */
+  if(ray.hit && R.highlight>0.5){
+    fillPickBox(ray.hit.cell.aabb);
+    gl.bindBuffer(gl.ARRAY_BUFFER,PICK_VBO);
+    gl.bufferSubData(gl.ARRAY_BUFFER,0,PICK_DATA);
+    bindVBO(PICK_VBO);
+    gl.disable(gl.DEPTH_TEST);
+    gl.uniform1f(U.uUnlit,1);
+    gl.uniform1f(U.uHighlight,0);
+    gl.drawArrays(gl.LINES,0,24);
+    gl.uniform1f(U.uHighlight,R.highlight);
+    gl.uniform1f(U.uUnlit,0);
+    gl.enable(gl.DEPTH_TEST);
+    drawCalls++; lineDrawn+=12;
+  }
+
+  gl.disable(gl.DEPTH_TEST);
+  gl.uniform1f(U.uUnlit,1);
+  gl.uniform1f(U.uPointSize,15);
+  gl.drawArrays(gl.POINTS,0,2);
+  gl.uniform1f(U.uPointSize,1);
+  gl.uniform1f(U.uUnlit,0);
+  gl.enable(gl.DEPTH_TEST);
+  drawCalls+=2;
+
+  gl.disable(gl.BLEND);
+
+  audit.frames++;
+  updateAnno();
+  if(audit.frames%12===0) updateHUD(eye,p0,p1,asp);
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- 13. 遥测与控制台同步 ---------- */
+/* ---- 构造标注层：锚点绑定三维世界坐标，逐帧投影为屏幕注释 ---- */
+var annoSvg=document.getElementById('anno');
+var ANNOS=[
+  { t:'主矿体 ORE-LENS',         k:'#1',  a:function(){ return [13,-85,13]; },        dx:-168, dy: -4 },
+  { t:'近地表卫星体 SAT-A',      k:'#2',  a:function(){ return [-101,-16,-55]; },     dx:-198, dy:-54 },
+  { t:'深部卫星体 SAT-B',        k:'#3',  a:function(){ return [164,-121,122]; },     dx: 132, dy: 42 },
+  { t:'钻孔孔口 COLLAR ×14',     k:'#4',  a:function(){ return [DRILLS[0].x, DRILLS[0].top, DRILLS[0].z]; }, dx:-198, dy: 34 },
+  { t:'块体网格 24×20×24',       k:'#5',  a:function(){ return [-HALF_X, BLOCK_TOP, -HALF_Z]; }, dx: 100, dy: 64 },
+  { t:'主光轨道 L0',             k:'#6',  a:function(){ var p=lightPos(lights[0]); return p; }, dx: 62, dy: 104 }
+];
+ANNOS.forEach(function(A){
+  var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  A.elLine=document.createElementNS('http://www.w3.org/2000/svg','line');
+  A.elDot =document.createElementNS('http://www.w3.org/2000/svg','circle');
+  A.elDot.setAttribute('r','3.2');
+  A.elTxt =document.createElementNS('http://www.w3.org/2000/svg','text');
+  var k=document.createElementNS('http://www.w3.org/2000/svg','tspan');
+  k.setAttribute('class','k'); k.textContent=A.k+' ';
+  A.elTxt.appendChild(k);
+  A.elTxt.appendChild(document.createTextNode(A.t));
+  g.appendChild(A.elLine); g.appendChild(A.elDot); g.appendChild(A.elTxt);
+  annoSvg.appendChild(g);
+});
+function project(p){
+  var x=p[0]*S, y=p[1]*S, z=p[2]*S;
+  var cx=mVP[0]*x+mVP[4]*y+mVP[8]*z+mVP[12];
+  var cy=mVP[1]*x+mVP[5]*y+mVP[9]*z+mVP[13];
+  var cw=mVP[3]*x+mVP[7]*y+mVP[11]*z+mVP[15];
+  if(cw<=0.02) return null;
+  return [ (cx/cw*0.5+0.5)*VW, (1-(cy/cw*0.5+0.5))*VH ];
+}
+function updateAnno(){
+  for(var i=0;i<ANNOS.length;i++){
+    var A=ANNOS[i], s=project(A.a());
+    if(!s){ A.elLine.setAttribute('opacity','0');
+            A.elDot.setAttribute('opacity','0');
+            A.elTxt.setAttribute('opacity','0'); continue; }
+    /* 锚点越出视口时，标签贴边显示，引线仍指向真实三维位置 */
+    var onScreen = s[0]>=0 && s[0]<=VW && s[1]>=0 && s[1]<=VH;
+    var ax=clamp(s[0],10,VW-10), ay=clamp(s[1],10,VH-10);
+    var lx=clamp(ax+A.dx,140,VW-150), ly=clamp(ay+A.dy,24,VH-24);
+    A.elLine.setAttribute('opacity','1');
+    A.elDot.setAttribute('opacity', onScreen?'1':'0');
+    A.elTxt.setAttribute('opacity','1');
+    A.elLine.setAttribute('x1',ax.toFixed(1)); A.elLine.setAttribute('y1',ay.toFixed(1));
+    A.elLine.setAttribute('x2',(lx+(A.dx<0?34:-6)).toFixed(1));
+    A.elLine.setAttribute('y2',(ly-4).toFixed(1));
+    A.elLine.setAttribute('opacity', Math.hypot(lx-ax,ly-ay)<3 ? '0' : '1');
+    A.elDot.setAttribute('cx',ax.toFixed(1)); A.elDot.setAttribute('cy',ay.toFixed(1));
+    A.elTxt.setAttribute('x',(A.dx<0? lx-4 : lx-30).toFixed(1));
+    A.elTxt.setAttribute('y',ly.toFixed(1));
+  }
+}
+
+var PB=document.getElementById('ppBar');
+function fmt3(a){ return a.map(function(v){ return (v>=0?'+':'')+v.toFixed(0); }).join(' / '); }
+function attOf(p,eye){
+  /* 衰减按着色器同一套世界单位（1 单位 = 一个块体边长）计算 */
+  var dx=(p[0]-eye[0])*S, dy=(p[1]-eye[1])*S, dz=(p[2]-eye[2])*S;
+  var d=Math.sqrt(dx*dx+dy*dy+dz*dz);
+  return { d:d, m:d*BLOCK_U, a:1/(1+0.09*d+0.032*d*d) };
+}
+function updateHUD(eye,p0,p1,asp){
+  var az=Math.atan2(eye[2]-cam.target[2],eye[0]-cam.target[0]);
+  var el=Math.acos(clamp((eye[1]-cam.target[1])/Math.max(1e-3,cam.dist),-1,1));
+  document.getElementById('camEye').textContent=fmt3(eye);
+  document.getElementById('camAz').textContent=(az*180/Math.PI).toFixed(1)+'°';
+  document.getElementById('camEl').textContent=(90-el*180/Math.PI).toFixed(1)+'°';
+  document.getElementById('camR').textContent=cam.dist.toFixed(0)+' m';
+  document.getElementById('camT').textContent=fmt3(cam.target);
+  document.getElementById('camW').textContent=
+    (Math.sqrt(cam.vTheta*cam.vTheta+cam.vPhi*cam.vPhi)*1000).toFixed(1)+' mrad/s';
+  document.getElementById('camClock').textContent=
+    Math.floor((performance.now()-FSM.t0)/1000)+'s / '+FSM.transitions;
+
+  var a0=attOf(p0,eye), a1=attOf(p1,eye);
+  document.getElementById('lgt0').textContent=fmt3(p0)+'  I₀ '+lights[0].power.toFixed(2);
+  document.getElementById('lgt1').textContent=fmt3(p1)+'  I₀ '+lights[1].power.toFixed(2);
+  document.getElementById('att0').textContent='d='+a0.d.toFixed(1)+'u  a='+a0.a.toFixed(5);
+  document.getElementById('att1').textContent='d='+a1.d.toFixed(1)+'u  a='+a1.a.toFixed(5);
+  document.getElementById('lgtOD').textContent=R.overdrive>0.5?'ON ×1.95':'OFF';
+  document.getElementById('lgtMode').textContent=lightDrag?'拖拽辅光':'双点光';
+
+  /* 轨道示波 SVG */
+  var cx=118, cy=53, sc=42/LIGHT_ORBIT;
+  var l0x=cx+Math.cos(lights[0].theta)*lights[0].radius*sc;
+  var l0y=cy+Math.sin(lights[0].theta)*lights[0].radius*sc;
+  var l1x=cx+Math.cos(lights[1].theta)*lights[1].radius*sc*0.62;
+  var l1y=cy+Math.sin(lights[1].theta)*lights[1].radius*sc*0.62;
+  var e0=document.getElementById('scL0'), e1=document.getElementById('scL1');
+  e0.setAttribute('cx',l0x.toFixed(1)); e0.setAttribute('cy',l0y.toFixed(1));
+  e1.setAttribute('cx',l1x.toFixed(1)); e1.setAttribute('cy',l1y.toFixed(1));
+  var r0=document.getElementById('scRay0'), r1=document.getElementById('scRay1');
+  r0.setAttribute('x2',l0x.toFixed(1)); r0.setAttribute('y2',l0y.toFixed(1));
+  r1.setAttribute('x2',l1x.toFixed(1)); r1.setAttribute('y2',l1y.toFixed(1));
+
+  document.getElementById('frAsp').textContent=asp.toFixed(3);
+  document.getElementById('frRat').textContent=(R.far/R.near).toFixed(0)+' : 1';
+  var dMin=cam.dist-R.focusR;
+  document.getElementById('frGap').textContent=dMin.toFixed(2)+' u';
+  document.getElementById('frSafe').textContent=(dMin>=0.5?'OK ≥ 0.5':'CLIP!');
+  document.getElementById('frMode').textContent='透视 fov '+(R.fov*180/Math.PI).toFixed(0)+'°';
+
+  document.getElementById('shModel').textContent = R.wireMix>0.5?'线框混合':(R.overdrive>0.5?'光照过载':'Blinn-Phong');
+
+  document.getElementById('ppPrim').textContent=R.wireMix>0.5?'TRIANGLES + LINES':'TRIANGLES';
+  document.getElementById('ppTri').textContent=Math.round(triDrawn).toLocaleString();
+  document.getElementById('ppLine').textContent=Math.round(lineDrawn).toLocaleString();
+  document.getElementById('ppVbo').textContent=TOTAL_VERTS.toLocaleString()+' v';
+  document.getElementById('ppFps').textContent=fps+' Hz';
+  document.getElementById('ppCalls').textContent=String(drawCalls);
+  document.getElementById('ppPick').textContent=audit.pick?('#'+audit.pick.index+' Cu '+audit.pick.grade):'—';
+  PB.style.width=clamp(triDrawn/60000*100,2,100).toFixed(0)+'%';
+
+  document.getElementById('audit').textContent=JSON.stringify({
+    state:FSM.current, transitions:FSM.transitions, fps:fps,
+    verts:TOTAL_VERTS, tri:Math.round(triDrawn), line:Math.round(lineDrawn),
+    gap:dMin.toFixed(3), pick:audit.pick, last:audit.lastTransition,
+    buffers:{voxel:BUF.voxel.triVerts, terrain:BUF.terrain.triVerts,
+             grid:BUF.grid.triVerts, drill:BUF.drill.triVerts,
+             orbit:BUF.orbit.triVerts, gizmo:BUF.gizmo.triVerts},
+    cells:meshVoxel.cells.length, ctx:'webgl'
+  });
+}
+
+/* 滑块绑定 */
+function bindRange(id,out,fn){
+  var el=document.getElementById(id), o=document.getElementById(out);
+  el.addEventListener('input',function(){ fn(parseFloat(el.value),o); });
+  fn(parseFloat(el.value),o);
+}
+bindRange('rFov','oFov',function(v,o){ R.fov=v*Math.PI/180; o.textContent=v+'°'; });
+bindRange('rNear','oNear',function(v,o){ R.near=v; o.textContent=v.toFixed(0); });
+bindRange('rFar','oFar',function(v,o){ R.far=v; o.textContent=v.toFixed(0); });
+bindRange('rNorm','oNorm',function(v,o){ R.normPerturb=v/100; o.textContent=(v/100).toFixed(2); });
+bindRange('rShin','oShin',function(v,o){ R.shininess=v; o.textContent=v.toFixed(0); });
+bindRange('rSpec','oSpec',function(v,o){ R.spec=v/100; o.textContent=(v/100).toFixed(2); });
+bindRange('rClip','oClip',function(v,o){
+  R.clipX=v;
+  if(v<312){ R.clipOn=1; } else { R.clipOn=0; }
+  setChips(); o.textContent = R.clipOn>0.5? ('x='+v) : '关';
+});
+
+/* ---------- 14. 对外 API（供自动化探针与截图驱动使用） ---------- */
+window.OREVEIN={
+  setState:function(s){ FSM.go(s,'api'); },
+  state:function(){ return FSM.current; },
+  states:function(){ return Object.keys(STATES); },
+  setFocusRadius:function(r){ R.focusR=r; },
+  setCamera:function(o){
+    if(o.focusR!==undefined) R.focusR=o.focusR;
+    if(o.theta!==undefined){ cam.tTheta=o.theta; cam.theta=o.theta; }
+    if(o.phi!==undefined){ cam.tPhi=o.phi; cam.phi=o.phi; }
+    if(o.dist!==undefined){ cam.tDist=Math.max(minDist(),o.dist); cam.dist=cam.tDist; }
+    if(o.target){ cam.tTarget=o.target.slice(); cam.target=o.target.slice(); }
+    cam.vTheta=0; cam.vPhi=0; cam.glide=false;
+  },
+  setLight:function(i,o){
+    var L=lights[i];
+    if(o.theta!==undefined)L.theta=o.theta;
+    if(o.phi!==undefined){ L.phi=o.phi; L.radius=Math.max(120,Math.sin(o.phi)*640); L.y=Math.cos(o.phi)*640; }
+    if(o.radius!==undefined)L.radius=o.radius;
+    if(o.y!==undefined)L.y=o.y;
+    if(o.power!==undefined)L.power=o.power;
+  },
+  setMode:setMode,
+  set:function(o){
+    for(var k in o){ if(k in R) R[k]=o[k]; }
+    setChips();
+    if(o.clipOn!==undefined) document.getElementById('rClip').value=R.clipX;
+  },
+  pickAt:function(nx,ny){ var h=pick(nx,ny); R.highlight=h?1:0; return audit.pick; },
+  highlight:function(v){ R.highlight=v?1:0; },
+  hover:function(nx,ny){ var h=pick(nx,ny); R.highlight=h?1:0;
+    if(h) FSM.go('TARGET_ENTITY_HOVER','api-hover'); return audit.pick; },
+  reset:resetView,
+  info:function(){
+    return { state:FSM.current, transitions:FSM.transitions, history:FSM.history.slice(-6),
+             verts:TOTAL_VERTS, buffers:BUF, cells:meshVoxel.cells.length,
+             boundR:+BOUND_R.toFixed(2), focusR:+R.focusR.toFixed(2),
+             gap:+(cam.dist-R.focusR).toFixed(3),
+             eye:eyePos().map(function(v){return +v.toFixed(1);}),
+             cam:{theta:+cam.theta.toFixed(3),phi:+cam.phi.toFixed(3),dist:+cam.dist.toFixed(1)},
+             lights:lights.map(function(L){ var p=lightPos(L);
+               return { pos:p.map(function(v){return +v.toFixed(1);}), power:L.power }; }),
+             model:{NX:NX,NY:NY,NZ:NZ,ore:meshVoxel.cells.length,seed:20260917},
+             ctxName:(gl.getExtension('WEBGL_debug_renderer_info')?'webgl':'webgl') };
+  },
+  audit:audit,
+  _gl:gl
+};
+FSM.go('ORBIT_IDLE_SPINNING','boot-complete');
+setTimeout(function(){ if(FSM.current==='ORBIT_IDLE_SPINNING') FSM.go('FRUSTUM_RESET_HOMING','boot-home'); },1200);
+setTimeout(function(){ if(FSM.current==='FRUSTUM_RESET_HOMING') FSM.go('ORBIT_IDLE_SPINNING','homed'); },2200);
+
+})();
+</script>
+</body>
+</html>

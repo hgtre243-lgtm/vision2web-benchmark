@@ -1,0 +1,2009 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>云溪水情 YUNXI HYDRO · 流域气象与水资源监测平台</title>
+<style>
+:root{
+  --bg:#08131d; --bg2:#0c1b28; --panel:#0f2131; --panel2:#143047; --panel3:#0b1a27;
+  --line:rgba(122,190,205,.16); --line2:rgba(122,190,205,.34);
+  --ink:#e8f4fa; --ink2:#a9c6d4; --ink3:#6d8fa2;
+  --teal:#2fd0c2; --teal2:#17a79b; --blue:#4aa3f0; --violet:#8a86e6;
+  --amber:#f5b544; --orange:#f2894a; --red:#ef5f52; --green:#4fd18b;
+  --rain:#4aa3f0; --flow:#2fd0c2; --snow:#9fd8ff; --base:#8a86e6;
+  --r:10px; --r2:8px; --r3:6px;
+  --sh:0 6px 20px rgba(0,0,0,.30);
+  --gap:12px; --rail:274px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  min-height:100vh; color:var(--ink); font-size:13px; line-height:1.5;
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(1180px 560px at 76% -10%, rgba(30,104,132,.42) 0%, rgba(9,22,33,0) 62%),
+    radial-gradient(760px 420px at 4% 8%, rgba(38,86,140,.26) 0%, rgba(9,22,33,0) 60%),
+    linear-gradient(180deg,#0a1a28 0%,#08131d 52%,#050d15 100%);
+  background-attachment:fixed;
+}
+[hidden]{display:none!important}
+h1,h2,h3,p{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input[type=range]{accent-color:var(--teal)}
+::-webkit-scrollbar{height:8px;width:8px}
+::-webkit-scrollbar-thumb{background:rgba(122,190,205,.26);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  position:sticky; top:0; z-index:40;
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:9px 16px;
+  background:linear-gradient(180deg,rgba(21,54,74,.94) 0%,rgba(12,28,41,.90) 100%);
+  border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(8px);
+}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{
+  width:30px;height:30px;border-radius:9px;flex:none;
+  background:linear-gradient(140deg,#4ee2cf 0%,#22a8b6 46%,#2f6fd0 100%);
+  box-shadow:0 0 0 1px rgba(120,220,220,.30),0 4px 12px rgba(20,140,150,.30);
+  display:grid;place-items:center;
+}
+.mark svg{display:block}
+.brand h1{font-size:15px;letter-spacing:.4px;font-weight:700;white-space:nowrap}
+.brand h1 em{font-style:normal;font-size:10px;letter-spacing:1.6px;color:var(--teal);font-weight:600;margin-left:5px}
+.brand p{font-size:11px;color:var(--ink3);white-space:nowrap}
+.tabs{
+  display:flex;gap:4px;margin-left:auto;padding:3px;border-radius:var(--r2);
+  background:rgba(6,18,27,.55); border:1px solid var(--line);
+  overflow-x:auto; max-width:100%;
+}
+.tab{
+  padding:6px 13px;border-radius:var(--r3);font-size:12.5px;color:var(--ink2);white-space:nowrap;
+  border:1px solid transparent;transition:.16s;
+}
+.tab:hover{color:var(--ink);background:rgba(122,190,205,.10)}
+.tab.on{
+  color:#eafffb;font-weight:600; border-color:rgba(47,208,194,.45);
+  background:linear-gradient(180deg,rgba(47,208,194,.26) 0%,rgba(47,208,194,.05) 100%);
+  box-shadow:0 0 0 1px rgba(47,208,194,.10) inset;
+}
+.status{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink3);white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(79,209,139,.16)}
+
+/* ---------- 骨架 ---------- */
+.shell{max-width:1660px;margin:0 auto;padding:12px 16px 0}
+.filterbar{
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  padding:10px 14px;margin-bottom:var(--gap);border-radius:var(--r);
+  border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(18,44,62,.72) 0%,rgba(11,26,38,.70) 100%);
+}
+.fgroup{display:flex;align-items:center;gap:8px;min-width:0}
+.flabel{font-size:11.5px;color:var(--ink3);white-space:nowrap}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{
+  padding:4px 11px;border-radius:999px;font-size:12px;color:var(--ink2);
+  border:1px solid var(--line); background:rgba(9,22,33,.5); transition:.15s; white-space:nowrap;
+}
+.chip:hover{border-color:var(--line2);color:var(--ink)}
+.chip.on{
+  color:#eafaff;font-weight:600;border-color:rgba(74,163,240,.55);
+  background:linear-gradient(180deg,rgba(74,163,240,.32) 0%,rgba(74,163,240,.10) 100%);
+}
+.brush{display:flex;align-items:center;gap:7px}
+.brush input[type=range]{width:104px}
+.wval{font-size:11.5px;color:var(--ink2);font-family:var(--mono);white-space:nowrap}
+.btn{
+  padding:6px 14px;border-radius:var(--r3);font-size:12.5px;font-weight:600;
+  border:1px solid var(--line2);color:var(--ink);
+  background:linear-gradient(180deg,rgba(47,208,194,.20) 0%,rgba(47,208,194,.05) 100%);
+  transition:.15s;
+}
+.btn:hover{border-color:var(--teal);color:#eafffb}
+.btn.ghost{background:linear-gradient(180deg,rgba(122,190,205,.10) 0%,rgba(122,190,205,.02) 100%);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--line2)}
+.filterbar .btn{margin-left:auto}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) var(--rail);gap:var(--gap);align-items:start}
+.primary{min-width:0}
+
+/* ---------- 视图与卡片 ---------- */
+.view{display:block}
+.viewhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:2px 0 10px}
+.viewhead h2{position:relative;font-size:16px;font-weight:700;letter-spacing:.4px;padding-bottom:6px}
+.viewhead h2::after{
+  content:"";position:absolute;left:0;right:-64px;bottom:0;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,var(--teal) 0%,rgba(47,208,194,.32) 46%,rgba(47,208,194,0) 100%);
+}
+.viewhead p{font-size:12px;color:var(--ink3)}
+.crumb{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink3);margin-bottom:8px}
+.crumb b{color:var(--teal);font-weight:600}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:var(--gap);margin-bottom:var(--gap)}
+.kpi{
+  position:relative;overflow:hidden;padding:11px 13px 12px;border-radius:var(--r);
+  border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(22,54,74,.82) 0%,rgba(12,28,41,.86) 70%,rgba(10,24,35,.90) 100%);
+  box-shadow:var(--sh);
+}
+.kpi::before{
+  content:"";position:absolute;inset:0 0 auto 0;height:2px;
+  background:linear-gradient(90deg,rgba(47,208,194,0) 0%,var(--teal) 42%,rgba(74,163,240,0) 100%);
+  opacity:.85;
+}
+.kpi.v-blue::before{background:linear-gradient(90deg,rgba(74,163,240,0) 0%,var(--blue) 42%,rgba(74,163,240,0) 100%)}
+.kpi.v-amber::before{background:linear-gradient(90deg,rgba(245,181,68,0) 0%,var(--amber) 42%,rgba(245,181,68,0) 100%)}
+.kpi.v-orange::before{background:linear-gradient(90deg,rgba(242,137,74,0) 0%,var(--orange) 42%,rgba(242,137,74,0) 100%)}
+.kl{font-size:11.5px;color:var(--ink3);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kv{font-size:23px;font-weight:700;letter-spacing:.3px;font-family:var(--mono);line-height:1.15}
+.kv span{font-size:11.5px;font-weight:500;color:var(--ink3);margin-left:5px;font-family:inherit;letter-spacing:0}
+.kd{font-size:11px;color:var(--ink3);margin-top:4px}
+.kd.up{color:var(--amber)} .kd.dn{color:var(--flow)} .kd.risk{color:var(--orange)}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap)}
+.card{
+  min-width:0;padding:11px 13px 8px;border-radius:var(--r);border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(17,40,57,.80) 0%,rgba(12,28,41,.86) 58%,rgba(10,23,34,.90) 100%);
+  box-shadow:var(--sh);
+}
+.span2{grid-column:span 2}
+.ch{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:2px}
+.ch h3{font-size:13px;font-weight:650;letter-spacing:.2px}
+.ch .sub{font-size:11px;color:var(--ink3)}
+.legend{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.lg{
+  display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;
+  color:var(--ink3);border:1px solid var(--line);transition:.15s;
+}
+.lg i{width:9px;height:9px;border-radius:2px;display:block}
+.lg.on{color:var(--ink);border-color:var(--line2);background:rgba(122,190,205,.08)}
+.lg:not(.on) i{opacity:.22}
+.lg:hover{border-color:var(--line2)}
+.scaleseg{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+.scaleseg .lg{padding:2px 8px;font-size:11px}
+.fsm{color:var(--teal);font-family:var(--mono);font-size:11px;letter-spacing:.2px;
+  border:1px solid rgba(47,208,194,.35);border-radius:999px;padding:1px 8px;white-space:nowrap}
+tbody tr.anom td{background:rgba(239,95,82,.11);color:#ffd0ae}
+.anomctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--ink3);margin-top:6px}
+.anomctl input{flex:1;min-width:90px;accent-color:#ef5f52}
+.anomctl b{color:var(--ink);font-family:var(--mono);font-weight:600}
+.audit{display:none}
+.chart{width:100%}
+.chart svg{display:block}
+.note{
+  font-size:11px;color:var(--ink3);padding:8px 10px;border-radius:var(--r2);margin-top:6px;
+  border:1px solid var(--line);
+  background:linear-gradient(160deg,rgba(47,208,194,.10) 0%,rgba(47,208,194,.01) 72%);
+}
+.note b{color:var(--teal);font-weight:600}
+
+/* ---------- 侧栏 ---------- */
+.rail{position:sticky;top:64px;display:flex;flex-direction:column;gap:var(--gap);min-width:0}
+.railsec{
+  padding:11px 13px 12px;border-radius:var(--r);border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(17,40,57,.80) 0%,rgba(10,24,35,.88) 100%);
+  box-shadow:var(--sh);
+}
+.railsec h3{font-size:12.5px;font-weight:650;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.railsec h3::before{content:"";width:3px;height:12px;border-radius:2px;background:linear-gradient(180deg,var(--teal),rgba(47,208,194,.18))}
+.kvlist{display:flex;flex-direction:column;gap:7px}
+.kvrow{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--ink3)}
+.kvrow b{color:var(--ink);font-weight:600;font-family:var(--mono)}
+.alerts{display:flex;flex-direction:column;gap:8px}
+.alert{
+  display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:var(--r2);
+  border:1px solid var(--line); background:rgba(9,22,33,.42);
+}
+.alert .lv{width:4px;align-self:stretch;border-radius:2px;background:var(--ink3);flex:none}
+.alert.o .lv{background:var(--orange)} .alert.y .lv{background:var(--amber)} .alert.b .lv{background:var(--blue)}
+.alert p{font-size:11.5px;color:var(--ink2)} .alert p b{color:var(--ink);display:block;font-weight:600;margin-bottom:2px}
+.alert time{font-size:10.5px;color:var(--ink3);font-family:var(--mono)}
+
+/* ---------- 表格 ---------- */
+.tw{overflow-x:auto;margin-top:6px}
+table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:520px}
+thead th{
+  text-align:left;padding:7px 9px;color:var(--ink3);font-weight:600;white-space:nowrap;
+  background:linear-gradient(180deg,rgba(122,190,205,.14) 0%,rgba(122,190,205,.03) 100%);
+  border-bottom:1px solid var(--line2);
+}
+tbody td{padding:7px 9px;border-bottom:1px solid var(--line);color:var(--ink2);white-space:nowrap}
+tbody tr:hover td{background:rgba(122,190,205,.06);color:var(--ink)}
+tbody td b{color:var(--ink);font-weight:600}
+td.num,th.num{text-align:right;font-family:var(--mono)}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:1px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line2)}
+.tag.o{color:#ffd0ae;border-color:rgba(242,137,74,.55);background:rgba(242,137,74,.14)}
+.tag.y{color:#ffe8a8;border-color:rgba(245,181,68,.50);background:rgba(245,181,68,.13)}
+.tag.b{color:#c2e0ff;border-color:rgba(74,163,240,.50);background:rgba(74,163,240,.13)}
+.tag.n{color:var(--ink3)}
+.tag.g{color:#bdf0d3;border-color:rgba(79,209,139,.45);background:rgba(79,209,139,.12)}
+
+/* ---------- 底部 ---------- */
+.footer{
+  margin-top:16px;padding:14px 16px 22px;border-top:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(5,13,21,0) 0%,rgba(4,10,16,.72) 100%);
+  display:flex;gap:20px;flex-wrap:wrap;font-size:11px;color:var(--ink3);
+}
+.footer span b{color:var(--ink2);font-weight:600}
+
+/* ---------- 提示浮层 ---------- */
+.tip{
+  position:fixed;z-index:90;pointer-events:none;max-width:230px;
+  padding:8px 10px;border-radius:var(--r2);font-size:11.5px;
+  border:1px solid var(--line2);color:var(--ink);
+  background:linear-gradient(180deg,rgba(15,42,58,.98) 0%,rgba(8,20,30,.98) 100%);
+  box-shadow:0 10px 26px rgba(0,0,0,.48);
+}
+.tip h4{margin:0 0 5px;font-size:11.5px;color:var(--teal);font-weight:600;letter-spacing:.3px}
+.tip .r{display:flex;justify-content:space-between;gap:14px;color:var(--ink3)}
+.tip .r b{color:var(--ink);font-weight:600;font-family:var(--mono)}
+
+/* ---------- 响应式 ---------- */
+@media (max-width:1220px){
+  .cols{grid-template-columns:minmax(0,1fr)}
+  .rail{position:static;flex-direction:row;flex-wrap:wrap}
+  .railsec{flex:1 1 260px}
+}
+@media (max-width:1080px){
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .span2{grid-column:span 1}
+}
+@media (max-width:860px){
+  .shell{padding:10px 10px 0}
+  .topbar{padding:8px 10px;gap:8px}
+  .brand p{display:none}
+  .tabs{order:3;width:100%;margin-left:0}
+  .status{font-size:11px}
+  .filterbar{gap:10px;padding:9px 11px}
+  .filterbar .btn{margin-left:0}
+}
+@media (max-width:560px){
+  body{font-size:12.5px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:9px}
+  .kv{font-size:19px}
+  .status{flex-wrap:wrap;white-space:normal;gap:6px}
+  .status .sep{display:none}
+  .fsm{font-size:10px;white-space:normal;letter-spacing:0;padding:1px 6px}
+  .tabs{flex-wrap:wrap;gap:5px}
+  .tabs .tab{padding:5px 8px;font-size:11px}
+  .brush input[type=range]{width:76px}
+  .grid{gap:9px}
+  .card{padding:10px 10px 6px}
+  .tw{overflow-x:visible;margin-top:10px}
+  .tw table{min-width:0}
+  .tw thead{display:none}
+  .tw tbody,.tw tr,.tw td{display:block;width:100%}
+  .tw tbody tr{margin:0 0 8px;padding:4px 9px;border:1px solid var(--line);border-radius:6px;background:rgba(9,22,33,.35)}
+  .tw tbody td{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:6px 0;white-space:normal;border-bottom:1px solid var(--line)}
+  .tw tbody td:last-child{border-bottom:0}
+  .tw tbody td::before{content:attr(data-label);color:var(--ink3);flex:0 0 auto}
+  .tw tbody td>*{text-align:right;max-width:65%;white-space:normal}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M9 2.2C6.2 6 3.6 8.6 3.6 11.4a5.4 5.4 0 0 0 10.8 0C14.4 8.6 11.8 6 9 2.2Z" fill="rgba(255,255,255,.92)"/><path d="M6.4 12.9c.5 1.3 1.5 2 2.9 2.1" stroke="#12323f" stroke-width="1.1" fill="none" stroke-linecap="round"/></svg></span>
+    <div>
+      <h1>云溪水情<em>YUNXI HYDRO</em></h1>
+      <p>流域气象与水资源监测平台</p>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="主视图切换">
+    <button class="tab on" data-action="view" data-view="overview">流域总览</button>
+    <button class="tab" data-action="view" data-view="meteo">气象要素</button>
+    <button class="tab" data-action="view" data-view="water">水资源与调度</button>
+    <button class="tab" data-action="view" data-view="risk">风险预警</button>
+    <button class="tab" data-action="view" data-view="sub">子流域详情</button>
+  </nav>
+  <div class="status"><span class="dot"></span>数据时间 2026-09-17 08:00<span class="sep">·</span>自动站网 72 站<span class="sep">·</span>状态 <span id="fsmToken" class="fsm">INIT_DATA_INGESTED</span></div>
+</header>
+
+<main class="shell">
+
+  <section class="filterbar" aria-label="全局筛选条件">
+    <div class="fgroup">
+      <span class="flabel">时间范围</span>
+      <div class="chips" data-group="range">
+        <button class="chip" data-action="range" data-val="7">近 7 日</button>
+        <button class="chip" data-action="range" data-val="15">近 15 日</button>
+        <button class="chip on" data-action="range" data-val="30">近 30 日</button>
+      </div>
+    </div>
+    <div class="fgroup">
+      <span class="flabel">子流域</span>
+      <div class="chips" data-group="sub">
+        <button class="chip on" data-action="sub" data-val="all">全区</button>
+        <button class="chip" data-action="sub" data-val="xueling">雪岭</button>
+        <button class="chip" data-action="sub" data-val="songjian">松涧</button>
+        <button class="chip" data-action="sub" data-val="zhuxi">竹溪</button>
+        <button class="chip" data-action="sub" data-val="pinghu">平湖</button>
+        <button class="chip" data-action="sub" data-val="shitan">石潭</button>
+      </div>
+    </div>
+    <div class="fgroup brush">
+      <span class="flabel">时间轴缩放</span>
+      <input type="range" id="wA" min="0" max="29" value="0" aria-label="可视区间起点">
+      <input type="range" id="wB" min="0" max="29" value="29" aria-label="可视区间终点">
+      <span class="wval" id="wVal">08-19 → 09-17</span>
+    </div>
+    <button class="btn ghost" data-action="reset">重置视图</button>
+  </section>
+
+  <div class="cols">
+    <div class="primary">
+
+      <!-- ================= 流域总览 ================= -->
+      <section class="view" id="v-overview" aria-label="流域总览">
+        <header class="viewhead">
+          <h2>流域总览</h2>
+          <p id="ovSubtitle">云溪流域 · 集水面积 7 015 km² · 5 个子流域 · 72 个自动站</p>
+        </header>
+
+        <section class="kpis" aria-label="关键指标">
+          <article class="kpi v-blue"><p class="kl">时段累计面雨量</p><p class="kv" id="kRain">226.3<span>mm</span></p><p class="kd up" id="kRainD">较多年同期 +14.6%</p></article>
+          <article class="kpi"><p class="kl">当前入库流量</p><p class="kv" id="kFlow">268<span>m³/s</span></p><p class="kd dn" id="kFlowD">较昨日 −6.3%</p></article>
+          <article class="kpi"><p class="kl">时段洪峰流量</p><p class="kv" id="kPeak">812<span>m³/s</span></p><p class="kd" id="kPeakD">08-30 08:00 出现</p></article>
+          <article class="kpi v-amber"><p class="kl">水库蓄水率</p><p class="kv" id="kRate">63.2<span>%</span></p><p class="kd">蓄量 5.32 亿 m³ / 总库容 8.42 亿 m³</p></article>
+          <article class="kpi v-orange"><p class="kl">生效中预警</p><p class="kv" id="kWarn">2<span>条</span></p><p class="kd risk" id="kWarnD">最高等级 橙色 · 雪岭</p></article>
+        </section>
+
+        <div class="grid">
+          <article class="card span2">
+            <header class="ch">
+              <h3>逐日面雨量与入库流量过程</h3>
+              <p class="sub" id="hydroSub">云溪流域（全区）· 2026-08-19 至 2026-09-17</p>
+              <div class="legend" data-group="legend">
+                <button class="lg on" data-action="legend" data-val="rain"><i style="background:var(--rain)"></i>面雨量</button>
+                <button class="lg on" data-action="legend" data-val="flow"><i style="background:var(--flow)"></i>入库流量</button>
+              </div>
+              <div class="scaleseg" data-group="scale" aria-label="纵轴标尺">
+                <button class="lg on" data-action="scale" data-val="lin">线性</button>
+                <button class="lg" data-action="scale" data-val="log">对数</button>
+                <button class="lg" data-action="scale" data-val="pct">百分比</button>
+              </div>
+            </header>
+            <div class="chart" id="c-hydro"></div>
+          </article>
+
+          <article class="card">
+            <header class="ch">
+              <h3>子流域累计面雨量排名</h3>
+              <p class="sub">点击条形进入该子流域详情</p>
+            </header>
+            <div class="chart" id="c-rank"></div>
+            <div class="anomctl" aria-label="异常站点阈值">
+              <span>异常站点阈值（雨量 ≥）</span>
+              <input type="range" id="anomThr" min="160" max="280" step="1" value="280" aria-label="异常雨量阈值">
+              <b id="anomVal">未启用</b>
+            </div>
+          </article>
+
+          <article class="card">
+            <header class="ch">
+              <h3>流域站点分布与面雨量</h3>
+              <p class="sub">气泡面积对应累计面雨量</p>
+            </header>
+            <div class="chart" id="c-map"></div>
+          </article>
+
+          <article class="card">
+            <header class="ch">
+              <h3>云溪水库蓄水与水位标尺</h3>
+              <p class="sub">总库容 8.42 亿 m³</p>
+            </header>
+            <div class="chart" id="c-gauge"></div>
+          </article>
+
+          <article class="card">
+            <header class="ch">
+              <h3>面雨量—入库流量响应关系</h3>
+              <p class="sub">每个气泡为一日，气泡直径随流量增大</p>
+            </header>
+            <div class="chart" id="c-scatter"></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================= 气象要素 ================= -->
+      <section class="view" id="v-meteo" aria-label="气象要素" hidden>
+        <header class="viewhead">
+          <h2>气象要素</h2>
+          <p>气温 · 日照 · 相对湿度 · 风场 · 站点实况</p>
+        </header>
+        <section class="kpis" aria-label="气象要素指标"></section>
+        <div class="grid">
+          <article class="card span2">
+            <header class="ch"><h3>逐日最高 / 平均 / 最低气温</h3><p class="sub">单位 ℃ · 流域面平均</p></header>
+            <div class="chart" id="c-temp"></div>
+          </article>
+          <article class="card">
+            <header class="ch"><h3>逐日日照时数</h3><p class="sub">单位 h · 累计 167.8 h</p></header>
+            <div class="chart" id="c-sun"></div>
+          </article>
+          <article class="card">
+            <header class="ch"><h3>风向玫瑰与风速分档</h3><p class="sub">主导风向 SW · 频率 26.8%</p></header>
+            <div class="chart" id="c-rose"></div>
+          </article>
+          <article class="card">
+            <header class="ch"><h3>相对湿度</h3><p class="sub">单位 % · 面平均</p></header>
+            <div class="chart" id="c-rh"></div>
+          </article>
+          <article class="card">
+            <header class="ch"><h3>自动气象站明细</h3><p class="sub">按海拔降序</p></header>
+            <div class="tw"><table id="t-station">
+              <thead><tr><th>站号</th><th>站名</th><th class="num">海拔 m</th><th class="num">累计雨量 mm</th><th class="num">平均气温 ℃</th><th class="num">平均风速 m/s</th><th class="num">数据完整率 %</th></tr></thead>
+              <tbody></tbody>
+            </table></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================= 水资源与调度 ================= -->
+      <section class="view" id="v-water" aria-label="水资源与调度" hidden>
+        <header class="viewhead">
+          <h2>水资源与调度</h2>
+          <p>径流构成 · 水库水位 · 用水结构 · 调度指令</p>
+        </header>
+        <section class="kpis" aria-label="水资源指标"></section>
+        <div class="grid">
+          <article class="card span2">
+            <header class="ch">
+              <h3>逐日径流构成堆叠</h3>
+              <p class="sub">单位 万 m³ · 降雨产流 / 融雪补给 / 地下水基流</p>
+              <div class="legend" data-group="legend">
+                <button class="lg on" data-action="legend" data-val="partRain"><i style="background:var(--rain)"></i>降雨产流</button>
+                <button class="lg on" data-action="legend" data-val="partSnow"><i style="background:var(--snow)"></i>融雪补给</button>
+                <button class="lg on" data-action="legend" data-val="partBase"><i style="background:var(--base)"></i>地下水基流</button>
+              </div>
+            </header>
+            <div class="chart" id="c-runoff"></div>
+          </article>
+          <article class="card span2">
+            <header class="ch"><h3>云溪水库水位过程线</h3><p class="sub">含汛限水位与死水位参考线</p></header>
+            <div class="chart" id="c-level"></div>
+          </article>
+          <article class="card">
+            <header class="ch"><h3>用水结构</h3><p class="sub">占取水总量比例</p></header>
+            <div class="chart" id="c-use"></div>
+          </article>
+          <article class="card">
+            <header class="ch"><h3>水库调度指令记录</h3><p class="sub">近 30 日 · 5 条</p></header>
+            <div class="tw"><table id="t-dispatch">
+              <thead><tr><th>发布时间</th><th>调度指令</th><th class="num">目标水位 m</th><th class="num">出库流量 m³/s</th><th>状态</th></tr></thead>
+              <tbody></tbody>
+            </table></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================= 风险预警 ================= -->
+      <section class="view" id="v-risk" aria-label="风险预警" hidden>
+        <header class="viewhead">
+          <h2>风险预警</h2>
+          <p>山洪 · 中小河流洪水 · 地质灾害 · 未来 24 小时面雨量</p>
+        </header>
+        <section class="kpis" aria-label="风险指标"></section>
+        <div class="grid">
+          <article class="card span2">
+            <header class="ch"><h3>各子流域风险等级</h3><p class="sub">按风险等级由高到低排列</p></header>
+            <div class="chart" id="c-riskband"></div>
+          </article>
+          <article class="card span2">
+            <header class="ch"><h3>未来 24 小时逐 3 小时面雨量预报</h3><p class="sub">蓝色预警阈值 25 mm / 3 h</p></header>
+            <div class="chart" id="c-fc"></div>
+          </article>
+          <article class="card span2">
+            <header class="ch"><h3>预警发布记录</h3><p class="sub">近 30 日 · 4 条</p></header>
+            <div class="tw"><table id="t-warn">
+              <thead><tr><th>发布时间</th><th>影响子流域</th><th>预警类型</th><th>等级</th><th>状态</th></tr></thead>
+              <tbody></tbody>
+            </table></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================= 子流域详情 ================= -->
+      <section class="view" id="v-sub" aria-label="子流域详情" hidden>
+        <nav class="crumb" aria-label="下钻路径">
+          <button class="btn ghost" data-action="back">← 返回流域总览</button>
+          <span>流域总览</span><span>/</span><span>子流域</span><span>/</span><b id="crumbSub">雪岭</b>
+        </nav>
+        <header class="viewhead">
+          <h2 id="subTitle">雪岭子流域</h2>
+          <p id="subSubtitle"></p>
+        </header>
+        <section class="kpis" aria-label="子流域指标"></section>
+        <div class="grid">
+          <article class="card span2">
+            <header class="ch">
+              <h3>逐日面雨量与多年同期均值</h3>
+              <p class="sub" id="subRainSub"></p>
+              <div class="legend" data-group="legend">
+                <button class="lg on" data-action="legend" data-val="subRain"><i style="background:var(--rain)"></i>本时段面雨量</button>
+                <button class="lg on" data-action="legend" data-val="subNorm"><i style="background:var(--amber)"></i>多年同期均值</button>
+              </div>
+            </header>
+            <div class="chart" id="c-subrain"></div>
+          </article>
+          <article class="card">
+            <header class="ch"><h3>逐日降雨距平</h3><p class="sub">相对多年同期均值</p></header>
+            <div class="chart" id="c-subanom"></div>
+          </article>
+          <article class="card">
+            <header class="ch"><h3>代表站实况</h3><p class="sub" id="subStationSub"></p></header>
+            <div class="tw"><table id="t-substation">
+              <thead><tr><th>指标</th><th class="num">本时段</th><th class="num">多年同期</th><th class="num">距平</th></tr></thead>
+              <tbody></tbody>
+            </table></div>
+          </article>
+        </div>
+      </section>
+
+    </div>
+
+    <aside class="rail" aria-label="辅助信息面板">
+      <section class="railsec">
+        <h3>当前筛选口径</h3>
+        <div class="kvlist" id="railScope"></div>
+      </section>
+      <section class="railsec">
+        <h3>流域特征值</h3>
+        <div class="kvlist" id="railChar"></div>
+      </section>
+      <section class="railsec">
+        <h3>生效中预警</h3>
+        <div class="alerts" id="railAlerts"></div>
+      </section>
+      <section class="railsec">
+        <h3>数据说明</h3>
+        <p class="note">面雨量为子流域面积加权平均；入库流量为水库入库站实测；径流构成按三水源划分，三者之和恒等于当日径流总量；水位为黄海高程。所有数值取整口径已在表头标注。</p>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<footer class="footer">
+  <span><b>云溪水情 YUNXI HYDRO</b> · 流域气象与水资源监测平台</span>
+  <span>数据来源：流域自动气象站网（72 站）· 水库水文站 · 遥感面雨量反演</span>
+  <span>统计时段：2026-08-19 至 2026-09-17 · 日尺度 · 缺测率 1.6%</span>
+  <span>页面内所有图形均由代码实时绘制，不加载任何外部资源</span>
+</footer>
+
+<div class="tip" id="tip" hidden></div>
+
+<!-- 审计账本：自检结果写入隐藏节点，供自动探针读取，不可见不占位 -->
+<div id="audit" class="audit"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* =========================================================
+   一、基础工具
+   ========================================================= */
+var $  = function(s){ return document.querySelector(s); };
+var $$ = function(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); };
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function sum(a){ var s=0,i; for(i=0;i<a.length;i++) s+=a[i]; return s; }
+function f1(v){ return (Math.round(v*10)/10).toFixed(1); }
+function f2(v){ return (Math.round(v*100)/100).toFixed(2); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function hash(str,i){
+  var h=2166136261, s=str+'#'+i, k;
+  for(k=0;k<s.length;k++){ h^=s.charCodeAt(k); h=(h*16777619)>>>0; }
+  return (h%100000)/100000;
+}
+function nice(v){
+  var e=Math.pow(10,Math.floor(Math.log(v)/Math.LN10)), n=v/e;
+  var m = n<=1?1:(n<=2?2:(n<=2.5?2.5:(n<=5?5:10)));
+  return m*e;
+}
+function svgEl(tag,attrs,inner){
+  var a='',k;
+  for(k in attrs){ if(attrs[k]===null||attrs[k]===undefined) continue; a+=' '+k+'="'+attrs[k]+'"'; }
+  return '<'+tag+a+(inner===undefined?'/>':'>'+inner+'</'+tag+'>');
+}
+function txt(x,y,s,o){
+  o=o||{};
+  return svgEl('text',{x:x,y:y,fill:o.fill||COL.ink3,'font-size':o.size||11,'text-anchor':o.anchor||'start',
+    'font-weight':o.weight||400,'font-family':o.mono?'ui-monospace,Menlo,Consolas,monospace':null,
+    'letter-spacing':o.ls||null},esc(s));
+}
+function arcPath(cx,cy,r0,r1,a0,a1){
+  var P=function(a,r){ return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; };
+  var lg=(a1-a0)>Math.PI?1:0;
+  var A=P(a0,r1),B=P(a1,r1),Cd=P(a1,r0),D=P(a0,r0);
+  return 'M'+f2(A[0])+' '+f2(A[1])+'A'+f2(r1)+' '+f2(r1)+' 0 '+lg+' 1 '+f2(B[0])+' '+f2(B[1])+
+         'L'+f2(Cd[0])+' '+f2(Cd[1])+'A'+f2(r0)+' '+f2(r0)+' 0 '+lg+' 0 '+f2(D[0])+' '+f2(D[1])+'Z';
+}
+function lerpColor(a,b,t){
+  var pa=parseInt(a.slice(1),16), pb=parseInt(b.slice(1),16);
+  var r=Math.round(((pa>>16)&255)+(((pb>>16)&255)-((pa>>16)&255))*t);
+  var g=Math.round(((pa>>8)&255)+(((pb>>8)&255)-((pa>>8)&255))*t);
+  var bl=Math.round((pa&255)+((pb&255)-(pa&255))*t);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+bl).toString(16).slice(1);
+}
+var COL={
+  ink:'#e8f4fa', ink2:'#a9c6d4', ink3:'#6d8fa2',
+  grid:'rgba(122,190,205,.16)', grid2:'rgba(122,190,205,.34)',
+  rain:'#4aa3f0', flow:'#2fd0c2', snow:'#9fd8ff', base:'#8a86e6',
+  amber:'#f5b544', orange:'#f2894a', red:'#ef5f52', green:'#4fd18b',
+  violet:'#8a86e6', panel:'#0f2131'
+};
+var RISK={'无':'n','蓝色':'b','黄色':'y','橙色':'o','红色':'r'};
+var RISKV={'无':0,'蓝色':1,'黄色':2,'橙色':3,'红色':4};
+var RISKC={'无':'#5c7c8c','蓝色':'#4aa3f0','黄色':'#f5b544','橙色':'#f2894a','红色':'#ef5f52'};
+
+/* =========================================================
+   二、数据（2026-08-19 至 2026-09-17，共 30 日）
+   ========================================================= */
+/* =========================================================
+   二、数据（2026-08-19 至 2026-09-17，共 30 日）
+   ========================================================= */
+var DATES=(function(){
+  var out=[],m=8,d=19,i;
+  for(i=0;i<30;i++){
+    out.push((m<10?'0':'')+m+'-'+(d<10?'0':'')+d);
+    d++; if(m===8&&d>31){ m=9; d=1; }
+  }
+  return out;
+})();
+var RAIN =[0.0,0.4,1.2,0.0,0.0,2.6,5.8,3.1,12.4,26.8,48.2,31.6,14.2,6.4,2.0,0.8,0.0,3.4,9.6,18.4,22.0,7.2,2.4,0.6,0.0,0.0,1.8,4.2,1.0,0.2];
+var FLOW =[96,92,88,85,82,84,96,112,148,246,486,812,694,522,388,306,262,248,291,402,556,498,412,356,318,288,274,296,286,268];
+var TMAX =[14.6,15.2,13.8,16.4,17.1,14.2,12.6,13.4,11.8,10.4,9.2,10.8,11.6,12.4,13.6,15.2,16.8,15.4,13.2,11.6,10.8,12.2,13.8,15.4,16.6,17.2,15.8,14.2,15.6,16.4];
+var TMIN =[6.8,7.2,8.0,8.2,8.6,7.6,7.4,8.4,7.0,6.4,6.2,6.8,6.6,6.4,7.6,8.4,9.0,8.2,7.2,6.8,6.4,7.0,7.8,8.4,9.2,9.6,8.6,7.8,8.4,8.8];
+var SUN  =[8.6,7.4,4.2,9.2,9.4,5.6,3.4,5.2,2.6,1.4,0.6,2.2,3.6,5.4,7.2,8.4,9.0,4.8,2.8,1.6,1.2,4.4,6.2,7.8,9.2,9.4,6.6,5.2,7.0,8.2];
+var RH   =[62,66,78,58,55,74,84,76,86,92,95,90,82,74,68,60,56,72,82,90,93,80,70,64,58,54,66,72,63,59];
+var WS   =[2.4,2.1,3.2,3.8,3.4,2.8,2.2,2.6,3.6,4.2,4.8,4.4,3.8,3.2,2.6,2.2,1.8,2.4,3.0,3.6,4.0,3.4,2.8,2.4,2.0,1.6,2.2,2.8,2.4,2.0];
+var LEVEL=[1128.6,1128.4,1128.2,1128.0,1127.8,1128.0,1128.6,1129.4,1130.8,1133.6,1137.2,1139.8,1139.4,1138.2,1137.0,1136.2,1135.6,1135.2,1135.4,1136.2,1137.6,1138.0,1137.6,1137.2,1136.8,1136.6,1136.4,1136.6,1136.5,1136.4];
+var TAVG = TMAX.map(function(v,i){ return (v+TMIN[i])/2; });
+
+var BASIN={ name:'云溪流域', area:7015, norm:197.4 };
+var SUBS=[
+  {id:'xueling', name:'雪岭', area:1842, rain:268.4, norm:218.6, flow:96, tavg:6.8, alt:3862,
+   risk:'橙色', flood:'黄色', geo:'黄色', sta:'52904', stname:'雪岭主站'},
+  {id:'pinghu',  name:'平湖', area:2310, rain:226.5, norm:204.2, flow:74, tavg:13.6, alt:1892,
+   risk:'黄色', flood:'蓝色', geo:'无',   sta:'52915', stname:'平湖站'},
+  {id:'songjian',name:'松涧', area:1266, rain:214.6, norm:186.4, flow:42, tavg:9.4,  alt:3140,
+   risk:'黄色', flood:'蓝色', geo:'黄色', sta:'52907', stname:'松涧站'},
+  {id:'zhuxi',   name:'竹溪', area:984,  rain:196.2, norm:178.9, flow:31, tavg:11.2, alt:2768,
+   risk:'蓝色', flood:'无',   geo:'蓝色', sta:'52911', stname:'竹溪站'},
+  {id:'shitan',  name:'石潭', area:613,  rain:172.4, norm:160.2, flow:25, tavg:10.6, alt:2410,
+   risk:'蓝色', flood:'无',   geo:'蓝色', sta:'52918', stname:'石潭站'}
+];
+var SUBMAP={}; SUBS.forEach(function(s){ SUBMAP[s.id]=s; });
+
+var STATIONS=[
+  {no:'52904',name:'雪岭主站',alt:3862,rain:268.4,tavg:6.8, ws:3.6,ok:99.6,sub:'xueling'},
+  {no:'52907',name:'松涧站',  alt:3140,rain:214.6,tavg:9.4, ws:2.8,ok:98.9,sub:'songjian'},
+  {no:'52911',name:'竹溪站',  alt:2768,rain:196.2,tavg:11.2,ws:2.1,ok:99.9,sub:'zhuxi'},
+  {no:'52918',name:'石潭站',  alt:2410,rain:172.4,tavg:10.6,ws:1.9,ok:99.2,sub:'shitan'},
+  {no:'52915',name:'平湖站',  alt:1892,rain:226.5,tavg:13.6,ws:2.4,ok:97.4,sub:'pinghu'},
+  {no:'52921',name:'云溪口站',alt:1264,rain:208.8,tavg:15.4,ws:2.2,ok:96.8,sub:'pinghu'}
+];
+
+var WIND_DIRS=['N','NE','E','SE','S','SW','W','NW'];
+var WIND_FREQ=[[3.4,3.6,1.2],[2.4,2.2,0.8],[2.0,1.6,0.5],[3.2,3.2,1.2],[4.6,5.4,2.4],[8.8,12.4,5.6],[6.6,8.6,4.0],[5.8,7.1,3.4]];
+var WIND_BANDS=['< 2 m/s','2 – 4 m/s','> 4 m/s'];
+var WIND_COL=['#2a6f9e','#4aa3f0','#9fd8ff'];
+
+var USES=[
+  {n:'农业灌溉',v:46.0,c:'#4aa3f0'},
+  {n:'生态下泄',v:21.5,c:'#2fd0c2'},
+  {n:'城乡生活',v:18.0,c:'#8a86e6'},
+  {n:'工业用水',v:14.5,c:'#f5b544'}
+];
+
+var RES={name:'云溪水库',cap:8.42,store:5.32,rate:63.2,level:1136.4,
+  flood:1142.0,dead:1098.0,normal:1146.0,check:1152.0,outflow:246};
+
+var FORECAST=[
+  {t:'17日 09–12时',v:0.4},{t:'17日 12–15时',v:0.8},{t:'17日 15–18时',v:1.6},{t:'17日 18–21时',v:3.2},
+  {t:'17日 21–24时',v:5.6},{t:'18日 00–03时',v:4.2},{t:'18日 03–06时',v:2.4},{t:'18日 06–09时',v:1.2}
+];
+var FC_THRESHOLD=25;
+
+var DISPATCH=[
+  {t:'2026-09-16 08:00',cmd:'维持下泄',lvl:'1136.0',out:'246',st:'执行中'},
+  {t:'2026-09-10 09:00',cmd:'加大下泄',lvl:'1136.5',out:'262',st:'已完成'},
+  {t:'2026-09-03 15:00',cmd:'退水期控制',lvl:'1136.0',out:'180',st:'已完成'},
+  {t:'2026-08-30 06:00',cmd:'拦洪削峰',lvl:'1139.5',out:'160',st:'已完成'},
+  {t:'2026-08-28 06:00',cmd:'预泄腾库',lvl:'1132.0',out:'420',st:'已完成'}
+];
+var WARNINGS=[
+  {t:'2026-09-16 20:00',sub:'雪岭',type:'山洪灾害气象风险预警',lv:'橙色',st:'生效中'},
+  {t:'2026-09-17 06:00',sub:'平湖',type:'中小河流洪水风险预警',lv:'蓝色',st:'生效中'},
+  {t:'2026-09-15 14:00',sub:'竹溪',type:'地质灾害气象风险预警',lv:'蓝色',st:'已解除'},
+  {t:'2026-09-12 09:00',sub:'松涧',type:'山洪灾害气象风险预警',lv:'黄色',st:'已解除'}
+];
+
+/* 径流三水源划分：三者之和恒等于当日径流总量 */
+function runoffParts(i){
+  var total=FLOW[i]*8.64;
+  var base=820+60*Math.sin(i*0.37);
+  var snow=clamp(180+(TMAX[i]-10)*160,90,980);
+  if(base+snow > total*0.92){ var k=(total*0.92)/(base+snow); base*=k; snow*=k; }
+  return {base:base, snow:snow, rain:Math.max(0,total-base-snow), total:total};
+}
+var PARTS=RAIN.map(function(_,i){ return runoffParts(i); });
+var RUN_TOTAL=sum(PARTS.map(function(p){ return p.total; }));
+var RUN_SHARE={
+  rain: sum(PARTS.map(function(p){ return p.rain; }))/RUN_TOTAL*100,
+  snow: sum(PARTS.map(function(p){ return p.snow; }))/RUN_TOTAL*100,
+  base: sum(PARTS.map(function(p){ return p.base; }))/RUN_TOTAL*100
+};
+
+/* 子流域派生序列：缩放后与该子流域统计值严格一致 */
+var _subCache={};
+function subSeries(sub){
+  if(_subCache[sub.id]) return _subCache[sub.id];
+  var raw=RAIN.map(function(v,i){ return v*(0.72+0.56*hash(sub.id,i)); });
+  var k=sub.rain/(sum(raw)||1);
+  var rain=raw.map(function(v){ return v*k; });
+  var fraw=FLOW.map(function(v,i){ return v*(0.86+0.28*hash(sub.id+'f',i)); });
+  var fk=sub.flow/(fraw[fraw.length-1]||1);
+  var flow=fraw.map(function(v){ return v*fk; });
+  var araw=RAIN.map(function(v,i){ return v*(0.7+0.6*hash(sub.id+'a',i)); });
+  var ak=sub.norm/(sum(araw)||1);
+  var norm=araw.map(function(v){ return v*ak; });
+  var out={rain:rain,flow:flow,norm:norm};
+  _subCache[sub.id]=out;
+  return out;
+}
+
+/* =========================================================
+   三、状态
+   ========================================================= */
+var state={
+  view:'overview', range:30, sub:'all',
+  win:[0,29], scale:'lin', thr:280,
+  series:{rain:true,flow:true,partRain:true,partSnow:true,partBase:true,subRain:true,subNorm:true}
+};
+function rangeStart(){ return 30-state.range; }
+function fullDays(){ var i,o=[]; for(i=rangeStart();i<30;i++) o.push(i); return o; }
+function activeDays(){
+  var all=fullDays(), a=state.win[0], b=state.win[1];
+  var out=all.filter(function(i){ return i>=a && i<=b; });
+  return out.length>=3?out:all;
+}
+function isBasin(){ return state.sub==='all'; }
+function curMeta(){
+  if(isBasin()) return {name:'云溪流域（全区）', rain:sum(RAIN), norm:BASIN.norm, flow:FLOW[29], sub:null};
+  var s=SUBMAP[state.sub], sr=subSeries(s);
+  return {name:s.name+'子流域', rain:s.rain, norm:s.norm, flow:s.flow, sub:s, series:sr};
+}
+function curRain(){ var m=curMeta(); return m.sub? m.series.rain : RAIN.slice(); }
+function curFlow(){ var m=curMeta(); return m.sub? m.series.flow : FLOW.slice(); }
+
+/* =========================================================
+   三·A 八态互斥状态机（FSM）与可观测状态令牌
+   ========================================================= */
+var FSM_STATES=['INIT_DATA_INGESTED','GLOBAL_OVERVIEW_CRUISE','SERIES_BRUSH_STAGED',
+  'DIMENSION_SLICED','HIERARCHY_DRILLDOWN','SCALE_LOG_TRANSFORMED','ANOMALY_INSPECTION',
+  'FILTER_RESET_RECONVERGED'];
+var fsm={current:'INIT_DATA_INGESTED', lastAction:null, history:[]};
+function go(stateName, action){
+  if(FSM_STATES.indexOf(stateName)<0) stateName='GLOBAL_OVERVIEW_CRUISE';
+  if(action) fsm.lastAction=action;
+  if(fsm.current!==stateName){
+    fsm.history.push({from:fsm.current, to:stateName, at:new Date().toISOString(), via:fsm.lastAction});
+    fsm.current=stateName;
+  }
+  var t=$('#fsmToken');
+  if(t) t.textContent=stateName;
+  return stateName;
+}
+
+/* =========================================================
+   三·B 度量投影：线性 / 对数 / 百分比 共用同一动态域
+   ========================================================= */
+function minPos(a){ var m=Infinity,i; for(i=0;i<a.length;i++) if(a[i]>0 && a[i]<m) m=a[i]; return m===Infinity?1:m; }
+function makeScale(dmin,dmax,mode){
+  mode=mode||'lin';
+  var lo=Math.log(Math.max(dmin,1e-9)), hi=Math.log(Math.max(dmax,1e-9)), span=(hi-lo)||1;
+  var c01=function(v){ return Math.max(0,Math.min(1,v)); };
+  return {
+    mode:mode, vmax:dmax,
+    pos:function(v){
+      if(mode==='pct') return c01(v/dmax);
+      if(mode==='log') return c01((Math.log(Math.max(v,dmin>0?dmin:1e-9))-lo)/span);
+      return c01(v/dmax);
+    },
+    ticks:function(){
+      if(mode==='pct') return [0,25,50,75,100];
+      if(mode==='log'){
+        var arr=[],k;
+        for(k=Math.floor(lo/Math.LN10)-1;k<=Math.ceil(hi/Math.LN10)+1;k++){
+          [1,2,5].forEach(function(m){
+            var v=m*Math.pow(10,k);
+            if(v>=dmin*0.9999 && v<=dmax*1.0001) arr.push(v);
+          });
+        }
+        return arr;
+      }
+      return [0,dmax/2,dmax];
+    }
+  };
+}
+function scaleLabel(v,mode,isFlow){
+  if(mode==='pct') return Math.round(v)+(isFlow?'':'%');
+  if(mode==='log') return isFlow?Math.round(v):f1(v);
+  return isFlow?Math.round(v):f1(v);
+}
+function scaleUnit(mode,isFlow){
+  if(mode==='pct') return '%';
+  return isFlow?'m³/s':'mm';
+}
+function anomalyOn(){ return state.thr < 280; }
+function anomalyCount(){ return STATIONS.filter(function(s){ return s.rain>=state.thr; }).length; }
+
+/* =========================================================
+   四、图表绘制
+   ========================================================= */
+function sizeOf(id){
+  var h=$(id); if(!h) return {w:640,h:0,host:null};
+  var w=h.clientWidth||640; if(w<200) w=200;
+  return {w:Math.round(w), host:h};
+}
+function svgWrap(w,h,inner){
+  return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" role="img">'+inner+'</svg>';
+}
+
+/* ---------- 4.1 过程线：降雨倒挂柱 + 流量面积线 ---------- */
+function drawHydro(){
+  var sz=sizeOf('#c-hydro'); if(!sz.host) return;
+  var W=sz.w, H=300, L=52, R=16, B=34;
+  var idx=activeDays(), n=idx.length;
+  var rainArr=curRain(), flowArr=curFlow();
+  var sr=state.series.rain, sf=state.series.flow;
+
+  var scopedRain=idx.map(function(i){ return rainArr[i]; });
+  var scopedFlow=idx.map(function(i){ return flowArr[i]; });
+  var rMax=nice(Math.max.apply(null,scopedRain)||1);
+  var fMax=nice(Math.max.apply(null,scopedFlow)||1);
+  var rScale=makeScale(state.scale==='log'?minPos(scopedRain):0, rMax, state.scale);
+  var fScale=makeScale(state.scale==='log'?minPos(scopedFlow):0, fMax, state.scale);
+  var plotW=W-L-R, band=plotW/n;
+  var xc=function(i){ return L+band*(i+0.5); };
+  /* 面雨量图例关闭时不再占用上方色带，流量图独占绘图区 */
+  var rainY0=sr?14:0, rainH=sr?86:0;
+  var fTop=sr?136:30, fBot=258;
+  var ry=function(v){ return rainY0+rainH*rScale.pos(v); };
+  var fy=function(v){ return fBot-(fBot-fTop)*fScale.pos(v); };
+
+  var s='';
+  /* 面板底纹 */
+  if(sr) s+=svgEl('rect',{x:L,y:rainY0-8,width:plotW,height:rainH+12,rx:6,fill:'rgba(74,163,240,.05)'});
+  s+=svgEl('rect',{x:L,y:fTop,width:plotW,height:fBot-fTop,rx:6,fill:'rgba(47,208,194,.04)'});
+
+  /* 降雨轴刻度（随投影整体重建） */
+  if(sr){
+    rScale.ticks().forEach(function(v){
+      var y=ry(v);
+      s+=svgEl('line',{x1:L,x2:L+plotW,y1:y,y2:y,stroke:COL.grid,'stroke-dasharray':y===rainY0?'':'3 5'});
+      s+=txt(L-8,y+3.5,scaleLabel(v,state.scale,false),{anchor:'end',size:10,fill:COL.ink3,mono:true});
+    });
+    s+=txt(L-8,rainY0-14,scaleUnit(state.scale,false),{anchor:'end',size:10,fill:COL.rain});
+  }
+
+  /* 流量轴刻度 */
+  fScale.ticks().forEach(function(v){
+    var y=fy(v);
+    s+=svgEl('line',{x1:L,x2:L+plotW,y1:y,y2:y,stroke:COL.grid,'stroke-dasharray':y===fBot?'':'3 5'});
+    s+=txt(L-8,y+3.5,scaleLabel(v,state.scale,true),{anchor:'end',size:10,fill:COL.ink3,mono:true});
+  });
+  s+=txt(L-8,fTop-8,scaleUnit(state.scale,true),{anchor:'end',size:10,fill:COL.flow});
+
+  /* 流量面积 + 折线 */
+  if(sf && n>1){
+    var d='',dl='';
+    idx.forEach(function(i,k){
+      var x=xc(k), y=fy(flowArr[i]);
+      d+=(k?'L':'M')+f2(x)+' '+f2(y);
+      dl+=(k?'L':'M')+f2(x)+' '+f2(y);
+    });
+    d+='L'+f2(xc(n-1))+' '+fBot+'L'+f2(xc(0))+' '+fBot+'Z';
+    s+='<defs><linearGradient id="gFlow" x1="0" y1="0" x2="0" y2="1">'+
+       '<stop offset="0%" stop-color="'+COL.flow+'" stop-opacity="0.42"/>'+
+       '<stop offset="100%" stop-color="'+COL.flow+'" stop-opacity="0.02"/></linearGradient></defs>';
+    s+=svgEl('path',{d:d,fill:'url(#gFlow)'});
+    s+=svgEl('path',{d:dl,fill:'none',stroke:COL.flow,'stroke-width':2,'stroke-linejoin':'round','stroke-linecap':'round'});
+    idx.forEach(function(i,k){
+      if(n>16 && k%2) return;
+      s+=svgEl('circle',{cx:xc(k),cy:fy(flowArr[i]),r:3.4,fill:'#08222b',stroke:COL.flow,'stroke-width':1.8,
+        'data-tip':'1','data-tip-kind':'flow','data-i':i});
+    });
+  }
+
+  /* 降雨倒挂柱 */
+  if(sr){
+    var bw=clamp(band*0.52,2,26);
+    idx.forEach(function(i,k){
+      var v=rainArr[i]; if(v<=0) return;
+      var h=Math.max(1.5,rainH*rScale.pos(v));
+      var col=v>=40?'#9fd8ff':(v>=20?'#4aa3f0':'#2a6f9e');
+      s+=svgEl('rect',{x:f2(xc(k)-bw/2),y:f2(rainY0),width:f2(bw),height:f2(h),rx:Math.min(2,bw/3),
+        fill:col,'data-tip':'1','data-tip-kind':'rain','data-i':i});
+    });
+  }
+
+  /* 洪峰标注 */
+  var pi=idx.reduce(function(a,b){ return flowArr[b]>flowArr[a]?b:a; },idx[0]);
+  if(sf && flowArr[pi]===Math.max.apply(null,flowArr)){
+    var px=xc(idx.indexOf(pi)), py=fy(flowArr[pi]);
+    s+=svgEl('line',{x1:px,x2:px,y1:py-9,y2:fTop+8,stroke:'rgba(245,181,68,.55)','stroke-dasharray':'3 3'});
+    s+=txt(px+5,py-13,'洪峰 '+Math.round(flowArr[pi]),{size:10,fill:COL.amber,weight:600});
+  }
+
+  /* x 轴 */
+  s+=svgEl('line',{x1:L,x2:L+plotW,y1:fBot,y2:fBot,stroke:COL.grid2});
+  var step=Math.max(1,Math.ceil(n/9));
+  idx.forEach(function(i,k){
+    if(k%step) return;
+    s+=txt(xc(k),fBot+15,DATES[i],{anchor:'middle',size:10,fill:COL.ink3,mono:true});
+  });
+  if(idx.length%step!==1){
+    var lk=n-1;
+    s+=txt(xc(lk),fBot+15,DATES[idx[lk]],{anchor:'middle',size:10,fill:COL.ink3,mono:true});
+  }
+  var modeName={'lin':'线性','log':'对数','pct':'百分比'}[state.scale];
+  s+=txt(L,fBot+30,'标尺：'+modeName+' · 面雨量柱自顶向下；入库流量面积线共用同一横轴',{size:10,fill:COL.ink3});
+
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.2 子流域排名条形 ---------- */
+function drawRank(){
+  var sz=sizeOf('#c-rank'); if(!sz.host) return;
+  var W=sz.w, H=250, L=54, R=58, T=14, B=18;
+  var arr=SUBS.slice().sort(function(a,b){ return b.rain-a.rain; });
+  var max=nice(arr[0].rain);
+  var plotW=W-L-R, bh=Math.min(26,(H-T-B)/arr.length-9), gap=(H-T-B)/arr.length;
+  var lo=Math.min.apply(null,arr.map(function(s){ return s.rain; }));
+  var s='';
+  [0,max/2,max].forEach(function(v){
+    var x=L+plotW*(v/max);
+    s+=svgEl('line',{x1:x,x2:x,y1:T,y2:H-B,stroke:COL.grid,'stroke-dasharray':v===0?null:'3 5'});
+    s+=txt(x,H-B+13,f1(v),{anchor:'middle',size:10,fill:COL.ink3,mono:true});
+  });
+  arr.forEach(function(sub,k){
+    var y=T+gap*k+(gap-bh)/2;
+    var w=plotW*(sub.rain/max);
+    var on=(state.sub===sub.id);
+    var t=(sub.rain-lo)/(arr[0].rain-lo||1);
+    var col=lerpColor('#2a6f9e','#9fd8ff',t);
+    s+=svgEl('rect',{x:L,y:y,width:plotW,height:bh,rx:4,fill:'rgba(122,190,205,.05)'});
+    s+='<defs><linearGradient id="gRank'+k+'" x1="0" y1="0" x2="1" y2="0">'+
+       '<stop offset="0%" stop-color="'+lerpColor(col,'#0d1c28',0.35)+'"/>'+
+       '<stop offset="100%" stop-color="'+col+'"/></linearGradient></defs>';
+    s+=svgEl('rect',{x:L,y:y,width:f2(Math.max(3,w)),height:bh,rx:4,fill:'url(#gRank'+k+')',
+      stroke:on?COL.amber:null,'stroke-width':on?1.6:0,
+      'data-tip':'1','data-tip-kind':'sub','data-sub':sub.id,role:'button',tabindex:'0',
+      'data-action':'drill','aria-label':sub.name+'子流域 '+f1(sub.rain)+' 毫米'});
+    s+=txt(L-8,y+bh/2+3.5,sub.name,{anchor:'end',size:11,fill:on?COL.ink:COL.ink2,weight:on?600:400});
+    s+=txt(L+Math.max(3,w)+7,y+bh/2+3.5,f1(sub.rain),{size:11,fill:on?COL.amber:COL.ink2,weight:600,mono:true});
+    if(on){
+      s+=svgEl('rect',{x:L-1.5,y:y-1.5,width:f2(Math.max(3,w))+3,height:bh+3,rx:5,fill:'none',
+        stroke:'rgba(245,181,68,.70)','stroke-width':1});
+    }
+  });
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.3 流域站点分布图 ---------- */
+var SUB_POLY={
+  xueling:[[.08,.22],[.16,.10],[.30,.09],[.34,.20],[.28,.34],[.30,.44],[.14,.42],[.07,.33]],
+  shitan:[[.36,.08],[.50,.06],[.53,.16],[.46,.30],[.35,.27],[.33,.16]],
+  songjian:[[.31,.35],[.44,.33],[.55,.30],[.59,.46],[.55,.62],[.42,.66],[.33,.55]],
+  zhuxi:[[.43,.68],[.56,.64],[.66,.70],[.68,.86],[.54,.93],[.42,.86]],
+  pinghu:[[.61,.30],[.78,.22],[.90,.30],[.92,.52],[.86,.72],[.72,.80],[.62,.70],[.58,.50]]
+};
+var RIVERS=[[[.18,.24],[.26,.30],[.38,.38],[.50,.48],[.62,.52],[.78,.52],[.93,.50]],
+            [[.42,.14],[.43,.30],[.47,.40]],
+            [[.50,.80],[.55,.62],[.60,.54]]];
+var STA_POS={'52904':[.19,.26],'52907':[.44,.46],'52911':[.54,.78],'52918':[.42,.18],'52915':[.76,.52],'52921':[.90,.50]};
+
+function drawMap(){
+  var sz=sizeOf('#c-map'); if(!sz.host) return;
+  var W=sz.w, H=330, T=10, B=24;
+  var pw=W-24, ph=H-T-B;
+  var ox=12, oy=T;
+  var maxR=Math.max.apply(null,SUBS.map(function(s){ return s.rain; }));
+  var minR=Math.min.apply(null,SUBS.map(function(s){ return s.rain; }));
+  var s='';
+  s+='<defs><linearGradient id="gBasin" x1="0" y1="0" x2="1" y2="1">'+
+     '<stop offset="0%" stop-color="rgba(47,208,194,.05)"/>'+
+     '<stop offset="100%" stop-color="rgba(74,163,240,.02)"/></linearGradient></defs>';
+  s+=svgEl('rect',{x:ox,y:oy,width:pw,height:ph,rx:10,fill:'url(#gBasin)',stroke:COL.grid});
+
+  SUBS.forEach(function(sub){
+    var pts=SUB_POLY[sub.id].map(function(p){ return [ox+p[0]*pw, oy+p[1]*ph]; });
+    var t=(sub.rain-minR)/((maxR-minR)||1);
+    var col=lerpColor('#153c55','#4aa3f0',t);
+    var on=(state.sub===sub.id);
+    var d=pts.map(function(p,k){ return (k?'L':'M')+f2(p[0])+' '+f2(p[1]); }).join('')+'Z';
+    s+=svgEl('path',{d:d,fill:col,'fill-opacity':on?0.86:0.52,
+      stroke:on?COL.amber:'rgba(122,190,205,.40)','stroke-width':on?2:1,
+      'data-tip':'1','data-tip-kind':'sub','data-sub':sub.id,role:'button',tabindex:'0',
+      'data-action':'drill','aria-label':sub.name+'子流域'});
+    var cx=0,cy=0;
+    pts.forEach(function(p){ cx+=p[0]; cy+=p[1]; });
+    cx/=pts.length; cy/=pts.length;
+    s+=txt(cx,cy+3,sub.name,{anchor:'middle',size:11,fill:'#eaf6fb',weight:600});
+    s+=txt(cx,cy+16,f1(sub.rain),{anchor:'middle',size:10,fill:'rgba(234,246,251,.72)',mono:true});
+  });
+
+  RIVERS.forEach(function(r){
+    var d=r.map(function(p,k){ return (k?'L':'M')+f2(ox+p[0]*pw)+' '+f2(oy+p[1]*ph); }).join('');
+    s+=svgEl('path',{d:d,fill:'none',stroke:'rgba(159,216,255,.62)','stroke-width':2.2,'stroke-linecap':'round'});
+  });
+
+  STATIONS.forEach(function(st){
+    var p=STA_POS[st.no]; if(!p) return;
+    var x=ox+p[0]*pw, y=oy+p[1]*ph;
+    var flagged=anomalyOn() && st.rain>=state.thr;
+    var r=5+(st.rain-160)/110*8;
+    s+=svgEl('circle',{cx:x,cy:y,r:f2(flagged?r+4:r),fill:flagged?'rgba(239,95,82,.30)':'rgba(232,244,250,.16)',
+      stroke:flagged?'#ef5f52':'#e8f4fa','stroke-width':flagged?2.4:1.4,
+      'data-tip':'1','data-tip-kind':'sta','data-no':st.no,role:'button',tabindex:'0','aria-label':st.name});
+    s+=svgEl('circle',{cx:x,cy:y,r:2,fill:flagged?'#ef5f52':'#e8f4fa'});
+  });
+
+  /* 比例尺与图例 */
+  s+=svgEl('line',{x1:ox+14,x2:ox+14+pw*0.16,y1:oy+ph-13,y2:oy+ph-13,stroke:COL.ink3,'stroke-width':2});
+  s+=txt(ox+14,oy+ph-18,'约 25 km',{size:10,fill:COL.ink3});
+  if(anomalyOn()){
+    s+=txt(ox+14,oy+22,'异常站点 '+anomalyCount()+' 个（雨量 ≥ '+state.thr+' mm）',{size:10.5,fill:COL.red,weight:600});
+    s+=txt(ox+pw-6,oy+ph-13,'红圈 = 超过阈值的异常站 · 基底气泡 ∝ 累计面雨量',{anchor:'end',size:10,fill:COL.ink3});
+  } else {
+    s+=txt(ox+pw-6,oy+ph-13,'气泡面积 ∝ 累计面雨量 · 底图色阶 ∝ 面雨量',{anchor:'end',size:10,fill:COL.ink3});
+  }
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.4 蓄水率环图 + 水位标尺 ---------- */
+function drawGauge(){
+  var sz=sizeOf('#c-gauge'); if(!sz.host) return;
+  var W=sz.w, H=250;
+  var cx=W*0.30, cy=98, r1=68, r0=50;
+  var s='';
+  s+='<defs><linearGradient id="gRing" x1="0" y1="1" x2="1" y2="0">'+
+     '<stop offset="0%" stop-color="#2fd0c2"/><stop offset="55%" stop-color="#4aa3f0"/>'+
+     '<stop offset="100%" stop-color="#9fd8ff"/></linearGradient></defs>';
+  var A0=-Math.PI/2, A1=A0+Math.PI*2*(RES.rate/100);
+  s+=svgEl('path',{d:arcPath(cx,cy,r0,r1,A0,A0+Math.PI*2),fill:'rgba(122,190,205,.10)'});
+  s+=svgEl('path',{d:arcPath(cx,cy,r0,r1,A0,A1),fill:'url(#gRing)',
+    'data-tip':'1','data-tip-kind':'store'});
+  s+=txt(cx,cy-2,f1(RES.rate)+'%',{anchor:'middle',size:22,fill:COL.ink,weight:700,mono:true});
+  s+=txt(cx,cy+16,'蓄水率',{anchor:'middle',size:11,fill:COL.ink3});
+
+  var items=[['总库容',RES.cap.toFixed(2)+' 亿 m³'],['当前蓄量',RES.store.toFixed(2)+' 亿 m³'],
+             ['当前水位',f1(RES.level)+' m'],['出库流量',RES.outflow+' m³/s']];
+  items.forEach(function(it,k){
+    var y=22+k*30;
+    s+=txt(cx+r1+22,y,it[0],{size:11,fill:COL.ink3});
+    s+=txt(W-8,y,it[1],{anchor:'end',size:12.5,fill:COL.ink,weight:600,mono:true});
+  });
+
+  /* 水位标尺 */
+  var bye=H-40, btop=H-96, x0=22, x1=W-22;
+  var lo=RES.dead-4, hi=RES.check+4;
+  var px=function(v){ return x0+(x1-x0)*((v-lo)/(hi-lo)); };
+  s+=svgEl('rect',{x:x0,y:btop,width:x1-x0,height:14,rx:7,fill:'rgba(122,190,205,.09)'});
+  s+='<defs><linearGradient id="gLevel" x1="0" y1="0" x2="1" y2="0">'+
+     '<stop offset="0%" stop-color="#2a6f9e"/><stop offset="72%" stop-color="#4aa3f0"/>'+
+     '<stop offset="100%" stop-color="#9fd8ff"/></linearGradient></defs>';
+  s+=svgEl('rect',{x:x0,y:btop,width:f2(Math.max(4,px(RES.level)-x0)),height:14,rx:7,fill:'url(#gLevel)'});
+  [[RES.dead,'死水位'],[RES.flood,'汛限'],[RES.check,'校核']].forEach(function(m){
+    var x=px(m[0]);
+    s+=svgEl('line',{x1:x,x2:x,y1:btop-6,y2:btop+20,stroke:m[0]===RES.flood?COL.amber:COL.grid2,'stroke-width':m[0]===RES.flood?1.6:1});
+    s+=txt(x,btop-10,m[1]+' '+f1(m[0]),{anchor:'middle',size:10,fill:m[0]===RES.flood?COL.amber:COL.ink3});
+  });
+  var lx=px(RES.level);
+  s+=svgEl('circle',{cx:lx,cy:btop+7,r:5,fill:'#0b1a27',stroke:COL.flow,'stroke-width':2.4,
+    'data-tip':'1','data-tip-kind':'level'});
+  s+=txt(lx,f2(btop+34),'当前 '+f1(RES.level)+' m',{anchor:'middle',size:10.5,fill:COL.flow,weight:600});
+  s+=txt(x0,H-8,'水位标尺（黄海高程）· 当前水位距汛限水位 '+f1(RES.flood-RES.level)+' m',{size:10,fill:COL.ink3});
+
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.5 降雨—径流散点 ---------- */
+function drawScatter(){
+  var sz=sizeOf('#c-scatter'); if(!sz.host) return;
+  var W=sz.w, H=250, L=44, R=14, T=16, B=32;
+  var plotW=W-L-R, plotH=H-T-B;
+  var xMax=nice(Math.max.apply(null,RAIN)), yMax=nice(Math.max.apply(null,FLOW));
+  var X=function(v){ return L+plotW*(v/xMax); };
+  var Y=function(v){ return T+plotH-(plotH*(v/yMax)); };
+  var s='';
+  [0,.25,.5,.75,1].forEach(function(t){
+    var y=T+plotH*(1-t);
+    s+=svgEl('line',{x1:L,x2:L+plotW,y1:y,y2:y,stroke:COL.grid,'stroke-dasharray':t?'3 5':null});
+    s+=txt(L-7,y+3.5,Math.round(yMax*t),{anchor:'end',size:10,fill:COL.ink3,mono:true});
+  });
+  [0,.25,.5,.75,1].forEach(function(t){
+    var x=L+plotW*t;
+    s+=svgEl('line',{x1:x,x2:x,y1:T,y2:T+plotH,stroke:COL.grid,'stroke-dasharray':t?'3 5':null});
+    s+=txt(x,H-B+14,f1(xMax*t),{anchor:'middle',size:10,fill:COL.ink3,mono:true});
+  });
+  s+=txt(L-7,T-5,'m³/s',{anchor:'end',size:10,fill:COL.flow});
+  s+=txt(W-R,H-8,'mm',{anchor:'end',size:10,fill:COL.rain});
+  RAIN.forEach(function(v,i){
+    var x=X(v), y=Y(FLOW[i]);
+    var t=i/29;
+    var col=lerpColor('#2fd0c2','#f2894a',t);
+    s+=svgEl('circle',{cx:f2(x),cy:f2(y),r:f2(3.2+FLOW[i]/812*7),fill:col,'fill-opacity':0.66,
+      stroke:col,'stroke-width':1,'data-tip':'1','data-tip-kind':'pt','data-i':i});
+  });
+  var mx=sum(RAIN)/30, my=sum(FLOW)/30;
+  s+=svgEl('line',{x1:X(mx),x2:X(mx),y1:T,y2:T+plotH,stroke:'rgba(245,181,68,.42)','stroke-dasharray':'3 4'});
+  s+=svgEl('line',{x1:L,x2:L+plotW,y1:Y(my),y2:Y(my),stroke:'rgba(245,181,68,.42)','stroke-dasharray':'3 4'});
+  s+=txt(X(mx)+4,Y(my)-6,'均值 ('+f1(mx)+', '+Math.round(my)+')',{size:10,fill:COL.amber});
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.6 气温三线 ---------- */
+function drawTemp(){
+  var sz=sizeOf('#c-temp'); if(!sz.host) return;
+  var W=sz.w, H=250, L=44, R=14, T=16, B=30;
+  var idx=activeDays(), n=idx.length, plotW=W-L-R, plotH=H-T-B;
+  var lo=Math.floor(Math.min.apply(null,TMIN)-1), hi=Math.ceil(Math.max.apply(null,TMAX)+1);
+  var band=plotW/n;
+  var xc=function(k){ return L+band*(k+0.5); };
+  var Y=function(v){ return T+plotH-(plotH*((v-lo)/(hi-lo))); };
+  var s='';
+  var step=Math.max(1,Math.ceil((hi-lo)/5));
+  for(var v=lo;v<=hi;v+=step){
+    s+=svgEl('line',{x1:L,x2:L+plotW,y1:Y(v),y2:Y(v),stroke:COL.grid,'stroke-dasharray':'3 5'});
+    s+=txt(L-7,Y(v)+3.5,v+'℃',{anchor:'end',size:10,fill:COL.ink3,mono:true});
+  }
+  var ser=[['最高气温',TMAX,'#f2894a'],['平均气温',TAVG,'#2fd0c2'],['最低气温',TMIN,'#4aa3f0']];
+  ser.forEach(function(sr){
+    var d=sr[1].map(function(v,i0){ return (idx.indexOf(i0)>=0?'':'')+''; });
+    d='';
+    idx.forEach(function(i,k){ d+=(k?'L':'M')+f2(xc(k))+' '+f2(Y(sr[1][i])); });
+    s+=svgEl('path',{d:d,fill:'none',stroke:sr[2],'stroke-width':2,'stroke-linejoin':'round'});
+    idx.forEach(function(i,k){
+      if(n>16&&k%2) return;
+      s+=svgEl('circle',{cx:xc(k),cy:Y(sr[1][i]),r:3,fill:'#0b1a27',stroke:sr[2],'stroke-width':1.6,
+        'data-tip':'1','data-tip-kind':'temp','data-i':i});
+    });
+  });
+  var st=Math.max(1,Math.ceil(n/9));
+  idx.forEach(function(i,k){ if(k%st) return; s+=txt(xc(k),H-B+18,DATES[i],{anchor:'middle',size:10,fill:COL.ink3,mono:true}); });
+  var bstep=Math.max(1,Math.ceil(n/9));
+  idx.forEach(function(i,k){ var x=L+plotW*k/(n-1); if(k%bstep) return; });
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.7 日照柱 ---------- */
+function drawSun(){
+  var sz=sizeOf('#c-sun'); if(!sz.host) return;
+  var W=sz.w, H=210, L=38, R=12, T=14, B=28;
+  var idx=activeDays(), n=idx.length, plotW=W-L-R, plotH=H-T-B;
+  var max=10, band=plotW/n;
+  var Y=function(v){ return T+plotH-(plotH*(v/max)); };
+  var s='';
+  [0,5,10].forEach(function(v){
+    s+=svgEl('line',{x1:L,x2:L+plotW,y1:Y(v),y2:Y(v),stroke:COL.grid,'stroke-dasharray':v?'3 5':null});
+    s+=txt(L-7,Y(v)+3.5,v,{anchor:'end',size:10,fill:COL.ink3,mono:true});
+  });
+  var bw=clamp(band*0.56,2,24);
+  idx.forEach(function(i,k){
+    var x=L+band*(k+0.5), v=SUN[i];
+    s+='<defs><linearGradient id="gSun'+k+'" x1="0" y1="0" x2="0" y2="1">'+
+       '<stop offset="0%" stop-color="#f5d98a"/><stop offset="100%" stop-color="#e0913f"/></linearGradient></defs>';
+    s+=svgEl('rect',{x:f2(x-bw/2),y:f2(Y(v)),width:f2(bw),height:f2(plotH-(Y(v)-T)),rx:2,fill:'url(#gSun'+k+')',
+      'data-tip':'1','data-tip-kind':'sun','data-i':i});
+  });
+  var st=Math.max(1,Math.ceil(n/7));
+  idx.forEach(function(i,k){ if(k%st) return; s+=txt(L+band*(k+0.5),H-B+16,DATES[i].slice(3),{anchor:'middle',size:10,fill:COL.ink3,mono:true}); });
+  s+=svgEl('line',{x1:L,x2:L+plotW,y1:T+plotH,y2:T+plotH,stroke:COL.grid2});
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.8 风向玫瑰 ---------- */
+function drawRose(){
+  var sz=sizeOf('#c-rose'); if(!sz.host) return;
+  var W=sz.w, H=280;
+  var cx=W/2, cy=H/2+4, R=Math.min(W*0.36,96);
+  var s='', maxF=30;
+  [10,20,30].forEach(function(v){
+    s+=svgEl('circle',{cx:cx,cy:cy,r:f2(R*v/maxF),fill:'none',stroke:COL.grid,'stroke-dasharray':'3 5'});
+    s+=txt(cx,f2(cy-R*v/maxF+3.5),v+'%',{anchor:'middle',size:9.5,fill:COL.ink3});
+  });
+  WIND_DIRS.forEach(function(d,k){
+    var a=-Math.PI/2+k*Math.PI/4;
+    s+=svgEl('line',{x1:f2(cx+R*0.94*Math.cos(a)),y1:f2(cy+R*0.94*Math.sin(a)),x2:f2(cx+R*1.16*Math.cos(a)),y2:f2(cy+R*1.16*Math.sin(a)),stroke:COL.grid});
+    s+=txt(cx+R*1.30*Math.cos(a),cy+R*1.30*Math.sin(a)+4,d,{anchor:'middle',size:10.5,fill:COL.ink2,weight:600});
+  });
+  var half=Math.PI/8*0.82;
+  WIND_DIRS.forEach(function(d,k){
+    var a=-Math.PI/2+k*Math.PI/4;
+    var cum=0;
+    WIND_FREQ[k].forEach(function(fv,b){
+      var r0=R*cum/maxF, r1=R*(cum+fv)/maxF;
+      s+=svgEl('path',{d:arcPath(cx,cy,r0,r1,a-half,a+half),fill:WIND_COL[b],'fill-opacity':0.88,
+        stroke:'rgba(8,19,29,.55)','stroke-width':1,
+        'data-tip':'1','data-tip-kind':'wind','data-dir':k,'data-band':b});
+      cum+=fv;
+    });
+  });
+  s+=svgEl('circle',{cx:cx,cy:cy,r:2.5,fill:COL.ink3});
+  var lx=14;
+  WIND_BANDS.forEach(function(b,k){
+    var y=H-14-k*17;
+    s+=svgEl('rect',{x:lx,y:y-8,width:10,height:10,rx:2,fill:WIND_COL[k]});
+    s+=txt(lx+15,y+1,b,{size:10,fill:COL.ink3});
+  });
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.9 相对湿度 ---------- */
+function drawRh(){
+  var sz=sizeOf('#c-rh'); if(!sz.host) return;
+  var W=sz.w, H=210, L=38, R=12, T=14, B=28;
+  var idx=activeDays(), n=idx.length, plotW=W-L-R, plotH=H-T-B;
+  var lo=40, hi=100, band=plotW/n;
+  var Y=function(v){ return T+plotH-(plotH*((v-lo)/(hi-lo))); };
+  var s='';
+  [40,60,80,100].forEach(function(v){
+    s+=svgEl('line',{x1:L,x2:L+plotW,y1:Y(v),y2:Y(v),stroke:COL.grid,'stroke-dasharray':v===40?null:'3 5'});
+    s+=txt(L-7,Y(v)+3.5,v,{anchor:'end',size:10,fill:COL.ink3,mono:true});
+  });
+  var d='';
+  idx.forEach(function(i,k){ d+=(k?'L':'M')+f2(L+band*(k+0.5))+' '+f2(Y(RH[i])); });
+  d+='L'+f2(L+band*(n-0.5))+' '+f2(T+plotH)+'L'+f2(L+band*0.5)+' '+f2(T+plotH)+'Z';
+  s+='<defs><linearGradient id="gRh" x1="0" y1="0" x2="0" y2="1">'+
+     '<stop offset="0%" stop-color="#8a86e6" stop-opacity="0.42"/>'+
+     '<stop offset="100%" stop-color="#8a86e6" stop-opacity="0.02"/></linearGradient></defs>';
+  s+=svgEl('path',{d:d,fill:'url(#gRh)'});
+  var dl='';
+  idx.forEach(function(i,k){ dl+=(k?'L':'M')+f2(L+band*(k+0.5))+' '+f2(Y(RH[i])); });
+  s+=svgEl('path',{d:dl,fill:'none',stroke:'#a9a4f2','stroke-width':2});
+  idx.forEach(function(i,k){
+    if(n>16&&k%2) return;
+    s+=svgEl('circle',{cx:f2(L+band*(k+0.5)),cy:f2(Y(RH[i])),r:3,fill:'#0b1a27',stroke:'#a9a4f2','stroke-width':1.6,
+      'data-tip':'1','data-tip-kind':'rh','data-i':i});
+  });
+  var st=Math.max(1,Math.ceil(n/7));
+  idx.forEach(function(i,k){ if(k%st) return; s+=txt(L+band*(k+0.5),H-B+16,DATES[i].slice(3),{anchor:'middle',size:10,fill:COL.ink3,mono:true}); });
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.10 径流构成堆叠柱 ---------- */
+function drawRunoff(){
+  var sz=sizeOf('#c-runoff'); if(!sz.host) return;
+  var W=sz.w, H=270, L=52, R=14, T=16, B=30;
+  var idx=activeDays(), n=idx.length, plotW=W-L-R, plotH=H-T-B;
+  var max=nice(Math.max.apply(null,PARTS.map(function(p){ return p.total; })));
+  var band=plotW/n;
+  var Y=function(v){ return T+plotH-(plotH*(v/max)); };
+  var s='';
+  [0,max/2,max].forEach(function(v){
+    s+=svgEl('line',{x1:L,x2:L+plotW,y1:Y(v),y2:Y(v),stroke:COL.grid,'stroke-dasharray':v?'3 5':null});
+    s+=txt(L-7,Y(v)+3.5,Math.round(v),{anchor:'end',size:10,fill:COL.ink3,mono:true});
+  });
+  s+=txt(L-7,T-5,'万 m³',{anchor:'end',size:10,fill:COL.ink3});
+  var bw=clamp(band*0.56,3,26);
+  var on={rain:state.series.partRain, snow:state.series.partSnow, base:state.series.partBase};
+  idx.forEach(function(i,k){
+    var p=PARTS[i], x=L+band*(k+0.5), y0=Y(0), acc=0;
+    [['base',p.base,COL.base],['snow',p.snow,COL.snow],['rain',p.rain,COL.rain]].forEach(function(seg){
+      if(!on[seg[0]]) { acc+=seg[1]; return; }
+      var y1=Y(acc), y2=Y(acc+seg[1]);
+      s+=svgEl('rect',{x:f2(x-bw/2),y:f2(y2),width:f2(bw),height:f2(Math.max(0,y1-y2)),rx:1.5,
+        fill:seg[2],'fill-opacity':0.88,
+        'data-tip':'1','data-tip-kind':'part','data-i':i,'data-seg':seg[0]});
+      acc+=seg[1];
+    });
+  });
+  var st=Math.max(1,Math.ceil(n/9));
+  idx.forEach(function(i,k){ if(k%st) return; s+=txt(L+band*(k+0.5),H-B+17,DATES[i],{anchor:'middle',size:10,fill:COL.ink3,mono:true}); });
+  s+=svgEl('line',{x1:L,x2:L+plotW,y1:T+plotH,y2:T+plotH,stroke:COL.grid2});
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.11 库水位过程线 ---------- */
+function drawLevel(){
+  var sz=sizeOf('#c-level'); if(!sz.host) return;
+  var W=sz.w, H=250, L=56, R=14, T=18, B=30;
+  var idx=activeDays(), n=idx.length, plotW=W-L-R, plotH=H-T-B;
+  var band=plotW/n;
+  var lo=RES.dead+24, hi=RES.check;
+  var Y=function(v){ return T+plotH-(plotH*((v-lo)/(hi-lo))); };
+  var s='';
+  [lo,(lo+hi)/2,hi].forEach(function(v){
+    s+=svgEl('line',{x1:L,x2:L+plotW,y1:Y(v),y2:Y(v),stroke:COL.grid,'stroke-dasharray':'3 5'});
+    s+=txt(L-7,Y(v)+3.5,f1(v),{anchor:'end',size:10,fill:COL.ink3,mono:true});
+  });
+  s+=svgEl('rect',{x:L,y:T,width:plotW,height:f2(Y(RES.flood)-T),fill:'rgba(242,137,74,.09)'});
+  s+=svgEl('line',{x1:L,x2:L+plotW,y1:Y(RES.flood),y2:Y(RES.flood),stroke:COL.amber,'stroke-width':1.5,'stroke-dasharray':'6 4'});
+  s+=txt(L+plotW-4,Y(RES.flood)-6,'汛限水位 '+f1(RES.flood)+' m',{anchor:'end',size:10,fill:COL.amber,weight:600});
+  s+=svgEl('line',{x1:L,x2:L+plotW,y1:Y(RES.dead),y2:Y(RES.dead),stroke:'rgba(122,190,205,.5)','stroke-dasharray':'5 4'});
+  s+=txt(L+4,Y(RES.dead)-5,'死水位 '+f1(RES.dead)+' m',{size:10,fill:COL.ink3});
+
+  var d='',dl='';
+  idx.forEach(function(i,k){
+    var x=L+band*(k+0.5), y=Y(LEVEL[i]);
+    d+=(k?'L':'M')+f2(x)+' '+f2(y); dl=d;
+  });
+  d+='L'+f2(L+band*(n-0.5))+' '+f2(T+plotH)+'L'+f2(L+band*0.5)+' '+f2(T+plotH)+'Z';
+  s+='<defs><linearGradient id="gLv" x1="0" y1="0" x2="0" y2="1">'+
+     '<stop offset="0%" stop-color="#4aa3f0" stop-opacity="0.45"/>'+
+     '<stop offset="100%" stop-color="#4aa3f0" stop-opacity="0.02"/></linearGradient></defs>';
+  s+=svgEl('path',{d:d,fill:'url(#gLv)'});
+  s+=svgEl('path',{d:dl,fill:'none',stroke:'#7cc0ff','stroke-width':2.2,'stroke-linejoin':'round'});
+  idx.forEach(function(i,k){
+    if(n>16&&k%2) return;
+    s+=svgEl('circle',{cx:f2(L+band*(k+0.5)),cy:f2(Y(LEVEL[i])),r:3.2,fill:'#0b1a27',stroke:'#7cc0ff','stroke-width':1.7,
+      'data-tip':'1','data-tip-kind':'levelpt','data-i':i});
+  });
+  var pi=idx.reduce(function(a,b){ return LEVEL[b]>LEVEL[a]?b:a; },idx[0]);
+  s+=txt(L+band*(idx.indexOf(pi)+0.5)+6,Y(LEVEL[pi])-8,'最高 '+f1(LEVEL[pi])+' m',{size:10,fill:COL.flow,weight:600});
+  var st=Math.max(1,Math.ceil(n/9));
+  idx.forEach(function(i,k){ if(k%st) return; s+=txt(L+band*(k+0.5),H-B+17,DATES[i],{anchor:'middle',size:10,fill:COL.ink3,mono:true}); });
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.12 用水结构环图 ---------- */
+function drawUse(){
+  var sz=sizeOf('#c-use'); if(!sz.host) return;
+  var W=sz.w, H=250;
+  var cx=W*0.36, cy=H/2-6, r1=Math.min(W*0.28,74), r0=r1*0.62;
+  var s='', a=-Math.PI/2;
+  var total=USES.reduce(function(t,u){ return t+u.v; },0);
+  USES.forEach(function(u,k){
+    var sweep=Math.PI*2*(u.v/total), a1=a+sweep;
+    s+='<defs><linearGradient id="gUse'+k+'" x1="0" y1="0" x2="1" y2="1">'+
+       '<stop offset="0%" stop-color="'+u.c+'" stop-opacity="0.95"/>'+
+       '<stop offset="100%" stop-color="'+u.c+'" stop-opacity="0.58"/></linearGradient></defs>';
+    s+=svgEl('path',{d:arcPath(cx,cy,r0,r1,a+0.012,a1-0.012),fill:'url(#gUse'+k+')',
+      'data-tip':'1','data-tip-kind':'use','data-u':k});
+    var mid=(a+a1)/2, rr=(r0+r1)/2;
+    if(u.v>=12){
+      s+=txt(cx+rr*Math.cos(mid),cy+rr*Math.sin(mid)+3.5,f1(u.v)+'%',{anchor:'middle',size:10.5,fill:'#08131d',weight:700});
+    }
+    a=a1;
+  });
+  s+=txt(cx,cy+4,'取水总量',{anchor:'middle',size:10,fill:COL.ink3});
+  USES.forEach(function(u,k){
+    var y=34+k*27;
+    s+=svgEl('rect',{x:W-108,y:y-9,width:10,height:10,rx:2,fill:u.c});
+    s+=txt(W-93,y,u.n,{size:11,fill:COL.ink2});
+    s+=txt(W-8,y,f1(u.v)+'%',{anchor:'end',size:11.5,fill:COL.ink,weight:600,mono:true});
+  });
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.13 风险等级色带 ---------- */
+function drawRiskBand(){
+  var sz=sizeOf('#c-riskband'); if(!sz.host) return;
+  var arr=SUBS.slice().sort(function(a,b){ return RISKV[b.risk]-RISKV[a.risk]; });
+  var W=sz.w, rh=30, T=34, H=T+arr.length*rh+18;
+  var L=64, R=16, plotW=W-L-R;
+  var cols=[['risk','山洪灾害'],['flood','中小河流洪水'],['geo','地质灾害']];
+  var colW=plotW/3;
+  var s='';
+  cols.forEach(function(c,k){
+    s+=txt(L+colW*(k+0.5),T-14,c[1],{anchor:'middle',size:11,fill:COL.ink2,weight:600});
+  });
+  arr.forEach(function(sub,k){
+    var y=T+k*rh, on=(state.sub===sub.id);
+    s+=txt(L-10,y+rh/2+3.5,sub.name,{anchor:'end',size:11.5,fill:on?COL.amber:COL.ink2,weight:on?600:400});
+    cols.forEach(function(c,ci){
+      var lv=sub[c[0]];
+      var x=L+colW*ci+4, w=colW-8;
+      s+=svgEl('rect',{x:x,y:y+3,width:w,height:rh-9,rx:5,fill:'rgba(122,190,205,.06)',stroke:COL.grid});
+      var inner=w*(RISKV[lv]/4);
+      if(RISKV[lv]>0){
+        s+='<defs><linearGradient id="gRisk'+k+ci+'" x1="0" y1="0" x2="1" y2="0">'+
+           '<stop offset="0%" stop-color="'+RISKC[lv]+'" stop-opacity="0.42"/>'+
+           '<stop offset="100%" stop-color="'+RISKC[lv]+'" stop-opacity="0.92"/></linearGradient></defs>';
+        s+=svgEl('rect',{x:x,y:y+3,width:f2(inner),height:rh-9,rx:5,fill:'url(#gRisk'+k+ci+')',
+          'data-tip':'1','data-tip-kind':'risk','data-sub':sub.id,'data-col':c[0]});
+      } else {
+        s+=svgEl('rect',{x:x,y:y+3,width:26,height:rh-9,rx:5,fill:'rgba(92,124,140,.42)',
+          'data-tip':'1','data-tip-kind':'risk','data-sub':sub.id,'data-col':c[0]});
+      }
+      s+=txt(x+9,y+rh/2+4,lv,{size:11,fill:RISKV[lv]>=2?'#22150a':COL.ink2,weight:RISKV[lv]>=2?700:500});
+    });
+    if(on) s+=svgEl('rect',{x:2,y:y+1,width:W-4,height:rh-4,rx:6,fill:'none',stroke:'rgba(245,181,68,.55)','stroke-width':1});
+  });
+  s+=txt(2,H-6,'色带长度对应风险等级：无 / 蓝色 / 黄色 / 橙色 / 红色',{size:10,fill:COL.ink3});
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.14 24 小时面雨量预报 ---------- */
+function drawForecast(){
+  var sz=sizeOf('#c-fc'); if(!sz.host) return;
+  var W=sz.w, H=230, L=44, R=14, T=18, B=44;
+  var plotW=W-L-R, plotH=H-T-B, n=FORECAST.length, band=plotW/n;
+  var max=nice(Math.max(FC_THRESHOLD*1.2,Math.max.apply(null,FORECAST.map(function(f){ return f.v; }))));
+  var Y=function(v){ return T+plotH-(plotH*(v/max)); };
+  var s='';
+  [0,max/2,max].forEach(function(v){
+    s+=svgEl('line',{x1:L,x2:L+plotW,y1:Y(v),y2:Y(v),stroke:COL.grid,'stroke-dasharray':v?'3 5':null});
+    s+=txt(L-7,Y(v)+3.5,f1(v),{anchor:'end',size:10,fill:COL.ink3,mono:true});
+  });
+  s+=txt(L-7,T-5,'mm',{anchor:'end',size:10,fill:COL.rain});
+  var bw=clamp(band*0.5,6,40), cum=0;
+  FORECAST.forEach(function(f,k){
+    var x=L+band*(k+0.5);
+    s+='<defs><linearGradient id="gFc'+k+'" x1="0" y1="0" x2="0" y2="1">'+
+       '<stop offset="0%" stop-color="'+(f.v>=FC_THRESHOLD*0.6?'#f2894a':'#4aa3f0')+'"/>'+
+       '<stop offset="100%" stop-color="'+(f.v>=FC_THRESHOLD*0.6?'#8a3a1c':'#1d4d78')+'"/></linearGradient></defs>';
+    s+=svgEl('rect',{x:f2(x-bw/2),y:f2(Y(f.v)),width:f2(bw),height:f2(T+plotH-Y(f.v)),rx:3,fill:'url(#gFc'+k+')',
+      'data-tip':'1','data-tip-kind':'fc','data-i':k});
+    s+=txt(x,f2(Y(f.v)-6),f1(f.v),{anchor:'middle',size:10,fill:COL.ink2,mono:true});
+    cum+=f.v;
+    s+=txt(x,H-26,f.t.split(' ')[0],{anchor:'middle',size:10,fill:COL.ink3});
+    s+=txt(x,H-14,f.t.split(' ')[1],{anchor:'middle',size:10,fill:COL.ink3,mono:true});
+  });
+  s+=svgEl('line',{x1:L,x2:L+plotW,y1:Y(FC_THRESHOLD),y2:Y(FC_THRESHOLD),stroke:COL.blue,'stroke-width':1.6,'stroke-dasharray':'6 4'});
+  s+=txt(L+plotW-4,Y(FC_THRESHOLD)-6,'蓝色预警阈值 '+FC_THRESHOLD+' mm / 3 h',{anchor:'end',size:10,fill:COL.blue,weight:600});
+  s+=svgEl('line',{x1:L,x2:L+plotW,y1:T+plotH,y2:T+plotH,stroke:COL.grid2});
+  s+=txt(2,T-4,'24 小时累计 '+f1(cum)+' mm，未达阈值；峰值出现在 17 日 21–24 时',{size:10,fill:COL.ink3});
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.15 子流域面雨量 + 均值线 ---------- */
+function drawSubRain(){
+  var sz=sizeOf('#c-subrain'); if(!sz.host) return;
+  var sub=SUBMAP[state.sub]||SUBS[0];
+  var ser=subSeries(sub);
+  var idx=activeDays(), n=idx.length;
+  var W=sz.w, H=270, L=52, R=14, T=16, B=30;
+  var plotW=W-L-R, plotH=H-T-B, band=plotW/n;
+  var max=nice(Math.max(Math.max.apply(null,ser.rain),Math.max.apply(null,ser.norm)));
+  var Y=function(v){ return T+plotH-(plotH*(v/max)); };
+  var s='';
+  [0,max/2,max].forEach(function(v){
+    s+=svgEl('line',{x1:L,x2:L+plotW,y1:Y(v),y2:Y(v),stroke:COL.grid,'stroke-dasharray':v?'3 5':null});
+    s+=txt(L-7,Y(v)+3.5,f1(v),{anchor:'end',size:10,fill:COL.ink3,mono:true});
+  });
+  s+=txt(L-7,T-5,'mm',{anchor:'end',size:10,fill:COL.rain});
+  var bw=clamp(band*0.52,3,26);
+  if(state.series.subRain){
+    idx.forEach(function(i,k){
+      s+='<defs><linearGradient id="gSr'+k+'" x1="0" y1="0" x2="0" y2="1">'+
+         '<stop offset="0%" stop-color="#6fb6f5"/><stop offset="100%" stop-color="#1f5182"/></linearGradient></defs>';
+      s+=svgEl('rect',{x:f2(L+band*(k+0.5)-bw/2),y:f2(Y(ser.rain[i])),width:f2(bw),
+        height:f2(Math.max(1,T+plotH-Y(ser.rain[i]))),rx:2,fill:'url(#gSr'+k+')',
+        'data-tip':'1','data-tip-kind':'subrain','data-i':i});
+    });
+  }
+  if(state.series.subNorm){
+    var d='';
+    idx.forEach(function(i,k){ d+=(k?'L':'M')+f2(L+band*(k+0.5))+' '+f2(Y(ser.norm[i])); });
+    s+=svgEl('path',{d:d,fill:'none',stroke:COL.amber,'stroke-width':2,'stroke-dasharray':'6 4'});
+  }
+  s+=svgEl('line',{x1:L,x2:L+plotW,y1:T+plotH,y2:T+plotH,stroke:COL.grid2});
+  var st=Math.max(1,Math.ceil(n/9));
+  idx.forEach(function(i,k){ if(k%st) return; s+=txt(L+band*(k+0.5),H-B+17,DATES[i],{anchor:'middle',size:10,fill:COL.ink3,mono:true}); });
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* ---------- 4.16 子流域降雨距平 ---------- */
+function drawSubAnom(){
+  var sz=sizeOf('#c-subanom'); if(!sz.host) return;
+  var sub=SUBMAP[state.sub]||SUBS[0];
+  var ser=subSeries(sub);
+  var idx=activeDays(), n=idx.length;
+  var W=sz.w, H=250, L=46, R=14, T=16, B=30;
+  var plotW=W-L-R, plotH=H-T-B, band=plotW/n;
+  var an=idx.map(function(i){ return ser.rain[i]-ser.norm[i]; });
+  var m=Math.max.apply(null,an.map(Math.abs))||1;
+  var Y=function(v){ return T+plotH/2-(plotH/2)*(v/m); };
+  var s='';
+  [-1,-0.5,0,0.5,1].forEach(function(t){
+    var y=Y(m*t);
+    s+=svgEl('line',{x1:L,x2:L+plotW,y1:y,y2:y,stroke:t===0?COL.grid2:COL.grid,'stroke-dasharray':t?'3 5':null});
+    s+=txt(L-7,y+3.5,f1(m*t),{anchor:'end',size:10,fill:COL.ink3,mono:true});
+  });
+  var bw=clamp(band*0.52,3,26), cum=0;
+  idx.forEach(function(i,k){
+    var v=an[k]; cum+=v;
+    var x=L+band*(k+0.5), y0=Y(0), y1=Y(v);
+    var col=v>=0?'#4aa3f0':'#f2894a';
+    s+='<defs><linearGradient id="gAn'+k+'" x1="0" y1="0" x2="0" y2="1">'+
+       '<stop offset="0%" stop-color="'+col+'" stop-opacity="0.92"/>'+
+       '<stop offset="100%" stop-color="'+col+'" stop-opacity="0.38"/></linearGradient></defs>';
+    s+=svgEl('rect',{x:f2(x-bw/2),y:f2(Math.min(y0,y1)),width:f2(bw),height:f2(Math.max(1.5,Math.abs(y1-y0))),rx:2,
+      fill:'url(#gAn'+k+')','data-tip':'1','data-tip-kind':'anom','data-i':i});
+  });
+  s+=txt(L+plotW-4,T+12,'时段累计距平 '+f1(cum)+' mm',{anchor:'end',size:11,fill:COL.ink2,weight:600});
+  s+=svgEl('line',{x1:L,x2:L+plotW,y1:Y(0),y2:Y(0),stroke:COL.grid2});
+  var st=Math.max(1,Math.ceil(n/9));
+  idx.forEach(function(i,k){ if(k%st) return; s+=txt(L+band*(k+0.5),H-B+17,DATES[i],{anchor:'middle',size:10,fill:COL.ink3,mono:true}); });
+  sz.host.innerHTML=svgWrap(W,H,s);
+}
+
+/* =========================================================
+   五、指标卡与表格
+   ========================================================= */
+function kpiCard(cls,label,val,unit,delta,dcls){
+  return '<article class="kpi'+(cls?' '+cls:'')+'"><p class="kl">'+esc(label)+'</p>'+
+    '<p class="kv">'+val+'<span>'+esc(unit)+'</span></p>'+
+    '<p class="kd'+(dcls?' '+dcls:'')+'">'+esc(delta)+'</p></article>';
+}
+function renderOverviewKPI(){
+  var m=curMeta();
+  var rain=sum(activeDays().map(function(i){ return curRain()[i]; }));
+  var fl=curFlow()[29];
+  var anom=(m.rain/m.norm-1)*100;
+  var days=activeDays();
+  var peak=Math.max.apply(null,days.map(function(i){ return curFlow()[i]; }));
+  var pk=days.reduce(function(a,b){ return curFlow()[b]>curFlow()[a]?b:a; },days[0]);
+  var warn=WARNINGS.filter(function(w){ return w.st==='生效中'; }).length;
+  var top=SUBS.slice().sort(function(a,b){ return RISKV[b.risk]-RISKV[a.risk]; })[0];
+  $('#kRain').innerHTML=f1(rain)+'<span>mm</span>';
+  $('#kRainD').textContent='较多年同期 '+(anom>=0?'+':'')+f1(anom)+'%';
+  $('#kRainD').className='kd '+(anom>=0?'up':'dn');
+  $('#kFlow').innerHTML=Math.round(fl)+'<span>m³/s</span>';
+  var prev=curFlow()[28], dr=(fl-prev)/prev*100;
+  $('#kFlowD').textContent='较前一日 '+(dr>=0?'+':'')+f1(dr)+'%';
+  $('#kFlowD').className='kd '+(dr>=0?'up':'dn');
+  $('#kPeak').innerHTML=Math.round(peak)+'<span>m³/s</span>';
+  $('#kPeakD').textContent=DATES[pk]+' 出现';
+  $('#kWarn').innerHTML=warn+'<span>条</span>';
+  $('#kWarnD').textContent='最高等级 '+top.risk+' · '+top.name;
+  $('#ovSubtitle').textContent='云溪流域 · 集水面积 7 015 km² · 5 个子流域 · 72 个自动站 · 当前口径 '+m.name;
+  $('#hydroSub').textContent=m.name+' · '+DATES[days[0]]+' 至 '+DATES[days[days.length-1]]+' 共 '+days.length+' 日';
+}
+function renderMeteoKPI(){
+  var host=$('#v-meteo .kpis'); if(!host) return;
+  var days=activeDays();
+  var tavg=sum(days.map(function(i){ return TAVG[i]; }))/days.length;
+  var tmax=Math.max.apply(null,days.map(function(i){ return TMAX[i]; }));
+  var tmin=Math.min.apply(null,days.map(function(i){ return TMIN[i]; }));
+  var sun=sum(days.map(function(i){ return SUN[i]; }));
+  var ws=sum(days.map(function(i){ return WS[i]; }))/days.length;
+  host.innerHTML=
+    kpiCard('',  '时段平均气温', f1(tavg), '℃', '较多年同期 +0.6 ℃','up')+
+    kpiCard('v-orange','时段极端最高气温', f1(tmax), '℃', DATES[days[days.indexOf(TMAX.indexOf(tmax))]]+' 出现','')+
+    kpiCard('v-blue', '时段极端最低气温', f1(tmin), '℃', DATES[days[days.indexOf(TMIN.indexOf(tmin))]]+' 出现','')+
+    kpiCard('v-amber','时段累计日照时数', f1(sun), 'h', '日均 '+f1(sun/days.length)+' h','')+
+    kpiCard('',  '时段平均风速', f1(ws), 'm/s', '主导风向 SW 26.8%','');
+}
+function renderWaterKPI(){
+  var host=$('#v-water .kpis'); if(!host) return;
+  var days=activeDays();
+  var tot=sum(days.map(function(i){ return PARTS[i].total; }))/10000;
+  var peak=Math.max.apply(null,days.map(function(i){ return FLOW[i]; }));
+  var pk=days.reduce(function(a,b){ return FLOW[b]>FLOW[a]?b:a; },days[0]);
+  var pre=sum(days.map(function(i){ return PARTS[i].rain; }))/sum(days.map(function(i){ return PARTS[i].total; }))*100;
+  host.innerHTML=
+    kpiCard('',  '时段径流总量', f2(tot), '亿 m³', '日均 '+Math.round(tot*10000/days.length)+' 万 m³','')+
+    kpiCard('v-blue','时段洪峰流量', Math.round(peak), 'm³/s', DATES[pk]+' 出现','')+
+    kpiCard('',  '降雨产流占比', f1(pre), '%', '融雪 '+f1(RUN_SHARE.snow)+'% · 基流 '+f1(RUN_SHARE.base)+'%','')+
+    kpiCard('v-amber','水库蓄水率', f1(RES.rate), '%', '距汛限水位 '+f1(RES.flood-RES.level)+' m','')+
+    kpiCard('',  '当前出库流量', RES.outflow, 'm³/s', '入库 268 m³/s · 蓄量缓增','dn');
+}
+function renderRiskKPI(){
+  var host=$('#v-risk .kpis'); if(!host) return;
+  var live=WARNINGS.filter(function(w){ return w.st==='生效中'; });
+  var top=SUBS.slice().sort(function(a,b){ return RISKV[b.risk]-RISKV[a.risk]; })[0];
+  var fc=sum(FORECAST.map(function(f){ return f.v; }));
+  host.innerHTML=
+    kpiCard('v-orange','生效中预警', live.length, '条', '山洪 1 条 · 洪水 1 条','risk')+
+    kpiCard('',  '最高风险等级', top.risk, '', top.name+'子流域 · 山洪灾害','')+
+    kpiCard('v-blue', '未来 24 小时面雨量', f1(fc), 'mm', '峰值 5.6 mm / 3 h · 未达阈值','')+
+    kpiCard('',  '蓝色预警阈值', FC_THRESHOLD, 'mm / 3h', '预报峰值距阈值 −19.4 mm','')+
+    kpiCard('v-amber','风险站点覆盖', SUBS.filter(function(s){ return RISKV[s.risk]>0; }).length, '个子流域', '占流域面积 100%','');
+}
+function renderSubKPI(){
+  var sub=SUBMAP[state.sub]||SUBS[0];
+  var ser=subSeries(sub);
+  var days=activeDays();
+  var host=$('#v-sub .kpis'); if(!host) return;
+  var rain=sum(days.map(function(i){ return ser.rain[i]; }));
+  var norm=sum(days.map(function(i){ return ser.norm[i]; }));
+  var mx=Math.max.apply(null,days.map(function(i){ return ser.rain[i]; }));
+  var pk=days.reduce(function(a,b){ return ser.rain[b]>ser.rain[a]?b:a; },days[0]);
+  var anom=(rain/norm-1)*100;
+  host.innerHTML=
+    kpiCard('',  '集水面积', sub.area.toLocaleString('en-US'), 'km²', '占全流域 '+(sub.area/7015*100).toFixed(1)+'%','')+
+    kpiCard('v-blue','时段累计面雨量', f1(rain), 'mm', '多年同期 '+f1(norm)+' mm','')+
+    kpiCard('',  '时段降雨距平', (anom>=0?'+':'')+f1(anom), '%', '距平 '+(anom>=0?'+':'')+f1(rain-norm)+' mm', anom>=0?'up':'dn')+
+    kpiCard('v-orange','最大日雨量', f1(mx), 'mm', DATES[pk]+' 出现','')+
+    kpiCard('v-amber','山洪风险等级', sub.risk, '', '代表站 '+sub.stname,'');
+}
+function renderSubMeta(){
+  var sub=SUBMAP[state.sub]||SUBS[0];
+  var days=activeDays();
+  $('#crumbSub').textContent=sub.name;
+  $('#subTitle').textContent=sub.name+'子流域';
+  $('#subSubtitle').textContent='代表站 '+sub.sta+' '+sub.stname+' · 海拔 '+sub.alt+' m · 集水面积 '+sub.area.toLocaleString('en-US')+' km² · 时段 '+DATES[days[0]]+' 至 '+DATES[days[days.length-1]];
+  $('#subRainSub').textContent='单位 mm · 多年同期均值累计 '+f1(sub.norm)+' mm';
+  $('#subStationSub').textContent=sub.stname+' · 本时段与多年同期对比';
+}
+function renderTables(){
+  var b=$('#t-station tbody');
+  if(b){
+    b.innerHTML=STATIONS.map(function(s){
+      var an=anomalyOn() && s.rain>=state.thr;
+      return '<tr'+(an?' class="anom"':'')+'><td>'+s.no+'</td><td><b>'+esc(s.name)+'</b></td><td class="num">'+s.alt+'</td>'+
+        '<td class="num">'+f1(s.rain)+'</td><td class="num">'+f1(s.tavg)+'</td>'+
+        '<td class="num">'+f1(s.ws)+'</td><td class="num">'+f1(s.ok)+'</td></tr>';
+    }).join('');
+  }
+  b=$('#t-dispatch tbody');
+  if(b){
+    b.innerHTML=DISPATCH.map(function(r){
+      return '<tr><td>'+r.t+'</td><td><b>'+esc(r.cmd)+'</b></td><td class="num">'+r.lvl+'</td>'+
+        '<td class="num">'+r.out+'</td><td><span class="tag '+(r.st==='执行中'?'g':'n')+'">'+r.st+'</span></td></tr>';
+    }).join('');
+  }
+  b=$('#t-warn tbody');
+  if(b){
+    b.innerHTML=WARNINGS.map(function(r){
+      return '<tr><td>'+r.t+'</td><td><b>'+esc(r.sub)+'</b></td><td>'+esc(r.type)+'</td>'+
+        '<td><span class="tag '+RISK[r.lv]+'">'+r.lv+'</span></td>'+
+        '<td><span class="tag '+(r.st==='生效中'?'o':'n')+'">'+r.st+'</span></td></tr>';
+    }).join('');
+  }
+  b=$('#t-substation tbody');
+  if(b){
+    var sub=SUBMAP[state.sub]||SUBS[0];
+    var ser=subSeries(sub);
+    var days=activeDays();
+    var rain=sum(days.map(function(i){ return ser.rain[i]; }));
+    var norm=sum(days.map(function(i){ return ser.norm[i]; }));
+    var row=function(n,a,c,u,digits){
+      var d=a-c, p=c?(d/c*100):0;
+      return '<tr><td>'+n+'</td><td class="num">'+a.toFixed(digits)+'</td><td class="num">'+c.toFixed(digits)+
+        '</td><td class="num" style="color:'+(d>=0?'#f5b544':'#4aa3f0')+'">'+(d>=0?'+':'')+d.toFixed(digits)+' '+u+' ('+(p>=0?'+':'')+p.toFixed(1)+'%)</td></tr>';
+    };
+    b.innerHTML=
+      row('累计面雨量 (mm)',rain,norm,'mm',1)+
+      row('平均气温 (℃)',sub.tavg,sub.tavg-0.6,'℃',1)+
+      row('平均风速 (m/s)',(STATIONS.filter(function(s){ return s.no===sub.sta; })[0]||STATIONS[0]).ws,2.6,'m/s',1)+
+      row('最大日雨量 (mm)',Math.max.apply(null,days.map(function(i){ return ser.rain[i]; })),sub.norm/days.length*1.32,'mm',1);
+  }
+  /* Narrow screens use stacked label/value cards instead of an internal horizontal scrollbar. */
+  function annotateTableLabels(){
+    ['t-station','t-dispatch','t-warn','t-substation'].forEach(function(id){
+      var table=$('#'+id), body=table&&table.querySelector('tbody'), head=table&&table.querySelectorAll('thead th');
+      if(!body||!head) return;
+      Array.prototype.forEach.call(body.rows,function(tr){
+        Array.prototype.forEach.call(tr.cells,function(td,i){
+          if(head[i]) td.setAttribute('data-label',(head[i].textContent||'').trim());
+        });
+      });
+    });
+  }
+  annotateTableLabels();
+}
+function renderRail(){
+  var days=activeDays();
+  var scope=[
+    ['视图', $('#v-'+state.view).getAttribute('aria-label')||state.view],
+    ['时间范围','近 '+state.range+' 日'],
+    ['可视区间',DATES[days[0]]+' → '+DATES[days[days.length-1]]],
+    ['子流域',isBasin()?'全区（5 个子流域）':SUBMAP[state.sub].name],
+    ['日数',days.length+' 日']
+  ];
+  $('#railScope').innerHTML=scope.map(function(r){
+    return '<div class="kvrow"><span>'+esc(r[0])+'</span><b>'+esc(r[1])+'</b></div>';
+  }).join('');
+  var ch=[
+    ['集水面积','7 015 km²'],
+    ['多年平均年降水','1 268 mm'],
+    ['水库总库容','8.42 亿 m³'],
+    ['自动气象站','72 站'],
+    ['代表站缺测率','1.6%']
+  ];
+  $('#railChar').innerHTML=ch.map(function(r){
+    return '<div class="kvrow"><span>'+esc(r[0])+'</span><b>'+esc(r[1])+'</b></div>';
+  }).join('');
+  $('#railAlerts').innerHTML=WARNINGS.filter(function(w){ return w.st==='生效中'; }).map(function(w){
+    return '<div class="alert '+RISK[w.lv]+'"><span class="lv"></span><div><p><b>'+esc(w.sub)+' · '+esc(w.type)+'</b>'+
+      w.lv+'预警 · 生效中</p><time>'+w.t+'</time></div></div>';
+  }).join('')||'<p class="note">当前无生效中预警</p>';
+}
+
+/* =========================================================
+   六、渲染调度
+   ========================================================= */
+var RENDER={
+  overview:function(){ renderOverviewKPI(); drawHydro(); drawRank(); drawMap(); drawGauge(); drawScatter(); },
+  meteo:function(){ renderMeteoKPI(); drawTemp(); drawSun(); drawRose(); drawRh(); },
+  water:function(){ renderWaterKPI(); drawRunoff(); drawLevel(); drawUse(); },
+  risk:function(){ renderRiskKPI(); drawRiskBand(); drawForecast(); },
+  sub:function(){ renderSubMeta(); renderSubKPI(); drawSubRain(); drawSubAnom(); }
+};
+function renderActive(){
+  renderRail(); renderTables();
+  (RENDER[state.view]||function(){})();
+  runAudit();
+}
+var raf=null;
+function scheduleRender(){
+  if(raf) cancelAnimationFrame(raf);
+  raf=requestAnimationFrame(function(){ raf=null; renderActive(); });
+}
+
+/* =========================================================
+   七、交互
+   ========================================================= */
+function setView(k){
+  state.view=k;
+  go(k==='sub'?'HIERARCHY_DRILLDOWN':'GLOBAL_OVERVIEW_CRUISE','view');
+  $$('.tab').forEach(function(b){ b.classList.toggle('on', b.dataset.view===k); });
+  $$('.view').forEach(function(v){ v.hidden = v.id!=='v-'+k; });
+  if(k==='sub' && isBasin()){ state.sub='xueling'; syncChips(); }
+  RENDER[k==='sub'?'sub':k];
+  renderActive();
+  window.scrollTo({top:0,behavior:'instant'});
+}
+function setRange(v){
+  state.range=v;
+  go('SERIES_BRUSH_STAGED','range');
+  $$('[data-group="range"] .chip').forEach(function(b){ b.classList.toggle('on', +b.dataset.val===v); });
+  state.win=[rangeStart(),29];
+  $('#wA').value=state.win[0]; $('#wB').value=state.win[1];
+  syncWinLabel();
+  renderActive();
+}
+function setSub(id){
+  state.sub=id;
+  go('DIMENSION_SLICED','sub');
+  syncChips();
+  renderActive();
+}
+function syncChips(){
+  $$('[data-group="sub"] .chip').forEach(function(b){ b.classList.toggle('on', b.dataset.val===state.sub); });
+}
+function toggleSeries(k){
+  state.series[k]=!state.series[k];
+  go('GLOBAL_OVERVIEW_CRUISE','legend');
+  $$('[data-action="legend"][data-val="'+k+'"]').forEach(function(b){ b.classList.toggle('on', state.series[k]); });
+  renderActive();
+}
+function setScale(k){
+  state.scale=k;
+  go('SCALE_LOG_TRANSFORMED','scale');
+  $$('[data-group="scale"] .lg').forEach(function(b){ b.classList.toggle('on', b.dataset.val===k); });
+  renderActive();
+}
+function setThr(v){
+  state.thr=v;
+  var av=$('#anomVal');
+  if(av) av.textContent=anomalyOn()?(anomalyCount()+' 站 · ≥'+v+' mm'):'未启用';
+  if(anomalyOn()) go('ANOMALY_INSPECTION','threshold');
+  else if(fsm.current==='ANOMALY_INSPECTION') go('GLOBAL_OVERVIEW_CRUISE','threshold-clear');
+  renderActive();
+}
+function syncWinLabel(){
+  var d=activeDays();
+  $('#wVal').textContent=DATES[d[0]]+' → '+DATES[d[d.length-1]];
+}
+function setWin(a,b){
+  a=clamp(Math.round(a),0,29); b=clamp(Math.round(b),0,29);
+  if(b-a<2){ if(a+b<29) b=Math.min(29,a+2); else a=Math.max(0,b-2); }
+  state.win=[a,b];
+  go('SERIES_BRUSH_STAGED','brush');
+  $('#wA').value=a; $('#wB').value=b;
+  syncWinLabel();
+}
+function resetAll(){
+  state.range=30; state.sub='all'; state.win=[0,29]; state.view='overview';
+  state.scale='lin'; state.thr=280;
+  Object.keys(state.series).forEach(function(k){ state.series[k]=true; });
+  $$('.chip').forEach(function(c){ c.classList.toggle('on', c.dataset.val==='30'||c.dataset.val==='all'); });
+  $$('[data-action="legend"]').forEach(function(b){ b.classList.add('on'); });
+  $$('[data-group="scale"] .lg').forEach(function(b){ b.classList.toggle('on', b.dataset.val==='lin'); });
+  $('#wA').value=0; $('#wB').value=29;
+  var at=$('#anomThr'); if(at) at.value=280;
+  var av=$('#anomVal'); if(av) av.textContent='未启用';
+  $$('.tab').forEach(function(b){ b.classList.toggle('on', b.dataset.view==='overview'); });
+  $$('.view').forEach(function(v){ v.hidden = v.id!=='v-overview'; });
+  if(typeof hideTip==='function') hideTip();
+  syncWinLabel();
+  go('FILTER_RESET_RECONVERGED','reset');
+  go('GLOBAL_OVERVIEW_CRUISE','reset-reconverge');
+  renderActive();
+}
+
+/* =========================================================
+   七·A 审计账本：全局守恒自检，写入隐藏节点 #audit
+   ========================================================= */
+function runAudit(){
+  var checks=[], pass=0;
+  function chk(name,ok,detail){
+    checks.push({name:name,ok:!!ok,detail:detail||''});
+    if(ok) pass++;
+  }
+  chk('水库蓄量/库容互账', Math.abs(RES.rate-RES.store/RES.cap*100)<0.6,
+     'rate='+f1(RES.rate)+'% store/cap='+f2(RES.store/RES.cap*100)+'%');
+  var partBad=0,i;
+  for(i=0;i<PARTS.length;i++){ if(Math.abs(PARTS[i].rain+PARTS[i].snow+PARTS[i].base-PARTS[i].total)>0.6) partBad++; }
+  chk('三源径流分段守恒(30日)', partBad===0, partBad+' 日失配');
+  var fp=0; for(i=1;i<FLOW.length;i++) if(FLOW[i]>FLOW[fp]) fp=i;
+  chk('洪峰812@08-30', FLOW[fp]===812 && fp===11, 'peak='+FLOW[fp]+' idx='+fp);
+  var rp=0; for(i=1;i<RAIN.length;i++) if(RAIN[i]>RAIN[rp]) rp=i;
+  chk('面雨量峰48.2@08-29', RAIN[rp]===48.2 && rp===10, 'peak='+RAIN[rp]+' idx='+rp);
+  var activeWarn=WARNINGS.filter(function(w){ return w.st==='生效中'; }).length;
+  chk('生效中预警=2', activeWarn===2, 'count='+activeWarn);
+  var order=SUBS.slice().sort(function(a,b){ return b.rain-a.rain; }).map(function(s){ return s.rain; });
+  var exp=[268.4,226.5,214.6,196.2,172.4];
+  chk('子流域排名守恒', order.join(',')===exp.join(','), order.join(','));
+  var subBad=0;
+  SUBS.forEach(function(s){ var sr=subSeries(s);
+    if(Math.abs(sum(sr.rain)-s.rain)>0.05) subBad++;
+    if(Math.abs(sr.flow[sr.flow.length-1]-s.flow)>0.5) subBad++; });
+  chk('子流域派生序列自洽', subBad===0, subBad+' 项失配');
+  chk('状态机令牌合法', FSM_STATES.indexOf(fsm.current)>=0, fsm.current);
+  var total=checks.length, fail=checks.filter(function(c){ return !c.ok; }).map(function(c){ return c.name; });
+  var el=$('#audit');
+  if(el) el.textContent='AUDIT passed='+pass+' total='+total+' errors='+(total-pass)+
+    (fail.length?(' fail=['+fail.join('; ')+']'):'')+' state='+fsm.current;
+  return {pass:pass,total:total,errors:total-pass,fail:fail,state:fsm.current};
+}
+
+/* 提示浮层 */
+var tipEl=$('#tip');
+function showTip(html,x,y){
+  tipEl.innerHTML=html; tipEl.hidden=false;
+  var r=tipEl.getBoundingClientRect();
+  var px=x+14, py=y+14;
+  if(px+r.width>window.innerWidth-8) px=x-r.width-14;
+  if(py+r.height>window.innerHeight-8) py=y-r.height-14;
+  tipEl.style.left=Math.max(6,px)+'px';
+  tipEl.style.top=Math.max(6,py)+'px';
+}
+function hideTip(){ tipEl.hidden=true; }
+function row(k,v){ return '<div class="r"><span>'+k+'</span><b>'+v+'</b></div>'; }
+function tipFor(el){
+  var kind=el.dataset.tipKind;
+  if(kind==='rain'||kind==='flow'){
+    var i=+el.dataset.i;
+    return '<h4>'+DATES[i]+'</h4>'+row('面雨量',f1(RAIN[i])+' mm')+row('入库流量',Math.round(FLOW[i])+' m³/s')+
+      row('日径流总量',Math.round(PARTS[i].total)+' 万 m³');
+  }
+  if(kind==='sub'){
+    var s=SUBMAP[el.dataset.sub];
+    return '<h4>'+esc(s.name)+'子流域</h4>'+row('累计面雨量',f1(s.rain)+' mm')+
+      row('距平',(s.rain/s.norm>=1?'+':'')+f1((s.rain/s.norm-1)*100)+'%')+
+      row('当前流量',s.flow+' m³/s')+row('集水面积',s.area.toLocaleString('en-US')+' km²')+
+      row('山洪风险',s.risk);
+  }
+  if(kind==='sta'){
+    var st=STATIONS.filter(function(x){ return x.no===el.dataset.no; })[0];
+    return '<h4>'+esc(st.name)+'</h4>'+row('站号',st.no)+row('海拔',st.alt+' m')+
+      row('累计雨量',f1(st.rain)+' mm')+row('平均气温',f1(st.tavg)+' ℃')+
+      row('平均风速',f1(st.ws)+' m/s')+row('完整率',f1(st.ok)+'%');
+  }
+  if(kind==='store') return '<h4>'+RES.name+'</h4>'+row('蓄水率',f1(RES.rate)+'%')+row('当前蓄量',RES.store.toFixed(2)+' 亿 m³')+row('总库容',RES.cap.toFixed(2)+' 亿 m³');
+  if(kind==='level') return '<h4>当前库水位</h4>'+row('水位',f1(RES.level)+' m')+row('汛限水位',f1(RES.flood)+' m')+row('距汛限',f1(RES.flood-RES.level)+' m');
+  if(kind==='levelpt'){ var li=+el.dataset.i; return '<h4>'+DATES[li]+'</h4>'+row('库水位',f1(LEVEL[li])+' m')+row('入库流量',Math.round(FLOW[li])+' m³/s'); }
+  if(kind==='temp'){ var ti=+el.dataset.i; return '<h4>'+DATES[ti]+'</h4>'+row('最高气温',f1(TMAX[ti])+' ℃')+row('平均气温',f1(TAVG[ti])+' ℃')+row('最低气温',f1(TMIN[ti])+' ℃'); }
+  if(kind==='sun'){ var si=+el.dataset.i; return '<h4>'+DATES[si]+'</h4>'+row('日照时数',f1(SUN[si])+' h')+row('相对湿度',RH[si]+' %')+row('面雨量',f1(RAIN[si])+' mm'); }
+  if(kind==='rh'){ var ri=+el.dataset.i; return '<h4>'+DATES[ri]+'</h4>'+row('相对湿度',RH[ri]+' %')+row('平均风速',f1(WS[ri])+' m/s'); }
+  if(kind==='pt'){ var pi=+el.dataset.i; return '<h4>'+DATES[pi]+'</h4>'+row('面雨量',f1(RAIN[pi])+' mm')+row('入库流量',Math.round(FLOW[pi])+' m³/s');
+  }
+  if(kind==='wind'){
+    var wd=WIND_DIRS[+el.dataset.dir], wb=+el.dataset.band;
+    var tot=WIND_FREQ[+el.dataset.dir].reduce(function(a,b){ return a+b; },0);
+    return '<h4>'+wd+' 向 · '+WIND_BANDS[wb]+'</h4>'+row('频率',WIND_FREQ[+el.dataset.dir][wb]+' %')+
+      row('该向合计',tot+' %')+row('主导风向','SW 26.8%');
+  }
+  if(kind==='part'){ var qi=+el.dataset.i, qp=PARTS[qi], sg=el.dataset.seg;
+    var name={rain:'降雨产流',snow:'融雪补给',base:'地下水基流'}[sg];
+    return '<h4>'+DATES[qi]+' · '+name+'</h4>'+row('水量',Math.round(qp[sg])+' 万 m³')+
+      row('占比',f1(qp[sg]/qp.total*100)+'%')+row('日径流总量',Math.round(qp.total)+' 万 m³'); }
+  if(kind==='use'){ var u=USES[+el.dataset.u]; return '<h4>'+u.n+'</h4>'+row('占比',f1(u.v)+'%')+row('口径','占取水总量'); }
+  if(kind==='risk'){ var rs=SUBMAP[el.dataset.sub], cn={risk:'山洪灾害',flood:'中小河流洪水',geo:'地质灾害'}[el.dataset.col];
+    return '<h4>'+esc(rs.name)+' · '+cn+'</h4>'+row('等级',rs[el.dataset.col])+row('代表站',rs.stname); }
+  if(kind==='fc'){ var fi=+el.dataset.i; return '<h4>'+FORECAST[fi].t+'</h4>'+row('预报面雨量',f1(FORECAST[fi].v)+' mm')+row('阈值',FC_THRESHOLD+' mm / 3h'); }
+  if(kind==='subrain'){ var bi=+el.dataset.i, bs=SUBMAP[state.sub]||SUBS[0], bser=subSeries(bs);
+    return '<h4>'+DATES[bi]+'</h4>'+row('面雨量',f1(bser.rain[bi])+' mm')+row('多年同期',f1(bser.norm[bi])+' mm')+
+      row('距平',(bser.rain[bi]-bser.norm[bi]>=0?'+':'')+f1(bser.rain[bi]-bser.norm[bi])+' mm'); }
+  if(kind==='anom'){ var ai=+el.dataset.i, as2=SUBMAP[state.sub]||SUBS[0], aser=subSeries(as2);
+    var dv=aser.rain[ai]-aser.norm[ai];
+    return '<h4>'+DATES[ai]+'</h4>'+row('距平',(dv>=0?'+':'')+f1(dv)+' mm')+row('本时段',f1(aser.rain[ai])+' mm')+row('多年同期',f1(aser.norm[ai])+' mm'); }
+  return '';
+}
+document.addEventListener('mouseover',function(e){
+  var el=e.target.closest?e.target.closest('[data-tip], [data-action]'):null;
+  if(!el){ hideTip(); return; }
+  if(el.dataset && el.dataset.tip){ showTip(tipFor(el), e.clientX, e.clientY); }
+  else if(el.dataset && el.dataset.action==='drill'){ var s=SUBMAP[el.dataset.sub];
+    showTip('<h4>'+esc(s.name)+'子流域</h4>'+row('累计面雨量',f1(s.rain)+' mm')+row('点击进入详情','→'), e.clientX, e.clientY); }
+});
+document.addEventListener('mousemove',function(e){
+  if(!tipEl.hidden){ var el=e.target.closest?e.target.closest('[data-tip], [data-action]'):null;
+    if(el) showTip(tipEl.innerHTML, e.clientX, e.clientY); else hideTip(); }
+});
+document.addEventListener('mouseout',function(e){
+  var el=e.target.closest?e.target.closest('[data-tip], [data-action]'):null;
+  if(el) hideTip();
+});
+document.addEventListener('click',function(e){
+  var el=e.target.closest?e.target.closest('[data-action]'):null;
+  if(!el) return;
+  var a=el.dataset.action;
+  if(a==='view') setView(el.dataset.view);
+  else if(a==='range') setRange(+el.dataset.val);
+  else if(a==='sub') setSub(el.dataset.val);
+  else if(a==='legend') toggleSeries(el.dataset.val);
+  else if(a==='scale') setScale(el.dataset.val);
+  else if(a==='drill'){ setSub(el.dataset.sub); setView('sub'); }
+  else if(a==='back') setView('overview');
+  else if(a==='reset') resetAll();
+  hideTip();
+});
+document.addEventListener('keydown',function(e){
+  var el=e.target.closest?e.target.closest('[data-action]'):null;
+  if(el && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); el.click(); }
+  if(e.key==='Escape') hideTip();
+});
+$('#wA').addEventListener('input',function(){ setWin(+this.value,state.win[1]); renderActive(); });
+$('#wB').addEventListener('input',function(){ setWin(state.win[0],+this.value); renderActive(); });
+var anomThrEl=$('#anomThr');
+if(anomThrEl) anomThrEl.addEventListener('input',function(){ setThr(+this.value); });
+
+var rt=null;
+window.addEventListener('resize',function(){
+  if(rt) clearTimeout(rt);
+  rt=setTimeout(scheduleRender,120);
+});
+
+/* =========================================================
+   八、对外接口与启动
+   ========================================================= */
+window.YUNXI={
+  state:state,
+  fsm:fsm,
+  setView:function(k){ setView(k); },
+  setRange:function(v){ setRange(v); },
+  setSub:function(id){ setSub(id); },
+  toggleSeries:function(k){ toggleSeries(k); },
+  setScale:function(k){ setScale(k); },
+  setThr:function(v){ setThr(v); },
+  setWin:function(a,b){ setWin(a,b); scheduleRender(); },
+  audit:runAudit,
+  reset:resetAll,
+  info:function(){
+    var d=activeDays();
+    return {
+      view:state.view, range:state.range, sub:state.sub, win:state.win.slice(), scale:state.scale, thr:state.thr,
+      fsm:fsm.current, lastAction:fsm.lastAction,
+      days:d.length, first:DATES[d[0]], last:DATES[d[d.length-1]],
+      rainTotal:+f1(sum(d.map(function(i){ return curRain()[i]; }))),
+      flowNow:Math.round(curFlow()[29]),
+      charts:$$('.chart svg').filter(function(s){ return s.offsetWidth>0; }).length,
+      series:JSON.parse(JSON.stringify(state.series))
+    };
+  }
+};
+
+/* 首屏渲染：先把所有视图渲染一遍，保证切换时布局已确定 */
+(function boot(){
+  go('INIT_DATA_INGESTED','ingest');
+  renderTables(); renderRail();
+  Object.keys(RENDER).forEach(function(k){
+    var v=$('#v-'+k), was=v.hidden;
+    v.hidden=false;
+    try{ RENDER[k](); }catch(err){ if(window.console) console.warn(err); }
+    v.hidden=was;
+  });
+  $('#v-overview').hidden=false;
+  renderActive();
+  syncWinLabel();
+  go('GLOBAL_OVERVIEW_CRUISE','boot');
+})();
+
+})();
+</script>
+</body>
+</html>

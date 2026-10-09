@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卡通狐狸 · CARTOON FOX</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{display:flex;flex-direction:column;background:#fbf4e9;font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#5a4632;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 22px;background:#fff;border-bottom:1px solid #eadfc8}
+.brand{display:flex;align-items:baseline;gap:12px}
+.brand h1{font-size:20px;letter-spacing:2px;font-weight:600;color:#5a4632}
+.brand .zh{font-size:13px;color:#a98e6a;letter-spacing:3px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs button{appearance:none;border:1px solid #e0cfa8;background:#fdf6ea;color:#7a6144;padding:7px 16px;border-radius:20px;font-size:14px;letter-spacing:1px;cursor:pointer;transition:all .18s ease}
+.tabs button:hover{border-color:#e8893c;color:#d06f28}
+.tabs button.active{background:#e8893c;color:#fff;border-color:#e8893c;font-weight:600}
+.stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+#foxSvg{width:100%;height:100%;display:block;overflow:hidden}
+/* 调色板变量 */
+:root{--fur:#e8893c;--furD:#d06f28;--furL:#f5b06a;--cream:#fdf3e2;--ear:#f7d9c0;--blush:#f2a0a0;--ink:#432818;--scarf:#c8443c;--scarfD:#a8322e;--bg:#fbf4e9;--spot:#f7e2c4;--spot2:#f2ecd9;--ground:#f3e8cf;--spark:#e8b64c;--bp:#b8d4e8}
+.theme-arctic{--fur:#c9d6e2;--furD:#a7bccd;--furL:#e6eef4;--cream:#fbfcfd;--ear:#f2c6cc;--blush:#efc2c6;--ink:#3a4a5a;--scarf:#3f8fa8;--scarfD:#2f6f86;--bg:#eef4f8;--spot:#dbe8f0;--spot2:#e3ecf2;--ground:#dce8ee;--spark:#7fb3c8;--bp:#b8d4e8}
+.fur{fill:var(--fur)} .furD{fill:var(--furD)} .furL{fill:var(--furL)} .cream{fill:var(--cream)}
+.ear{fill:var(--ear)} .blush{fill:var(--blush)} .inkfill{fill:var(--ink)} .hi{fill:#fff}
+.scarf{fill:var(--scarf)} .scarfD{fill:var(--scarfD)}
+.backdrop{fill:var(--bg)} .spot{fill:var(--spot)} .spot2{fill:var(--spot2)} .sparkle{fill:var(--spark)} .ground{fill:var(--ground)}
+.shadow{fill:var(--ink);opacity:.08}
+.o{stroke:var(--ink);stroke-width:6;stroke-linejoin:round;stroke-linecap:round}
+.inkline{fill:none;stroke:var(--ink);stroke-linecap:round;stroke-linejoin:round}
+.tailhi{fill:none;stroke:var(--furL);stroke-linecap:round}
+.watermark{fill:var(--ink);opacity:.28;font-size:34px;letter-spacing:14px}
+.watermark-sub{fill:var(--ink);opacity:.2;font-size:16px;letter-spacing:10px}
+#fox .part{transition:filter .18s ease}
+#fox .part:hover{filter:brightness(1.06) drop-shadow(0 0 8px rgba(232,137,60,.5));cursor:pointer}
+/* 蓝图 */
+#bpGrid{display:none}
+#annotations{display:none}
+#legend{display:none}
+#foxSvg.bp #backdrop{display:none}
+#foxSvg.bp #bpGrid{display:block}
+.bpbg{fill:#14365e}.bpg{stroke:#1f5a8f;stroke-width:1}.bpg-c{stroke:#2f7bb8;stroke-width:1.6}.bpg-d{stroke:#2f7bb8;stroke-width:1.4;stroke-dasharray:6 8}.bpt{fill:#b8d4e8;font-size:20px;letter-spacing:3px;opacity:.85}
+#foxSvg.bp #fox .part{filter:none}
+#foxSvg.bp #fox circle,#foxSvg.bp #fox ellipse,#foxSvg.bp #fox path,#foxSvg.bp #fox rect{fill:none!important;stroke:var(--bp)!important;stroke-width:2.2!important}
+/* 标注 */
+#foxSvg.ann #annotations{display:block}
+#foxSvg.ann #legend{display:block}
+.ann-dot{fill:#e8893c}.ann-num{fill:#fff;font-size:17px;font-weight:700;font-family:Georgia,serif}
+.ann-line{stroke:#e8893c;stroke-width:2;fill:none}
+.ann-name{fill:#5a4632;font-size:14px;letter-spacing:1px}
+.legend-panel{fill:#fff;stroke:#eadfc8;stroke-width:1;opacity:.97}</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>CARTOON FOX</h1>
+    <span class="zh">卡通狐狸 · 矢量插画</span>
+  </div>
+  <nav class="tabs" aria-label="视图切换">
+    <button data-view="overview" class="active">整体</button>
+    <button data-view="arctic">配色</button>
+    <button data-view="head">头部</button>
+    <button data-view="tail">尾部</button>
+    <button data-view="blueprint">线稿</button>
+    <button data-view="annotate">标注</button>
+  </nav>
+</header>
+<main class="stage"><svg id="foxSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 864" role="img" aria-label="卡通狐狸矢量插画">
+  <g id="backdrop">
+    <rect class="backdrop" x="0" y="0" width="1536" height="864"/>
+    <circle class="spot" cx="768" cy="440" r="305"/>
+    <circle class="spot2" cx="768" cy="440" r="392"/>
+    <ellipse class="ground" cx="768" cy="824" rx="620" ry="150"/>
+    <path class="sparkle" d="M210,157 L214.5,167.5 L225,172 L214.5,176.5 L210,187 L205.5,176.5 L195,172 L205.5,167.5 Z"/><path class="sparkle" d="M1336,132 L1341.4,144.6 L1354,150 L1341.4,155.4 L1336,168 L1330.6,155.4 L1318,150 L1330.6,144.6 Z"/><path class="sparkle" d="M152,687 L155.9,696.1 L165,700 L155.9,703.9 L152,713 L148.1,703.9 L139,700 L148.1,696.1 Z"/><path class="sparkle" d="M1382,670 L1386.8,681.2 L1398,686 L1386.8,690.8 L1382,702 L1377.2,690.8 L1366,686 L1377.2,681.2 Z"/><path class="sparkle" d="M430,105 L433.3,112.7 L441,116 L433.3,119.3 L430,127 L426.7,119.3 L419,116 L426.7,112.7 Z"/><path class="sparkle" d="M1108,108 L1111.6,116.4 L1120,120 L1111.6,123.6 L1108,132 L1104.4,123.6 L1096,120 L1104.4,116.4 Z"/><path class="sparkle" d="M1210,291 L1212.7,297.3 L1219,300 L1212.7,302.7 L1210,309 L1207.3,302.7 L1201,300 L1207.3,297.3 Z"/><path class="sparkle" d="M520,182 L522.4,187.6 L528,190 L522.4,192.4 L520,198 L517.6,192.4 L512,190 L517.6,187.6 Z"/><path class="sparkle" d="M1000,201 L1002.1,205.9 L1007,208 L1002.1,210.1 L1000,215 L997.9,210.1 L993,208 L997.9,205.9 Z"/><path class="sparkle" d="M1280,424 L1281.8,428.2 L1286,430 L1281.8,431.8 L1280,436 L1278.2,431.8 L1274,430 L1278.2,428.2 Z"/><circle class="sparkle" cx="60" cy="130" r="2" opacity="0.5"/><circle class="sparkle" cx="157" cy="191" r="3" opacity="0.5"/><circle class="sparkle" cx="254" cy="252" r="4" opacity="0.5"/><circle class="sparkle" cx="351" cy="313" r="2" opacity="0.5"/><circle class="sparkle" cx="448" cy="374" r="3" opacity="0.5"/><circle class="sparkle" cx="545" cy="435" r="4" opacity="0.5"/><circle class="sparkle" cx="642" cy="496" r="2" opacity="0.5"/><circle class="sparkle" cx="739" cy="557" r="3" opacity="0.5"/><circle class="sparkle" cx="836" cy="618" r="4" opacity="0.5"/><circle class="sparkle" cx="933" cy="679" r="2" opacity="0.5"/><circle class="sparkle" cx="1030" cy="740" r="3" opacity="0.5"/><circle class="sparkle" cx="1127" cy="161" r="4" opacity="0.5"/><circle class="sparkle" cx="1224" cy="222" r="2" opacity="0.5"/><circle class="sparkle" cx="1321" cy="283" r="3" opacity="0.5"/><circle class="sparkle" cx="1418" cy="344" r="4" opacity="0.5"/><circle class="sparkle" cx="115" cy="405" r="2" opacity="0.5"/><circle class="sparkle" cx="212" cy="466" r="3" opacity="0.5"/><circle class="sparkle" cx="309" cy="527" r="4" opacity="0.5"/>
+    <g transform="rotate(-22 300 300)">
+    <path class="furD" d="M300,286 C307,295 307,305 300,314 C293,305 293,295 300,286 Z"/>
+    <path class="inkline" stroke-width="1.4" d="M300,289 L300,311"/>
+  </g><g transform="rotate(26 1200 240)">
+    <path class="scarf" d="M1200,226 C1207,235 1207,245 1200,254 C1193,245 1193,235 1200,226 Z"/>
+    <path class="inkline" stroke-width="1.4" d="M1200,229 L1200,251"/>
+  </g><g transform="rotate(-18 1190 600)">
+    <path class="furD" d="M1190,586 C1197,595 1197,605 1190,614 C1183,605 1183,595 1190,586 Z"/>
+    <path class="inkline" stroke-width="1.4" d="M1190,589 L1190,611"/>
+  </g><g transform="rotate(32 330 610)">
+    <path class="fur" d="M330,596 C337,605 337,615 330,624 C323,615 323,605 330,596 Z"/>
+    <path class="inkline" stroke-width="1.4" d="M330,599 L330,621"/>
+  </g>
+    <text class="watermark" x="768" y="80" text-anchor="middle">CARTOON FOX</text>
+    <text class="watermark-sub" x="768" y="106" text-anchor="middle">卡通狐狸 · 矢量插画</text>
+  </g>
+  <g id="bpGrid">
+    <rect class="bpbg" x="0" y="0" width="1536" height="864"/>
+    <line class="bpg" x1="0" y1="0" x2="0" y2="864"/><line class="bpg" x1="96" y1="0" x2="96" y2="864"/><line class="bpg" x1="192" y1="0" x2="192" y2="864"/><line class="bpg" x1="288" y1="0" x2="288" y2="864"/><line class="bpg" x1="384" y1="0" x2="384" y2="864"/><line class="bpg" x1="480" y1="0" x2="480" y2="864"/><line class="bpg" x1="576" y1="0" x2="576" y2="864"/><line class="bpg" x1="672" y1="0" x2="672" y2="864"/><line class="bpg" x1="768" y1="0" x2="768" y2="864"/><line class="bpg" x1="864" y1="0" x2="864" y2="864"/><line class="bpg" x1="960" y1="0" x2="960" y2="864"/><line class="bpg" x1="1056" y1="0" x2="1056" y2="864"/><line class="bpg" x1="1152" y1="0" x2="1152" y2="864"/><line class="bpg" x1="1248" y1="0" x2="1248" y2="864"/><line class="bpg" x1="1344" y1="0" x2="1344" y2="864"/><line class="bpg" x1="1440" y1="0" x2="1440" y2="864"/><line class="bpg" x1="1536" y1="0" x2="1536" y2="864"/><line class="bpg" x1="0" y1="0" x2="1536" y2="0"/><line class="bpg" x1="0" y1="96" x2="1536" y2="96"/><line class="bpg" x1="0" y1="192" x2="1536" y2="192"/><line class="bpg" x1="0" y1="288" x2="1536" y2="288"/><line class="bpg" x1="0" y1="384" x2="1536" y2="384"/><line class="bpg" x1="0" y1="480" x2="1536" y2="480"/><line class="bpg" x1="0" y1="576" x2="1536" y2="576"/><line class="bpg" x1="0" y1="672" x2="1536" y2="672"/><line class="bpg" x1="0" y1="768" x2="1536" y2="768"/><line class="bpg" x1="0" y1="864" x2="1536" y2="864"/><line class="bpg-c" x1="0" y1="432" x2="1536" y2="432"/><line class="bpg-c" x1="768" y1="0" x2="768" y2="864"/><circle class="bpg-d" cx="768" cy="300" r="120" fill="none"/><circle class="bpg-d" cx="768" cy="300" r="220" fill="none"/><circle class="bpg-d" cx="768" cy="300" r="320" fill="none"/>
+    <text class="bpt" x="60" y="52">CARTOON FOX · BLUEPRINT · 卡通狐狸结构线稿</text>
+    <text class="bpt" x="60" y="820">SCALE 1:1 · UNITS PX · 头部 / 身体 / 四肢 / 尾巴 / 配饰</text>
+  </g>
+  <g id="stage"><g id="cam"><g id="fox">
+  <ellipse class="shadow" cx="768" cy="706" rx="185" ry="16"/>
+  <g class="part" id="part-tail" data-name="大尾巴"><title>大尾巴</title>
+    <ellipse class="fur o" cx="988" cy="545" rx="118" ry="92"/>
+    <path class="tailhi" stroke-width="16" d="M916,508 C956,478 1018,472 1056,488"/>
+    <ellipse class="cream o" cx="1082" cy="500" rx="36" ry="29"/>
+  </g>
+  <g class="part" id="part-body" data-name="身体"><title>身体</title>
+    <ellipse class="fur o" cx="768" cy="578" rx="132" ry="108"/>
+    <ellipse class="cream o" cx="768" cy="600" rx="88" ry="72"/>
+  </g>
+  <g class="part" id="part-legs" data-name="前腿"><title>前腿</title>
+    <rect class="fur o" x="686" y="600" width="40" height="96" rx="20"/>
+    <rect class="fur o" x="810" y="600" width="40" height="96" rx="20"/>
+    <ellipse class="furD o" cx="706" cy="694" rx="24" ry="13"/>
+    <ellipse class="furD o" cx="830" cy="694" rx="24" ry="13"/>
+  </g>
+  <g class="part" id="part-head" data-name="头"><title>头</title>
+    <circle class="fur o" cx="768" cy="350" r="150"/>
+  </g>
+  <g class="part" id="part-ears" data-name="耳朵"><title>耳朵</title>
+    <path class="fur o" d="M660,252 L602,318 L712,302 Z"/>
+    <path class="fur o" d="M876,252 L824,302 L934,318 Z"/>
+    <path class="ear" d="M660,276 L626,308 L700,296 Z"/>
+    <path class="ear" d="M876,276 L836,296 L910,308 Z"/>
+  </g>
+  <g class="part" id="part-muzzle" data-name="白脸颊口鼻"><title>白脸颊口鼻</title>
+    <ellipse class="cream o" cx="768" cy="438" rx="80" ry="62"/>
+  </g>
+  <g class="part" id="part-nose" data-name="鼻子与嘴"><title>鼻子与嘴</title>
+    <path class="inkfill" d="M752,396 Q768,388 784,396 Q786,408 768,412 Q750,408 752,396 Z"/>
+    <path class="inkline" stroke-width="5" d="M768,412 L768,420 M768,420 C756,430 750,432 744,428 M768,420 C780,430 786,432 792,428"/>
+  </g>
+  <g class="part" id="part-eyes" data-name="眼睛"><title>眼睛</title>
+    <circle class="inkfill" cx="700" cy="345" r="21"/>
+    <circle class="inkfill" cx="836" cy="345" r="21"/>
+    <circle class="hi" cx="706" cy="337" r="7"/>
+    <circle class="hi" cx="842" cy="337" r="7"/>
+    <circle class="hi" cx="696" cy="352" r="3.5"/>
+    <circle class="hi" cx="832" cy="352" r="3.5"/>
+  </g>
+  <g class="part" id="part-blush"><title>脸颊腮红</title>
+    <ellipse class="blush" cx="676" cy="392" rx="16" ry="10"/>
+    <ellipse class="blush" cx="860" cy="392" rx="16" ry="10"/>
+  </g>
+  <g id="furdetail">
+    <path class="inkline" stroke-width="3" d="M680,424 L634,416 M680,432 L630,432 M680,440 L634,448"/>
+    <path class="inkline" stroke-width="3" d="M856,424 L902,416 M856,432 L906,432 M856,440 L902,448"/>
+    <path class="fur o" d="M620,380 L596,372 L620,390 Z"/>
+    <path class="fur o" d="M616,404 L590,404 L616,414 Z"/>
+    <path class="fur o" d="M620,428 L596,436 L620,438 Z"/>
+    <path class="fur o" d="M916,380 L940,372 L916,390 Z"/>
+    <path class="fur o" d="M920,404 L946,404 L920,414 Z"/>
+    <path class="fur o" d="M916,428 L940,436 L916,438 Z"/>
+  </g>
+  <g class="part" id="part-scarf" data-name="围巾"><title>围巾</title>
+    <rect class="scarf o" x="700" y="478" width="136" height="32" rx="16"/>
+    <rect class="scarf o" x="706" y="500" width="24" height="66" rx="12"/>
+    <path class="inkline" stroke-width="4" d="M710,566 L710,578 M718,566 L718,578 M726,566 L726,578"/>
+  </g></g></g></g>
+  <g id="annotations"><g class="ann" data-n="1">
+      <path class="ann-line" d="M768,238 L768,300"/>
+      <circle class="ann-dot" cx="768" cy="238" r="15"/>
+      <text class="ann-num" x="768" y="243" text-anchor="middle">1</text>
+    </g><g class="ann" data-n="2">
+      <path class="ann-line" d="M600,214 L660,255"/>
+      <circle class="ann-dot" cx="600" cy="214" r="15"/>
+      <text class="ann-num" x="600" y="219" text-anchor="middle">2</text>
+    </g><g class="ann" data-n="3">
+      <path class="ann-line" d="M624,332 L700,345"/>
+      <circle class="ann-dot" cx="624" cy="332" r="15"/>
+      <text class="ann-num" x="624" y="337" text-anchor="middle">3</text>
+    </g><g class="ann" data-n="4">
+      <path class="ann-line" d="M846,372 L768,404"/>
+      <circle class="ann-dot" cx="846" cy="372" r="15"/>
+      <text class="ann-num" x="846" y="377" text-anchor="middle">4</text>
+    </g><g class="ann" data-n="5">
+      <path class="ann-line" d="M694,492 L768,440"/>
+      <circle class="ann-dot" cx="694" cy="492" r="15"/>
+      <text class="ann-num" x="694" y="497" text-anchor="middle">5</text>
+    </g><g class="ann" data-n="6">
+      <path class="ann-line" d="M640,588 L768,578"/>
+      <circle class="ann-dot" cx="640" cy="588" r="15"/>
+      <text class="ann-num" x="640" y="593" text-anchor="middle">6</text>
+    </g><g class="ann" data-n="7">
+      <path class="ann-line" d="M632,700 L706,650"/>
+      <circle class="ann-dot" cx="632" cy="700" r="15"/>
+      <text class="ann-num" x="632" y="705" text-anchor="middle">7</text>
+    </g><g class="ann" data-n="8">
+      <path class="ann-line" d="M1094,620 L988,545"/>
+      <circle class="ann-dot" cx="1094" cy="620" r="15"/>
+      <text class="ann-num" x="1094" y="625" text-anchor="middle">8</text>
+    </g><g class="ann" data-n="9">
+      <path class="ann-line" d="M584,460 L700,478"/>
+      <circle class="ann-dot" cx="584" cy="460" r="15"/>
+      <text class="ann-num" x="584" y="465" text-anchor="middle">9</text>
+    </g></g>
+  <g id="legend">
+    <rect class="legend-panel" x="40" y="800" width="1456" height="52" rx="10"/>
+    <g class="ann">
+      <circle class="ann-dot" cx="92" cy="836" r="14"/>
+      <text class="ann-num" x="92" y="841" text-anchor="middle">1</text>
+      <text class="ann-name" x="113" y="841">头</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="243" cy="836" r="14"/>
+      <text class="ann-num" x="243" y="841" text-anchor="middle">2</text>
+      <text class="ann-name" x="264" y="841">耳朵</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="394" cy="836" r="14"/>
+      <text class="ann-num" x="394" y="841" text-anchor="middle">3</text>
+      <text class="ann-name" x="415" y="841">眼睛</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="545" cy="836" r="14"/>
+      <text class="ann-num" x="545" y="841" text-anchor="middle">4</text>
+      <text class="ann-name" x="566" y="841">鼻子与嘴</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="696" cy="836" r="14"/>
+      <text class="ann-num" x="696" y="841" text-anchor="middle">5</text>
+      <text class="ann-name" x="717" y="841">白脸颊口鼻</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="847" cy="836" r="14"/>
+      <text class="ann-num" x="847" y="841" text-anchor="middle">6</text>
+      <text class="ann-name" x="868" y="841">身体</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="998" cy="836" r="14"/>
+      <text class="ann-num" x="998" y="841" text-anchor="middle">7</text>
+      <text class="ann-name" x="1019" y="841">前腿</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="1149" cy="836" r="14"/>
+      <text class="ann-num" x="1149" y="841" text-anchor="middle">8</text>
+      <text class="ann-name" x="1170" y="841">大尾巴</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="1300" cy="836" r="14"/>
+      <text class="ann-num" x="1300" y="841" text-anchor="middle">9</text>
+      <text class="ann-name" x="1321" y="841">围巾</text>
+    </g>
+  </g>
+</svg></main>
+<script>
+(function(){
+  var state={view:'overview'};
+  var svg=document.getElementById('foxSvg');
+  var cam=document.getElementById('cam');
+  var tabs=document.querySelectorAll('.tabs button');
+  var ZOOM={ head:{x:575,y:225,w:390,h:295}, tail:{x:830,y:400,w:260,h:230} };
+  function zoomTo(box){
+    var W=1536,H=864,pad=40;
+    var s=Math.min(W/(box.w+pad*2), H/(box.h+pad*2));
+    var tx=W/2-(box.x+box.w/2)*s, ty=H/2-(box.y+box.h/2)*s;
+    cam.setAttribute('transform','translate('+tx.toFixed(1)+' '+ty.toFixed(1)+') scale('+s.toFixed(3)+')');
+  }
+  function setView(v){
+    state.view=v;
+    svg.classList.remove('theme-arctic','bp','ann');
+    cam.removeAttribute('transform');
+    if(v==='arctic') svg.classList.add('theme-arctic');
+    else if(v==='blueprint') svg.classList.add('bp');
+    else if(v==='annotate') svg.classList.add('ann');
+    else if(v==='head') zoomTo(ZOOM.head);
+    else if(v==='tail') zoomTo(ZOOM.tail);
+    tabs.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view')===v); });
+  }
+  tabs.forEach(function(b){ b.addEventListener('click', function(){ setView(b.getAttribute('data-view')); }); });
+  window.FOX={ setView:setView, info:function(){
+    return { view:state.view, parts:document.querySelectorAll('#fox .part').length,
+      svgEls:document.querySelectorAll('#foxSvg *').length };
+  }};
+})();</script>
+</body>
+</html>

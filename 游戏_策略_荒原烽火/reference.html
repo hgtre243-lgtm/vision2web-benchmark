@@ -1,0 +1,2924 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>荒原烽火 · 荒原烽火 WILDERNESS WATCH</title>
+<style>
+  :root{
+    --bg:#050b12;
+    --panel:rgba(15,18,32,.90);
+    --panel2:rgba(23,27,48,.94);
+    --line:rgba(120,150,190,.20);
+    --line2:rgba(120,150,190,.42);
+    --ink:#e8f4fb;
+    --ink2:#9dc0d2;
+    --ink3:#63899e;
+    --gold:#e8c15a;
+    --gold2:#f2dda0;
+    --blue:#5aa7d6;
+    --frost:#6fd0e0;
+    --good:#7fd96f;
+    --ember:#d6704a;
+    --violet:#8f7ad6;
+    --danger:#e06a6a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);overflow:hidden}
+  body{
+    display:flex;align-items:flex-start;justify-content:flex-start;
+    font-family:"Noto Sans CJK SC","Microsoft YaHei","PingFang SC",system-ui,"Segoe UI",sans-serif;
+    color:var(--ink);
+  }
+  #frame{
+    position:relative;width:1536px;height:864px;flex:none;
+    transform-origin:top left;background:#050b12;overflow:hidden;
+  }
+  canvas{position:absolute;display:block;image-rendering:auto}
+  #cvWorld{left:0;top:0;width:1536px;height:616px}
+  #cvRadar{left:1252px;top:16px;width:268px;height:360px;pointer-events:none}
+  #cvInst{left:0;top:616px;width:1536px;height:248px}
+
+  /* ---------- 独立 HUD 模块层（DOM 仪表，悬浮于主视窗之上） ---------- */
+  #hud{position:absolute;inset:0;pointer-events:none}
+  .mod{
+    position:absolute;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:8px 10px;backdrop-filter:blur(2px);
+    box-shadow:0 6px 22px rgba(0,0,0,.42);
+  }
+  .modh{
+    font-size:10.5px;letter-spacing:1.1px;color:var(--ink3);
+    text-transform:uppercase;margin-bottom:6px;white-space:nowrap;
+    border-bottom:1px solid var(--line);padding-bottom:5px;
+  }
+  .modh b{color:var(--gold);font-weight:600;letter-spacing:.4px}
+
+  /* 风切矢量罗盘 */
+  #modCompass{left:16px;top:16px;width:214px;height:206px}
+  .cw{position:relative;width:150px;height:150px;margin:2px auto 0}
+  .cw .dial{
+    position:absolute;inset:0;border-radius:50%;
+    border:1px solid var(--line2);
+    background:
+      radial-gradient(circle at 50% 50%, rgba(90,167,214,.10) 0%, rgba(90,167,214,0) 62%),
+      repeating-conic-gradient(from 0deg, rgba(120,150,190,.24) 0deg 1deg, transparent 1deg 15deg);
+  }
+  .cw .dial:after{
+    content:"";position:absolute;inset:22px;border-radius:50%;
+    border:1px dashed rgba(120,150,190,.20);
+  }
+  .cw .needle{
+    position:absolute;left:50%;top:50%;width:66px;height:3px;border-radius:2px;
+    background:linear-gradient(90deg,rgba(232,193,90,0) 0%,var(--gold) 100%);
+    transform-origin:0 50%;transform:rotate(0deg);
+  }
+  .cw .needle:after{
+    content:"";position:absolute;right:-2px;top:-4px;border-left:11px solid var(--gold);
+    border-top:5.5px solid transparent;border-bottom:5.5px solid transparent;
+  }
+  .cw .gneedle{
+    position:absolute;left:50%;top:50%;width:52px;height:2px;
+    background:linear-gradient(90deg,rgba(143,122,214,0) 0%,var(--violet) 100%);
+    transform-origin:0 50%;
+  }
+  .cw .ctr{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;
+    border-radius:50%;background:var(--ink);box-shadow:0 0 8px rgba(255,255,255,.5)}
+  .cwlab{position:absolute;font-size:9.5px;color:var(--ink3);letter-spacing:.5px}
+  .cmpFoot{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink2);margin-top:4px}
+  .cmpFoot i{font-style:normal;color:var(--gold)}
+
+  /* 烽燧台寿命倒计时环形条 */
+  #modIslands{left:16px;top:232px;width:214px;height:368px}
+  .beaconList{display:flex;flex-direction:column;gap:6px}
+  .beaconRow{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--ink2)}
+  .beaconRow .nm{width:38px;color:var(--ink3);letter-spacing:.4px}
+  .beaconRow .ms{flex:1;text-align:right;font-variant-numeric:tabular-nums}
+  .beaconRow.dead .nm,.beaconRow.dead .ms{color:#5a6b76;text-decoration:line-through}
+  .ring{width:22px;height:22px;border-radius:50%;flex:none;
+    background:conic-gradient(var(--c) calc(var(--p) * 1%), rgba(255,255,255,.08) 0);
+    -webkit-mask:radial-gradient(circle, transparent 50%, #000 52%);
+    mask:radial-gradient(circle, transparent 50%, #000 52%);}
+  .ring.core{box-shadow:0 0 0 2px rgba(232,193,90,.45)}
+  .bar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:3px}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--frost));width:50%}
+
+  /* 多段连击蓄能槽 */
+  #modCombo{left:560px;top:16px;width:322px;height:96px}
+  .slots{display:flex;gap:6px;margin:2px 0 6px}
+  .slot{flex:1;height:26px;border-radius:5px;border:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));
+    position:relative;overflow:hidden}
+  .slot.on{border-color:rgba(232,193,90,.6)}
+  .slot.on:after{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(232,193,90,.85),rgba(214,112,74,.45))}
+  .slot b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:600;color:#1a1206;z-index:2}
+  .slot:not(.on) b{color:var(--ink3)}
+  .comboMeta{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink2)}
+  .comboMeta i{font-style:normal;color:var(--gold)}
+
+  /* 实时损耗率监视器 */
+  #modLoss{left:900px;top:16px;width:330px;height:130px}
+  .lrow{display:flex;justify-content:space-between;font-size:11px;color:var(--ink2);margin-bottom:5px}
+  .lrow i{font-style:normal;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .lrow i.bad{color:var(--ember)} .lrow i.good{color:var(--good)}
+  .meter{height:9px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden;margin:2px 0 7px}
+  .meter > i{display:block;height:100%;width:40%;background:linear-gradient(90deg,var(--blue),var(--gold),var(--ember))}
+
+  /* 历史收益倍率账本 */
+  #modLedger{left:900px;top:154px;width:330px;height:250px}
+  /* 烽燧阵图 · 军情 */
+  #modWar{left:900px;top:414px;width:330px;height:180px}
+  #modWar .lrow{margin-bottom:4px}
+  #modWar .meter{margin:6px 0 0}
+  .lg{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink3);
+    padding:3.5px 0;border-bottom:1px dotted rgba(120,150,190,.13)}
+  .lg:last-child{border-bottom:none}
+  .lg i{font-style:normal;font-variant-numeric:tabular-nums;color:var(--ink2)}
+  .lg.hi i{color:var(--gold);font-weight:600}
+
+  #tipbar{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);
+    color:var(--ink3);font-size:11.5px;letter-spacing:.6px;pointer-events:none;
+    background:rgba(15,18,32,.6);padding:4px 16px;border-radius:14px;white-space:nowrap}
+
+  /* 结算态：让出整块主视窗给纯函数账本，悬浮仪表整体退场 */
+  #frame.settled #hud, #frame.settled #cvRadar{opacity:0;visibility:hidden}
+</style>
+</head>
+<body>
+<div id="frame">
+  <canvas id="cvWorld" width="1536" height="616"></canvas>
+  <canvas id="cvRadar" width="536" height="720"></canvas>
+  <canvas id="cvInst" width="1536" height="248"></canvas>
+
+  <div id="hud">
+    <div class="mod" id="modCompass">
+      <div class="modh"><b>风切矢量罗盘</b> WIND SHEAR VECTOR</div>
+      <div class="cw">
+        <div class="dial"></div>
+        <div class="gneedle" id="gNeedle"></div>
+        <div class="needle" id="wNeedle"></div>
+        <div class="ctr"></div>
+        <div class="cwlab" style="left:50%;top:-2px;transform:translateX(-50%)">N</div>
+        <div class="cwlab" style="left:50%;bottom:-2px;transform:translateX(-50%)">S</div>
+        <div class="cwlab" style="right:0;top:50%;transform:translateY(-50%)">E</div>
+        <div class="cwlab" style="left:0;top:50%;transform:translateY(-50%)">W</div>
+      </div>
+      <div class="cmpFoot"><span>切变 <i id="cmpShear">0.00</i></span><span>迎风夹角 <i id="cmpAoa">0°</i></span></div>
+    </div>
+
+    <div class="mod" id="modIslands">
+      <div class="modh"><b>烽燧台寿命倒计时</b> ISLAND LIFETIME</div>
+      <div class="beaconList" id="beaconList"></div>
+    </div>
+
+    <div class="mod" id="modCombo">
+      <div class="modh"><b>多段连击蓄能槽</b> MULTI-STAGE COMBO</div>
+      <div class="slots" id="comboSlots"></div>
+      <div class="comboMeta">
+        <span>连击段位 <i id="cbStage">0</i></span>
+        <span>共振同调 <i id="cbDwell">0</i></span>
+        <span>离差加权 <i id="cbDev">—</i></span>
+      </div>
+    </div>
+
+    <div class="mod" id="modLoss">
+      <div class="modh"><b>实时损耗率</b> LIVE DECAY MONITOR</div>
+      <div class="lrow"><span>烽燧台结构损耗</span><i id="lsStruct">0.00 /s</i></div>
+      <div class="meter"><i id="lsStructBar"></i></div>
+      <div class="lrow"><span>边缘驻留扣减</span><i id="lsEdge">0.00 /s</i></div>
+      <div class="meter"><i id="lsEdgeBar"></i></div>
+    </div>
+
+    <div class="mod" id="modWar">
+      <div class="modh"><b>烽燧阵图 · 军情</b> WAR LEDGER</div>
+      <div class="lrow"><span>本体烽号（D/F/J/K）</span><i id="wBand">—</i></div>
+      <div class="lrow"><span>图腾烽号需求</span><i id="wDemand">—</i></div>
+      <div class="lrow"><span>波次进度</span><i id="wWave">—</i></div>
+      <div class="lrow"><span>场中荒原兽 / 歼敌</span><i id="wBeast">—</i></div>
+      <div class="lrow"><span>漏防 · 峰顶灵石</span><i id="wShrine">—</i></div>
+      <div class="lrow"><span>烽燧布防 · 齐射</span><i id="wArm">—</i></div>
+      <div class="meter"><i id="wShrineBar"></i></div>
+    </div>
+
+    <div class="mod" id="modLedger">
+      <div class="modh"><b>历史收益倍率账本</b> YIELD MULTIPLIER LEDGER</div>
+      <div id="ledgerBody"></div>
+    </div>
+  </div>
+
+  <div id="tipbar">Enter 开始 · ←/→ 位移 · ↑ 跳跃 · ↓ 动量下压速坠 · D/F/J/K 切换四方烽号 · C 烽燧布防 · 空格蓄能放出烽火矢 · Q 能量索 · R 相位翻转 · E 共振释放 · P 暂停</div>
+</div>
+
+<script>
+'use strict';
+/* ============================================================================
+   荒原烽火 · 荒原烽火   WILDERNESS WATCH
+   ---------------------------------------------------------------------------
+   单文件自包含 Canvas 游戏。荒原峡谷中沿烽燧台链向上攀峰，落点同调后燃烽射穿烽火图腾。
+   底层五大环形强耦合子系统：
+     S1 非欧微气象与动力学矢量解算核心（切变风场 / 重力矢量动态偏转 / 非线性阻力）
+     S2 多实体物理衰变与反作用力系统（承重下沉 / 弹性回冲 / 驻留寿命自毁）
+     S3 主动式能量循环与过载熔断引擎（零被动恢复 / 极限操作充能 / 超频硬直）
+     S4 多实体空间拓扑与分层判定系统（核心受击点 / 擦弹边缘 / 动量吸收域）
+     S5 逐帧事件溯源与结算审计账本（所有分数由账本纯函数结算）
+     S6 四方烽号战略层（古道兽潮 / 烽燧布防同号齐射 / 图腾烽号需求轮转 / 峰顶灵石）
+   八阶互斥有限状态机；三块独立画布（世界 / 仪表 / 雷达）各自独立重绘频次。
+   确定性：mulberry32 固定种子 + window.GAME 状态注入与步进接口。
+   ========================================================================== */
+
+/* ---------------------------------------------------------------- 基础工具 */
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function round1(v){ return Math.round(v*10)/10; }
+function round2(v){ return Math.round(v*100)/100; }
+function fmt1(v){ return (Math.round(v*10)/10).toFixed(1); }
+function fmt2(v){ return (Math.round(v*100)/100).toFixed(2); }
+function mulberry32(a){
+  return function(){
+    a|=0; a=a+0x6D2B79F5|0;
+    var t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+function $(s){ return document.querySelector(s); }
+
+/* ---------------------------------------------------------------- 世界常数 */
+var LW=1536, LH=864;                 // 整幅逻辑分辨率
+var WW=1536, WH=616;                 // 主视窗（画布 A）逻辑尺寸
+var WY=2420;                         // 世界高度（纵向攀峰空间）
+var SUMMIT_Y=170;                    // 峰顶信标
+var BASE_Y=2196;                     // 起始岩台
+var SEED_DEFAULT=20260917;
+var DWELL_NEED=0.35;                 // 接触同调所需静止时长（秒）
+var DWELL_EPS=0.05;                  // 相对静止判定阈值（|v| 上限）
+var SHATTER_DELAY=0.50;              // 离台后碎裂延时（秒）
+var REBOUND_K=0.68;                  // 弹性回冲系数
+var REBOUND_DECAY=0.90;              // 回冲速度衰减（1/s）
+var SINK_FLOOR=170;                   // 烽燧台最大下沉位移（px）
+var PLAY_X0=242, PLAY_X1=1300;        // 可行动域横向边界（两侧留出仪表带净空）
+var OVERLOAD_STUN=1.20;              // 超频硬直时长（秒）
+var ROLLBACK_BUDGET=2;               // 因果回溯次数
+var GRAV=1500;                       // 重力矢量模长（px/s²）
+var GRAV_SWING=0.34;                 // 重力矢量偏转角幅度（rad）
+var K_DRAG=0.020;                    // 非线性空气阻力系数（∝ |v_rel|^1.6）
+var DRAG_EXP=1.6;
+var TAIL_AMP=1.40;                   // 顺风阻尼放大倍数
+var C_LIFT=0.050;                    // 逆风升力系数
+var SINK_PXS=34;                     // 下沉速度换算（px/s 每规范单位）
+var MOVE_ACC=1500, MAX_RUN=320;
+var JUMP_V=612;
+var GROUND_FRIC=6.4, AIR_FRIC=0.42;
+var DIVE_BOOST=4.2;                  // 动量下压指数系数
+var CHARGE_RATE=0.78;                // 蓄能速率（每秒）
+var ARROW_SPEED_BASE=760;            // 箭初速下限（px/s）
+var ARROW_SPEED_GAIN=900;            // 蓄能线性增益
+var ENERGY_EDGE_DRAIN=5.0;           // 边缘驻留每秒扣减（点）
+var CORE_RADIUS_RATIO=0.20;          // 核心受击区半径比
+var GRAZE_RADIUS_RATIO=0.62;         // 擦弹边缘起始半径比
+var ENERGY_CAP=100;
+
+/* ---------------------------------------------------------------- 战略层：四方烽号 × 兽潮 × 烽燧布防 */
+var BAND_N=4;
+var BAND_KEYS=['KeyD','KeyF','KeyJ','KeyK'];         // 本体烽号切换键
+var BAND_KEYSYM=['D','F','J','K'];
+var BAND_NAMES=['青烽','丹烽','翠烽','玄烽'];
+var DEMAND_SLOT=3.2;                                  // 图腾烽号需求的轮转槽位（秒）
+var ARM_COST=18;                                      // 布防一座烽燧台消耗的烽火令
+var ARM_RANGE=620;                                    // 烽燧台射界（px）
+var VOLLEY_DMG=34;                                    // 单次齐射杀伤
+var VOLLEY_CD=1.15;                                   // 齐射冷却（秒）
+var BEAST_HP=100;
+var BEAST_R=13;
+var BEAST_SPD=76;                                     // 荒原兽沿古道的基础推进速度（px/s）
+var WAVE_GAP=8.0;                                    // 波次间隔（秒）
+var FIRST_WAVE=12.0;                                  // 首波开拔时刻（留出布防窗口）
+var WAVE_MAX=6;                                       // 通关所需波次
+var BEAST_BASE=3;                                     // 首波兽数
+var SHRINE_HP=20;                                     // 灵石生命
+var LEAP_DMG=1;                                       // 每只漏防荒原兽对灵石的伤害
+var ARROW_DMG=45;                                     // 烽火矢同号命中荒原兽的杀伤
+
+/* ---------------------------------------------------------------- 配色 */
+var C={
+  sky0:'#0a0c16', sky1:'#12162a', sky2:'#1b2038', sky3:'#2a3050',
+  gust0:'#2a3150', gust1:'#3a4470',
+  wallFar:'#141a2e', wallMid:'#181e34', wallNear:'#1e2438',
+  rock:'#3a4055', rockDark:'#252b40', rockLit:'#55607a',
+  moss:'#8a7a4a', mossLit:'#c8a860',
+  ink:'#ece7dc', ink2:'#b8b3a4', ink3:'#8a8578',
+  gold:'#e8c15a', gold2:'#f2dda0', goldD:'#a8862f',
+  blue:'#5aa7d6', frost:'#6fd0e0', violet:'#8f7ad6',
+  good:'#7fd96f', ember:'#d6704a', danger:'#e06a6a',
+  panel:'rgba(15,18,32,.90)', panelLine:'rgba(120,150,190,.28)',
+  skin:'#f0c8a0', cloth:'#2a2a35', clothLit:'#3d3d4d', hood:'#a8763f',
+  shaft:'#e2d3aa', fletch:'#d6704a', tip:'#b9c3cc',
+  ringCore:'#f2dda0', ringMid:'#c7566a', ringOut:'#5aa7d6', ringEdge:'#33353a'
+};
+
+/* ---------------------------------------------------------------- 画布 */
+var cvW=$('#cvWorld'), ctxW=cvW.getContext('2d');
+var cvR=$('#cvRadar'), ctxR=cvR.getContext('2d');
+var cvI=$('#cvInst'),  ctxI=cvI.getContext('2d');
+
+/* ---------------------------------------------------------------- 状态 */
+var rng=mulberry32(SEED_DEFAULT);
+var S=null;
+
+function freshState(){
+  return {
+    /* --- 八阶互斥状态机：唯一状态令牌 --- */
+    fsm:'TITLE_LOBBY',
+    prevFsm:'TITLE_LOBBY',
+    /* --- 时钟与相机 --- */
+    gameT:0, dt:0, frame:0, frozen:false, camY:0,
+    /* --- 种子与实体阵列 --- */
+    seed:SEED_DEFAULT, initT:0, initDone:0, initTotal:0,
+    /* --- 玩家 --- */
+    px:300, py:BASE_Y, pvx:0, pvy:0,
+    grounded:false, groundBeacon:-1, jumps:0, facing:1,
+    dive:false, phaseFlip:0, tiltT:0,
+    /* --- 同调 --- */
+    dwellT:0, dwellActive:false, attuned:false, dwellLast:0, attuneCount:0, dwellSum:0,
+    /* --- 蓄能 / 弓 --- */
+    charging:false, power:0.15, drawT:0, recoil:0,
+    /* --- 能量核 --- */
+    energy:42, energyRate:0, edgeDrain:0, structLoss:0,
+    /* --- 过载 --- */
+    stunT:0, overloadCount:0,
+    /* --- 回溯 --- */
+    rollbacks:0, rollbackT:0, checkpoint:null,
+    /* --- 索 --- */
+    tether:-1, tetherAng:0, tetherVel:0, tetherLen:0, tetherStart:0, tetherArc:0, swingCount:0,
+    tetherRewarded:false, totemsHit:0,
+    /* --- 危机 / 高阶分支 --- */
+    surge:false, surgeT:0, surgeNext:14.0, branchT:0,
+    /* --- 连击 --- */
+    stage:0, maxStage:0, lastDev:null, coreHits:0,
+    /* --- 烽燧台 / 图腾 / 箭 --- */
+    beacons:[], totems:[], arrows:[], debris:[], parts:[],
+    /* --- 战略层：本体烽号 / 古道 / 兽潮 / 烽燧布防 / 灵石 --- */
+    band:0, bandFlipT:0,
+    path:[], pathCum:[], pathLen:0, shrine:{x:0,y:0}, gate:{x:0,y:0}, spawnT:0,
+    beasts:[], volleyFx:[],
+    wave:0, waveT:FIRST_WAVE, spawnQ:0, spawnBand:0, spawned:0, killed:0, leaked:0,
+    shrineHP:SHRINE_HP, armCount:0, volleys:0, armRejects:0,
+    bandHit:0, bandReject:0,
+    /* --- 审计账本 --- */
+    ledger:[], lastSettle:null,
+    /* --- 视效 --- */
+    flashT:0, shakeT:0, msg:'', msgT:0, hint:''
+  };
+}
+
+/* ---------------------------------------------------------------- S1 非欧微气象与动力学矢量解算 */
+/* 切变风场：风速随高度下降而增强（近深渊风更烈），三层正弦叠加形成非定常流场 */
+function windField(x,y,t){
+  var shear=0.42+0.58*(1-clamp(y/WY,0,1));       // 切变剖面
+  var amp=132*shear*(S.surge?1.85:1);
+  var wx=amp*( Math.sin(t*1.31 + y*0.0042 + 1.7)
+             + 0.55*Math.sin(t*2.77 - x*0.0031 + 0.4)
+             + 0.28*Math.sin(t*4.63 + (x+y)*0.0019) );
+  var wy=0.34*amp*Math.sin(t*0.97 + x*0.0051 + 2.2);
+  return {x:wx, y:wy};
+}
+/* 重力矢量动态偏转：方向随时间缓慢摆动，非恒定向下 */
+function gravVec(t){
+  var th=GRAV_SWING*Math.sin(t*0.62 + 0.9) + 0.11*Math.sin(t*1.9);
+  var sgn=(S.phaseFlip%2===1)?-1:1;
+  return {x:Math.sin(th)*GRAV*sgn, y:Math.cos(th)*GRAV*sgn, th:th, sgn:sgn};
+}
+var lastAero={d:0,l:0,aoa:0,tail:false};
+/* 空气动力学合力：非线性阻力 + 反常识顺风放大 + 逆风迎角升力
+   顺风（风与运动同向）：阻力模长非线性放大 40%，跳跃距离被压缩；
+   逆风（风与运动反向）：按迎风夹角产生向上升力矢量，滞空与高度提升。 */
+function aeroForce(vx,vy,w){
+  var rx=vx-w.x, ry=vy-w.y;
+  var rs=Math.hypot(rx,ry);
+  var sp=Math.hypot(vx,vy), ws=Math.hypot(w.x,w.y);
+  var tail=false, aoa=0, lift=0, mag=0;
+  if(sp>1e-3&&ws>1e-3){
+    var dot=(vx*w.x+vy*w.y)/(sp*ws);
+    aoa=Math.acos(clamp(dot,-1,1));
+    tail=dot>0;
+  }
+  if(rs>1e-4){
+    mag=K_DRAG*Math.pow(rs,DRAG_EXP);
+    if(tail) mag*=TAIL_AMP;                                       // 顺风阻尼放大
+    if(!tail) lift=C_LIFT*ws*Math.sqrt(rs)*Math.abs(Math.sin(2*aoa)); // 逆风迎角升力
+  }
+  lastAero.d=mag; lastAero.l=lift; lastAero.aoa=aoa; lastAero.tail=tail;
+  if(rs<1e-4) return { x:0, y:-lift };
+  return { x:-mag*(rx/rs), y:-mag*(ry/rs)-lift };
+}
+
+/* ---------------------------------------------------------------- S4 分层判定几何 */
+function layersOf(cx,cy,r){
+  return { core:r*CORE_RADIUS_RATIO, graze:r*GRAZE_RADIUS_RATIO, outer:r, absorb:r*1.28 };
+}
+function classifyHit(dx,dy,r){
+  var d=Math.hypot(dx,dy), L=layersOf(0,0,r);
+  if(d<=L.core) return {zone:'core', ratio:d/r};
+  if(d<=L.graze) return {zone:'body', ratio:d/r};
+  if(d<=L.outer) return {zone:'graze', ratio:d/r};
+  return {zone:'miss', ratio:d/r};
+}
+/* 由贯穿全程的最近心距反解所属环层——入射点恒在外沿，只有最深入环才是真实成绩 */
+function zoneOfRatio(ratio){
+  if(ratio<=CORE_RADIUS_RATIO) return 'core';
+  if(ratio<=GRAZE_RADIUS_RATIO) return 'body';
+  if(ratio<=1) return 'graze';
+  return 'miss';
+}
+
+/* ---------------------------------------------------------------- S5 逐帧事件溯源账本 */
+function logEvent(type,data){
+  var e={ i:S.ledger.length, t:round2(S.gameT), type:type };
+  if(data) for(var k in data) e[k]=data[k];
+  S.ledger.push(e);
+  return e;
+}
+function ledgerOf(type){ return S.ledger.filter(function(e){ return e.type===type; }); }
+/* 纯函数式结算：所有分数、评级、收益倍率只能由账本归约得出 */
+function settleLedger(){
+  var land=ledgerOf('ARROW_LANDED');
+  var ringSum=0, coreHit=0, graze=0, bodyHit=0;
+  land.forEach(function(e){
+    ringSum+=e.ring||0;
+    if(e.zone==='core') coreHit++;
+    else if(e.zone==='graze') graze++;
+    else if(e.zone==='body') bodyHit++;
+  });
+  /* 最长核心连续段 → 连击段位 */
+  var best=0,cur=0;
+  land.forEach(function(e){ if(e.zone==='core'){cur++; if(cur>best)best=cur;} else cur=0; });
+  var dwells=ledgerOf('ATTUNE_COMPLETE');
+  var latAvg=dwells.length? dwells.reduce(function(a,e){return a+(e.lat||0);},0)/dwells.length : 0;
+  var swings=ledgerOf('TETHER_RELEASE').filter(function(e){ return e.arc>=1.2; });
+  var gains=ledgerOf('ENERGY_GAIN').reduce(function(a,e){ return a+e.amount; },0);
+  var spends=ledgerOf('ENERGY_SPEND').reduce(function(a,e){ return a+e.amount; },0);
+  var conv=gains>0? spends/gains : 0;
+  var overloads=ledgerOf('OVERLOAD').length;
+  var rollbacks=ledgerOf('ROLLBACK').length;
+  var shatters=ledgerOf('ISLAND_SHATTER').length;
+  var bursts=ledgerOf('RESONANCE_BURST').length;
+  var flips=ledgerOf('PHASE_FLIP').length;
+  var dives=ledgerOf('DIVE_IMPACT').length;
+  var devSum=land.reduce(function(a,e){ return a+(e.deviation||0); },0);
+  var devAvg=land.length? devSum/land.length : 0;
+  /* 战略层归约源：全部取自账本事件，不引入任何写死读数 */
+  var kills=ledgerOf('BEAST_KILLED');
+  var arms=ledgerOf('BEACON_ARM');
+  var volleys=ledgerOf('VOLLEY');
+  var leaks=ledgerOf('BEAST_LEAK');
+  var bandRejects=ledgerOf('BAND_REJECT').length;
+  var bandHits=ledgerOf('ARROW_LANDED').length;
+  var killByArrow=kills.filter(function(e){ return e.how==='ARROW'; }).length;
+
+  var terms=[
+    { k:'环值累加',      v: ringSum*6,                       note: ringSum+' 环 ×6' },
+    { k:'核心受击',      v: coreHit*45,                      note: coreHit+' 次 ×45' },
+    { k:'连击段位',      v: best*30,                         note: '最长 '+best+' 段 ×30' },
+    { k:'摆荡释放',      v: swings.length*55,                note: swings.length+' 次 ×55' },
+    { k:'同调完成',      v: dwells.length*12,                note: dwells.length+' 次 ×12' },
+    { k:'同调迅捷奖励',  v: Math.round(Math.max(0,1400-latAvg*1000)*0.02*dwells.length),
+                         note: '均迟滞 '+Math.round(latAvg*1000)+'ms' },
+    { k:'共振脉冲',      v: bursts*70,                       note: bursts+' 次 ×70' },
+    { k:'相位翻转',      v: flips*18,                        note: flips+' 次 ×18' },
+    { k:'速坠冲击',      v: dives*16,                        note: dives+' 次 ×16' },
+    { k:'擦弹惩罚',      v: -graze*9,                        note: graze+' 次 ×-9' },
+    { k:'离差惩罚',      v: -Math.round(devAvg*120),         note: '均离差 '+fmt2(devAvg) },
+    { k:'过载硬直',      v: -overloads*60,                   note: overloads+' 次 ×-60' },
+    { k:'因果回溯',      v: -rollbacks*80,                   note: rollbacks+' 次 ×-80' },
+    { k:'烽燧台自毁',      v: -shatters*5,                     note: shatters+' 座 ×-5' },
+    { k:'能量转换率',    v: Math.round(conv*400),            note: fmt2(conv)+' ×400' },
+    { k:'歼灭荒原兽',    v: kills.length*22,                 note: kills.length+' 只 ×22（矢 '+killByArrow+'）' },
+    { k:'烽燧布防',      v: arms.length*15,                  note: arms.length+' 座 ×15' },
+    { k:'烽燧齐射',      v: volleys.length*4,                note: volleys.length+' 次 ×4' },
+    { k:'烽号失配惩罚',  v: -bandRejects*18,                 note: bandRejects+' 次 ×-18' },
+    { k:'漏防惩戒',      v: -leaks.length*35,                note: leaks.length+' 只 ×-35' },
+    { k:'峰顶灵石余量',  v: Math.max(0,S.shrineHP)*20,       note: Math.max(0,S.shrineHP)+' / '+SHRINE_HP+' ×20' }
+  ];
+  var total=terms.reduce(function(a,t){ return a+t.v; },0);
+  if(total<0) total=0;
+  var star= total>=1500?3 : total>=1000?2 : total>=600?1 : 0;
+  return {
+    terms:terms, total:total, star:star,
+    ringSum:ringSum, coreHit:coreHit, graze:graze, bodyHit:bodyHit, bestCombo:best,
+    dwells:dwells.length, latAvg:latAvg, swings:swings.length, bursts:bursts,
+    overloads:overloads, rollbacks:rollbacks, shatters:shatters, dives:dives, flips:flips,
+    conv:conv, devAvg:devAvg,
+    kills:kills.length, killByArrow:killByArrow, arms:arms.length, volleys:volleys.length,
+    leaked:leaks.length, bandRejects:bandRejects, shrineHP:Math.max(0,S.shrineHP),
+    bandHits:bandHits,
+    accuracy: land.length? Math.round((coreHit+bodyHit)/land.length*100) : 0,
+    shots:land.length,
+    multiplier: 1 + best*0.25 + swings.length*0.1
+  };
+}
+
+/* ---------------------------------------------------------------- S3 能量核 */
+function gainEnergy(amount,reason,weight){
+  if(amount<=0) return;
+  S.energy=clamp(S.energy+amount,0,ENERGY_CAP);
+  S.energyRate=amount;
+  logEvent('ENERGY_GAIN',{ amount:round2(amount), reason:reason, weight:round2(weight==null?1:weight) });
+}
+function spendEnergy(amount,reason){
+  S.energy=clamp(S.energy-amount,0,ENERGY_CAP);
+  logEvent('ENERGY_SPEND',{ amount:round2(amount), reason:reason });
+}
+
+/* ---------------------------------------------------------------- S2 烽燧台阵列 */
+function makeBeacon(i,x,y,w,core){
+  return {
+    id:'F-'+String(i+1).padStart(2,'0'), idx:i,
+    x:x, y:y, w:w, h:26,
+    baseY:y, sinkY:0, sinkV:0, impactV:0, load:0, life:1, alive:true,
+    touched:false, leftAt:-1, reboundV:0, reboundY:0, resonance:false,
+    arm:-1, armCd:0, armT:-1, volleys:0,
+    spawn:0, core:!!core, shatterT:0, frag:[]
+  };
+}
+function genLevel(){
+  rng=mulberry32(S.seed);
+  var bc=[], i;
+  bc.push(makeBeacon(0, 300, BASE_Y, 300, true));           // 起始岩台（宽）
+  var y=BASE_Y, x=300, n=11;
+  for(i=1;i<=n;i++){
+    var dx=(i%3===0? 0 : (rng()<0.5?-1:1)) * (168+rng()*86);
+    x=clamp(x+dx, 150, 1240);
+    y-= (128+rng()*46);
+    var w= 108+rng()*62;
+    var core = (i%4===2);
+    bc.push(makeBeacon(i, x, y, w, core));
+  }
+  S.beacons=bc;
+  /* 烽火图腾：三座，挂在岩壁上，须以箭击穿核心 */
+  S.totems=[
+    { id:'T-01', x:1180, y:1620, r:78, hp:1, hit:false, phase:0.0, ring:0, dev:0, zone:'' },
+    { id:'T-02', x:246,  y:1010, r:78, hp:1, hit:false, phase:1.4, ring:0, dev:0, zone:'' },
+    { id:'T-03', x:1128, y:392,  r:78, hp:1, hit:false, phase:2.8, ring:0, dev:0, zone:'' }
+  ];
+  buildPath();
+  S.initTotal=bc.length+S.totems.length;
+  S.initDone=0;
+}
+
+/* ================================================================ S6 战略层
+   四方烽号 · 古道兽潮 · 烽燧布防 · 峰顶灵石
+   与 S1~S5 环形耦合：气象改写荒原兽与烽火矢的走位；烽号同时门禁图腾与齐射；
+   烽火令既是布防成本又是共振成本；兽潮暴涌同时放大切变与兽速。 */
+var BAND_RGB=[[90,196,214],[224,110,74],[110,206,140],[150,128,214]];
+function bandColor(i){ var b=BAND_RGB[((i%BAND_N)+BAND_N)%BAND_N]; return 'rgb('+b[0]+','+b[1]+','+b[2]+')'; }
+function bandRGBA(i,a){ var b=BAND_RGB[((i%BAND_N)+BAND_N)%BAND_N]; return 'rgba('+b[0]+','+b[1]+','+b[2]+','+a+')'; }
+/* 图腾烽号需求按固定槽位轮转：需求随战场时间演化，本体烽号必须持续切换 */
+function demandBand(k,t){
+  var slot=Math.floor((t==null?S.gameT:t)/DEMAND_SLOT);
+  return ((slot+k)%BAND_N+BAND_N)%BAND_N;
+}
+function demandLeft(t){ var q=(t==null?S.gameT:t)/DEMAND_SLOT; return (1-(q-Math.floor(q)))*DEMAND_SLOT; }
+
+/* 古道：自谷底出怪口沿烽燧台链折返而上，止于峰顶灵石 */
+function buildPath(){
+  var prng=mulberry32((S.seed^0x5bf03635)>>>0);
+  var pts=[{x:300,y:WY-40}];
+  for(var i=0;i<S.beacons.length;i++){
+    var bc=S.beacons[i], side=(i%2===0)?-1:1;
+    pts.push({ x:clamp(bc.x+side*(58+prng()*52),90,WW-90), y:bc.y-46 });
+  }
+  pts.push({ x:WW/2, y:SUMMIT_Y+16 });
+  S.path=pts; S.gate=pts[0]; S.shrine=pts[pts.length-1];
+  var acc=0, cum=[0];
+  for(var k=1;k<pts.length;k++){
+    acc+=Math.hypot(pts[k].x-pts[k-1].x, pts[k].y-pts[k-1].y); cum.push(acc);
+  }
+  S.pathLen=acc; S.pathCum=cum;
+}
+/* 弧长采样：荒原兽的推进量以古道里程表示，与横向摆动解耦 */
+function pathAt(d){
+  var pts=S.path, cum=S.pathCum;
+  if(!pts||pts.length<2) return {x:WW/2,y:WY-40};
+  if(d<=0) return {x:pts[0].x, y:pts[0].y};
+  if(d>=S.pathLen) return {x:pts[pts.length-1].x, y:pts[pts.length-1].y};
+  var lo=0, hi=cum.length-1;
+  while(lo<hi-1){ var mid=(lo+hi)>>1; if(cum[mid]<=d) lo=mid; else hi=mid; }
+  var seg=(cum[lo+1]-cum[lo])||1, u=(d-cum[lo])/seg;
+  return { x:lerp(pts[lo].x,pts[lo+1].x,u), y:lerp(pts[lo].y,pts[lo+1].y,u) };
+}
+
+/* 荒原兽：烽号在出怪时锁定，只有同号烽燧齐射或同号烽火矢才能造成杀伤 */
+function spawnBeast(band,d){
+  var p=pathAt(d||0);
+  S.beasts.push({ id:'B'+String(S.spawned+1).padStart(3,'0'), d:d||0, x:p.x, y:p.y,
+    band:((band%BAND_N)+BAND_N)%BAND_N, hp:BEAST_HP, max:BEAST_HP,
+    spd:BEAST_SPD*(0.86+0.28*rng()), flash:0, alive:true, wob:rng()*6.2832 });
+  S.spawned++;
+}
+function tickWaves(dt){
+  if(S.fsm==='SEEDED_INITIALIZING'||S.fsm==='CRISIS_FAILED_ROLLBACK'||S.fsm==='RUN_SETTLED_LEDGER') return;
+  S.waveT-=dt;
+  if(S.wave<WAVE_MAX && S.waveT<=0){
+    S.wave++;
+    var n=BEAST_BASE+(S.wave-1);
+    S.spawnQ+=n;
+    S.spawnBand=(S.spawnBand+1+S.wave)%BAND_N;
+    S.waveT=WAVE_GAP;
+    logEvent('WAVE_INBOUND',{ wave:S.wave, count:n, band:S.spawnBand });
+    toast('第 '+S.wave+' 波兽潮 · '+n+' 只 · 主烽号 '+BAND_NAMES[S.spawnBand],1.9);
+  }
+  if(S.spawnQ>0){
+    S.spawnT-=dt;
+    if(S.spawnT<=0){
+      S.spawnT=0.40; S.spawnQ--;
+      spawnBeast((S.spawned%3===2)?(S.spawnBand+1)%BAND_N:S.spawnBand, 0);
+    }
+  }
+}
+function tickBeasts(dt){
+  if(S.fsm==='CRISIS_FAILED_ROLLBACK') return;
+  for(var i=S.beasts.length-1;i>=0;i--){
+    var b=S.beasts[i];
+    b.flash=Math.max(0,b.flash-dt*3.2);
+    if(!b.alive){ S.beasts.splice(i,1); continue; }
+    if(b.spd<=0) continue;                        // 静止兽（标定用）不推进
+    b.d+=b.spd*(S.surge?1.35:1)*dt;
+    var p=pathAt(b.d); b.x=p.x; b.y=p.y;
+    if(b.d>=S.pathLen){
+      S.beasts.splice(i,1);
+      S.leaked++; S.shrineHP-=LEAP_DMG;
+      S.shakeT=0.3; S.flashT=0.2;
+      logEvent('BEAST_LEAK',{ beast:b.id, band:b.band, shrine:S.shrineHP, leaked:S.leaked });
+      toast('漏防 · 灵石受损（余 '+Math.max(0,S.shrineHP)+'）',1.4);
+      if(S.shrineHP<=0) fatal('灵石崩碎');
+    }
+  }
+}
+function killBeast(b,how){
+  b.alive=false; S.killed++;
+  logEvent('BEAST_KILLED',{ beast:b.id, how:how, band:b.band, d:Math.round(b.d) });
+  for(var k=0;k<10;k++)
+    S.parts.push({ x:b.x, y:b.y, vx:(rng()-0.5)*320, vy:-rng()*260,
+      life:0.55, max:0.55, r:1.5+rng()*2.5, c:C.ember });
+}
+/* 烽燧布防：以本体当前烽号为台赋值，只有同号荒原兽进入射界才会触发齐射 */
+function armKey(){
+  if(!canAct()) return;
+  var is=S.beacons[S.groundBeacon];
+  if(!S.grounded||!is||!is.alive){
+    S.armRejects++; logEvent('ARM_REJECT',{ reason:'NOT_ON_BEACON' });
+    toast('须立于烽燧台方可布防',1.2); return;
+  }
+  if(S.energy<ARM_COST){
+    S.armRejects++; logEvent('ARM_REJECT',{ reason:'NO_ENERGY', energy:round2(S.energy) });
+    toast('烽火令不足（需 '+ARM_COST+'）',1.2); return;
+  }
+  spendEnergy(ARM_COST,'BEACON_ARM');
+  is.arm=S.band; is.armCd=VOLLEY_CD; is.armT=S.gameT;
+  S.armCount++;
+  logEvent('BEACON_ARM',{ beacon:is.idx, band:S.band, bandName:BAND_NAMES[S.band],
+    x:Math.round(is.x), y:Math.round(is.y) });
+  toast(is.id+' 布防 · '+BAND_NAMES[S.band]+' 烽号',1.3);
+}
+function tickBeacons(dt){
+  for(var i=0;i<S.beacons.length;i++){
+    var bc=S.beacons[i];
+    if(!bc.alive||bc.arm<0) continue;
+    bc.armCd-=dt;
+    if(bc.armCd>0) continue;
+    var best=null, bd=1e9;
+    for(var k=0;k<S.beasts.length;k++){
+      var b=S.beasts[k];
+      if(!b.alive||b.band!==bc.arm) continue;       // 烽号不符：烽燧台不予响应
+      var d=Math.hypot(b.x-bc.x,b.y-bc.y);
+      if(d<ARM_RANGE&&d<bd){ bd=d; best=b; }
+    }
+    if(!best) continue;
+    bc.armCd=VOLLEY_CD; bc.volleys++;
+    best.hp-=VOLLEY_DMG; best.flash=1;
+    S.volleys++;
+    S.volleyFx.push({ x:bc.x, y:bc.y-20, tx:best.x, ty:best.y,
+      life:0.26, max:0.26, band:bc.arm });
+    logEvent('VOLLEY',{ beacon:bc.idx, band:bc.arm, target:best.id,
+      dmg:VOLLEY_DMG, hp:Math.max(0,Math.round(best.hp)) });
+    if(best.hp<=0) killBeast(best,'VOLLEY');
+  }
+  for(var f=S.volleyFx.length-1;f>=0;f--){
+    S.volleyFx[f].life-=dt;
+    if(S.volleyFx[f].life<=0) S.volleyFx.splice(f,1);
+  }
+}
+/* 通关：波次打满 + 场中无兽 + 三座烽火图腾尽穿 */
+function tickShrine(){
+  if(S.fsm==='RUN_SETTLED_LEDGER'||S.wave<WAVE_MAX) return;
+  if(S.beasts.length||S.spawnQ>0) return;
+  for(var i=0;i<S.totems.length;i++) if(!S.totems[i].hit) return;
+  settleRun('烽火连天 · 荒原肃清');
+}
+
+/* ---------------------------------------------------------------- 状态机 */
+function setFsm(next,why){
+  if(S.fsm===next) return;
+  S.prevFsm=S.fsm; S.fsm=next;
+  var fr=document.getElementById('frame');
+  if(fr) fr.className=(next==='RUN_SETTLED_LEDGER')?'settled':'';
+  logEvent('FSM',{ from:S.prevFsm, to:next, why:why||'' });
+}
+function toast(m,dur){ S.msg=m; S.msgT=dur||1.6; }
+
+/* ---------------------------------------------------------------- 输入 */
+var keys={}, mouse={x:900,y:300,down:false};
+window.addEventListener('keydown',function(e){
+  if(e.repeat){ keys[e.code]=true; return; }
+  keys[e.code]=true;
+  if(S.fsm==='TITLE_LOBBY'&&(e.code==='Enter'||e.code==='Space')){ beginSeeding(); return; }
+  if(S.fsm==='RUN_SETTLED_LEDGER'){
+    if(e.code==='KeyR'||e.code==='Enter'){ beginSeeding(); }
+    if(e.code==='Escape'){ backToLobby(); }
+    return;
+  }
+  if(e.code==='KeyP'&&(S.fsm==='ACTIVE_ENGAGED'||S.fsm==='ATTUNEMENT_DWELL'||S.fsm==='DYNAMIC_BRANCHING')){
+    S.frozen=!S.frozen; toast(S.frozen?'已冻结时钟':'时钟恢复',1.0); return;
+  }
+  if(S.fsm==='CRISIS_FAILED_ROLLBACK') return;
+  if(e.code==='Space'){ if(!S.charging){ S.charging=true; S.drawT=0; } }
+  if(e.code==='KeyQ') tetherKey();
+  if(e.code==='KeyR') phaseFlipKey();
+  if(e.code==='KeyE') burstKey();
+  if(e.code==='KeyC') armKey();
+  if(e.code==='KeyS'||e.code==='ArrowDown'){ if(!S.grounded) S.dive=true; }
+  /* 四方烽号：D / F / J / K 切换本体烽号 */
+  var bi=BAND_KEYS.indexOf(e.code);
+  if(bi>=0&&canAct()) S.band=bi;
+});
+window.addEventListener('keyup',function(e){
+  keys[e.code]=false;
+  if(e.code==='Space'&&S.charging){ S.charging=false; fireArrow(); }
+  if(e.code==='KeyS'||e.code==='ArrowDown') S.dive=false;
+});
+cvW.addEventListener('mousemove',function(e){
+  var r=cvW.getBoundingClientRect();
+  mouse.x=clamp((e.clientX-r.left)/r.width*WW,0,WW);
+  mouse.y=clamp((e.clientY-r.top)/r.height*WH,0,WH);
+});
+cvW.addEventListener('mousedown',function(e){
+  mouse.down=true;
+  if(S.fsm==='TITLE_LOBBY'){ beginSeeding(); return; }
+  if(S.fsm==='RUN_SETTLED_LEDGER'){ beginSeeding(); return; }
+  if(canAct()) { if(!S.charging){ S.charging=true; S.drawT=0; } }
+});
+window.addEventListener('mouseup',function(){
+  mouse.down=false;
+  if(S.charging){ S.charging=false; fireArrow(); }
+});
+
+/* ---------------------------------------------------------------- 流程控制 */
+function backToLobby(){
+  var keepSeed=S.seed;
+  S=freshState(); S.seed=keepSeed;
+  buildHudBeacons();
+  logEvent('LOBBY',{ seed:keepSeed });
+}
+function beginSeeding(){
+  var keepSeed=S.seed;
+  S=freshState(); S.seed=keepSeed;
+  genLevel(); buildHudBeacons();
+  setFsm('SEEDED_INITIALIZING','进入关卡种子重构');
+  S.initT=0;
+  logEvent('SEED_INIT',{ seed:S.seed, beacons:S.beacons.length, totems:S.totems.length });
+  /* 铺开玩家到起始岩台 */
+  S.px=S.beacons[0].x; S.py=S.beacons[0].y-20; S.pvx=0; S.pvy=0;
+  S.grounded=true; S.groundBeacon=0; S.jumps=0;
+}
+function canAct(){
+  return S.fsm==='ACTIVE_ENGAGED'||S.fsm==='ATTUNEMENT_DWELL'||S.fsm==='DYNAMIC_BRANCHING';
+}
+function playerSpeed(){ return Math.hypot(S.pvx,S.pvy); }
+
+/* ---------------------------------------------------------------- 同调 */
+function tickDwell(dt){
+  var still = S.grounded && playerSpeed()<DWELL_EPS && Math.abs(S.pvx)<DWELL_EPS;
+  if(still){
+    S.dwellT+=dt; S.dwellActive=true;
+    if(S.fsm==='ACTIVE_ENGAGED') setFsm('ATTUNEMENT_DWELL','落点相对静止');
+    if(S.dwellT>=DWELL_NEED&&!S.attuned){
+      S.attuned=true;
+      S.jumps=1;                                   // 同调完成才由 0 置 1
+      S.attuneCount++; S.dwellSum+=S.dwellT;
+      /* lat = 从触地到同调落定的总延迟，含玩家把速度压回静止阈值所耗的时间 */
+      logEvent('ATTUNE_COMPLETE',{ island:S.groundBeacon, dwell:round2(S.dwellT),
+        lat:round2(S.gameT-(S.landT||S.gameT)), x:Math.round(S.px) });
+      var bc=S.beacons[S.groundBeacon];
+      if(bc){
+        /* 同调本身不充能——充能只发生在落点命中核心区的瞬间（见 landOn） */
+        var off=Math.abs(S.px-bc.x)/(bc.w/2);
+        if(off<=CORE_RADIUS_RATIO*2.2){ bc.resonance=true; toast('核心同调 · 共振就绪',1.4); }
+        else toast('同调完成 · 单跳解锁',0.9);
+      }
+      S.dwellActive=false; S.dwellT=DWELL_NEED;
+      if(S.fsm==='ATTUNEMENT_DWELL') setFsm('ACTIVE_ENGAGED','同调完成');
+    }
+  }else{
+    if(S.dwellActive){
+      logEvent('ATTUNE_BROKEN',{ dwell:round2(S.dwellT), speed:round2(playerSpeed()) });
+    }
+    S.dwellT=0; S.dwellActive=false; S.attuned=false;
+    if(S.fsm==='ATTUNEMENT_DWELL') setFsm('ACTIVE_ENGAGED','静止条件被打破');
+  }
+}
+
+/* ---------------------------------------------------------------- S2 烽燧台衰变 */
+function tickIslands(dt){
+  S.structLoss=0;
+  for(var i=0;i<S.beacons.length;i++){
+    var is=S.beacons[i];
+    if(!is.alive) continue;
+    if(is.spawn<1){ is.spawn=clamp(is.spawn+dt*2.4,0,1); }
+    /* 承重：站立即持续压迫烽燧台并消耗其结构寿命 */
+    if(i===S.groundBeacon&&S.grounded){
+      is.load=Math.min(is.load+dt*1.7,3.0);
+      is.life=clamp(is.life-dt*0.085,0,1);
+      S.structLoss+=dt*0.085;
+    }else{
+      is.load=Math.max(0,is.load-dt*1.2);
+    }
+    /* 下沉位移积分：持续承重 + 落地冲量共同驱动 */
+    is.sinkV += (is.load*26 + is.impactV)*dt;
+    is.impactV *= (1-4.5*dt);
+    is.sinkV *= (1-2.4*dt);
+    is.sinkY = clamp(is.sinkY + is.sinkV*dt, 0, SINK_FLOOR);
+    /* 弹性回冲：离台瞬间获得反方向弹起位移（弹力系数 k=0.68） */
+    if(is.reboundV!==0||is.reboundY!==0){
+      is.reboundY += is.reboundV*dt;
+      is.reboundV *= (1-3.4*dt);
+      is.reboundY *= (1-2.6*dt);
+      if(Math.abs(is.reboundV)<3&&Math.abs(is.reboundY)<0.5){ is.reboundV=0; is.reboundY=0; }
+    }
+    is.y = is.baseY + is.sinkY + is.reboundY;
+    if(!Number.isFinite(is.y)) is.y=is.baseY, is.sinkY=0, is.sinkV=0, is.reboundY=0;
+    /* 离台碎裂 */
+    if(is.leftAt>=0 && is.touched && is.alive){
+      if(S.gameT-is.leftAt>=SHATTER_DELAY) shatterBeacon(i);
+    }
+    if(is.life<=0) shatterBeacon(i);
+  }
+  /* 碎片 */
+  for(var d=S.debris.length-1;d>=0;d--){
+    var f=S.debris[d];
+    f.vy+=600*dt; f.vx*=(1-0.8*dt);
+    f.x+=f.vx*dt; f.y+=f.vy*dt; f.rot+=f.rv*dt; f.a-=dt*0.42;
+    if(f.a<=0||f.y>WY+200) S.debris.splice(d,1);
+  }
+}
+function shatterBeacon(i){
+  var is=S.beacons[i];
+  if(!is||!is.alive) return;
+  is.alive=false; is.shatterT=S.gameT;
+  for(var k=0;k<16;k++){
+    S.debris.push({ x:is.x+(rng()-0.5)*is.w, y:is.y+is.sinkY+rng()*is.h,
+      vx:(rng()-0.5)*210, vy:-40-rng()*190, w:8+rng()*24, h:5+rng()*12,
+      rot:rng()*6.28, rv:(rng()-0.5)*4, a:1, moss:rng()<0.4 });
+  }
+  logEvent('ISLAND_SHATTER',{ island:i, id:is.id, life:round2(is.life), sink:Math.round(is.sinkY) });
+  if(S.groundBeacon===i&&S.grounded){ S.grounded=false; S.groundBeacon=-1; }
+  buildHudBeacons();
+}
+/* 落地冲击：下沉速度强制满足 v_sink = 1.2·(1 + v_impact²/200)，冲击越大越呈平方级恶化 */
+function landOn(i,impact){
+  var is=S.beacons[i];
+  if(!is||!is.alive) return false;
+  var u=Math.abs(impact)/100;                         // 冲击强度（百像素/秒）
+  var v=1.2*(1 + u*u/200);
+  is.impactV=Math.max(is.impactV, v*SINK_PXS);
+  is.sinkV=Math.max(is.sinkV, v*SINK_PXS*0.6);
+  is.load=Math.min(is.load+u*0.16, 3.0);
+  is.touched=true; is.leftAt=-1;
+  S.landT=S.gameT;                                    // 触地时刻，用于度量同调迟滞
+  S.grounded=true; S.groundBeacon=i; S.pvy=0; S.jumps=0;
+  S.dwellT=0; S.dwellActive=false; S.attuned=false;
+  logEvent('LAND_IMPACT',{ island:i, id:is.id, impact:round2(impact), sinkV:round2(v*SINK_PXS),
+    offset:round2(Math.abs(S.px-is.x)/(is.w/2)) });
+  S.shakeT=Math.min(0.25, impact/2600);
+  /* 核心区落点加权充能 */
+  var off=Math.abs(S.px-is.x)/(is.w/2);
+  if(off<=CORE_RADIUS_RATIO*2.2){ gainEnergy(6+14*(1-off),'CORE_LANDING',1-off); }
+  else if(off>0.85){ gainEnergy(0,'EDGE_LANDING',0); }
+  /* 落点范围外 → 坠落 */
+  return true;
+}
+
+/* ---------------------------------------------------------------- 玩家物理 */
+function tickPlayer(dt){
+  if(S.fsm==='OVERLOAD_PENALTY'){
+    S.stunT-=dt;
+    S.pvx*=(1-9*dt);
+    S.pvy+=gravVec(S.gameT).y*dt;
+    S.py+=S.pvy*dt; S.px+=S.pvx*dt;
+    if(S.stunT<=0){ setFsm('ACTIVE_ENGAGED','硬直解除'); S.energy=clamp(S.energy,0,60); }
+    return;
+  }
+  if(S.fsm==='CRISIS_FAILED_ROLLBACK'){
+    S.rollbackT-=dt;
+    S.pvy+=1400*dt; S.py+=S.pvy*dt;
+    if(S.rollbackT<=0) doRollback();
+    return;
+  }
+  if(!canAct()) return;
+
+  /* 索摆荡优先接管位移 */
+  if(S.tether>=0){ tickTether(dt); return; }
+
+  var g=gravVec(S.gameT);
+  var w=windField(S.px,S.py,S.gameT);
+
+  /* 水平输入 */
+  var ax=0;
+  /* 位移改用方向键：D / F / J / K 已让给四方烽号，C 让给烽燧布防 */
+  if(keys['ArrowLeft']) ax-=1;
+  if(keys['ArrowRight']) ax+=1;
+  if(ax!==0) S.facing=ax;
+  var accel=MOVE_ACC*(S.grounded?1:0.62);
+  S.pvx+=ax*accel*dt;
+  S.pvx=clamp(S.pvx,-MAX_RUN*1.35,MAX_RUN*1.35);
+  if(ax===0){
+    if(S.grounded){
+      /* 支撑面静摩擦：无输入时迅速吸收入射水平动量，直至完全静止 */
+      S.pvx*=(1-14*dt);
+      if(Math.abs(S.pvx)<18) S.pvx=0;
+    }else S.pvx*=(1-AIR_FRIC*dt);
+  }
+
+  /* 跳跃：同调完成（jumps≥1）才允许 */
+  var wantJump=keys['KeyW']||keys['ArrowUp']||keys['Space']&&!S.charging&&false;
+  if((keys['KeyW']||keys['ArrowUp'])&&S.jumps>0){
+    /* 起跳方向必须与当前重力指向相反：常规相位向上（屏幕负向），相位翻转后向下 */
+    S.pvy=-JUMP_V*(S.phaseFlip%2===1?-1:1);
+    S.jumps--; S.grounded=false;
+    var gi=S.groundBeacon;
+    if(gi>=0&&S.beacons[gi]){
+      var gis=S.beacons[gi];
+      gis.leftAt=S.gameT;
+      gis.reboundV=-REBOUND_K*Math.max(gis.sinkV, 26);   // 反方向弹起
+      logEvent('ISLAND_LEAVE',{ island:gi, sinkV:round2(gis.sinkV), rebound:round2(gis.reboundV) });
+    }
+    S.groundBeacon=-1; S.dwellT=0; S.dwellActive=false;
+    logEvent('JUMP',{ j:1, x:Math.round(S.px), y:Math.round(S.py) });
+  }
+
+  /* 动量下压速坠：下落速度指数级递增 */
+  if(S.dive&&!S.grounded){
+    S.pvy += Math.sign(g.y||1)*Math.abs(S.pvy)*DIVE_BOOST*dt + 900*dt;
+  }
+
+  /* 动力学矢量合成：静止驻留时切向重力分量被支撑面完全抵消（这才使 |v|<0.05 可达成） */
+  var af=aeroForce(S.pvx,S.pvy,w);
+  if(S.grounded&&ax===0){
+    S.pvx=0; S.pvy=0;
+  }else{
+    S.pvx+=(g.x+af.x)*dt;
+    S.pvy+=(g.y+af.y)*dt;
+  }
+  S.px+=S.pvx*dt; S.py+=S.pvy*dt;
+
+  /* 相位翻转视差倾角扰动（300ms） */
+  if(S.tiltT>0) S.tiltT-=dt;
+
+  /* 世界边界 */
+  /* 荒原壁垒：可行动域收在两侧仪表带之内，角色永不进入 HUD 覆盖区 */
+  if(S.px<PLAY_X0){ S.px=PLAY_X0; S.pvx=Math.abs(S.pvx)*0.3; }
+  if(S.px>PLAY_X1){ S.px=PLAY_X1; S.pvx=-Math.abs(S.pvx)*0.3; }
+
+  /* 与烽燧台的落地判定（分层：顶面着陆域） */
+  if(S.pvy>=0||S.grounded){
+    for(var i=0;i<S.beacons.length;i++){
+      var is=S.beacons[i];
+      if(!is.alive) continue;
+      var top=is.y;
+      var prevBottom=S.py-14-S.pvy*dt;
+      var inX=Math.abs(S.px-is.x)<=is.w/2+6;
+      if(inX&&S.py-14>=top-10&&prevBottom<=top+8&&S.pvy>=0){
+        if(!S.grounded||S.groundBeacon!==i){
+          landOn(i, Math.abs(S.pvy));
+          if(S.dive){ S.dive=false; shockwave(); }
+        }else{
+          S.py=top+14;
+        }
+        break;
+      }
+    }
+  }
+  if(S.grounded){
+    var gi=S.groundBeacon;
+    if(gi>=0&&S.beacons[gi]&&S.beacons[gi].alive){
+      S.py=S.beacons[gi].y+14;
+      if(Math.abs(S.px-S.beacons[gi].x)>S.beacons[gi].w/2){ S.grounded=false; S.groundBeacon=-1; S.jumps=0; }
+    }else{ S.grounded=false; S.groundBeacon=-1; S.jumps=0; }
+  }
+
+  /* 峰顶信标 */
+  if(S.py<=SUMMIT_Y+40){ settleRun('抵达峰顶信标'); return; }
+  /* 坠入深渊 */
+  if(S.py>WY-40){ fatal('坠入深渊'); }
+}
+function shockwave(){
+  logEvent('DIVE_IMPACT',{ x:Math.round(S.px), y:Math.round(S.py), speed:round2(Math.abs(S.pvy)) });
+  S.shakeT=0.3;
+  for(var k=0;k<22;k++){
+    S.parts.push({ x:S.px, y:S.py+10, vx:(k/22-0.5)*560, vy:-40-rng()*140,
+      life:0.6, max:0.6, r:2+rng()*3, c:C.gold });
+  }
+  gainEnergy(3,'DIVE_IMPACT',0.3);
+}
+
+/* ---------------------------------------------------------------- 能量索摆荡 */
+function tetherKey(){
+  if(!canAct()) return;
+  if(S.tether>=0){ releaseTether(); return; }
+  /* 寻找最近可锚点（烽燧台底面中心） */
+  var best=-1, bd=1e9;
+  for(var i=0;i<S.beacons.length;i++){
+    var is=S.beacons[i];
+    if(!is.alive||i===S.groundBeacon) continue;
+    var d=Math.hypot(is.x-S.px, is.y-S.py);
+    if(d<420&&d<bd&&is.y<S.py+40){ bd=d; best=i; }
+  }
+  if(best<0){ toast('空域无可用锚点',1.0); return; }
+  var is2=S.beacons[best];
+  S.tether=best;
+  S.tetherLen=Math.hypot(is2.x-S.px,is2.y-S.py);
+  S.tetherAng=Math.atan2(S.px-is2.x, S.py-is2.y);
+  S.tetherVel=Math.hypot(S.pvx,S.pvy)/S.tetherLen;
+  S.tetherStart=S.gameT; S.tetherArc=0;
+  S.grounded=false; S.groundBeacon=-1; S.jumps=0;
+  setFsm('DYNAMIC_BRANCHING','能量索锚定');
+  logEvent('TETHER_ATTACH',{ island:best, len:round1(S.tetherLen), x:Math.round(S.px), y:Math.round(S.py) });
+  toast('能量索锚定 · 空格释放',1.2);
+}
+function tickTether(dt){
+  var is=S.beacons[S.tether];
+  if(!is||!is.alive){ releaseTether(); return; }
+  var g=gravVec(S.gameT);
+  var gT=g.x*Math.cos(S.tetherAng) - g.y*Math.sin(S.tetherAng);   // 切向重力分量
+  S.tetherVel += (gT/S.tetherLen)*dt;
+  S.tetherVel *= (1-0.16*dt);
+  S.tetherAng += S.tetherVel*dt;
+  S.tetherArc += Math.abs(S.tetherVel*dt);
+  var nx=is.x+Math.sin(S.tetherAng)*S.tetherLen;
+  var ny=is.y+Math.cos(S.tetherAng)*S.tetherLen;
+  S.pvx=(nx-S.px)/Math.max(dt,1e-3); S.pvy=(ny-S.py)/Math.max(dt,1e-3);
+  S.px=nx; S.py=ny;
+  if(S.tetherArc>=1.2&&!S.tetherRewarded){
+    S.tetherRewarded=true;
+    gainEnergy(22,'TETHER_SWING',1);
+    logEvent('TETHER_ARC',{ arc:round2(S.tetherArc) });
+  }
+  if(S.py>WY-60) fatal('摆荡失稳坠渊');
+}
+function releaseTether(){
+  if(S.tether<0) return;
+  var is=S.beacons[S.tether];
+  var rel=Math.atan2(S.px-is.x, S.py-is.y);
+  var tangent={ x:Math.cos(rel)*Math.sign(S.tetherVel), y:-Math.sin(rel)*Math.sign(S.tetherVel) };
+  var sp=Math.abs(S.tetherVel)*S.tetherLen;
+  S.pvx=tangent.x*sp*1.08;
+  S.pvy=tangent.y*sp*1.08;
+  logEvent('TETHER_RELEASE',{ island:S.tether, arc:round2(S.tetherArc),
+    angle:Math.round(rel*180/Math.PI), speed:round2(sp) });
+  S.swingCount++;
+  S.tether=-1; S.tetherRewarded=false;
+  S.grounded=false;
+  if(S.fsm==='DYNAMIC_BRANCHING') setFsm('ACTIVE_ENGAGED','索释放');
+}
+
+/* ---------------------------------------------------------------- 相位翻转 */
+function phaseFlipKey(){
+  if(!canAct()) return;
+  S.phaseFlip++;
+  S.tiltT=0.30;
+  S.grounded=false; S.groundBeacon=-1;
+  S.pvy*= -0.45;
+  S.flashT=0.22;
+  logEvent('PHASE_FLIP',{ count:S.phaseFlip, tilt:0.30 });
+  toast('空间相位翻转 · 视差扰动 300ms',1.2);
+}
+
+/* ---------------------------------------------------------------- 共振释放 */
+function burstKey(){
+  if(!canAct()) return;
+  var is=S.beacons[S.groundBeacon];
+  if(!S.grounded||!is||!is.resonance){ toast('未完成同调共振',1.0); return; }
+  if(S.energy<60){ toast('烽火令不足（需 60）',1.2); return; }
+  var over=S.energy>=95;
+  var spent=S.energy;
+  spendEnergy(spent,'RESONANCE_BURST');
+  is.life=0; is.resonance=false;
+  S.grounded=false; S.groundBeacon=-1; S.jumps=0;
+  S.flashT=0.34; S.shakeT=0.32;
+  logEvent('RESONANCE_BURST',{ island:is.idx, spent:round2(spent), overload:over });
+  for(var k=0;k<40;k++){
+    S.parts.push({ x:is.x, y:is.y, vx:(rng()-0.5)*900, vy:-rng()*640,
+      life:0.8, max:0.8, r:2+rng()*4, c:over?C.danger:C.gold });
+  }
+  shatterBeacon(is.idx);
+  if(over) enterOverload('共振超频');
+  else { S.pvy=-420; gainEnergy(0,'BURST_LAUNCH',0); toast('共振脉冲 · 全屏动能',1.3); }
+}
+
+/* ---------------------------------------------------------------- 过载 / 危机 */
+function enterOverload(reason){
+  S.overloadCount++;
+  S.stunT=OVERLOAD_STUN;
+  S.energy=clamp(S.energy,0,ENERGY_CAP);
+  setFsm('OVERLOAD_PENALTY',reason);
+  S.flashT=0.3;
+  logEvent('OVERLOAD',{ reason:reason, stun:OVERLOAD_STUN });
+  toast('过载失稳 · 操作硬直 1.2s',1.6);
+}
+function fatal(reason){
+  if(S.fsm==='CRISIS_FAILED_ROLLBACK'||S.fsm==='RUN_SETTLED_LEDGER') return;
+  logEvent('FATAL',{ reason:reason, y:Math.round(S.py) });
+  S.rollbacks++;
+  saveCheckpoint();
+  S.rollbackT=1.05;
+  setFsm('CRISIS_FAILED_ROLLBACK',reason);
+  S.flashT=0.4; S.shakeT=0.4;
+  toast('致命失败 · 因果回溯',1.8);
+}
+function saveCheckpoint(){
+  var best=null;
+  for(var i=0;i<S.beacons.length;i++){
+    var is=S.beacons[i];
+    if(is.alive&&is.touched&&is.y<S.py+80){ if(!best||is.y>best.y) best=is; }
+  }
+  S.checkpoint=best? { x:best.x, y:best.y, idx:best.idx } : { x:300, y:BASE_Y, idx:0 };
+}
+function doRollback(){
+  if(S.rollbacks>ROLLBACK_BUDGET){ settleRun('因果回溯次数耗尽'); return; }
+  var cp=S.checkpoint||{ x:300, y:BASE_Y, idx:0 };
+  if(S.beacons[cp.idx]&&!S.beacons[cp.idx].alive){
+    /* 回滚点已崩解：原地重建一座同调烽燧台 */
+    S.beacons[cp.idx]=makeBeacon(cp.idx, cp.x, cp.y, 168, true);
+    S.beacons[cp.idx].spawn=1; S.beacons[cp.idx].touched=true;
+    buildHudBeacons();
+  }
+  S.px=cp.x; S.py=cp.y-24; S.pvx=0; S.pvy=0;
+  S.grounded=false; S.groundBeacon=-1; S.jumps=0; S.tether=-1;
+  S.dive=false; S.dwellT=0; S.dwellActive=false;
+  setFsm('ACTIVE_ENGAGED','因果回溯归位');
+  logEvent('ROLLBACK',{ to:cp.idx, x:round1(cp.x), y:round1(cp.y), used:S.rollbacks });
+  toast('回溯至 '+('F-'+String(cp.idx+1).padStart(2,'0')),1.4);
+}
+function settleRun(reason){
+  if(S.fsm==='RUN_SETTLED_LEDGER') return;
+  S.lastSettle=settleLedger();
+  logEvent('SETTLE',{ reason:reason, total:S.lastSettle.total, star:S.lastSettle.star });
+  setFsm('RUN_SETTLED_LEDGER',reason);
+}
+
+/* ---------------------------------------------------------------- 弓箭 */
+function fireArrow(){
+  if(!canAct()||S.tether>=0) { S.power=0.15; return; }
+  if(S.grounded&&S.dwellT<DWELL_NEED){ toast('落点未同调 · 无法燃烽',1.0); S.power=0.15; return; }
+  var p=clamp(S.power,0.15,1);
+  var sp=ARROW_SPEED_BASE+ARROW_SPEED_GAIN*p;
+  /* 由瞄准点解算发射角 */
+  var ax=mouse.x, ay=mouse.y;
+  var dx=ax-S.px, dy=ay-(S.py-26);
+  var ang=Math.atan2(dy,dx);
+  var a={
+    x:S.px+Math.cos(ang)*30, y:S.py-26+Math.sin(ang)*30,
+    vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp,
+    power:p, t:0, trail:[], alive:true, tgt:-1, tgtMin:1e9
+  };
+  S.arrows.push(a);
+  S.recoil=1;
+  logEvent('SHOT_FIRED',{ power:round2(p), speed:Math.round(sp),
+    angle:Math.round(ang*180/Math.PI), x:Math.round(S.px), y:Math.round(S.py),
+    energy:round2(S.energy) });
+  S.power=0.15; S.drawT=0; S.charging=false;   // 松弦即退出蓄能，避免蓄能态在放出烽火矢后残留
+}
+function tickArrows(dt){
+  /* 高速烽火矢必须子步积分：整帧步进会一步跨过核心命中域，使分层判定退化为边缘擦弹 */
+  var SUB=4, h=dt/SUB;
+  for(var i=S.arrows.length-1;i>=0;i--){
+    var a=S.arrows[i];
+    if(!a.alive){ S.arrows.splice(i,1); continue; }
+    for(var s=0;s<SUB&&a.alive;s++){
+      var w=windField(a.x,a.y,S.gameT);
+      var g=gravVec(S.gameT);
+      var af=aeroForce(a.vx,a.vy,w);
+      a.vx+=(g.x*0.52+af.x*1.45)*h;
+      a.vy+=(g.y*0.52+af.y*1.45)*h;
+      a.x+=a.vx*h; a.y+=a.vy*h; a.t+=h;
+      /* 与靶判定（分层）：贯穿全靶，按最深入环结算；入射点只作进入标记 */
+      var insideTarget=false;
+      for(var k=0;k<S.totems.length;k++){
+        var t=S.totems[k];
+        if(t.hit) continue;
+        var hit=classifyHit(a.x-t.x,a.y-t.y,t.r);
+        if(hit.zone!=='miss'){
+          insideTarget=true;
+          if(a.tgt!==k){ a.tgt=k; a.tgtMin=hit.ratio; }
+          else if(hit.ratio<a.tgtMin) a.tgtMin=hit.ratio;
+        }else if(a.tgt===k){
+          resolveArrow(a,t,{ zone:zoneOfRatio(a.tgtMin), ratio:a.tgtMin });
+          a.alive=false; break;
+        }
+      }
+      if(!a.alive) break;
+      /* 烽火矢 vs 荒原兽：同号才造成杀伤，异号被动量吸收域吞掉 */
+      for(var q=0;q<S.beasts.length;q++){
+        var bq=S.beasts[q];
+        if(!bq.alive) continue;
+        if(Math.hypot(a.x-bq.x,a.y-bq.y)>BEAST_R+5) continue;
+        if(bq.band===S.band){
+          bq.hp-=ARROW_DMG; bq.flash=1;
+          logEvent('ARROW_ON_BEAST',{ beast:bq.id, band:S.band, dmg:ARROW_DMG,
+            x:Math.round(a.x), y:Math.round(a.y) });
+          if(bq.hp<=0) killBeast(bq,'ARROW');
+        }else{
+          S.bandReject++;
+          logEvent('BAND_REJECT',{ source:'BEAST', beast:bq.id, need:bq.band, have:S.band,
+            x:Math.round(a.x), y:Math.round(a.y) });
+          toast('烽号失配 · 矢被动量吸收',1.1);
+        }
+        a.alive=false; break;
+      }
+      if(!a.alive) break;
+      if(insideTarget) continue;          // 仍在靶面内，暂不与岩壁结算
+      /* 动量吸收域：岩壁吸收 */
+      if(a.alive){
+        for(var m=0;m<S.beacons.length;m++){
+          var is=S.beacons[m];
+          if(!is.alive) continue;
+          if(Math.abs(a.x-is.x)<is.w/2+6 && a.y>is.y-4 && a.y<is.y+is.h+6){
+            logEvent('ARROW_ABSORBED',{ island:m, x:Math.round(a.x), y:Math.round(a.y) });
+            a.alive=false; break;
+          }
+        }
+      }
+      if(!a.alive) break;
+      if(a.t>6||a.y>WY+80||a.x<-60||a.x>WW+60){
+        /* 未穿出即失效：仍按已达成的最深入环结算，避免深中靶心的箭被记为脱靶 */
+        if(a.tgt>=0&&!S.totems[a.tgt].hit)
+          resolveArrow(a,S.totems[a.tgt],{ zone:zoneOfRatio(a.tgtMin), ratio:a.tgtMin });
+        else if(a.t>6) logEvent('ARROW_LOST',{ t:round2(a.t) });
+        a.alive=false;
+      }
+    }
+    if(a.alive){ a.trail.push({x:a.x,y:a.y}); if(a.trail.length>26) a.trail.shift(); }
+  }
+}
+function resolveArrow(a,t,hit){
+  var ring, gain=0;
+  /* 烽号门禁：图腾只接受与自身当下烽号需求同号的一击，异号一律被动量吸收域吞掉 */
+  var ti=S.totems.indexOf(t);
+  var need=demandBand(ti<0?0:ti, S.gameT);
+  if(S.band!==need){
+    S.bandReject++; S.stage=0;
+    logEvent('BAND_REJECT',{ source:'TOTEM', target:t.id, need:need, have:S.band,
+      zone:hit.zone, ratio:round2(hit.ratio), x:Math.round(a.x), y:Math.round(a.y) });
+    toast('烽号失配 · 动量吸收（需 '+BAND_NAMES[need]+'）',1.4);
+    return;
+  }
+  S.bandHit++;
+  if(hit.zone==='core'){ ring=10; }
+  else if(hit.zone==='body'){ ring=Math.max(1,Math.round(10-14*(hit.ratio-0.2))); }
+  else { ring=1; }
+  t.hit=true; t.ring=ring; t.zone=hit.zone; t.dev=hit.ratio;
+  S.lastDev=hit.ratio;
+  if(hit.zone==='core') S.coreHits++;
+  var ev=logEvent('ARROW_LANDED',{ target:t.id, ring:ring, zone:hit.zone,
+    deviation:round2(hit.ratio), power:a.power, x:Math.round(a.x), y:Math.round(a.y) });
+  /* 连击段位 */
+  if(hit.zone==='core'){ S.stage++; if(S.stage>S.maxStage) S.maxStage=S.stage; }
+  else if(hit.zone==='graze'){ S.stage=0; }
+  else S.stage=Math.max(0,S.stage);
+  /* 核心击穿充能 */
+  if(hit.zone==='core') gainEnergy(26,'CORE_SHOT',1);
+  else if(hit.zone==='body') gainEnergy(9,'BODY_SHOT',0.5);
+  S.totemsHit=(S.totemsHit||0)+1;
+  toast(hit.zone==='core'?('核心击穿 · '+ring+' 环'):(hit.zone==='body'?('命中 '+ring+' 环'):'擦弹边缘'),1.2);
+  if(S.totems.every(function(x){return x.hit;})) toast('三座烽火图腾尽穿 · 直取峰顶灵石',2.0);
+}
+
+/* ---------------------------------------------------------------- 粒子 */
+function tickParts(dt){
+  for(var i=S.parts.length-1;i>=0;i--){
+    var p=S.parts[i];
+    p.vy+=520*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt;
+    if(p.life<=0) S.parts.splice(i,1);
+  }
+}
+
+/* ---------------------------------------------------------------- 主更新 */
+function update(dt){
+  S.frame++;
+  if(S.fsm==='SEEDED_INITIALIZING'){
+    S.initT+=dt;
+    var prog=clamp(S.initT/1.25,0,1);
+    S.initDone=Math.round(prog*S.initTotal);   /* 与下方百分比同源取整，避免计数落后进度条 */
+    if(prog>=1){ setFsm('ACTIVE_ENGAGED','实体阵列重构完成'); toast('荒原烽火 · 起始岩台',1.6); }
+    tickParts(dt); return;
+  }
+  if(S.fsm==='RUN_SETTLED_LEDGER'){ tickParts(dt); return; }
+  if(S.fsm==='TITLE_LOBBY'){ tickParts(dt); return; }
+
+  S.gameT+=dt;
+  /* 兽潮涌动（高阶分支触发源） */
+  if(!S.surge&&S.gameT>S.surgeNext){ S.surge=true; S.surgeT=0;
+    /* 暴涌同时改写战场：额外投送一批异号荒原兽，且推进速度 ×1.35 */
+    S.spawnQ+=2; S.spawnBand=(S.spawnBand+2)%BAND_N;
+    logEvent('STORM_SURGE',{ t:round2(S.gameT), windAmp:1.85, extraBeasts:2 }); toast('兽潮爆发 · 切变 ×1.85',2.0); }
+  if(S.surge){ S.surgeT+=dt; if(S.surgeT>4.2){ S.surge=false; S.surgeNext=S.gameT+12+rng()*6; } }
+  if(S.surge&&S.fsm==='ACTIVE_ENGAGED') setFsm('DYNAMIC_BRANCHING','兽潮爆发');
+  if(!S.surge&&S.fsm==='DYNAMIC_BRANCHING'&&S.tether<0) setFsm('ACTIVE_ENGAGED','暴涌平息');
+
+  if(S.charging&&canAct()&&S.tether<0){ S.drawT+=dt; S.power=clamp(S.power+CHARGE_RATE*dt,0.15,1); }
+  if(S.recoil>0) S.recoil=Math.max(0,S.recoil-dt*4);
+  if(S.msgT>0) S.msgT-=dt;
+  if(S.flashT>0) S.flashT-=dt;
+  if(S.shakeT>0) S.shakeT-=dt;
+  if(S.energyRate>0) S.energyRate=Math.max(0,S.energyRate-dt*30);
+
+  tickIslands(dt);
+  tickPlayer(dt);
+  tickArrows(dt);
+  tickWaves(dt);
+  tickBeasts(dt);
+  tickBeacons(dt);
+  tickShrine();
+  tickParts(dt);
+  if(canAct()){
+    tickDwell(dt);
+    /* 边缘驻留扣减：站在烽燧台外缘 15% 区域持续掉稳定性 */
+    var is=S.beacons[S.groundBeacon];
+    S.edgeDrain=0;
+    if(S.grounded&&is&&is.alive){
+      var off=Math.abs(S.px-is.x)/(is.w/2);
+      if(off>0.85){ S.edgeDrain=ENERGY_EDGE_DRAIN; S.energy=clamp(S.energy-ENERGY_EDGE_DRAIN*dt,0,ENERGY_CAP);
+        S.energyRate=-ENERGY_EDGE_DRAIN; }
+    }
+    /* 超频：能量长期贴顶亦触发过载 */
+    if(S.energy>=ENERGY_CAP&&S.power>=1&&S.charging){ enterOverload('蓄能超频'); }
+  }
+
+  /* 相机：纵向锚点下移，使角色始终落在仪表带之下的净空区，绝不被 HUD 遮挡 */
+  S.camY=clamp(S.py-480,0,WY-WH);
+}
+
+/* ================================================================ 画布 A：世界 */
+function w2s(y){ return y-(S.camY||0); }
+function drawWorld(){
+  var c=ctxW;
+  c.setTransform(1,0,0,1,0,0);
+  c.clearRect(0,0,WW,WH);
+  var sh=0;
+  if(S.shakeT>0){ sh=S.shakeT*16; c.translate((rng()-0.5)*sh,(rng()-0.5)*sh); }
+
+  drawSky(c);
+  drawGorge(c);
+  drawPath(c);
+  drawShrine(c);
+  drawWindGrid(c);
+  drawTargets(c);
+  drawIslands(c);
+  drawDebris(c);
+  drawBeasts(c);
+  drawGuide(c);
+  drawPlayer(c);
+  drawBandMarker(c);
+  drawArrows(c);
+  drawVolleys(c);
+  drawParts(c);
+  drawWorldFx(c);
+  drawWorldOverlay(c);
+  c.setTransform(1,0,0,1,0,0);
+}
+function drawSky(c){
+  var g=c.createLinearGradient(0,0,0,WH);
+  g.addColorStop(0,C.sky3); g.addColorStop(0.42,C.sky2); g.addColorStop(0.78,C.sky1); g.addColorStop(1,C.sky0);
+  c.fillStyle=g; c.fillRect(-40,-40,WW+80,WH+80);
+  /* 荒原尘旋 */
+  var vx=760, vy=clamp(180-(S.camY||0)*0.06,-200,WH+200);
+  var vg=c.createRadialGradient(vx,vy,10,vx,vy,300);
+  vg.addColorStop(0,'rgba(111,208,224,.20)'); vg.addColorStop(0.5,'rgba(90,167,214,.07)');
+  vg.addColorStop(1,'rgba(90,167,214,0)');
+  c.fillStyle=vg; c.beginPath(); c.arc(vx,vy,300,0,6.2832); c.fill();
+  for(var i=0;i<5;i++){
+    var rr=70+i*44, a0=S.gameT*0.5+i*0.7;
+    c.beginPath(); c.arc(vx,vy,rr,a0,a0+2.1);
+    c.strokeStyle='rgba(111,208,224,'+(0.13-i*0.02)+')'; c.lineWidth=1.6; c.stroke();
+  }
+  /* 荒原云层 */
+  for(var k=0;k<7;k++){
+    var cx=((k*263+S.gameT*(14+k*3))%(WW+400))-200;
+    var cy=40+k*38+w2s(0)*0.04;
+    c.fillStyle='rgba(20,52,74,'+(0.30+0.05*(k%3))+')';
+    c.beginPath();
+    c.ellipse(cx,cy,150+k*12,26+k*3,0,0,6.2832);
+    c.ellipse(cx-70,cy+10,90,20,0,0,6.2832);
+    c.ellipse(cx+86,cy+8,104,22,0,0,6.2832);
+    c.fill();
+  }
+}
+function drawGorge(c){
+  /* 两层远近峡谷岩壁剪影，视差随相机高度变化 */
+  var par=w2s(0);
+  c.fillStyle=C.wallFar;
+  c.beginPath(); c.moveTo(0,WH);
+  var pts=[[0,120],[130,88],[250,150],[370,70],[520,140],[660,60],[820,132],[980,72],[1140,146],[1290,84],[1420,140],[WW,96]];
+  pts.forEach(function(p){ c.lineTo(p[0],clamp(p[1]+par*0.10,-60,WH)); });
+  c.lineTo(WW,WH); c.closePath(); c.fill();
+  c.fillStyle=C.wallMid;
+  c.beginPath(); c.moveTo(0,WH);
+  var p2=[[0,300],[110,246],[240,320],[400,232],[560,318],[720,240],[900,322],[1060,250],[1230,330],[1380,262],[WW,318]];
+  p2.forEach(function(p){ c.lineTo(p[0],clamp(p[1]+par*0.20,-60,WH)); });
+  c.lineTo(WW,WH); c.closePath(); c.fill();
+  /* 岩壁上的风蚀纹理 */
+  c.strokeStyle='rgba(120,150,190,.06)'; c.lineWidth=1;
+  for(var i=0;i<26;i++){
+    var yy=((i*61+par*0.28)%(WH+120))-60;
+    c.beginPath(); c.moveTo(0,yy); c.lineTo(WW,yy+18); c.stroke();
+  }
+}
+/* ---------------------------------------------------------------- 古道 / 灵石 / 兽潮 / 齐射 */
+function drawPath(c){
+  if(!S.path||S.path.length<2) return;
+  c.save();
+  c.lineJoin='round'; c.lineCap='round';
+  for(var pass=0;pass<2;pass++){
+    c.beginPath();
+    for(var i=0;i<S.path.length;i++){
+      var p=S.path[i], y=w2s(p.y);
+      if(i===0) c.moveTo(p.x,y); else c.lineTo(p.x,y);
+    }
+    if(pass===0){ c.strokeStyle='rgba(60,44,30,.55)'; c.lineWidth=26; }
+    else { c.strokeStyle='rgba(150,118,74,.30)'; c.lineWidth=2; c.setLineDash([13,11]); }
+    c.stroke();
+  }
+  c.setLineDash([]);
+  /* 里程刻度：每 300px 一道，标示荒原兽的推进进度 */
+  for(var d=300; d<S.pathLen; d+=300){
+    var q=pathAt(d), qy=w2s(q.y);
+    c.fillStyle='rgba(196,164,110,.34)';
+    c.fillRect(q.x-8, qy-1, 16, 2);
+    c.font='9px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.textAlign='center'; c.fillStyle='rgba(196,164,110,.42)';
+    c.fillText(Math.round(d)+'', q.x, qy-6);
+    c.textAlign='left';
+  }
+  /* 出怪口 */
+  var gy=w2s(S.gate.y);
+  c.beginPath(); c.arc(S.gate.x, gy, 26, 0, 6.2832);
+  c.fillStyle='rgba(224,106,106,.16)'; c.fill();
+  c.strokeStyle='rgba(224,106,106,.62)'; c.lineWidth=2; c.stroke();
+  c.font='600 11px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='center';
+  c.fillStyle=C.danger; c.fillText('出怪口 · 谷底', S.gate.x, gy+42);
+  c.textAlign='left';
+  c.restore();
+}
+function drawShrine(c){
+  var y=w2s(S.shrine.y);
+  var hp=Math.max(0,S.shrineHP)/SHRINE_HP;
+  c.save();
+  c.translate(S.shrine.x, y);
+  var pulse=0.5+0.5*Math.sin(S.gameT*2.1);
+  c.beginPath(); c.arc(0,0,44+pulse*7,0,6.2832);
+  c.fillStyle='rgba(232,193,90,'+(0.06+0.07*pulse)+')'; c.fill();
+  /* 灵石晶体 */
+  c.beginPath(); c.moveTo(0,-34); c.lineTo(20,-4); c.lineTo(11,26);
+  c.lineTo(-11,26); c.lineTo(-20,-4); c.closePath();
+  var g=c.createLinearGradient(0,-34,0,26);
+  g.addColorStop(0,'rgba(255,236,180,.95)');
+  g.addColorStop(0.55, hp>0.4? 'rgba(232,193,90,.88)':'rgba(224,106,106,.88)');
+  g.addColorStop(1,'rgba(120,86,40,.85)');
+  c.fillStyle=g; c.fill();
+  c.strokeStyle= hp>0.4? 'rgba(255,232,170,.85)':'rgba(255,140,140,.9)';
+  c.lineWidth=1.6; c.stroke();
+  /* 灵石余量环 */
+  c.beginPath(); c.arc(0,0,52,-1.5708,-1.5708+6.2832*hp);
+  c.strokeStyle= hp>0.4? C.gold : C.danger; c.lineWidth=4; c.stroke();
+  c.font='600 12px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='center';
+  c.fillStyle=C.gold2; c.fillText('峰顶灵石 '+Math.max(0,S.shrineHP)+' / '+SHRINE_HP, 0, 76);
+  c.restore();
+  c.textAlign='left';
+}
+function drawBeasts(c){
+  for(var i=0;i<S.beasts.length;i++){
+    var b=S.beasts[i], y=w2s(b.y);
+    if(y<-60||y>WH+60) continue;
+    var wob=Math.sin(S.gameT*7+b.wob)*3;
+    c.save(); c.translate(b.x+wob, y);
+    /* 烽号光晕 */
+    c.beginPath(); c.arc(0,0,BEAST_R+9,0,6.2832);
+    c.fillStyle=bandRGBA(b.band,0.13+0.10*b.flash); c.fill();
+    /* 兽体 */
+    c.beginPath();
+    c.moveTo(0,-BEAST_R); c.lineTo(BEAST_R*0.92,-1); c.lineTo(BEAST_R*0.52,BEAST_R*0.9);
+    c.lineTo(-BEAST_R*0.52,BEAST_R*0.9); c.lineTo(-BEAST_R*0.92,-1); c.closePath();
+    c.fillStyle= b.flash>0.02? '#fff8ee' : 'rgba(46,34,26,.96)';
+    c.fill();
+    c.strokeStyle=bandColor(b.band); c.lineWidth=2.2; c.stroke();
+    /* 烽号心核 */
+    c.beginPath(); c.arc(0,0,3.6,0,6.2832);
+    c.fillStyle=bandColor(b.band); c.fill();
+    /* 血条 */
+    var hpw=32, ratio=clamp(b.hp/b.max,0,1);
+    c.fillStyle='rgba(0,0,0,.55)'; c.fillRect(-hpw/2,-BEAST_R-13,hpw,4);
+    c.fillStyle= ratio>0.5? C.good : (ratio>0.25? C.gold : C.danger);
+    c.fillRect(-hpw/2,-BEAST_R-13,hpw*ratio,4);
+    c.font='600 9.5px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='center';
+    c.fillStyle=bandColor(b.band);
+    c.fillText(BAND_NAMES[b.band], 0, -BEAST_R-18);
+    c.restore();
+  }
+  c.textAlign='left';
+}
+function drawVolleys(c){
+  for(var i=0;i<S.volleyFx.length;i++){
+    var v=S.volleyFx[i], a=clamp(v.life/v.max,0,1);
+    var y0=w2s(v.y), y1=w2s(v.ty);
+    c.beginPath(); c.moveTo(v.x,y0); c.lineTo(v.tx,y1);
+    c.strokeStyle=bandRGBA(v.band, 0.85*a); c.lineWidth=1.2+2.4*a; c.stroke();
+    c.beginPath(); c.arc(v.tx,y1,3+9*(1-a),0,6.2832);
+    c.strokeStyle=bandRGBA(v.band, 0.6*a); c.lineWidth=1.6; c.stroke();
+  }
+  /* 已布防烽燧台的烽号旗 */
+  for(var k=0;k<S.beacons.length;k++){
+    var bc=S.beacons[k];
+    if(!bc.alive||bc.arm<0) continue;
+    var by=w2s(bc.y);
+    if(by<-60||by>WH+60) continue;
+    var off=bc.w/2-14;
+    c.strokeStyle='rgba(30,22,16,.9)'; c.lineWidth=2;
+    c.beginPath(); c.moveTo(bc.x-off,by-8); c.lineTo(bc.x-off,by-60); c.stroke();
+    var ready=bc.armCd<=0;
+    c.beginPath(); c.moveTo(bc.x-off,by-60); c.lineTo(bc.x-off+18,by-53);
+    c.lineTo(bc.x-off,by-45); c.closePath();
+    c.fillStyle=bandRGBA(bc.arm, ready?0.96:0.44); c.fill();
+    c.font='600 9.5px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='left';
+    c.fillStyle= ready? bandColor(bc.arm) : 'rgba(157,192,210,.5)';
+    c.fillText(BAND_NAMES[bc.arm]+(ready?'':' ·充能'), bc.x-off+22, by-49);
+  }
+}
+/* 本体烽号：挂在角色头顶的四方烽号标记 */
+function drawBandMarker(c){
+  if(!canAct()) return;
+  var y=w2s(S.py)-52;
+  c.save(); c.translate(S.px, y);
+  for(var k=0;k<BAND_N;k++){
+    var on=(k===S.band);
+    var ox=(k-(BAND_N-1)/2)*15;
+    c.beginPath(); c.arc(ox,0,on?5.4:3.4,0,6.2832);
+    c.fillStyle= on? bandColor(k) : bandRGBA(k,0.30); c.fill();
+    if(on){ c.beginPath(); c.arc(ox,0,9.5,0,6.2832);
+      c.strokeStyle=bandRGBA(k,0.55); c.lineWidth=1.4; c.stroke(); }
+  }
+  c.font='600 10px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='center';
+  c.fillStyle=bandColor(S.band); c.fillText(BAND_NAMES[S.band], 0, -14);
+  c.restore(); c.textAlign='left';
+}
+function drawWindGrid(c){
+  var t=S.gameT;
+  c.save();
+  for(var gx=60;gx<WW;gx+=128){
+    for(var gy=40;gy<WH+80;gy+=96){
+      var wy=gy+w2s(0)*0.5;
+      var wx0=gx, wy0=gy;
+      var W=windField(wx0, wy+S.camY, t);
+      var mag=Math.hypot(W.x,W.y);
+      if(mag<6) continue;
+      var ang=Math.atan2(W.y,W.x);
+      var len=clamp(mag*0.22,8,46);
+      var a=clamp(mag/150,0.05,0.34);
+      var ex=wx0+Math.cos(ang)*len, ey=wy0+Math.sin(ang)*len;
+      var grd=c.createLinearGradient(wx0,wy0,ex,ey);
+      grd.addColorStop(0,'rgba(111,208,224,0)');
+      grd.addColorStop(0.5,'rgba(111,208,224,'+a+')');
+      grd.addColorStop(1,'rgba(90,167,214,0)');
+      c.strokeStyle=grd; c.lineWidth=1.4;
+      c.beginPath(); c.moveTo(wx0-Math.cos(ang)*len*0.5, wy0-Math.sin(ang)*len*0.5); c.lineTo(ex,ey); c.stroke();
+      c.beginPath(); c.arc(ex,ey,1.5,0,6.2832); c.fillStyle='rgba(111,208,224,'+(a*1.4)+')'; c.fill();
+    }
+  }
+  c.restore();
+}
+function drawIslands(c){
+  for(var i=0;i<S.beacons.length;i++){
+    var is=S.beacons[i];
+    if(!is.alive) continue;
+    var y=w2s(is.y);
+    if(y<-160||y>WH+160) continue;
+    var sp=is.spawn;
+    var x=is.x, w=is.w*sp, h=is.h;
+    /* 下沉尘土 */
+    if(is.sinkV>30){
+      c.fillStyle='rgba(180,200,210,'+clamp(is.sinkV/900,0.03,0.16)+')';
+      c.beginPath(); c.ellipse(x,y+h+6,w*0.62,10,0,0,6.2832); c.fill();
+    }
+    var gr=c.createLinearGradient(0,y,0,y+h+22);
+    gr.addColorStop(0,C.rockLit); gr.addColorStop(0.35,C.rock); gr.addColorStop(1,C.rockDark);
+    c.fillStyle=gr;
+    c.beginPath();
+    c.moveTo(x-w/2,y); c.lineTo(x+w/2,y);
+    c.lineTo(x+w/2-8,y+h+16); c.lineTo(x-w/2+10,y+h+22);
+    c.closePath(); c.fill();
+    /* 苔面 */
+    c.fillStyle=C.moss;
+    c.beginPath(); c.moveTo(x-w/2,y); c.lineTo(x+w/2,y);
+    c.lineTo(x+w/2-3,y+7); c.lineTo(x-w/2+3,y+8); c.closePath(); c.fill();
+    c.fillStyle=C.mossLit;
+    c.fillRect(x-w/2+4,y+1,w-8,2.4);
+    /* 核心同调区（20% 半径）标定 */
+    var coreW=w*CORE_RADIUS_RATIO*2;
+    var coreIn=is.resonance;
+    c.strokeStyle=coreIn?'rgba(232,193,90,.95)':'rgba(111,208,224,.42)';
+    c.lineWidth=coreIn?2.4:1.4;
+    c.setLineDash([5,4]);
+    c.beginPath(); c.moveTo(x-coreW/2,y-7); c.lineTo(x+coreW/2,y-7); c.stroke();
+    c.setLineDash([]);
+    if(coreIn){
+      var pg=c.createLinearGradient(x-coreW/2,0,x+coreW/2,0);
+      pg.addColorStop(0,'rgba(232,193,90,0)'); pg.addColorStop(0.5,'rgba(232,193,90,.5)'); pg.addColorStop(1,'rgba(232,193,90,0)');
+      c.fillStyle=pg; c.fillRect(x-coreW/2,y-6,coreW,4);
+    }
+    /* 寿命条 */
+    var bw=w*0.86, bx=x-bw/2, by=y-17;
+    c.fillStyle='rgba(6,16,24,.72)'; c.fillRect(bx-1,by-1,bw+2,7);
+    var lc=is.life>0.55?C.blue:(is.life>0.25?C.gold:C.danger);
+    c.fillStyle=lc; c.fillRect(bx,by,bw*clamp(is.life,0,1),5);
+    c.font='600 10px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='left';
+    c.fillStyle=C.ink3; c.fillText(is.id, bx, by-4);
+  }
+}
+function drawDebris(c){
+  for(var i=0;i<S.debris.length;i++){
+    var f=S.debris[i];
+    var y=w2s(f.y);
+    if(y<-60||y>WH+60) continue;
+    c.save(); c.translate(f.x,y); c.rotate(f.rot);
+    c.globalAlpha=clamp(f.a,0,1);
+    c.fillStyle=f.moss?C.moss:C.rockDark;
+    c.fillRect(-f.w/2,-f.h/2,f.w,f.h);
+    c.restore();
+  }
+  c.globalAlpha=1;
+}
+function drawTargets(c){
+  for(var i=0;i<S.totems.length;i++){
+    var t=S.totems[i];
+    var y=w2s(t.y);
+    if(y<-140||y>WH+140) continue;
+    var L=layersOf(0,0,t.r);
+    /* 挂架 */
+    c.strokeStyle=C.rockDark; c.lineWidth=5;
+    c.beginPath(); c.moveTo(t.x,y-t.r); c.lineTo(t.x,y-t.r-26); c.stroke();
+    /* 环 */
+    var rings=[[1.0,C.ringEdge],[0.78,C.ringOut],[0.55,C.ringMid],[GRAZE_RADIUS_RATIO,'#d8d2c4'],[CORE_RADIUS_RATIO,C.ringCore]];
+    for(var k=0;k<rings.length;k++){
+      c.beginPath(); c.arc(t.x,y,t.r*rings[k][0],0,6.2832);
+      c.fillStyle=rings[k][1]; c.fill();
+    }
+    /* 擦弹带标定环 */
+    c.beginPath(); c.arc(t.x,y,t.r*GRAZE_RADIUS_RATIO,0,6.2832);
+    c.strokeStyle='rgba(111,208,224,.55)'; c.lineWidth=1.4; c.setLineDash([4,4]); c.stroke(); c.setLineDash([]);
+    if(t.hit){
+      c.beginPath(); c.arc(t.x,y,6,0,6.2832); c.fillStyle=t.zone==='core'?C.danger:C.gold; c.fill();
+      c.strokeStyle=C.shaft; c.lineWidth=3;
+      var a=Math.atan2(S.px-t.x,S.py-t.y);
+      c.beginPath(); c.moveTo(t.x,y); c.lineTo(t.x+Math.cos(a)*46,y+Math.sin(a)*46); c.stroke();
+    }else{
+      /* 未击穿：脉冲瞄准环 */
+      var pulse=0.5+0.5*Math.sin(S.gameT*2.4+t.phase);
+      c.beginPath(); c.arc(t.x,y,t.r+8+pulse*7,0,6.2832);
+      c.strokeStyle='rgba(232,193,90,'+(0.20+0.28*pulse)+')'; c.lineWidth=1.6; c.stroke();
+      /* 烽号需求环：需求按固定槽位轮转，异号一击会被动量吸收域吞掉 */
+      var need=demandBand(i, S.gameT), left=demandLeft(S.gameT);
+      var rr=t.r+20;
+      c.beginPath(); c.arc(t.x,y,rr,0,6.2832);
+      c.strokeStyle='rgba(255,255,255,.07)'; c.lineWidth=4; c.stroke();
+      c.beginPath(); c.arc(t.x,y,rr,-1.5708,-1.5708+6.2832*(left/DEMAND_SLOT));
+      c.strokeStyle=bandRGBA(need,0.72); c.lineWidth=4; c.stroke();
+      c.beginPath(); c.arc(t.x,y,rr,-1.5708,-1.5708+6.2832*(left/DEMAND_SLOT));
+      c.strokeStyle=bandRGBA(need,0.22); c.lineWidth=11; c.stroke();
+      /* 四方烽号色板：当前需求高亮，本体同号时外描白环 */
+      var rowY = y-t.r-46;
+      for(var bk=0;bk<BAND_N;bk++){
+        var bx=t.x+(bk-(BAND_N-1)/2)*17, byy=rowY;
+        c.beginPath(); c.arc(bx,byy,5.4,0,6.2832);
+        c.fillStyle= bandRGBA(bk, bk===need?0.98:0.26); c.fill();
+        if(bk===need){
+          c.strokeStyle='rgba(255,255,255,.85)'; c.lineWidth=1.4;
+          c.beginPath(); c.arc(bx,byy,8.6,0,6.2832); c.stroke();
+        }
+        if(bk===S.band){
+          c.strokeStyle=bandColor(bk); c.lineWidth=2;
+          c.beginPath(); c.arc(bx,byy,6.6,0,6.2832); c.stroke();
+        }
+      }
+      c.font='600 10px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='center';
+      c.fillStyle=bandColor(need);
+      c.fillText('需 '+BAND_NAMES[need]+' · '+fmt1(left)+'s', t.x, rowY-18);
+      c.textAlign='left';
+    }
+    c.font='600 11px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='center';
+    /* 贴底的图腾把台号翻到上方，绝不与状态带/键位提示互相压字 */
+    var ly=(y+t.r+24>WH-96)? (y-t.r-24) : (y+t.r+20);
+    c.fillStyle=C.ink2; c.fillText(t.id+(t.hit?(' · '+t.ring+'环'):' · 烽火图腾'), t.x, ly);
+  }
+}
+function drawGuide(c){
+  if(!canAct()) return;
+  /* 预测轨迹（与实弹同源的逐帧积分） */
+  var py0=S.py-26;
+  var ang=Math.atan2(mouse.y+S.camY-py0, mouse.x-S.px);
+  var sp=ARROW_SPEED_BASE+ARROW_SPEED_GAIN*clamp(S.power,0.15,1);
+  var x=S.px+Math.cos(ang)*30, y=py0+Math.sin(ang)*30;
+  var vx=Math.cos(ang)*sp, vy=Math.sin(ang)*sp;
+  var dt=1/60;
+  c.beginPath();
+  var started=false;
+  for(var i=0;i<150;i++){
+    var w=windField(x,y,S.gameT);
+    var g=gravVec(S.gameT);
+    var af=aeroForce(vx,vy,w);
+    vx+=(g.x*0.52+af.x*1.45)*dt; vy+=(g.y*0.52+af.y*1.45)*dt;
+    x+=vx*dt; y+=vy*dt;
+    var sy=w2s(y);
+    if(sy<-40||sy>WH+40){ if(started) break; else continue; }
+    if(!started){ c.moveTo(x,sy); started=true; } else c.lineTo(x,sy);
+    if(i%9===0){ c.moveTo(x,sy); }
+  }
+  c.strokeStyle='rgba(232,193,90,.55)'; c.lineWidth=1.6; c.stroke();
+  /* 准星 */
+  var mx=mouse.x, my=clamp(mouse.y,0,WH);
+  c.strokeStyle='rgba(242,221,160,.9)'; c.lineWidth=1.6;
+  c.beginPath(); c.arc(mx,my,15,0,6.2832); c.stroke();
+  c.beginPath();
+  c.moveTo(mx-26,my); c.lineTo(mx-7,my); c.moveTo(mx+7,my); c.lineTo(mx+26,my);
+  c.moveTo(mx,my-26); c.lineTo(mx,my-7); c.moveTo(mx,my+7); c.lineTo(mx,my+26);
+  c.stroke();
+  c.beginPath(); c.arc(mx,my,2.6,0,6.2832); c.fillStyle=C.danger; c.fill();
+}
+function drawPlayer(c){
+  var y=w2s(S.py);
+  var x=S.px;
+  var tilt=0;
+  if(S.tiltT>0) tilt=Math.sin(S.gameT*46)*0.10*(S.tiltT/0.30);
+  c.save();
+  c.translate(x,y);
+  c.rotate(tilt);
+  var flip=(S.phaseFlip%2===1)?-1:1;
+  c.scale(flip,1);
+  var draw=clamp(S.drawT*1.7,0,1);
+  /* 索 */
+  if(S.tether>=0){
+    var is=S.beacons[S.tether];
+    c.strokeStyle='rgba(90,167,214,.85)'; c.lineWidth=2.2;
+    c.beginPath(); c.moveTo(0,-26); c.lineTo(is.x-x, w2s(is.y)-y); c.stroke();
+  }
+  /* 阴影 / 地面接触 */
+  if(S.grounded){
+    c.fillStyle='rgba(0,0,0,.28)';
+    c.beginPath(); c.ellipse(0,14,20,5.5,0,0,6.2832); c.fill();
+  }
+  /* 腿 */
+  var crouch=S.grounded&&S.dwellActive?1.0:0;
+  var ly=14-crouch*3;
+  c.strokeStyle=C.clothLit; c.lineWidth=7; c.lineCap='round';
+  c.beginPath(); c.moveTo(-7,-6); c.lineTo(-10,ly); c.moveTo(7,-6); c.lineTo(11,ly); c.stroke();
+  /* 躯干 */
+  c.fillStyle=C.cloth;
+  c.beginPath();
+  c.moveTo(-13,-46+(S.charging?3:0)); c.lineTo(13,-46+(S.charging?3:0));
+  c.lineTo(10,-4); c.lineTo(-10,-4); c.closePath(); c.fill();
+  c.fillStyle='rgba(232,193,90,.22)';
+  c.fillRect(-9,-30,18,4);
+  /* 头 + 兜帽 */
+  c.fillStyle=C.skin; c.beginPath(); c.arc(0,-60,13,0,6.2832); c.fill();
+  c.fillStyle=C.hood;
+  c.beginPath(); c.arc(0,-62,15,Math.PI*1.02,Math.PI*2.02); c.closePath(); c.fill();
+  c.beginPath(); c.ellipse(0,-48,17,5,0,0,6.2832); c.fill();
+  c.fillStyle='#1a1a1a';
+  c.beginPath(); c.arc(4,-61,1.9,0,6.2832); c.fill();
+  /* 弓臂 + 弓 */
+  var bx=18-draw*9, by=-34;
+  c.strokeStyle=C.hood; c.lineWidth=7;
+  c.beginPath(); c.moveTo(8,-40); c.lineTo(bx,by); c.stroke();
+  c.strokeStyle='#8a5a34'; c.lineWidth=5.5;
+  c.beginPath(); c.arc(bx+6,by,30,-1.35,1.35); c.stroke();
+  c.strokeStyle='rgba(232,226,208,.9)'; c.lineWidth=1.6;
+  var tipY=Math.sin(1.35)*30;
+  c.beginPath(); c.moveTo(bx+6+Math.cos(1.35)*30, by-tipY);
+  c.lineTo(bx-draw*13,by); c.lineTo(bx+6+Math.cos(1.35)*30, by+tipY); c.stroke();
+  if(S.charging||S.recoil>0){
+    c.strokeStyle=C.shaft; c.lineWidth=3;
+    c.beginPath(); c.moveTo(bx-draw*13,by); c.lineTo(bx+40,by); c.stroke();
+  }
+  /* 蓄能张力弧 */
+  if(S.charging){
+    var p=S.power;
+    c.beginPath(); c.arc(0,-30,34,-Math.PI*0.5-Math.PI*p*0.5,-Math.PI*0.5+Math.PI*p*0.5);
+    c.strokeStyle=p>0.86?C.danger:C.gold; c.lineWidth=3; c.stroke();
+  }
+  c.restore();
+  /* 同调进度环（不随翻转） */
+  if(S.fsm==='ATTUNEMENT_DWELL'){
+    var pr=clamp(S.dwellT/DWELL_NEED,0,1);
+    c.beginPath(); c.arc(x,y-26,42,-Math.PI/2,-Math.PI/2+6.2832*pr);
+    c.strokeStyle=pr>=1?C.good:C.frost; c.lineWidth=4; c.stroke();
+    c.beginPath(); c.arc(x,y-26,42,0,6.2832);
+    c.strokeStyle='rgba(120,150,190,.20)'; c.lineWidth=1.2; c.stroke();
+    c.font='600 12px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='center';
+    c.fillStyle=C.frost; c.fillText(Math.round(pr*100)+'% 同调', x, y-78);
+  }
+  if(S.fsm==='OVERLOAD_PENALTY'){
+    c.font='600 12px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='center';
+    c.fillStyle=C.danger; c.fillText('过载硬直 '+fmt2(Math.max(0,S.stunT))+'s', x, y-82);
+    for(var k=0;k<5;k++){
+      var a=S.gameT*9+k*1.26;
+      c.strokeStyle='rgba(224,106,106,.8)'; c.lineWidth=2;
+      c.beginPath(); c.moveTo(x+Math.cos(a)*20,y-26+Math.sin(a)*20);
+      c.lineTo(x+Math.cos(a)*34,y-26+Math.sin(a)*34); c.stroke();
+    }
+  }
+}
+function drawArrows(c){
+  for(var i=0;i<S.arrows.length;i++){
+    var a=S.arrows[i];
+    var sy=w2s(a.y);
+    /* 轨迹 */
+    if(a.trail.length>1){
+      c.beginPath();
+      for(var k=0;k<a.trail.length;k++){
+        var p=a.trail[k], py=w2s(p.y);
+        if(k===0) c.moveTo(p.x,py); else c.lineTo(p.x,py);
+      }
+      c.strokeStyle='rgba(232,193,90,.36)'; c.lineWidth=2; c.stroke();
+    }
+    var ang=Math.atan2(a.vy,a.vx);
+    c.save(); c.translate(a.x,sy); c.rotate(ang);
+    c.strokeStyle=C.shaft; c.lineWidth=3;
+    c.beginPath(); c.moveTo(-26,0); c.lineTo(0,0); c.stroke();
+    c.fillStyle=C.fletch;
+    c.beginPath(); c.moveTo(-26,-5); c.lineTo(-16,-6); c.lineTo(-16,6); c.lineTo(-26,5); c.closePath(); c.fill();
+    c.fillStyle=C.tip; c.beginPath(); c.arc(1,0,2.6,0,6.2832); c.fill();
+    c.restore();
+  }
+}
+function drawParts(c){
+  for(var i=0;i<S.parts.length;i++){
+    var p=S.parts[i];
+    var a=clamp(p.life/p.max,0,1);
+    c.globalAlpha=a; c.fillStyle=p.c;
+    c.beginPath(); c.arc(p.x,w2s(p.y),p.r*a,0,6.2832); c.fill();
+  }
+  c.globalAlpha=1;
+}
+function drawWorldFx(c){
+  if(S.surge){
+    var a=0.10+0.06*Math.sin(S.gameT*18);
+    c.fillStyle='rgba(143,122,214,'+a+')'; c.fillRect(0,0,WW,WH);
+    if(Math.sin(S.gameT*7)>0.86){
+      c.strokeStyle='rgba(200,220,255,.75)'; c.lineWidth=2;
+      var lx=rng()*WW;
+      c.beginPath(); c.moveTo(lx,0);
+      for(var yy=0;yy<WH;yy+=34) c.lineTo(lx+(rng()-0.5)*30, yy);
+      c.stroke();
+    }
+  }
+  if(S.flashT>0){ c.fillStyle='rgba(255,255,255,'+clamp(S.flashT*0.5,0,0.3)+')'; c.fillRect(0,0,WW,WH); }
+  if(S.fsm==='OVERLOAD_PENALTY'){
+    var g=c.createRadialGradient(WW/2,WH/2,140,WW/2,WH/2,760);
+    g.addColorStop(0,'rgba(224,106,106,0)'); g.addColorStop(1,'rgba(224,106,106,.42)');
+    c.fillStyle=g; c.fillRect(0,0,WW,WH);
+  }
+  if(S.fsm==='CRISIS_FAILED_ROLLBACK'){
+    var g2=c.createLinearGradient(0,0,0,WH);
+    g2.addColorStop(0,'rgba(224,106,106,.30)'); g2.addColorStop(1,'rgba(10,0,0,.55)');
+    c.fillStyle=g2; c.fillRect(0,0,WW,WH);
+    c.font='700 34px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='center';
+    c.fillStyle=C.danger; c.fillText('因果回溯 CRISIS ROLLBACK', 565, 150);
+    c.font='600 15px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillStyle=C.ink2;
+    c.fillText('回溯预算 '+(S.rollbacks)+' / '+ROLLBACK_BUDGET+'　·　账本保留，实体阵列复位', 565, 186);
+    c.textAlign='left';
+  }
+}
+function drawWorldOverlay(c){
+  /* 状态带：整体下移到两侧仪表带之下的净空横条，逐项排布不重叠 */
+  var by=WH-76;
+  c.fillStyle='rgba(6,16,24,.90)';
+  c.fillRect(PLAY_X0-10,by,WW-(PLAY_X0-10),48);
+  c.font='600 12px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='left';
+  var sx=PLAY_X0+6, sy=by+19;
+  function band(txt,col){ c.fillStyle=col; c.fillText(txt,sx,sy); sx+=c.measureText(txt).width+22; }
+  band(S.fsm, C.gold);
+  band('种子 '+S.seed, C.ink3);
+  band('高度 '+Math.round(WY-S.py)+' / '+(WY-SUMMIT_Y)+' px', C.ink3);
+  band('账本事件 '+S.ledger.length, C.ink3);
+  band('回溯 '+S.rollbacks+'/'+ROLLBACK_BUDGET, C.ink3);
+  band(S.surge?('兽潮爆发 '+fmt1(4.2-S.surgeT)+'s'):('距下次暴涌 '+fmt1(Math.max(0,S.surgeNext-S.gameT))+'s'), S.surge?C.violet:C.ink3);
+  c.textAlign='right';
+  c.fillStyle=C.ink3; c.fillText('世界坐标 '+Math.round(S.px)+' , '+Math.round(S.py), WW-18, sy);
+  c.textAlign='left';
+  /* 第二行：战况读数（与 HUD 军情模块同源） */
+  var sx2=PLAY_X0+6, sy2=by+39;
+  function band2(txt,col){ c.fillStyle=col; c.fillText(txt,sx2,sy2); sx2+=c.measureText(txt).width+22; }
+  band2('本体烽号 '+BAND_NAMES[S.band], bandColor(S.band));
+  band2('波次 '+S.wave+'/'+WAVE_MAX, S.wave>=WAVE_MAX?C.good:C.ink3);
+  band2('场中荒原兽 '+S.beasts.length, S.beasts.length?C.ember:C.ink3);
+  band2('歼敌 '+S.killed, C.good);
+  band2('漏防 '+S.leaked, S.leaked?C.danger:C.ink3);
+  band2('布防 '+S.armCount+' 座 · 齐射 '+S.volleys, C.blue);
+  band2('烽号失配 '+S.bandReject, S.bandReject?C.ember:C.ink3);
+  c.textAlign='right';
+  c.fillStyle= S.shrineHP<=6? C.danger : C.gold2;
+  c.fillText('峰顶灵石 '+Math.max(0,S.shrineHP)+' / '+SHRINE_HP+'　·　烽火令 '+Math.round(S.energy), WW-18, sy2);
+  c.textAlign='left';
+
+  /* 提示条：同样落在 HUD 净空区内 */
+  if(S.msgT>0){
+    c.globalAlpha=clamp(S.msgT*1.6,0,1);
+    c.fillStyle='rgba(6,16,24,.85)';
+    var tw=Math.max(280, c.measureText(S.msg).width+48), tx=565-tw/2, ty2=WH-116;
+    c.fillRect(tx,ty2,tw,34);
+    c.strokeStyle=C.panelLine; c.lineWidth=1; c.strokeRect(tx,ty2,tw,34);
+    c.textAlign='center'; c.fillStyle=C.gold2;
+    c.font='600 14px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(S.msg, 565, ty2+22);
+    c.globalAlpha=1;
+    c.textAlign='left';
+  }
+  /* 方向键位提示：加实底横条，杜绝与古道物件透叠 */
+  c.fillStyle='rgba(6,16,24,.90)';
+  c.fillRect(PLAY_X0-10, WH-31, WW-(PLAY_X0-10), 31);
+  c.font='11px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillStyle='rgba(157,192,210,.55)';
+  c.fillText('← / → 位移   ↑ 跳跃   ↓ 动量下压速坠   D / F / J / K 切换四方烽号   C 烽燧布防   Q 能量索   R 相位翻转   E 共振释放   空格蓄能放出烽火矢', PLAY_X0+6, WH-9);
+}
+function drawLobby(){
+  var c=ctxW;
+  c.setTransform(1,0,0,1,0,0);
+  /* 背景峡谷（待机镜头停在起始岩台附近） */
+  S.camY=WY-WH-120; drawSky(c); drawGorge(c); drawWindGrid(c);
+  S.camY=0;
+  /* 面板 */
+  c.fillStyle='rgba(4,11,18,.72)'; c.fillRect(0,0,WW,WH);
+  /* 面板收在两侧仪表带之间，标题与要点一律不被 HUD 遮挡 */
+  var x=252, y=26, w=618, h=566, mx=x+w/2;
+  c.fillStyle=C.panel; c.strokeStyle=C.panelLine; c.lineWidth=1.4;
+  rrectPath(c,x,y,w,h,16); c.fill(); c.stroke();
+  c.textAlign='center';
+  c.fillStyle=C.ink; c.font='700 56px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('荒原烽火', mx, y+152);
+  c.fillStyle=C.blue; c.font='600 15px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('荒原烽火 · WILDERNESS WATCH', mx, y+182);
+  c.strokeStyle=C.panelLine; c.beginPath();
+  c.moveTo(x+60,y+206); c.lineTo(x+w-60,y+206); c.stroke();
+
+  var tips=[
+    '荒原峡谷中沿烽燧台链向上攀烽，切变风场与动态重力矢量改写每一次落点。',
+    '落点须维持相对静止完成「能量同调」，跳跃与燃烽才会解锁。',
+    '烽火令零被动恢复：仅核心区落点、能量索摆荡与核心击穿充能。',
+    '烽燧台承重下沉、离台弹性回冲，500ms 后碎裂为不可站立虚空。',
+    '过载超频触发操作硬直；总分与星级由事件账本纯函数结算，不写死。'
+  ];
+  c.textAlign='left'; c.font='13.5px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillStyle=C.gold; c.font='600 13px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('机制要点', x+60, y+236);
+  var ty=y+262;
+  for(var i=0;i<tips.length;i++){
+    c.fillStyle='rgba(111,208,224,.9)'; c.font='13px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText('·', x+60, ty);
+    c.fillStyle=C.ink2; c.font='13.5px "Noto Sans CJK SC",system-ui,sans-serif';
+    ty=wrapText(c, tips[i], x+76, ty, w-150, 19)+7;
+  }
+  /* 统计：紧随折行后的实际高度落位，不与按钮重叠 */
+  var sy=ty+16;
+  c.fillStyle='rgba(8,22,33,.8)'; rrectPath(c,x+60,sy,w-120,58,10); c.fill();
+  c.strokeStyle='rgba(120,150,190,.16)'; c.stroke();
+  var stats=[['关卡种子',String(S.seed)],['烽燧台阵列','12 座'],['烽火图腾','3 座'],['回溯预算',ROLLBACK_BUDGET+' 次'],['同调阈值',Math.round(DWELL_NEED*1000)+' ms']];
+  c.textAlign='center';
+  for(var k=0;k<stats.length;k++){
+    var cx=x+60+(w-120)*(k+0.5)/stats.length;
+    c.textAlign='center';
+    c.fillStyle=C.ink3; c.font='11px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(stats[k][0], cx, sy+22);
+    c.fillStyle=C.gold2; c.font='600 17px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(stats[k][1], cx, sy+44);
+  }
+  /* 按钮 */
+  var bx=mx-150, by=sy+58+20, bw=300, bh=46;
+  var pulse=0.5+0.5*Math.sin(S.gameT*3);
+  c.fillStyle='rgba(232,193,90,'+(0.86+0.12*pulse)+')';
+  rrectPath(c,bx,by,bw,bh,12); c.fill();
+  c.fillStyle='#1c1206'; c.font='700 19px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.textAlign='center'; c.fillText('进入荒原 · 攀峰', mx, by+31);
+  c.fillStyle=C.ink3; c.font='12px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('按 Enter / 空格 / 点击画面开始', mx, by+bh+20);
+}
+function drawSeeding(){
+  var c=ctxW;
+  c.setTransform(1,0,0,1,0,0);
+  S.camY=clamp(S.py-380,0,WY-WH);
+  drawSky(c); drawGorge(c); drawWindGrid(c);
+  c.fillStyle='rgba(4,11,18,.55)'; c.fillRect(0,0,WW,WH);
+  var prog=clamp(S.initT/1.25,0,1);
+  /* 实体阵列重构：烽燧台逐个显形 */
+  for(var i=0;i<S.beacons.length;i++){
+    var is=S.beacons[i];
+    var local=clamp((prog*S.initTotal-i)*1.6,0,1);
+    if(local<=0) continue;
+    var y=w2s(is.y);
+    if(y<-100||y>WH+100) continue;
+    c.globalAlpha=local;
+    c.strokeStyle=i<=S.initDone?C.blue:'rgba(111,208,224,.45)';
+    c.lineWidth=1.6; c.setLineDash([6,5]);
+    c.strokeRect(is.x-is.w/2*local, y, is.w*local, is.h+18);
+    c.setLineDash([]);
+    c.fillStyle='rgba(111,208,224,'+(0.10+0.14*local)+')';
+    c.fillRect(is.x-is.w/2*local, y-1, is.w*local, 3);
+    c.font='600 10px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='left';
+    c.fillStyle=C.ink3; c.fillText(is.id+' · '+(is.core?'核心烽燧台':'标准烽燧台'), is.x-is.w/2*local, y-8);
+    c.globalAlpha=1;
+  }
+  for(var k=0;k<S.totems.length;k++){
+    var t=S.totems[k];
+    var local2=clamp((prog*S.initTotal-(S.beacons.length+k))*1.6,0,1);
+    if(local2<=0) continue;
+    var ty=w2s(t.y);
+    c.globalAlpha=local2;
+    c.strokeStyle=C.gold; c.lineWidth=1.6; c.setLineDash([6,5]);
+    c.beginPath(); c.arc(t.x,ty,t.r*local2,0,6.2832); c.stroke(); c.setLineDash([]);
+    c.font='600 10px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='center';
+    c.fillStyle=C.gold2; c.fillText(t.id, t.x, ty-t.r*local2-8);
+    c.globalAlpha=1;
+  }
+  /* 重构横幅：整体落在两侧仪表带之间，文字不被任何 HUD 模块压住 */
+  var mx=565, my=300;
+  c.fillStyle='rgba(6,16,24,.86)'; rrectPath(c,mx-300,my-92,600,184,14); c.fill();
+  c.strokeStyle=C.panelLine; c.lineWidth=1.4; c.stroke();
+  c.textAlign='center';
+  c.fillStyle=C.blue; c.font='600 13px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('SEEDED_INITIALIZING', mx, my-56);
+  c.fillStyle=C.ink; c.font='700 32px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('关卡随机种子与实体阵列重构', mx, my-14);
+  c.fillStyle=C.ink3; c.font='13px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('mulberry32('+S.seed+')　·　烽燧台 '+S.beacons.length+' 座　·　烽火图腾 '+S.totems.length+' 座', mx, my+18);
+  var bw=460, bx=mx-bw/2, by=my+40;
+  c.fillStyle='rgba(255,255,255,.10)'; rrectPath(c,bx,by,bw,16,8); c.fill();
+  c.fillStyle=C.gold; rrectPath(c,bx,by,bw*prog,16,8); c.fill();
+  c.fillStyle=C.ink2; c.font='600 14px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText(Math.round(prog*100)+'%　实体 '+S.initDone+' / '+S.initTotal, mx, by+40);
+}
+function drawSettled(){
+  var c=ctxW;
+  S.camY=clamp(S.py-300,0,WY-WH); drawSky(c); drawGorge(c); drawIslands(c);
+  S.camY=0;
+  c.fillStyle='rgba(4,11,18,.82)'; c.fillRect(0,0,WW,WH);
+  var R=S.lastSettle||settleLedger();
+  var x=120, y=26, w=WW-240, h=WH-52;
+  c.fillStyle=C.panel; c.strokeStyle=C.panelLine; c.lineWidth=1.4;
+  rrectPath(c,x,y,w,h,16); c.fill(); c.stroke();
+  c.textAlign='left';
+  c.fillStyle=C.ink; c.font='700 34px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('本局审计结算', x+40, y+56);
+  c.fillStyle=C.blue; c.font='600 12px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('RUN_SETTLED_LEDGER　·　全部读数由 '+S.ledger.length+' 条事件账本纯函数归约得出', x+40, y+80);
+  /* 总分 */
+  c.textAlign='right';
+  c.fillStyle=C.ink3; c.font='12px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('总分', x+w-40, y+42);
+  c.fillStyle=C.gold; c.font='700 60px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText(String(R.total), x+w-40, y+96);
+  var stars=''; for(var i=0;i<3;i++) stars+=(i<R.star?'★':'☆');
+  c.fillStyle='#ffd76a'; c.font='26px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText(stars, x+w-40, y+128);
+  c.strokeStyle=C.panelLine; c.beginPath(); c.moveTo(x+40,y+150); c.lineTo(x+w-40,y+150); c.stroke();
+
+  /* 账本归约表（左） */
+  c.textAlign='left';
+  c.fillStyle=C.gold; c.font='600 13px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('账本归约项', x+40, y+178);
+  c.fillStyle=C.ink3; c.font='10px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('依据', x+270, y+178); c.fillText('加权', x+w/2-60, y+178);
+  var PL=15.0;                                     /* 行距：21 项归约必须整列容下且不压到按钮行 */
+  for(var t=0;t<R.terms.length;t++){
+    var ty=y+198+t*PL;
+    c.fillStyle=t%2?'rgba(255,255,255,.02)':'rgba(255,255,255,.045)';
+    c.fillRect(x+36,ty-11,w/2+120,14);
+    c.fillStyle=C.ink2; c.font='11px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(R.terms[t].k, x+44, ty);
+    c.fillStyle=C.ink3; c.font='10px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(R.terms[t].note, x+270, ty);
+    c.textAlign='right';
+    c.fillStyle=R.terms[t].v>=0?C.good:C.ember; c.font='600 11px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText((R.terms[t].v>=0?'+':'')+R.terms[t].v, x+w/2-40, ty);
+    c.textAlign='left';
+  }
+  /* 统计（右） */
+  var rx=x+w/2+70;
+  c.fillStyle=C.gold; c.font='600 13px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('真实交互读数', rx, y+178);
+  var rows=[
+    ['命中箭数', R.shots+' 支'],
+    ['核心受击', R.coreHit+' 次'],
+    ['擦弹边缘', R.graze+' 次'],
+    ['最长连击段位', R.bestCombo+' 段'],
+    ['同调完成', R.dwells+' 次'],
+    ['同调平均迟滞', Math.round(R.latAvg*1000)+' ms'],
+    ['能量索有效摆荡', R.swings+' 次'],
+    ['共振脉冲', R.bursts+' 次'],
+    ['相位翻转', R.flips+' 次'],
+    ['速坠冲击', R.dives+' 次'],
+    ['过载硬直', R.overloads+' 次'],
+    ['因果回溯', R.rollbacks+' 次'],
+    ['烽燧台自毁', R.shatters+' 座'],
+    ['能量转换率', fmt2(R.conv)],
+    ['平均离差', fmt2(R.devAvg)],
+    ['核心命中占比', R.accuracy+' %'],
+    ['综合收益倍率', '×'+fmt2(R.multiplier)],
+    ['歼灭荒原兽', R.kills+' 只（矢杀 '+R.killByArrow+'）'],
+    ['烽燧布防 / 齐射', R.arms+' 座 / '+R.volleys+' 次'],
+    ['烽号失配', R.bandRejects+' 次'],
+    ['漏防荒原兽', R.leaked+' 只'],
+    ['峰顶灵石余量', R.shrineHP+' / '+SHRINE_HP]
+  ];
+  var PR=14.2;                                     /* 右列 22 行读数独立行距 */
+  for(var r2=0;r2<rows.length;r2++){
+    var yy=y+198+r2*PR;
+    c.fillStyle=r2%2?'rgba(255,255,255,.02)':'rgba(255,255,255,.045)';
+    c.fillRect(rx-10,yy-11,340,14);
+    c.fillStyle=C.ink3; c.font='11px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(rows[r2][0], rx, yy);
+    c.textAlign='right';
+    c.fillStyle=(r2>=10&&r2<=12)?C.ember:C.ink; c.font='600 11px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(rows[r2][1], rx+330, yy);
+    c.textAlign='left';
+  }
+  /* 按钮：整体下移到两列最后一行之下，绝不覆盖任何读数 */
+  var bw2=260, bh2=42, by2=y+h-54;
+  c.fillStyle=C.gold; rrectPath(c,x+w-580,by2,bw2,bh2,11); c.fill();
+  c.fillStyle='#1c1206'; c.font='700 16px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.textAlign='center'; c.fillText('再来一局（同种子）', x+w-580+bw2/2, by2+28);
+  c.fillStyle='rgba(20,52,68,.95)'; rrectPath(c,x+w-300,by2,bw2,bh2,11); c.fill();
+  c.strokeStyle='rgba(120,150,190,.4)'; c.lineWidth=1.4; c.stroke();
+  c.fillStyle=C.ink; c.fillText('返回待机就绪', x+w-300+bw2/2, by2+28);
+}
+/* 按可用宽度折行；返回下一行的基线 y，任何一行都不得越出所属卡片 */
+function wrapText(c,text,x,y,maxW,lh){
+  var line='';
+  for(var i=0;i<text.length;i++){
+    var test=line+text.charAt(i);
+    if(c.measureText(test).width>maxW&&line.length){
+      c.fillText(line,x,y); y+=lh; line=text.charAt(i);
+    }else line=test;
+  }
+  if(line.length){ c.fillText(line,x,y); y+=lh; }
+  return y;
+}
+function rrectPath(c,x,y,w,h,r){
+  c.beginPath();
+  if(c.roundRect) c.roundRect(x,y,w,h,r);
+  else{
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+}
+
+/* ================================================================ 画布 B：动态仪表（高频） */
+function drawInstruments(){
+  var c=ctxI;
+  c.setTransform(1,0,0,1,0,0);
+  c.clearRect(0,0,LW,248);
+  c.fillStyle='#071320'; c.fillRect(0,0,LW,248);
+  c.strokeStyle='rgba(120,150,190,.18)'; c.lineWidth=1;
+  c.beginPath(); c.moveTo(0,0.5); c.lineTo(LW,0.5); c.stroke();
+  for(var i=1;i<4;i++){ c.beginPath(); c.moveTo(i*384,0); c.lineTo(i*384,248); c.stroke(); }
+  drawSpeedVector(c,10);
+  drawOscilloscope(c,394);
+  drawOverloadGauge(c,778);
+  drawLifecycle(c,1162);
+}
+/* 仪表 1：速度矢量仪 */
+function drawSpeedVector(c,ox){
+  c.fillStyle=C.ink3; c.font='600 11px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='left';
+  c.fillText('速度矢量仪  VELOCITY VECTOR', ox+8, 22);
+  var cx=ox+188, cy=136, R=84;
+  c.beginPath(); c.arc(cx,cy,R,0,6.2832);
+  c.strokeStyle='rgba(120,150,190,.22)'; c.lineWidth=1; c.stroke();
+  for(var k=1;k<=3;k++){ c.beginPath(); c.arc(cx,cy,R*k/3,0,6.2832);
+    c.strokeStyle='rgba(120,150,190,.12)'; c.stroke(); }
+  c.beginPath(); c.moveTo(cx-R,cy); c.lineTo(cx+R,cy); c.moveTo(cx,cy-R); c.lineTo(cx,cy+R);
+  c.strokeStyle='rgba(120,150,190,.14)'; c.stroke();
+  var sp=playerSpeed(), sc=clamp(sp/900,0,1);
+  var w=windField(S.px,S.py,S.gameT);
+  var wm=Math.hypot(w.x,w.y);
+  /* 风矢量（青） */
+  vecArrow(c,cx,cy,w.x/Math.max(wm,1)*clamp(wm/220,0,1)*R, w.y/Math.max(wm,1)*clamp(wm/220,0,1)*R, C.frost, 2.4);
+  /* 重力矢量（紫） */
+  var g=gravVec(S.gameT);
+  vecArrow(c,cx,cy,g.x/GRAV*R*0.55, g.y/GRAV*R*0.55, C.violet, 2.4);
+  /* 速度矢量（琥珀） */
+  var vm=playerSpeed();
+  if(vm>1) vecArrow(c,cx,cy,S.pvx/Math.max(vm,1)*sc*R, S.pvy/Math.max(vm,1)*sc*R, C.gold, 3.2);
+  c.beginPath(); c.arc(cx,cy,4,0,6.2832); c.fillStyle=C.ink; c.fill();
+  c.font='600 11px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='center';
+  c.fillStyle=C.gold; c.fillText(Math.round(vm)+' px/s', cx, cy+R+22);
+  var rows=[['风矢量',Math.round(wm)+' px/s',C.frost],
+            ['重力偏转',Math.round(g.th*180/Math.PI)+'°',C.violet],
+            ['迎风夹角',Math.round(lastAero.aoa*180/Math.PI)+'°',C.ink2],
+            ['阻力模长',Math.round(lastAero.d)+' px/s²',lastAero.tail?C.ember:C.ink2],
+            ['逆风升力',Math.round(lastAero.l)+' px/s²',lastAero.l>0?C.good:C.ink3]];
+  for(var i=0;i<rows.length;i++){
+    c.textAlign='left'; c.fillStyle=C.ink3; c.font='10.5px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(rows[i][0], ox+8, 60+i*19);
+    c.fillStyle=rows[i][2]; c.font='600 10.5px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(rows[i][1], ox+92, 60+i*19);
+  }
+  c.textAlign='left'; c.fillStyle=C.ink3; c.font='10.5px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText(lastAero.tail?'顺风 · 阻尼 ×1.40':'逆风 · 迎角升力生效', ox+8, 232);
+}
+function vecArrow(c,x,y,dx,dy,col,lw){
+  var len=Math.hypot(dx,dy); if(len<1) return;
+  c.strokeStyle=col; c.lineWidth=lw; c.lineCap='round';
+  c.beginPath(); c.moveTo(x,y); c.lineTo(x+dx,y+dy); c.stroke();
+  var a=Math.atan2(dy,dx);
+  c.beginPath();
+  c.moveTo(x+dx,y+dy);
+  c.lineTo(x+dx-Math.cos(a-0.42)*10, y+dy-Math.sin(a-0.42)*10);
+  c.lineTo(x+dx-Math.cos(a+0.42)*10, y+dy-Math.sin(a+0.42)*10);
+  c.closePath(); c.fillStyle=col; c.fill();
+}
+/* 仪表 2：动能示波雷达 */
+var oscHist=[];
+function drawOscilloscope(c,ox){
+  c.fillStyle=C.ink3; c.font='600 11px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='left';
+  c.fillText('动能示波雷达  KINETIC OSCILLOSCOPE', ox+8, 22);
+  var gx=ox+8, gy=40, gw=356, gh=176;
+  c.fillStyle='rgba(4,12,20,.9)'; c.fillRect(gx,gy,gw,gh);
+  c.strokeStyle='rgba(120,150,190,.20)'; c.lineWidth=1; c.strokeRect(gx,gy,gw,gh);
+  c.strokeStyle='rgba(120,150,190,.10)';
+  for(var i=1;i<5;i++){ c.beginPath(); c.moveTo(gx,gy+gh*i/5); c.lineTo(gx+gw,gy+gh*i/5); c.stroke(); }
+  for(var j=1;j<8;j++){ c.beginPath(); c.moveTo(gx+gw*j/8,gy); c.lineTo(gx+gw*j/8,gy+gh); c.stroke(); }
+  /* 待机大厅尚未开局：能量与其位形按零点呈现，避免开局面板出现半程读数 */
+  var eShow=(S.fsm==='TITLE_LOBBY')?0:S.energy;
+  oscHist.push({ v:clamp(eShow/ENERGY_CAP,0,1), r:clamp(S.energyRate/30,-1,1) });
+  if(oscHist.length>170) oscHist.shift();
+  /* 能量位形 */
+  c.beginPath();
+  for(var k=0;k<oscHist.length;k++){
+    var px=gx+gw*k/170, py=gy+gh-(oscHist[k].v*gh*0.92);
+    if(k===0) c.moveTo(px,py); else c.lineTo(px,py);
+  }
+  c.strokeStyle=C.blue; c.lineWidth=2; c.stroke();
+  c.lineTo(gx+gw*(oscHist.length-1)/170, gy+gh); c.lineTo(gx,gy+gh); c.closePath();
+  c.fillStyle='rgba(90,167,214,.12)'; c.fill();
+  /* 充能/消耗脉冲 */
+  c.beginPath();
+  for(var m=0;m<oscHist.length;m++){
+    var qx=gx+gw*m/170, qy=gy+gh*0.5-oscHist[m].r*gh*0.42;
+    if(m===0) c.moveTo(qx,qy); else c.lineTo(qx,qy);
+  }
+  c.strokeStyle='rgba(232,193,90,.75)'; c.lineWidth=1.4; c.stroke();
+  /* 零被动恢复警戒线 */
+  c.setLineDash([4,4]); c.strokeStyle='rgba(224,106,106,.6)';
+  c.beginPath(); c.moveTo(gx,gy+gh*0.5); c.lineTo(gx+gw,gy+gh*0.5); c.stroke(); c.setLineDash([]);
+  c.font='10px "Noto Sans CJK SC",system-ui,sans-serif'; c.fillStyle='rgba(224,106,106,.75)';
+  c.textAlign='right'; c.fillText('零被动恢复基线', gx+gw-6, gy+gh*0.5-5);
+  c.textAlign='left'; c.fillStyle=C.ink3;
+  c.fillText('烽火令 '+Math.round(eShow)+' / '+ENERGY_CAP, gx+6, gy+gh-8);
+  c.textAlign='right';
+  c.fillStyle=S.energyRate>=0?C.good:C.ember;
+  c.fillText((S.energyRate>=0?'+':'-')+fmt1(Math.abs(S.energyRate))+' /s', gx+gw-6, gy+gh-8);
+  c.textAlign='left';
+}
+/* 仪表 3：过载压力标尺 */
+function drawOverloadGauge(c,ox){
+  c.fillStyle=C.ink3; c.font='600 11px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='left';
+  c.fillText('过载压力标尺  OVERLOAD PRESSURE', ox+8, 22);
+  var gx=ox+42, gy=52, gw=300, gh=26;
+  /* 待机大厅尚未开局：压力与蓄能按零点呈现 */
+  var eShow=(S.fsm==='TITLE_LOBBY')?0:S.energy;
+  var pres=clamp(eShow/ENERGY_CAP,0,1);
+  var segs=20;
+  for(var i=0;i<segs;i++){
+    var on=pres>i/segs;
+    var col=i<12?C.blue:(i<16?C.gold:C.danger);
+    c.fillStyle=on?col:'rgba(255,255,255,.07)';
+    c.fillRect(gx+i*(gw/segs)+1, gy, gw/segs-3, gh);
+  }
+  c.strokeStyle='rgba(120,150,190,.25)'; c.lineWidth=1; c.strokeRect(gx,gy,gw,gh);
+  /* 熔断阈值刻度 */
+  var th=x2=>gx+gw*x2;
+  [0.60,0.95].forEach(function(v,i){
+    c.strokeStyle=i?C.danger:C.gold; c.lineWidth=1.6;
+    c.beginPath(); c.moveTo(th(v),gy-6); c.lineTo(th(v),gy+gh+6); c.stroke();
+    c.font='10px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='center';
+    c.fillStyle=i?C.danger:C.gold;
+    c.fillText(i?'熔断 0.95':'脉冲阈值 0.60', th(v), gy-10);
+  });
+  c.textAlign='left'; c.font='600 12px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillStyle=pres>=0.95?C.danger:(pres>=0.6?C.gold:C.blue);
+  c.fillText('压力 '+Math.round(pres*100)+'%', gx, gy+gh+26);
+  c.textAlign='right'; c.fillStyle=C.ink3; c.font='11px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('过载次数 '+S.overloadCount, gx+gw, gy+gh+26);
+  var rows=[['硬直剩余', fmt2(Math.max(0,S.stunT))+' s'],
+            ['边缘扣减', fmt2(S.edgeDrain)+' /s'],
+            ['结构损耗', fmt2(S.structLoss)+' /s'],
+            ['蓄能张力', Math.round((S.fsm==='TITLE_LOBBY'?0:S.power)*100)+' %']];
+  for(var k=0;k<rows.length;k++){
+    var yy=gy+gh+52+k*19;
+    c.textAlign='left'; c.fillStyle=C.ink3; c.font='10.5px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(rows[k][0], gx, yy);
+    c.textAlign='right'; c.fillStyle=C.ink2; c.font='600 10.5px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(rows[k][1], gx+gw, yy);
+  }
+  c.textAlign='left';
+}
+/* 仪表 4：状态生命周期带 */
+function drawLifecycle(c,ox){
+  c.fillStyle=C.ink3; c.font='600 11px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='left';
+  c.fillText('八阶状态流转带  FSM LIFECYCLE', ox+8, 22);
+  var names=['TITLE_LOBBY','SEEDED_INIT','ACTIVE_ENGAGED','ATTUNEMENT_DWELL',
+             'DYNAMIC_BRANCHING','OVERLOAD_PENALTY','CRISIS_ROLLBACK','RUN_SETTLED'];
+  var cur={ 'TITLE_LOBBY':0,'SEEDED_INITIALIZING':1,'ACTIVE_ENGAGED':2,'ATTUNEMENT_DWELL':3,
+            'DYNAMIC_BRANCHING':4,'OVERLOAD_PENALTY':5,'CRISIS_FAILED_ROLLBACK':6,'RUN_SETTLED_LEDGER':7 }[S.fsm];
+  for(var i=0;i<8;i++){
+    var yy=42+i*24;
+    var on=(i===cur);
+    c.fillStyle=on?'rgba(232,193,90,.20)':'rgba(255,255,255,.035)';
+    c.fillRect(ox+8, yy, 348, 20);
+    if(on){ c.strokeStyle=C.gold; c.lineWidth=1.2; c.strokeRect(ox+8,yy,348,20); }
+    c.beginPath(); c.arc(ox+20, yy+10, 4.5, 0, 6.2832);
+    c.fillStyle=on?C.gold:'rgba(120,150,190,.30)'; c.fill();
+    c.font=(on?'600 ':'')+'10.5px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillStyle=on?C.gold2:C.ink3;
+    c.fillText(names[i], ox+32, yy+14);
+    if(on){ c.textAlign='right'; c.fillStyle=C.gold; c.fillText('◀ 当前令牌', ox+350, yy+14); c.textAlign='left'; }
+  }
+}
+
+/* ================================================================ 画布 C：环境雷达（低频） */
+var radarAcc=0, radarPulse=0;
+function drawRadar(dt){
+  radarAcc+=dt;
+  if(radarAcc<0.25) return;         // 低频重绘：4 Hz
+  radarAcc=0; radarPulse+=0.25;
+  var c=ctxR, S2=2;                 // backing 2×
+  c.setTransform(1,0,0,1,0,0);
+  c.clearRect(0,0,536,720);
+  c.fillStyle='rgba(5,15,24,.90)';
+  rrectPath(c,0,0,536,720,18); c.fill();
+  c.strokeStyle='rgba(120,150,190,.34)'; c.lineWidth=2; c.stroke();
+  c.save(); c.scale(S2,S2);
+  c.font='600 10px "Noto Sans CJK SC",system-ui,sans-serif'; c.textAlign='left';
+  c.fillStyle=C.ink3; c.fillText('环境雷达 · 空间拓扑', 14, 22);
+  c.fillStyle=C.frost; c.textAlign='right'; c.fillText('4 Hz', 254, 22);
+  c.textAlign='left';
+  var gx=16, gy=34, gw=236, gh=196;
+  c.fillStyle='rgba(3,10,17,.92)'; c.fillRect(gx,gy,gw,gh);
+  c.strokeStyle='rgba(120,150,190,.20)'; c.lineWidth=1; c.strokeRect(gx,gy,gw,gh);
+  /* 世界映射：x 0..1536 → 0..gw ；y 0..WY → gh..0 */
+  function mx(x){ return gx+x/WW*gw; }
+  function my(y){ return gy+gh-y/WY*gh; }
+  /* 高度刻度 */
+  for(var k=0;k<=6;k++){
+    var yy=gy+gh*k/6;
+    c.strokeStyle='rgba(120,150,190,.09)';
+    c.beginPath(); c.moveTo(gx,yy); c.lineTo(gx+gw,yy); c.stroke();
+    c.fillStyle='rgba(157,192,210,.5)'; c.font='8.5px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(Math.round(WY*(1-k/6))+'', gx+2, yy-2);
+  }
+  /* 烽燧台 */
+  for(var i=0;i<S.beacons.length;i++){
+    var is=S.beacons[i];
+    if(!is.alive){ c.fillStyle='rgba(224,106,106,.30)'; c.fillRect(mx(is.x-is.w/2),my(is.y)-1.5,Math.max(3,is.w/WW*gw),3); continue; }
+    var col=is.core?C.gold:C.blue;
+    c.fillStyle=col;
+    c.fillRect(mx(is.x-is.w/2), my(is.y)-2, Math.max(4,is.w/WW*gw), 4);
+    if(i===S.groundBeacon&&S.grounded){
+      c.strokeStyle='rgba(232,193,90,.9)'; c.lineWidth=1;
+      c.strokeRect(mx(is.x-is.w/2)-2, my(is.y)-5, Math.max(4,is.w/WW*gw)+4, 10);
+    }
+    c.fillStyle='rgba(157,192,210,.55)'; c.font='8.5px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(is.id, mx(is.x)+4, my(is.y)+2);
+  }
+  /* 靶 */
+  for(var t=0;t<S.totems.length;t++){
+    var tg=S.totems[t];
+    c.beginPath(); c.arc(mx(tg.x),my(tg.y),tg.hit?3:5,0,6.2832);
+    c.strokeStyle=tg.hit?C.good:C.danger; c.lineWidth=1.6; c.stroke();
+    if(!tg.hit){ c.fillStyle='rgba(224,106,106,'+(0.2+0.25*Math.sin(radarPulse*3+t))+')'; c.fill(); }
+  }
+  /* 古道：荒原兽的推进干线 */
+  if(S.path&&S.path.length>1){
+    c.beginPath();
+    for(var pi=0;pi<S.path.length;pi++){
+      var pp=S.path[pi];
+      if(pi===0) c.moveTo(mx(pp.x),my(pp.y)); else c.lineTo(mx(pp.x),my(pp.y));
+    }
+    c.strokeStyle='rgba(196,164,110,.34)'; c.lineWidth=1.4; c.setLineDash([4,3]); c.stroke();
+    c.setLineDash([]);
+  }
+  /* 荒原兽 */
+  for(var bi2=0;bi2<S.beasts.length;bi2++){
+    var bs=S.beasts[bi2];
+    var bb=BAND_RGB[bs.band];
+    c.fillStyle='rgba('+bb[0]+','+bb[1]+','+bb[2]+',.95)';
+    c.beginPath(); c.arc(mx(bs.x),my(bs.y),2.8,0,6.2832); c.fill();
+  }
+  /* 已布防烽燧台 */
+  for(var ai=0;ai<S.beacons.length;ai++){
+    var ab=S.beacons[ai];
+    if(!ab.alive||ab.arm<0) continue;
+    var rb=BAND_RGB[ab.arm];
+    c.strokeStyle='rgba('+rb[0]+','+rb[1]+','+rb[2]+',.95)'; c.lineWidth=1.6;
+    c.beginPath(); c.arc(mx(ab.x), my(ab.y)-6, 4.2, 0, 6.2832); c.stroke();
+  }
+  /* 峰顶灵石：漏防计数直接体现在环上 */
+  var shr=mx(S.shrine.x), shy=my(S.shrine.y);
+  var sr=clamp(S.shrineHP/SHRINE_HP,0,1);
+  c.beginPath(); c.arc(shr,shy,7,-1.5708,-1.5708+6.2832*sr);
+  c.strokeStyle= sr>0.4? C.gold : C.danger; c.lineWidth=2.4; c.stroke();
+  c.font='8.5px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillStyle= sr>0.4? C.gold2 : C.danger;
+  c.fillText('灵石 '+Math.max(0,S.shrineHP), shr+10, shy+2);
+  c.fillStyle=C.danger; c.fillText('出怪口', mx(S.gate.x)+6, my(S.gate.y)-5);
+  /* 峰顶信标 */
+  c.fillStyle=C.gold2; c.beginPath();
+  c.moveTo(mx(WW/2),my(SUMMIT_Y)-6); c.lineTo(mx(WW/2)+6,my(SUMMIT_Y)+3); c.lineTo(mx(WW/2)-6,my(SUMMIT_Y)+3);
+  c.closePath(); c.fill();
+  c.font='8.5px "Noto Sans CJK SC",system-ui,sans-serif'; c.fillStyle=C.gold2;
+  c.fillText('峰顶', mx(WW/2)+9, my(SUMMIT_Y)+2);
+  /* 玩家 */
+  var px=mx(S.px), py=my(S.py);
+  c.beginPath(); c.arc(px,py,4.5,0,6.2832); c.fillStyle='#ffffff'; c.fill();
+  c.beginPath(); c.arc(px,py,4.5+((radarPulse*14)%14),0,6.2832);
+  c.strokeStyle='rgba(255,255,255,.35)'; c.lineWidth=1; c.stroke();
+  /* 视野框 */
+  var vTop=my(S.camY+WH), vBot=my(S.camY);
+  c.strokeStyle='rgba(111,208,224,.45)'; c.lineWidth=1; c.setLineDash([3,3]);
+  c.strokeRect(gx, vTop, gw, Math.max(4,vBot-vTop)); c.setLineDash([]);
+  /* 远端危险预警 */
+  var dy=34+208;
+  c.fillStyle=C.ink3; c.font='600 10px "Noto Sans CJK SC",system-ui,sans-serif';
+  c.fillText('远端危险预警', gx, dy+16);
+  var warn=[];
+  if(S.surge) warn.push(['兽潮爆发', '切变 ×1.85 · 兽速 ×1.35 · 剩余 '+fmt1(4.2-S.surgeT)+'s', C.violet]);
+  else warn.push(['兽潮波次', S.wave+' / '+WAVE_MAX+' 波 · 下波 '+fmt1(Math.max(0,S.waveT))+'s',
+    S.wave>=WAVE_MAX?C.good:C.ink3]);
+  warn.push(['古道兽情', '场中 '+S.beasts.length+' 兽 · 已歼 '+S.killed+' · 漏防 '+S.leaked,
+    S.beasts.length?C.ember:C.ink3]);
+  warn.push(['烽号需求', '图一 '+BAND_NAMES[demandBand(0,S.gameT)]+'（'+fmt1(demandLeft(S.gameT))+'s）· 图二 '+BAND_NAMES[demandBand(1,S.gameT)],
+    bandColor(S.band)]);
+  var dead=S.beacons.filter(function(x){return !x.alive;}).length;
+  var low=S.beacons.filter(function(x){return x.alive&&x.life<0.34;}).length;
+  warn.push(['烽燧阵列', '布防 '+S.armCount+' 座 · 齐射 '+S.volleys+' · 崩解 '+dead+'／告急 '+low,
+    (dead>5||low>0)?C.ember:C.blue]);
+  warn.push(['峰顶灵石', Math.max(0,S.shrineHP)+' / '+SHRINE_HP+' · 烽火令 '+Math.round(S.energy),
+    S.shrineHP<=6?C.danger:C.gold2]);
+  for(var q=0;q<warn.length;q++){
+    var yy2=dy+32+q*17;
+    c.fillStyle='rgba(255,255,255,.04)'; c.fillRect(gx,yy2-10,gw,15);
+    c.fillStyle=warn[q][2]; c.beginPath(); c.arc(gx+7,yy2-3,2.6,0,6.2832); c.fill();
+    c.fillStyle=C.ink3; c.font='9.5px "Noto Sans CJK SC",system-ui,sans-serif';
+    c.fillText(warn[q][0], gx+14, yy2);
+    c.textAlign='right'; c.fillStyle=warn[q][2]; c.fillText(warn[q][1], gx+gw-4, yy2); c.textAlign='left';
+  }
+  c.restore();
+}
+
+/* ================================================================ DOM 仪表 */
+var hudEls={};
+function buildHudBeacons(){
+  var box=$('#beaconList'); if(!box) return;
+  box.innerHTML='';
+  hudEls.beacon=[];
+  for(var i=0;i<S.beacons.length;i++){
+    var is=S.beacons[i];
+    var row=document.createElement('div');
+    row.className='beaconRow';
+    row.innerHTML='<div class="ring'+(is.core?' core':'')+'"></div><span class="nm">'+is.id+'</span><span class="ms"></span>';
+    box.appendChild(row);
+    hudEls.beacon.push({ row:row, ring:row.querySelector('.ring'), ms:row.querySelector('.ms'), id:is.id });
+  }
+  var slots=$('#comboSlots');
+  if(slots){ slots.innerHTML=''; hudEls.slot=[];
+    for(var k=0;k<6;k++){
+      var d=document.createElement('div'); d.className='slot';
+      d.innerHTML='<b>'+(k+1)+'</b>'; slots.appendChild(d); hudEls.slot.push(d);
+    }
+  }
+  var lb=$('#ledgerBody');
+  if(lb){
+    var rows=['环值累加','核心受击','连击段位','摆荡释放','同调完成','共振脉冲','过载硬直','因果回溯','烽燧台自毁','能量转换率'];
+    lb.innerHTML='';
+    hudEls.lg=[];
+    for(var m=0;m<rows.length;m++){
+      var d2=document.createElement('div'); d2.className='lg';
+      d2.innerHTML='<span>'+rows[m]+'</span><i>—</i>';
+      lb.appendChild(d2); hudEls.lg.push({ el:d2, v:d2.querySelector('i') });
+    }
+  }
+}
+function updateHudDom(){
+  if(hudEls.beacon){
+    for(var i=0;i<hudEls.beacon.length;i++){
+      var is=S.beacons[i], h=hudEls.beacon[i];
+      if(!is){ continue; }
+      var p=Math.round(clamp(is.life,0,1)*100);
+      h.ring.style.setProperty('--p', String(p));
+      h.ring.style.setProperty('--c', !is.alive?'#5a6b76':(is.life>0.55?'#5aa7d6':(is.life>0.25?'#e8c15a':'#e06a6a')));
+      h.row.className='beaconRow'+(is.alive?'':' dead');
+      var ms=is.alive? (i===S.groundBeacon&&S.grounded? ('承重 '+fmt2(is.sinkY)+'px') : (p+'%')) : '碎裂';
+      h.ms.textContent=ms;
+    }
+  }
+  var w=windField(S.px,S.py,S.gameT), wm=Math.hypot(w.x,w.y);
+  var ang=Math.atan2(w.y,w.x)*180/Math.PI;
+  var nd=$('#wNeedle'); if(nd) nd.style.transform='rotate('+ang+'deg)';
+  var gn=$('#gNeedle'); if(gn) gn.style.transform='rotate('+(gravVec(S.gameT).th*180/Math.PI)+'deg)';
+  var cs=$('#cmpShear'); if(cs) cs.textContent=fmt2(wm/220);
+  var ca=$('#cmpAoa'); if(ca) ca.textContent=Math.round(lastAero.aoa*180/Math.PI)+'°';
+
+  if(hudEls.slot){
+    for(var k=0;k<hudEls.slot.length;k++) hudEls.slot[k].className='slot'+(k<S.stage?' on':'');
+  }
+  var st=$('#cbStage'); if(st) st.textContent=String(S.stage);
+  var dw=$('#cbDwell'); if(dw) dw.textContent=String(S.attuneCount);
+  var dv=$('#cbDev'); if(dv) dv.textContent=(S.lastDev==null?'—':fmt2(S.lastDev));
+
+  var l1=$('#lsStruct'); if(l1) l1.textContent=fmt2(S.structLoss)+' /s';
+  var l2=$('#lsEdge'); if(l2) l2.textContent=fmt2(S.edgeDrain)+' /s';
+  var b1=$('#lsStructBar'); if(b1) b1.style.width=clamp(S.structLoss*900,2,100)+'%';
+  var b2=$('#lsEdgeBar'); if(b2) b2.style.width=clamp(S.edgeDrain*16,2,100)+'%';
+  var e2=$('#lsEdge'); if(e2) e2.className=(S.edgeDrain>0?'bad':'');
+
+  var wb=$('#wBand');
+  if(wb){ wb.textContent=BAND_NAMES[S.band]; wb.style.color=bandColor(S.band); }
+  var wd=$('#wDemand');
+  if(wd){ wd.textContent='图一 '+BAND_NAMES[demandBand(0,S.gameT)]+' · '+fmt1(demandLeft(S.gameT))+'s';
+          wd.style.color=bandColor(demandBand(0,S.gameT)); }
+  var ww=$('#wWave'); if(ww) ww.textContent=S.wave+' / '+WAVE_MAX+' 波';
+  var wbe=$('#wBeast'); if(wbe) wbe.textContent=S.beasts.length+' 兽 · 歼 '+S.killed;
+  var ws=$('#wShrine');
+  if(ws){ ws.textContent='漏 '+S.leaked+' · '+Math.max(0,S.shrineHP)+' / '+SHRINE_HP;
+          ws.className=(S.shrineHP<=6?'bad':'good'); }
+  var wsb=$('#wShrineBar');
+  if(wsb) wsb.style.width=clamp(Math.max(0,S.shrineHP)/SHRINE_HP*100,2,100)+'%';
+  var wa=$('#wArm'); if(wa) wa.textContent=S.armCount+' 座 · 齐射 '+S.volleys+' · 失配 '+S.bandReject;
+
+  if(hudEls.lg){
+    var R=S.fsm==='RUN_SETTLED_LEDGER'&&S.lastSettle? S.lastSettle : quickLedgerView();
+    var vals=[R.ringSum,R.coreHit,R.bestCombo,R.swings,R.dwells,R.bursts,R.overloads,R.rollbacks,R.shatters,fmt2(R.conv)];
+    for(var m=0;m<hudEls.lg.length;m++){
+      hudEls.lg[m].v.textContent=String(vals[m]);
+      hudEls.lg[m].el.className='lg'+(m>=6&&vals[m]>0?' hi':'');
+    }
+  }
+}
+function quickLedgerView(){
+  var land=ledgerOf('ARROW_LANDED');
+  var ringSum=land.reduce(function(a,e){return a+(e.ring||0);},0);
+  var coreHit=land.filter(function(e){return e.zone==='core';}).length;
+  var best=0,cur=0;
+  land.forEach(function(e){ if(e.zone==='core'){cur++; if(cur>best)best=cur;} else cur=0; });
+  var gains=ledgerOf('ENERGY_GAIN').reduce(function(a,e){return a+e.amount;},0);
+  var spends=ledgerOf('ENERGY_SPEND').reduce(function(a,e){return a+e.amount;},0);
+  return {
+    ringSum:ringSum, coreHit:coreHit, bestCombo:best,
+    swings:ledgerOf('TETHER_RELEASE').filter(function(e){return e.arc>=1.2;}).length,
+    dwells:ledgerOf('ATTUNE_COMPLETE').length,
+    bursts:ledgerOf('RESONANCE_BURST').length,
+    overloads:ledgerOf('OVERLOAD').length,
+    rollbacks:ledgerOf('ROLLBACK').length,
+    shatters:ledgerOf('ISLAND_SHATTER').length,
+    conv: gains>0? spends/gains : 0
+  };
+}
+function updateTip(){
+  var tb=$('#tipbar'); if(!tb) return;
+  var m={
+    TITLE_LOBBY:'Enter / 空格 / 点击画面 → 进入关卡种子重构　·　←/→ 位移　↑ 跳跃　↓ 速坠　D/F/J/K 切换四方烽号　C 烽燧布防',
+    SEEDED_INITIALIZING:'正在按固定种子重建烽燧台阵列与烽火图腾…',
+    ACTIVE_ENGAGED:'←/→ 位移 · ↑ 跳跃 · ↓ 动量下压速坠 · D/F/J/K 切换四方烽号 · C 烽燧布防（18 令）· 空格蓄能放出烽火矢 · Q 能量索 · R 相位翻转 · E 共振释放',
+    ATTUNEMENT_DWELL:'保持相对静止以完成能量同调 —— 同调完成前无法跳跃与燃烽，图腾只接受同号烽火矢',
+    DYNAMIC_BRANCHING:'空域危机爆发：切变 ×1.85 / 荒原兽推进 ×1.35 / 异号援兽追加投送',
+    OVERLOAD_PENALTY:'过载失稳：操作硬直中，全部输入被拒绝',
+    CRISIS_FAILED_ROLLBACK:'致命失败：因果回溯中，账本保留、实体阵列复位',
+    RUN_SETTLED_LEDGER:'本局已结算 —— R / Enter 同种子再来，Esc 返回待机'
+  };
+  tb.textContent=m[S.fsm]||'';
+}
+
+/* ================================================================ 时钟与主循环 */
+var lastTs=0, instAcc=0, hudAcc=0, rafId=0;
+function loop(ts){
+  rafId=requestAnimationFrame(loop);
+  if(!lastTs) lastTs=ts;
+  var dt=Math.min(0.05,(ts-lastTs)/1000); lastTs=ts;
+  if(dt<=0) dt=1/60;
+  if(S.frozen){ dt=0; }
+  if(!S.frozen) update(dt);
+
+  /* 画布 A：世界（每帧重绘） */
+  ctxW.setTransform(1,0,0,1,0,0);
+  ctxW.clearRect(0,0,WW,WH);
+  if(S.fsm==='TITLE_LOBBY') drawLobby();
+  else if(S.fsm==='SEEDED_INITIALIZING') drawSeeding();
+  else if(S.fsm==='RUN_SETTLED_LEDGER') drawSettled();
+  else drawWorld();
+
+  /* 画布 B：动态仪表（独立频次：每帧） */
+  drawInstruments();
+
+  /* 画布 C：环境雷达（独立频次：4 Hz） */
+  drawRadar(S.frozen?0.25:dt);
+
+  /* DOM 仪表（独立频次：20 Hz） */
+  /* 时钟冻结只冻结物理，DOM 仪表与提示条仍须镜像当前状态，否则冻结画面会带着上一态的读数 */
+  hudAcc+=dt;
+  if(hudAcc>=0.05||S.frozen){ hudAcc=0; updateHudDom(); }
+  updateTip();
+}
+window.addEventListener('resize',function(){
+  var k=Math.min(window.innerWidth/1536, window.innerHeight/864);
+  var f=$('#frame'); if(f) f.style.transform='scale('+k+')';
+});
+(function boot(){
+  S=freshState();
+  buildHudBeacons();
+  updateHudDom();
+  updateTip();
+  try{ window.addEventListener('resize',function(){}); }catch(e){}
+})();
+
+/* ================================================================ 确定性验证 API */
+window.GAME={
+  /* 种子与流程 */
+  seed:function(n){ S.seed=n|0; return this; },
+  lobby:function(){ backToLobby(); return this; },
+  start:function(){ beginSeeding(); return this; },
+  /* 时钟步进：以固定 dt 推进 n 步，重放完全确定 */
+  step:function(n,dt){ n=n||1; dt=dt||1/60;
+    for(var i=0;i<n;i++){ if(S.fsm!=='TITLE_LOBBY'&&S.fsm!=='RUN_SETTLED_LEDGER') update(dt); }
+    return this; },
+  setT:function(t){ S.gameT=t; return this; },
+  freeze:function(b){ S.frozen=!!b; return this; },
+  key:function(code,down){ keys[code]=!!down; return this; },
+  keys:function(){ return Object.keys(keys).filter(function(k){ return keys[k]; }); },
+  /* 注入 */
+  place:function(x,y){ S.px=x; S.py=y; S.pvx=0; S.pvy=0; S.grounded=false; S.groundBeacon=-1; S.tether=-1; return this; },
+  vel:function(vx,vy){ S.pvx=vx; S.pvy=vy; return this; },
+  landOn:function(i,impact){ landOn(i, impact==null?260:impact); return this; },
+  dwell:function(sec){ var n=Math.round((sec||DWELL_NEED)/ (1/120)); this.step(n,1/120); return this; },
+  energy:function(v){ S.energy=clamp(v,0,ENERGY_CAP); return this; },
+  stage:function(v){ S.stage=v; return this; },
+  charge:function(p){ S.charging=true; S.power=clamp(p==null?0.9:p,0.15,1); S.drawT=S.power/CHARGE_RATE; return this; },
+  aimAt:function(x,y){ mouse.x=x; mouse.y=y; return this; },
+  fire:function(){ fireArrow(); return this; },
+  /* 高难机制直调 */
+  tether:function(i){ S.px=S.beacons[i].x-40; S.py=S.beacons[i].y+120; S.grounded=false; S.groundBeacon=-1; tetherKey(); return this; },
+  tetherSwing:function(sec){ this.step(Math.round((sec||1.2)*60),1/60); return this; },
+  release:function(){ releaseTether(); return this; },
+  flip:function(){ phaseFlipKey(); return this; },
+  burst:function(){ burstKey(); return this; },
+  dive:function(){ S.dive=true; return this; },
+  overload:function(){ enterOverload('人工注入'); return this; },
+  crisis:function(){ fatal('人工注入'); return this; },
+  surgeOn:function(){ S.surge=true; S.surgeT=0; return this; },
+  /* 战略层直调 */
+  arm:function(){ armKey(); return this; },
+  band:function(v){ S.band=((v%BAND_N)+BAND_N)%BAND_N; return this; },
+  bandOf:function(){ return S.band; },
+  demandOf:function(k){ return demandBand(k==null?0:k, S.gameT); },
+  demandLeft:function(){ return demandLeft(S.gameT); },
+  armOf:function(i){ return S.beacons[i]? S.beacons[i].arm : -1; },
+  armCd:function(i){ return S.beacons[i]? round2(S.beacons[i].armCd) : -1; },
+  spawnBeast:function(b,d,pin){ spawnBeast(b==null?0:b, d==null?0:d);
+    if(pin){ var n=S.beasts[S.beasts.length-1]; n.spd=0; n.x=pin.x; n.y=pin.y; }
+    return this; },
+  spawnWave:function(){ S.waveT=0; return this; },
+  beastCount:function(){ return S.beasts.length; },
+  shrineHP:function(){ return S.shrineHP; },
+  pathAt:function(d){ return pathAt(d); },
+  pathLen:function(){ return round2(S.pathLen); },
+  settle:function(reason){ settleRun(reason||'人工结算'); return this; },
+  forceBeacon:function(i,life){ if(S.beacons[i]) S.beacons[i].life=clamp(life,0,1); return this; },
+  shatterBeacon:function(i){ shatterBeacon(i); return this; },
+  /* 读取 */
+  info:function(){
+    var w=windField(S.px,S.py,S.gameT), g=gravVec(S.gameT);
+    return {
+      fsm:S.fsm, t:round2(S.gameT), frame:S.frame, seed:S.seed,
+      x:Math.round(S.px), y:Math.round(S.py), vx:round2(S.pvx), vy:round2(S.pvy),
+      speed:round2(playerSpeed()), grounded:S.grounded, groundBeacon:S.groundBeacon,
+      jumps:S.jumps, dwellT:round2(S.dwellT), dwellActive:S.dwellActive,
+      energy:round2(S.energy), power:round2(S.power), charging:S.charging,
+      stage:S.stage, tether:S.tether, phaseFlip:S.phaseFlip,
+      band:S.band, bandName:BAND_NAMES[S.band],
+      demand:S.totems.map(function(t,i){ return demandBand(i,S.gameT); }),
+      wave:S.wave, waveMax:WAVE_MAX, beasts:S.beasts.length, spawned:S.spawned,
+      killed:S.killed, leaked:S.leaked, shrineHP:Math.max(0,S.shrineHP),
+      armCount:S.armCount, volleys:S.volleys, armRejects:S.armRejects,
+      bandHit:S.bandHit, bandReject:S.bandReject, pathLen:round2(S.pathLen),
+      beastList:S.beasts.map(function(b){ return { id:b.id, band:b.band, hp:Math.round(b.hp),
+        d:Math.round(b.d), x:Math.round(b.x), y:Math.round(b.y) }; }),
+      armed:S.beacons.map(function(b){ return b.arm; }),
+      stunT:round2(S.stunT), rollbacks:S.rollbacks, surge:S.surge,
+      wind:{x:round2(w.x),y:round2(w.y),mag:round2(Math.hypot(w.x,w.y))},
+      grav:{th:round2(g.th),sgn:g.sgn},
+      aero:{drag:round2(lastAero.d),lift:round2(lastAero.l),aoa:round2(lastAero.aoa),tail:lastAero.tail},
+      beacons:S.beacons.map(function(i){ return { id:i.id, x:Math.round(i.x), y:Math.round(i.y),
+        w:Math.round(i.w), alive:i.alive, life:round2(i.life), sink:round2(i.sinkY),
+        core:i.core, resonance:i.resonance, touched:i.touched }; }),
+      totems:S.totems.map(function(t){ return { id:t.id, x:t.x, y:t.y, r:t.r, hit:t.hit, ring:t.ring, zone:t.zone }; }),
+      ledgerLen:S.ledger.length,
+      ledgerTail:S.ledger.slice(-8),
+      settle:S.lastSettle? { total:S.lastSettle.total, star:S.lastSettle.star,
+        terms:S.lastSettle.terms.map(function(x){return [x.k,x.v];}) } : null
+    };
+  },
+  ledger:function(){ return S.ledger.slice(); },
+  settleLedger:function(){ return settleLedger(); },
+  /* 轨迹探针：与实弹同源的逐帧积分，返回顶点高度与水平射程 */
+  /* 非侵入式弹道预演：与 tickArrows 同一套积分，但不写账本、不改实体，供确定性标定使用 */
+  simArrow:function(aimX,aimY,power,ti){
+    var p=clamp(power==null?0.85:power,0.15,1);
+    var sp=ARROW_SPEED_BASE+ARROW_SPEED_GAIN*p;
+    var dx=aimX-S.px, dy=aimY-(S.py-26);
+    var ang=Math.atan2(dy,dx);
+    var a={ x:S.px+Math.cos(ang)*30, y:S.py-26+Math.sin(ang)*30,
+            vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp, t:0 };
+    var tg=(ti==null)?null:S.totems[ti];
+    var SUB=4, h=(1/60)/SUB;
+    var minR=1e9, mx=a.x, my=a.y, entered=false;
+    for(var n=0;n<2400&&a.t<6;n++){
+      var w=windField(a.x,a.y,S.gameT);
+      var g=gravVec(S.gameT);
+      var af=aeroForce(a.vx,a.vy,w);
+      a.vx+=(g.x*0.52+af.x*1.45)*h;
+      a.vy+=(g.y*0.52+af.y*1.45)*h;
+      a.x+=a.vx*h; a.y+=a.vy*h; a.t+=h;
+      if(tg){
+        var hit=classifyHit(a.x-tg.x,a.y-tg.y,tg.r);
+        if(hit.zone!=='miss'){
+          entered=true;
+          if(hit.ratio<minR){ minR=hit.ratio; mx=a.x; my=a.y; }
+        }else if(entered){
+          return { zone:zoneOfRatio(minR), ratio:round2(minR), t:round2(a.t),
+                   x:Math.round(mx), y:Math.round(my) };
+        }
+      }
+      if(a.y>WY+80||a.x<-60||a.x>WW+60) break;
+    }
+    if(entered) return { zone:zoneOfRatio(minR), ratio:round2(minR), t:round2(a.t),
+                         x:Math.round(mx), y:Math.round(my) };
+    return { zone:'miss', ratio:-1, t:round2(a.t), x:Math.round(a.x), y:Math.round(a.y) };
+  },
+  traj:function(v0x,v0y,wx,sec){
+    var x=0,y=0,vx=v0x,vy=v0y,dt=1/120,apex=0;
+    for(var t=0;t<(sec||1.2);t+=dt){
+      var af=aeroForce(vx,vy,{x:wx,y:0});
+      vx+=af.x*dt; vy+=(GRAV+af.y)*dt;
+      x+=vx*dt; y+=vy*dt;
+      if(-y>apex) apex=-y;
+    }
+    return { apex:round2(apex), range:round2(x), drag:round2(lastAero.d),
+             lift:round2(lastAero.l), aoa:round2(lastAero.aoa), tail:lastAero.tail };
+  },
+  /* 自检：四条反直觉/反模板断言 */
+  selfTest:function(){
+    var out={};
+    var settleIn=function(){ var s=settleLedger(); return { total:s.total, score:s.total }; };
+
+    /* 断言 1 · 接触同调时延：触地 200ms 内必须无法起跳（禁止触地即刻刷新跳跃次数） */
+    this.start(); this.step(90,1/60);
+    var bc=S.beacons[0];
+    this.place(bc.x, bc.y-16); S.pvy=320; this.step(8,1/60);
+    var groundedOnLanding=S.grounded;
+    this.step(Math.round(0.20*60),1/60);          // 推进到触地后 200ms
+    var before=this.info().jumps;
+    keys['KeyW']=true; this.step(3,1/60); keys['KeyW']=false;
+    var after=this.info().jumps, vy=this.info().vy;
+    var jumped=(after<before)||(vy<-50);
+    out.assert1_landingJumpGate={
+      groundedOnLanding:groundedOnLanding, jumpsAt200ms:before,
+      jumpExecutedAt200ms:jumped, pass:(groundedOnLanding&&before===0&&!jumped) };
+
+    /* 断言 2 · 零被动恢复：零输入 3 秒，烽火令与分数不得正向增长 */
+    this.start(); this.step(90,1/60);
+    var i2=S.beacons[0]; this.place(i2.x,i2.y-16); S.pvy=320; this.step(60,1/60);
+    var e0=this.info().energy, s0=S.ledger.length, p0=settleLedger().total;
+    var sc0=settleIn().total;
+    this.step(180,1/60);                          // 3 秒零输入
+    var e1=this.info().energy, p1=settleLedger().total, sc1=settleIn().total;
+    out.assert2_noPassiveRegen={ energy0:e0, energy1:e1, score0:sc0, score1:sc1,
+      delta:round2(e1-e0), pass:(e1<=e0+1e-6 && sc1<=sc0+1e-6) };
+
+    /* 断言 3 · 反常识风阻：顺风阻尼 ×1.40，逆风迎角升力抬升顶点 */
+    S.surge=false;
+    var tail=this.traj(300,-560, 150, 1.2);
+    var head=this.traj(300,-560,-150, 1.2);
+    out.assert3_windInversion={
+      tailwind:{ apex:tail.apex, tail:tail.tail, drag:tail.drag, lift:tail.lift, aoa:tail.aoa },
+      headwind:{ apex:head.apex, tail:head.tail, drag:head.drag, lift:head.lift, aoa:head.aoa },
+      apexGain:round2(head.apex-tail.apex),
+      pass:(tail.tail===true && head.tail===false && head.lift>0 && head.apex>tail.apex) };
+
+    /* 断言 4 · 平台承重下沉与离台弹性回冲、500ms 后碎裂 */
+    this.start(); this.step(90,1/60);
+    var i3=S.beacons[3];
+    this.place(i3.x, i3.y-16); S.pvy=520; this.step(10,1/60);
+    var sinkAfterImpact=this.info().beacons[3].sink;
+    this.step(Math.round(0.40*60),1/60);
+    var sinkDwell=this.info().beacons[3].sink;
+    keys['KeyW']=true; this.step(3,1/60); keys['KeyW']=false;
+    this.step(Math.round(0.18*60),1/60);
+    var rebound=round2(this.info().beacons[3].sink - sinkDwell);
+    this.step(Math.round(0.40*60),1/60);
+    var shattered=(this.info().beacons[3].alive===false);
+    out.assert4_sinkRebound={ sinkAfterImpact:sinkAfterImpact, sinkAfterDwell:sinkDwell,
+      reboundDelta:rebound, shatteredAfter500ms:shattered,
+      pass:(sinkAfterImpact>0.2 && sinkDwell>sinkAfterImpact && shattered) };
+
+    /* 断言 5 · 分层判定：核心受击点 / 擦弹边缘 分类正确 */
+    var r=78;
+    out.assert5_hitLayers={
+      core:classifyHit(0,0,r).zone,
+      body:classifyHit(r*0.4,0,r).zone,
+      graze:classifyHit(r*0.75,0,r).zone,
+      miss:classifyHit(r*1.4,0,r).zone };
+    out.assert5_hitLayers.pass=
+      out.assert5_hitLayers.core==='core' && out.assert5_hitLayers.body==='body' &&
+      out.assert5_hitLayers.graze==='graze' && out.assert5_hitLayers.miss==='miss';
+
+    /* 断言 6 · 结算纯函数：分数只能由账本归约得出 */
+    var a=settleLedger().total;
+    S.ledger.push({i:0,t:0,type:'ARROW_LANDED',ring:10,zone:'core',deviation:0.1,power:0.9});
+    var b=settleLedger().total;
+    S.ledger.pop();
+    var c=settleLedger().total;
+    out.assert6_ledgerPure={ before:a, afterInject:b, afterRestore:c,
+      pass:(b>a && c===a) };
+
+    /* 断言 7 · 烽号门禁：图腾只接受与当下需求同号的一击，异号被动量吸收域吞掉 */
+    this.start(); this.step(90,1/60);
+    var t0=S.totems[0], need0=demandBand(0,S.gameT);
+    var fake={ x:t0.x, y:t0.y, power:0.9 };
+    var rej0=S.bandReject;
+    S.band=(need0+1)%BAND_N;
+    resolveArrow(fake, t0, { zone:'core', ratio:0.05 });
+    var blocked=(t0.hit===false) && (S.bandReject===rej0+1);
+    S.band=need0;
+    resolveArrow(fake, t0, { zone:'core', ratio:0.05 });
+    var passed=(t0.hit===true);
+    out.assert7_bandGate={ need:BAND_NAMES[need0], blockedOnMismatch:blocked,
+      passedOnMatch:passed, pass:(blocked && passed) };
+
+    /* 断言 8 · 烽燧同号齐射：异号荒原兽穿越射界不受任何伤害 */
+    this.start(); this.step(90,1/60);
+    var bcx=S.beacons[2];
+    this.energy(100);
+    this.place(bcx.x, bcx.y-16); S.pvy=240; this.step(8,1/60);
+    S.band=0; armKey();
+    var armed=(S.beacons[2].arm===0);
+    S.beasts.length=0;
+    S.beasts.push({ id:'BX1', d:0, x:bcx.x+120, y:bcx.y, band:1, hp:BEAST_HP,
+      max:BEAST_HP, spd:0, flash:0, alive:true, wob:0 });
+    S.beacons[2].armCd=0;
+    this.step(6,1/60);
+    var hpWrong=S.beasts.length? S.beasts[0].hp : -1;
+    if(S.beasts.length) S.beasts[0].band=0;
+    S.beacons[2].armCd=0;
+    this.step(6,1/60);
+    var hpSame=S.beasts.length? S.beasts[0].hp : -1;
+    out.assert8_bandVolley={ armed:armed, hpVsMismatchedBeast:hpWrong, hpVsMatchedBeast:hpSame,
+      pass:(armed && hpWrong===BEAST_HP && hpSame<hpWrong) };
+
+    /* 断言 9 · 古道推进与漏防：荒原兽抵达灵石即扣减，且不产生任何被动收益 */
+    this.start(); this.step(90,1/60);
+    var hp0=this.shrineHP(), lk0=S.leaked, sc0b=settleLedger().total;
+    spawnBeast(0, S.pathLen-4);
+    S.beasts[S.beasts.length-1].spd=BEAST_SPD;
+    this.step(20,1/60);
+    var hp1=this.shrineHP(), lk1=S.leaked, sc1b=settleLedger().total;
+    out.assert9_leakDrain={ shrine0:hp0, shrine1:hp1, leaked0:lk0, leaked1:lk1,
+      score0:sc0b, score1:sc1b,
+      pass:(hp1<hp0 && lk1===lk0+1 && sc1b<=sc0b) };
+    return out;
+  }
+};
+
+/* 启动渲染循环 */
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

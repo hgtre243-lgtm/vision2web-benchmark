@@ -1,0 +1,3356 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="no-anim">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>澄语 CHENGYU · AI 语音标注与质检工作台</title>
+<meta name="description" content="澄语 CHENGYU 是面向语音算法团队的多模态标注工作台：双轨波形主检、音素级对齐、双人质检冲突消解、两阶段提交与动态计费账本，输出可直接交付的训练语料。">
+<meta name="keywords" content="语音标注,音素对齐,说话人分离,质检冲突,数据标注平台,ASR 语料">
+<meta name="author" content="澄语 CHENGYU">
+<meta name="theme-color" content="#2dd4bf">
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="澄语 CHENGYU">
+<meta property="og:title" content="澄语 CHENGYU · AI 语音标注与质检工作台">
+<meta property="og:description" content="双轨波形主检、音素级对齐、双人质检冲突消解、两阶段提交与动态计费账本。">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="./index.html">
+<style>
+
+/* ══════════════════════════════════════════════════════════════════
+   0. 设计令牌
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  /* 底面层级（越靠前越亮） */
+  --bg0:#080c12;  --bg1:#0d131c;  --bg2:#131b26;  --bg3:#19222f;  --bg4:#212c3c;
+  --bg5:#2a374a;  --bg-glass:rgba(13,19,28,.86);
+  /* 描边 */
+  --line:#22303f;  --line2:#19232e;  --line3:#2d3d52;  --line-hot:#3a5069;
+  --line-dash:#33455c;
+  /* 文字 */
+  --tx0:#e4eef9;  --tx1:#a6b7cb;  --tx2:#72859c;  --tx3:#4f6076;  --tx4:#3a4757;
+  /* 语义色 */
+  --cy:#2dd4bf;  --cy-d:#12a594;  --cy-k:#0b6b62;  --cyA:rgba(45,212,191,.13);
+  --vi:#a78bfa;  --vi-d:#7c5cf5;  --viA:rgba(167,139,250,.13);
+  --am:#f5a524;  --am-d:#c47f10;  --amA:rgba(245,165,36,.13);
+  --ro:#fb5c72;  --ro-d:#dc3450;  --roA:rgba(251,92,114,.13);
+  --em:#34d399;  --em-d:#149a6c;  --emA:rgba(52,211,153,.13);
+  --bl:#60a5fa;  --bl-d:#2f74dc;  --blA:rgba(96,165,250,.13);
+  --sl:#8fa3ba;  --slA:rgba(143,163,186,.10);
+  /* 尺寸 */
+  --w-nav:208px;  --w-draw:284px;  --w-qc:244px;
+  --h-top:46px;   --h-bot:24px;    --h-tool:38px;
+  --r1:3px; --r2:5px; --r3:8px; --r4:11px; --r5:16px; --rfull:999px;
+  /* 字体 */
+  --ff:"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --fm:"JetBrains Mono","Cascadia Mono","Consolas",ui-monospace,monospace;
+  /* 阴影 */
+  --sh1:0 1px 2px rgba(0,0,0,.35);
+  --sh2:0 4px 14px rgba(0,0,0,.42);
+  --sh3:0 12px 34px rgba(0,0,0,.55);
+  --sh4:0 20px 60px rgba(0,0,0,.68);
+  --sh-cy:0 0 0 1px rgba(45,212,191,.42),0 0 18px rgba(45,212,191,.28);
+  --sh-am:0 0 0 1px rgba(245,165,36,.45),0 0 18px rgba(245,165,36,.3);
+  --sh-ro:0 0 0 1px rgba(251,92,114,.5),0 0 20px rgba(251,92,114,.35);
+  /* 动效 */
+  --e1:cubic-bezier(.32,.72,0,1);  --dur1:.14s;  --dur2:.24s;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   1. 重置与外壳
+   ══════════════════════════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--ff);background:var(--bg0);color:var(--tx0);
+  font-size:12px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+a{color:var(--cy);text-decoration:none}
+ul,ol{list-style:none}
+table{border-collapse:collapse;width:100%}
+/* 图标基线尺寸：所有内联 SVG 图标默认 13px，由具体组件类放大 */
+svg{width:13px;height:13px;flex:0 0 auto;display:block}
+#icons{position:absolute;width:0;height:0;overflow:hidden;clip:rect(0 0 0 0)}
+.radial{display:none}
+.radial.show{display:block}
+.mono{font-family:var(--fm);font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:var(--bg1)}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:var(--rfull);border:2px solid var(--bg1)}
+::-webkit-scrollbar-thumb:hover{background:var(--line-hot)}
+
+/* 四栏 Dock 网格 */
+.app{
+  display:grid;height:100vh;width:100%;
+  grid-template-columns:var(--w-nav) minmax(0,1fr) var(--w-draw) var(--w-qc);
+  grid-template-rows:var(--h-top) minmax(0,1fr) var(--h-bot);
+  background:var(--bg0);
+}
+.topbar{grid-column:1/-1;grid-row:1}
+.statusbar{grid-column:1/-1;grid-row:3}
+.navcol{grid-column:1;grid-row:2}
+.maincol{grid-column:2;grid-row:2}
+.drawcol{grid-column:3;grid-row:2}
+.qccol{grid-column:4;grid-row:2}
+.col{min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+
+/* ══════════════════════════════════════════════════════════════════
+   2. 顶栏
+   ══════════════════════════════════════════════════════════════════ */
+.topbar{
+  display:flex;align-items:center;gap:10px;padding:0 12px;
+  background:linear-gradient(180deg,var(--bg2),var(--bg1));
+  border-bottom:1px solid var(--line);box-shadow:var(--sh1);z-index:30;
+}
+.tb-brand{display:flex;align-items:center;gap:8px;padding-right:10px;border-right:1px solid var(--line2)}
+.tb-logo{
+  width:26px;height:26px;border-radius:var(--r2);display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--cy-d),var(--vi-d));box-shadow:var(--sh-cy);flex:0 0 auto;
+}
+.tb-logo svg{width:16px;height:16px;stroke:#04120f;fill:none;stroke-width:2.1}
+.tb-name{font-size:13px;font-weight:650;letter-spacing:.3px}
+.tb-name em{font-style:normal;font-family:var(--fm);font-size:9px;color:var(--tx2);margin-left:5px;letter-spacing:.6px}
+.tb-crumb{display:flex;align-items:center;gap:6px;color:var(--tx2);font-size:11.5px;min-width:0}
+.tb-crumb b{color:var(--tx0);font-weight:600}
+.tb-crumb .sep{color:var(--tx4)}
+.tb-crumb .mono{color:var(--cy);background:var(--cyA);padding:1px 6px;border-radius:var(--r1);font-size:10px}
+.tb-spacer{flex:1}
+.tb-search{
+  display:flex;align-items:center;gap:7px;width:212px;height:27px;padding:0 9px;
+  background:var(--bg0);border:1px solid var(--line);border-radius:var(--r2);color:var(--tx2);
+  transition:border-color var(--dur1) var(--e1),box-shadow var(--dur1) var(--e1);
+}
+.tb-search:focus-within{border-color:var(--cy-k);box-shadow:0 0 0 2px var(--cyA)}
+.tb-search svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.tb-search input{flex:1;background:none;border:0;outline:0;color:var(--tx0);font-size:11.5px}
+.tb-search input::placeholder{color:var(--tx3)}
+.tb-search kbd{
+  font-family:var(--fm);font-size:9.5px;color:var(--tx2);background:var(--bg3);
+  border:1px solid var(--line);border-radius:var(--r1);padding:1px 4px;
+}
+.tb-ico{
+  position:relative;width:28px;height:28px;border-radius:var(--r2);display:grid;place-items:center;
+  color:var(--tx1);transition:background var(--dur1) var(--dur1) var(--e1),color var(--dur1);
+}
+.tb-ico:hover{background:var(--bg3);color:var(--tx0)}
+.tb-ico svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9}
+.tb-ico .dot{
+  position:absolute;top:4px;right:4px;min-width:13px;height:13px;padding:0 3px;border-radius:var(--rfull);
+  background:var(--ro);color:#fff;font-size:8.5px;font-weight:700;display:grid;place-items:center;
+  border:1.5px solid var(--bg1);
+}
+.tb-user{display:flex;align-items:center;gap:7px;padding:3px 8px 3px 3px;border-radius:var(--rfull);background:var(--bg3)}
+.tb-av{
+  width:22px;height:22px;border-radius:var(--rfull);display:grid;place-items:center;flex:0 0 auto;
+  background:linear-gradient(135deg,var(--cy),var(--bl));color:#061014;font-size:10px;font-weight:750;
+}
+.tb-user span{font-size:11px;color:var(--tx1)}
+.tb-user .rl{font-size:9px;color:var(--tx3);font-family:var(--fm)}
+
+/* ══════════════════════════════════════════════════════════════════
+   3. 状态栏
+   ══════════════════════════════════════════════════════════════════ */
+.statusbar{
+  display:flex;align-items:center;gap:0;padding:0 10px;font-size:10.5px;
+  background:linear-gradient(180deg,var(--bg1),var(--bg0));border-top:1px solid var(--line);
+  color:var(--tx2);z-index:30;
+}
+.sb-i{display:flex;align-items:center;gap:5px;padding:0 9px;height:100%;white-space:nowrap}
+.sb-i svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.1}
+.sb-i.b{border-left:1px solid var(--line2)}
+.sb-i .k{color:var(--tx3)}
+.sb-i .v{color:var(--tx1);font-family:var(--fm)}
+.sb-state{
+  display:flex;align-items:center;gap:6px;padding:2px 9px;border-radius:var(--rfull);
+  background:var(--bg3);border:1px solid var(--line3);font-family:var(--fm);font-size:10px;
+  letter-spacing:.3px;color:var(--cy);
+}
+.sb-state .pulse{width:6px;height:6px;border-radius:var(--rfull);background:currentColor;box-shadow:0 0 8px currentColor}
+.sb-ok{color:var(--em)}   .sb-bad{color:var(--ro)}   .sb-warn{color:var(--am)}
+.sb-spacer{flex:1}
+
+/* 按状态机着色 */
+body[data-st="IDLE"] .sb-state{color:var(--sl);border-color:var(--line)}
+body[data-st="AUDIO_DECODING"] .sb-state{color:var(--bl);border-color:var(--bl-d);background:var(--blA)}
+body[data-st="SEGMENT_HOVER"] .sb-state{color:var(--cy);border-color:var(--cy-k);background:var(--cyA)}
+body[data-st="ACTIVE_EDITING"] .sb-state{color:var(--vi);border-color:var(--vi-d);background:var(--viA)}
+body[data-st="CONFLICT_FLAGGED"] .sb-state{color:var(--am);border-color:var(--am-d);background:var(--amA)}
+body[data-st="VALIDATION_FAILED"] .sb-state{color:var(--ro);border-color:var(--ro-d);background:var(--roA)}
+body[data-st="PENDING_AUDIT"] .sb-state{color:var(--bl);border-color:var(--bl-d);background:var(--blA)}
+body[data-st="ARCHIVED_COMMITTED"] .sb-state{color:var(--em);border-color:var(--em-d);background:var(--emA)}
+
+/* ══════════════════════════════════════════════════════════════════
+   4. 栏1 · 全局项目/批次导航
+   ══════════════════════════════════════════════════════════════════ */
+.navcol{background:var(--bg1);border-right:1px solid var(--line);position:relative}
+.nav-rail{
+  display:flex;flex-direction:column;align-items:center;gap:2px;width:44px;padding:8px 0;
+  background:var(--bg0);border-right:1px solid var(--line2);flex:0 0 auto;
+}
+.nav-rail .rb{
+  width:32px;height:32px;border-radius:var(--r2);display:grid;place-items:center;color:var(--tx2);
+  position:relative;transition:color var(--dur1) var(--e1),background var(--dur1) var(--e1);
+}
+.nav-rail .rb svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.85}
+.nav-rail .rb:hover{background:var(--bg3);color:var(--tx0)}
+.nav-rail .rb.on{background:var(--cyA);color:var(--cy)}
+.nav-rail .rb.on::before{
+  content:'';position:absolute;left:-6px;top:6px;bottom:6px;width:2.5px;border-radius:var(--rfull);
+  background:var(--cy);box-shadow:0 0 9px var(--cy);
+}
+.nav-rail .rb .rbadge{
+  position:absolute;top:2px;right:2px;min-width:12px;height:12px;padding:0 3px;border-radius:var(--rfull);
+  background:var(--am);color:#160f02;font-size:8px;font-weight:800;display:grid;place-items:center;
+}
+.nav-rail .rsp{flex:1}
+
+.nav-body{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.proj{padding:9px 10px;border-bottom:1px solid var(--line2)}
+.proj-btn{
+  display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border-radius:var(--r2);
+  background:var(--bg2);border:1px solid var(--line);text-align:left;
+  transition:border-color var(--dur1) var(--e1),background var(--dur1) var(--e1);
+}
+.proj-btn:hover{border-color:var(--line-hot);background:var(--bg3)}
+.proj-av{
+  width:24px;height:24px;border-radius:var(--r2);display:grid;place-items:center;flex:0 0 auto;
+  background:linear-gradient(135deg,var(--vi-d),var(--bl-d));font-size:11px;font-weight:700;color:#fff;
+}
+.proj-tx{flex:1;min-width:0}
+.proj-tx b{display:block;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-tx span{display:block;font-size:9.5px;color:var(--tx3);font-family:var(--fm)}
+.proj-btn>svg{width:13px;height:13px;stroke:var(--tx2);fill:none;stroke-width:2.2;flex:0 0 auto}
+
+.navsec{border-bottom:1px solid var(--line2);display:flex;flex-direction:column;min-height:0}
+.navsec.grow{flex:1}
+.navsec-hd{
+  display:flex;align-items:center;gap:6px;padding:8px 10px 6px;font-size:9.5px;font-weight:700;
+  letter-spacing:1.1px;color:var(--tx3);text-transform:uppercase;
+}
+.navsec-hd svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.2}
+.navsec-hd .cnt{
+  margin-left:auto;font-family:var(--fm);font-size:9px;color:var(--tx2);
+  background:var(--bg3);padding:0 5px;border-radius:var(--rfull);letter-spacing:0;
+}
+.navsec-bd{overflow-y:auto;padding:0 6px 8px;min-height:0}
+.navsec-bd.flat{overflow:visible;padding:0}
+
+.bitem{
+  display:block;width:100%;padding:7px 8px;border-radius:var(--r2);text-align:left;margin-bottom:2px;
+  border:1px solid transparent;transition:background var(--dur1) var(--e1),border-color var(--dur1) var(--e1);
+}
+.bitem:hover{background:var(--bg2)}
+.bitem.on{background:var(--bg3);border-color:var(--line3)}
+.bitem.on::before{
+  content:'';position:absolute;margin-left:-8px;margin-top:3px;width:2.5px;height:14px;border-radius:var(--rfull);
+  background:var(--cy);box-shadow:0 0 8px var(--cy);
+}
+.brow{display:flex;align-items:center;gap:6px}
+.brow b{font-size:11.5px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brow .st{font-size:9px;font-family:var(--fm);padding:1px 5px;border-radius:var(--r1);flex:0 0 auto}
+.st-run{background:var(--blA);color:var(--bl)}   .st-done{background:var(--emA);color:var(--em)}
+.st-hold{background:var(--slA);color:var(--sl)}  .st-warn{background:var(--amA);color:var(--am)}
+.bmeta{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:9.5px;color:var(--tx3);font-family:var(--fm)}
+.btrack{height:3px;border-radius:var(--rfull);background:var(--bg4);overflow:hidden;margin-top:5px}
+.bfill{height:100%;border-radius:var(--rfull);background:linear-gradient(90deg,var(--cy-d),var(--cy));transition:width var(--dur2) var(--e1)}
+.bfill.bl{background:linear-gradient(90deg,var(--bl-d),var(--bl))}
+.bfill.am{background:linear-gradient(90deg,var(--am-d),var(--am))}
+
+.titem{
+  display:flex;align-items:center;gap:7px;width:100%;padding:6px 8px;border-radius:var(--r2);
+  text-align:left;transition:background var(--dur1) var(--e1);
+}
+.titem:hover{background:var(--bg2)}
+.titem.on{background:var(--cyA)}
+.titem .ti-ico{width:14px;height:14px;flex:0 0 auto;stroke:var(--tx2);fill:none;stroke-width:2}
+.titem.on .ti-ico{stroke:var(--cy)}
+.titem .ti-tx{flex:1;min-width:0}
+.titem .ti-tx b{display:block;font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.titem .ti-tx span{display:block;font-size:9.5px;color:var(--tx3);font-family:var(--fm)}
+.titem .ti-n{font-size:9px;font-family:var(--fm);color:var(--tx3);flex:0 0 auto}
+
+.navfoot{border-top:1px solid var(--line2);padding:7px 9px;display:flex;align-items:center;gap:7px}
+.nf-av{
+  width:22px;height:22px;border-radius:var(--rfull);display:grid;place-items:center;flex:0 0 auto;
+  background:linear-gradient(135deg,var(--am),var(--ro));color:#180a04;font-size:10px;font-weight:750;
+}
+.nf-tx{flex:1;min-width:0}
+.nf-tx b{display:block;font-size:11px;font-weight:600}
+.nf-tx span{display:block;font-size:9px;color:var(--tx3)}
+
+/* ══════════════════════════════════════════════════════════════════
+   5. 栏2 · 主视窗（波形 + 上下文面板）
+   ══════════════════════════════════════════════════════════════════ */
+.maincol{background:var(--bg1);position:relative}
+.wtool{
+  display:flex;align-items:center;flex-wrap:wrap;gap:3px;padding:5px 9px;min-height:var(--h-tool);
+  background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto;
+}
+.wbtn{
+  display:inline-flex;align-items:center;gap:4px;height:25px;padding:0 6px;border-radius:var(--r2);
+  color:var(--tx1);border:1px solid transparent;white-space:nowrap;
+  transition:background var(--dur1) var(--e1),color var(--dur1) var(--e1),border-color var(--dur1) var(--e1);
+}
+.wbtn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.wbtn:hover{background:var(--bg4);color:var(--tx0)}
+.wbtn.on{background:var(--cyA);color:var(--cy);border-color:var(--cy-k)}
+.wbtn.pri{background:linear-gradient(180deg,var(--cy-d),var(--cy-k));color:#04120f;font-weight:650;border-color:var(--cy-d)}
+.wbtn.pri svg{stroke-width:2.4}
+.wbtn.danger{color:var(--ro)}
+.wbtn.danger:hover{background:var(--roA)}
+.wbtn[disabled]{opacity:.38;cursor:not-allowed;filter:grayscale(.5)}
+.wbtn .lbl{font-size:11px}
+.wsep{width:1px;height:18px;background:var(--line);margin:0}
+.wspacer{flex:1;min-width:0}
+.zoomwrap{display:flex;align-items:center;gap:6px;padding:0 7px;height:25px;background:var(--bg0);border:1px solid var(--line);border-radius:var(--r2)}
+.zoomwrap svg{width:12px;height:12px;stroke:var(--tx2);fill:none;stroke-width:2.2}
+.zslider{
+  -webkit-appearance:none;appearance:none;width:64px;height:3px;border-radius:var(--rfull);
+  background:linear-gradient(90deg,var(--cy-d) var(--z,50%),var(--bg4) var(--z,50%));outline:0;
+}
+.zslider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:11px;height:11px;border-radius:var(--rfull);background:var(--cy);
+  border:2px solid var(--bg1);box-shadow:0 0 8px rgba(45,212,191,.6);cursor:grab;
+}
+.zval{font-family:var(--fm);font-size:10px;color:var(--cy);min-width:44px;text-align:right}
+.thumbwrap{display:flex;align-items:center;gap:5px;height:25px;padding:0 7px;background:var(--bg0);border:1px solid var(--line);border-radius:var(--r2)}
+.thumbwrap span{font-size:10px;color:var(--tx2);font-family:var(--fm)}
+.thslider{-webkit-appearance:none;appearance:none;width:58px;height:3px;border-radius:var(--rfull);background:var(--bg4);outline:0}
+.thslider::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:var(--rfull);background:var(--am);border:2px solid var(--bg1);cursor:grab}
+
+/* ── 波形主检区 ── */
+.cvwrap{flex:0 0 auto;display:flex;flex-direction:column;background:var(--bg0);border-bottom:1px solid var(--line);position:relative}
+.cvruler{display:flex;height:22px;border-bottom:1px solid var(--line2);background:var(--bg1)}
+.cv-gut{width:56px;flex:0 0 auto;border-right:1px solid var(--line2);background:var(--bg1)}
+.track{display:flex;border-bottom:1px solid var(--line2);position:relative}
+.tlabel{
+  width:56px;flex:0 0 auto;border-right:1px solid var(--line2);background:var(--bg1);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:4px 2px;
+}
+.tlabel svg{width:13px;height:13px;stroke:var(--tx2);fill:none;stroke-width:2}
+.tlabel b{font-size:9px;font-family:var(--fm);color:var(--tx2);letter-spacing:.4px;writing-mode:horizontal-tb}
+.tlabel .tg{font-size:8px;font-family:var(--fm);color:var(--tx4)}
+.tlabel.a svg{stroke:var(--cy)}  .tlabel.a b{color:var(--cy)}
+.tlabel.b svg{stroke:var(--vi)}  .tlabel.b b{color:var(--vi)}
+.cvbox{flex:1;min-width:0;position:relative;overflow:hidden}
+.cvbox canvas{display:block;width:100%;height:100%}
+.cvtracks{position:relative;display:flex;flex-direction:column}
+.track.t1{height:134px}
+.track.t2{height:98px;border-bottom:0}
+.ovl{position:absolute;left:56px;right:0;top:0;bottom:0;pointer-events:none;z-index:4}
+/* 冲突区间带（相位 4）：红色脉冲 */
+.cfband{
+  position:absolute;top:0;bottom:0;z-index:3;pointer-events:none;
+  background:linear-gradient(180deg,rgba(251,92,114,.24),rgba(251,92,114,.10));
+  border-left:1.5px solid var(--ro);border-right:1.5px solid var(--ro);
+  animation:cfpulse 1.5s var(--e1) infinite;
+}
+/* 重叠错误带（相位 5）：斜纹 + 标签 */
+.ovband{
+  position:absolute;top:0;bottom:0;z-index:6;pointer-events:none;
+  background:repeating-linear-gradient(45deg,rgba(251,92,114,.55) 0 5px,rgba(251,92,114,.12) 5px 10px);
+  border:1px solid var(--ro);box-shadow:0 0 16px rgba(251,92,114,.55);
+  animation:cfpulse 1.1s var(--e1) infinite;
+}
+.ovband span{
+  position:absolute;top:4px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  font-family:var(--fm);font-size:8.5px;color:#fff;background:var(--ro-d);
+  padding:1px 5px;border-radius:var(--r1);box-shadow:var(--sh1);
+}
+/* 暂存切分点（两阶段提交） */
+.stagedmark{
+  position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--am);
+  box-shadow:0 0 12px var(--am);z-index:7;pointer-events:none;
+}
+.stagedmark::after{
+  content:'Staged';position:absolute;top:-14px;left:-17px;
+  font-family:var(--fm);font-size:8px;color:var(--am);background:var(--bg2);
+  border:1px solid var(--am-d);border-radius:var(--r1);padding:0 3px;white-space:nowrap;
+}
+/* hover 十字线 + 时间气泡 */
+.hxhair{position:absolute;top:0;bottom:0;width:1px;background:rgba(45,212,191,.72);z-index:5;pointer-events:none}
+.hxhair i{
+  position:absolute;top:3px;left:4px;font-style:normal;font-family:var(--fm);font-size:8.5px;
+  color:var(--cy);background:rgba(8,12,18,.92);border:1px solid var(--cy-k);
+  padding:0 4px;border-radius:var(--r1);white-space:nowrap;
+}
+/* 波形区底栏读数 */
+.wfoot{
+  display:flex;align-items:center;gap:13px;padding:5px 10px;background:var(--bg1);
+  border-top:1px solid var(--line2);font-size:9.5px;color:var(--tx3);flex:0 0 auto;
+}
+.wfoot .wf-i{display:flex;align-items:center;gap:5px;font-family:var(--fm);white-space:nowrap}
+.wfoot .wf-i svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.2}
+.wfoot .wf-i b{color:var(--tx1);font-weight:600}
+.wfoot .wf-i.am b{color:var(--am)}
+.wfoot .wf-i.bad b{color:var(--ro)}
+.wfoot .wf-i.good b{color:var(--em)}
+.wfoot .wspacer{flex:1}
+.ph{
+  position:absolute;top:0;bottom:0;width:1px;background:var(--ro);
+  box-shadow:0 0 8px rgba(251,92,114,.9);pointer-events:none;z-index:5;
+}
+.ph::before{
+  content:'';position:absolute;top:-1px;left:-3.5px;width:8px;height:8px;
+  background:var(--ro);clip-path:polygon(0 0,100% 0,50% 100%);
+}
+.selband{
+  position:absolute;top:0;bottom:0;background:rgba(45,212,191,.12);
+  border-left:1px solid var(--cy);border-right:1px solid var(--cy);pointer-events:none;z-index:2;
+  box-shadow:inset 0 0 26px rgba(45,212,191,.24),0 0 16px rgba(45,212,191,.3);
+}
+.selband.staged{
+  background:rgba(245,165,36,.13);border-color:var(--am);border-style:dashed;
+  box-shadow:inset 0 0 26px rgba(245,165,36,.22);
+}
+.selband.conflict{
+  background:rgba(251,92,114,.13);border-color:var(--ro);
+  animation:cfpulse 1.5s var(--e1) infinite;
+}
+.cv-grid{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:.5}
+
+/* 段落条 */
+.segstrip{flex:0 0 auto;display:flex;height:40px;background:var(--bg1);border-bottom:1px solid var(--line);align-items:center}
+.segstrip .sg-gut{
+  width:56px;flex:0 0 auto;height:100%;border-right:1px solid var(--line2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-family:var(--fm);color:var(--tx3);letter-spacing:.4px;
+}
+.segrow{flex:1;min-width:0;position:relative;height:26px;margin:0 10px}
+.seg{
+  position:absolute;top:0;height:26px;border-radius:var(--r1);overflow:hidden;
+  border:1px solid var(--cy-k);background:linear-gradient(180deg,rgba(45,212,191,.28),rgba(18,165,148,.16));
+  display:flex;align-items:center;padding:0 5px;transition:box-shadow var(--dur1) var(--e1);
+}
+.seg b{font-size:9px;font-family:var(--fm);color:var(--tx0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg.spk-b{border-color:var(--vi-d);background:linear-gradient(180deg,rgba(167,139,250,.28),rgba(124,92,245,.16))}
+.seg.low{border-color:var(--am-d);background:linear-gradient(180deg,rgba(245,165,36,.3),rgba(196,127,16,.18))}
+.seg.conf{border-color:var(--ro-d);background:linear-gradient(180deg,rgba(251,92,114,.32),rgba(220,52,80,.2));animation:cfpulse 1.5s var(--e1) infinite}
+.seg.sel{box-shadow:var(--sh-cy);z-index:3}
+.seg.staged{border-style:dashed;opacity:.85}
+.seg.ovl-mark::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(251,92,114,.5) 0 4px,transparent 4px 8px)}
+
+/* ── 上下文面板（6 相位各自内容） ── */
+.ctxpanel{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg1)}
+.cp-hd{
+  display:flex;align-items:center;gap:8px;padding:7px 11px;background:var(--bg2);
+  border-bottom:1px solid var(--line);flex:0 0 auto;
+}
+.cp-hd h2{font-size:11.5px;font-weight:650;letter-spacing:.2px;display:flex;align-items:center;gap:7px}
+.cp-hd h2 svg{width:13px;height:13px;stroke:var(--cy);fill:none;stroke-width:2.1}
+.cp-hd .sub{font-size:10px;color:var(--tx3);font-family:var(--fm)}
+.cp-hd .rt{margin-left:auto;display:flex;align-items:center;gap:6px}
+.cp-body{flex:1;min-height:0;overflow:auto;padding:9px 11px}
+
+/* 数据表 */
+.tb{width:100%;font-size:11px}
+.tb thead th{
+  text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.8px;color:var(--tx3);
+  text-transform:uppercase;padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap;
+}
+.tb tbody td{padding:6px 8px;border-bottom:1px solid var(--line2);color:var(--tx1);vertical-align:middle}
+.tb tbody tr{transition:background var(--dur1) var(--e1)}
+.tb tbody tr:hover{background:var(--bg2)}
+.tb tbody tr.on{background:var(--cyA)}
+.tb tbody tr.on td{color:var(--tx0)}
+.tb .num{font-family:var(--fm);font-variant-numeric:tabular-nums}
+.tb .r{text-align:right}
+.tb .c{text-align:center}
+.pill{
+  display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:var(--r1);
+  font-size:9.5px;font-family:var(--fm);letter-spacing:.2px;
+}
+.pill svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2.4}
+.p-cy{background:var(--cyA);color:var(--cy)}   .p-vi{background:var(--viA);color:var(--vi)}
+.p-am{background:var(--amA);color:var(--am)}   .p-ro{background:var(--roA);color:var(--ro)}
+.p-em{background:var(--emA);color:var(--em)}   .p-bl{background:var(--blA);color:var(--bl)}
+.p-sl{background:var(--slA);color:var(--sl)}
+
+/* 进度条（导入/解析） */
+.prog{height:6px;border-radius:var(--rfull);background:var(--bg4);overflow:hidden;position:relative}
+.prog i{display:block;height:100%;border-radius:var(--rfull);background:linear-gradient(90deg,var(--bl-d),var(--bl));
+  box-shadow:0 0 10px rgba(96,165,250,.5);transition:width var(--dur2) var(--e1)}
+.prog.cy i{background:linear-gradient(90deg,var(--cy-d),var(--cy));box-shadow:0 0 10px rgba(45,212,191,.5)}
+.prog.am i{background:linear-gradient(90deg,var(--am-d),var(--am))}
+.prog-stripe i{background-image:linear-gradient(115deg,rgba(255,255,255,.22) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.22) 50%,rgba(255,255,255,.22) 75%,transparent 75%);
+  background-size:14px 14px;animation:stripe .9s linear infinite}
+.decodecard{
+  display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:var(--r3);
+  background:linear-gradient(120deg,var(--bg2),var(--bg1));border:1px solid var(--line3);box-shadow:var(--sh2);
+}
+.decodecard .dc-ico{
+  width:34px;height:34px;border-radius:var(--r2);display:grid;place-items:center;flex:0 0 auto;
+  background:var(--blA);border:1px solid var(--bl-d);
+}
+.decodecard .dc-ico svg{width:17px;height:17px;stroke:var(--bl);fill:none;stroke-width:1.9}
+.decodecard .dc-tx{flex:1;min-width:0}
+.decodecard .dc-tx b{display:block;font-size:11.5px;font-weight:600;margin-bottom:3px}
+.decodecard .dc-tx span{display:block;font-size:10px;color:var(--tx3);font-family:var(--fm);margin-bottom:6px}
+.decodecard .dc-n{font-family:var(--fm);font-size:19px;font-weight:600;color:var(--bl);letter-spacing:-.5px}
+.decodecard .dc-n small{font-size:10px;color:var(--tx3);margin-left:2px}
+
+/* 统计小卡 */
+.statrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.stat{
+  padding:8px 10px;border-radius:var(--r2);background:var(--bg2);border:1px solid var(--line);
+  position:relative;overflow:hidden;
+}
+.stat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--cy)}
+.stat.vi::before{background:var(--vi)}  .stat.am::before{background:var(--am)}
+.stat.ro::before{background:var(--ro)}  .stat.em::before{background:var(--em)}
+.stat .k{font-size:9.5px;color:var(--tx3);letter-spacing:.5px;text-transform:uppercase;font-weight:600}
+.stat .v{font-family:var(--fm);font-size:17px;font-weight:600;color:var(--tx0);letter-spacing:-.4px;margin-top:2px}
+.stat .v small{font-size:10px;color:var(--tx3);margin-left:2px;font-weight:400}
+.stat .d{font-size:9.5px;color:var(--tx3);font-family:var(--fm);margin-top:1px}
+
+/* ── Diff 双列对比 ── */
+.difwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px;height:100%;min-height:0}
+.difcol{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r3);overflow:hidden;background:var(--bg2);min-height:0}
+.difhd{
+  display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--bg3);
+  border-bottom:1px solid var(--line);flex:0 0 auto;
+}
+.difhd .av{
+  width:22px;height:22px;border-radius:var(--rfull);display:grid;place-items:center;flex:0 0 auto;
+  font-size:10px;font-weight:750;color:#05100c;
+}
+.difhd.a .av{background:linear-gradient(135deg,var(--cy),var(--em))}
+.difhd.b .av{background:linear-gradient(135deg,var(--vi),var(--bl));color:#0c0618}
+.difhd .nm{flex:1;min-width:0}
+.difhd .nm b{display:block;font-size:11px;font-weight:600}
+.difhd .nm span{display:block;font-size:9.5px;color:var(--tx3);font-family:var(--fm)}
+.difbd{flex:1;min-height:0;overflow:auto;padding:6px}
+.difrow{
+  padding:6px 8px;border-radius:var(--r2);margin-bottom:4px;border:1px solid transparent;
+  font-size:11px;line-height:1.55;transition:background var(--dur1) var(--e1);
+}
+.difrow .idx{font-family:var(--fm);font-size:9.5px;color:var(--tx3);margin-right:6px}
+.difrow .spk{font-family:var(--fm);font-size:9.5px;color:var(--tx2);margin-right:6px;padding:0 4px;border-radius:var(--r1);background:var(--bg3)}
+.difrow.same{color:var(--tx2)}
+.difrow.diff{background:var(--roA);border-color:var(--ro-d)}
+.difrow.diff .hl{background:rgba(251,92,114,.3);border-bottom:1px solid var(--ro);padding:0 2px;border-radius:2px}
+.difrow.diff2{background:var(--amA);border-color:var(--am-d)}
+.difrow.diff2 .hl{background:rgba(245,165,36,.28);border-bottom:1px solid var(--am);padding:0 2px;border-radius:2px}
+.difrow .conf{margin-left:6px;font-family:var(--fm);font-size:9.5px;color:var(--tx3)}
+.difrow .tag{float:right;font-family:var(--fm);font-size:9px;padding:0 5px;border-radius:var(--r1)}
+
+/* ── 结算面板 ── */
+.settle{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.settle .span2{grid-column:1/-1}
+.panel{border:1px solid var(--line);border-radius:var(--r3);background:var(--bg2);overflow:hidden}
+.panel-hd{
+  display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--bg3);
+  border-bottom:1px solid var(--line);font-size:10.5px;font-weight:650;letter-spacing:.3px;
+}
+.panel-hd svg{width:12px;height:12px;stroke:var(--cy);fill:none;stroke-width:2.2}
+.panel-hd .rt{margin-left:auto;font-family:var(--fm);font-size:9.5px;color:var(--tx3);font-weight:400}
+.panel-bd{padding:8px 10px}
+.hero{
+  display:flex;align-items:center;gap:11px;padding:8px 12px;border-radius:var(--r3);
+  background:linear-gradient(120deg,var(--emA),transparent 62%),var(--bg2);
+  border:1px solid var(--em-d);box-shadow:var(--sh2);
+}
+.hero .hico{
+  width:38px;height:38px;border-radius:var(--rfull);display:grid;place-items:center;flex:0 0 auto;
+  background:var(--emA);border:1.5px solid var(--em);
+}
+.hero .hico svg{width:19px;height:19px;stroke:var(--em);fill:none;stroke-width:2.3}
+.hero .htx{flex:1;min-width:0}
+.hero .htx b{display:block;font-size:14px;font-weight:680;letter-spacing:.2px}
+.hero .htx span{display:block;font-size:10.5px;color:var(--tx3);font-family:var(--fm);margin-top:2px}
+.hero .hrank{
+  font-family:var(--fm);font-size:26px;font-weight:700;color:var(--em);letter-spacing:-1px;
+  text-shadow:0 0 22px rgba(52,211,153,.45);flex:0 0 auto;
+}
+.barstat{display:flex;flex-direction:column;gap:4px}
+.barstat .bs{display:flex;align-items:center;gap:7px}
+.barstat .bs .k{width:34px;font-family:var(--fm);font-size:9.5px;color:var(--tx3);flex:0 0 auto}
+.barstat .bs .t{flex:1;height:8px;border-radius:var(--r1);background:var(--bg4);overflow:hidden;position:relative}
+.barstat .bs .t i{display:block;height:100%;border-radius:var(--r1);background:linear-gradient(90deg,var(--cy-d),var(--cy))}
+.barstat .bs .v{width:52px;text-align:right;font-family:var(--fm);font-size:9.5px;color:var(--tx1);flex:0 0 auto}
+.radarwrap{display:flex;align-items:center;gap:11px}
+.radarwrap canvas{flex:0 0 auto}
+.radarleg{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.radarleg .rl{display:flex;align-items:center;gap:6px;font-size:10px}
+.radarleg .rl .dot{width:6px;height:6px;border-radius:var(--rfull);background:var(--cy);flex:0 0 auto}
+.radarleg .rl .k{flex:1;min-width:0;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.radarleg .rl .v{font-family:var(--fm);color:var(--cy);flex:0 0 auto}
+.ledger{width:100%;font-size:10.5px}
+.ledger tr td{padding:3px 0;color:var(--tx2)}
+.ledger tr td:last-child{text-align:right;font-family:var(--fm);color:var(--tx0)}
+.ledger tr.tot td{border-top:1px dashed var(--line3);padding-top:5px;color:var(--tx0);font-weight:650}
+.ledger tr.tot td:last-child{color:var(--em);font-size:15px}
+.ledger tr.sub td{color:var(--am);font-family:var(--fm);font-size:10px}
+
+/* ══════════════════════════════════════════════════════════════════
+   6. 栏3 · 属性抽屉
+   ══════════════════════════════════════════════════════════════════ */
+.drawcol{background:var(--bg1);border-left:1px solid var(--line)}
+.dc-hd{
+  display:flex;align-items:center;gap:7px;padding:0 10px;height:var(--h-tool);
+  background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto;
+}
+.dc-hd h2{font-size:11.5px;font-weight:650;display:flex;align-items:center;gap:6px}
+.dc-hd h2 svg{width:13px;height:13px;stroke:var(--vi);fill:none;stroke-width:2.1}
+.dc-hd .rt{margin-left:auto;display:flex;align-items:center;gap:4px}
+.ibtn{width:22px;height:22px;border-radius:var(--r1);display:grid;place-items:center;color:var(--tx2);transition:background var(--dur1) var(--e1),color var(--dur1) var(--e1)}
+.ibtn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.ibtn:hover{background:var(--bg4);color:var(--tx0)}
+.dc-body{flex:1;min-height:0;overflow:auto;padding:9px}
+.dc-sec{margin-bottom:11px}
+.dc-sec>h3{
+  display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:700;letter-spacing:1px;
+  color:var(--tx3);text-transform:uppercase;margin-bottom:6px;
+}
+.dc-sec>h3 svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.2}
+.dc-sec>h3 .rt{margin-left:auto;font-family:var(--fm);font-size:9px;color:var(--tx3);letter-spacing:0;text-transform:none}
+
+/* 级联分类器 */
+.cascade{border:1px solid var(--line);border-radius:var(--r2);overflow:hidden;background:var(--bg2)}
+.casc-lv{border-bottom:1px solid var(--line2)}
+.casc-lv:last-child{border-bottom:0}
+.casc-hd{
+  display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg3);
+  font-size:9.5px;font-family:var(--fm);color:var(--tx3);letter-spacing:.4px;
+}
+.casc-hd .idx{
+  width:14px;height:14px;border-radius:var(--r1);background:var(--viA);color:var(--vi);
+  display:grid;place-items:center;font-size:8.5px;font-weight:700;
+}
+.casc-hd .cur{margin-left:auto;color:var(--vi);font-weight:600}
+.casc-opts{display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px}
+.casc-opt{
+  padding:3px 8px;border-radius:var(--rfull);font-size:10.5px;color:var(--tx1);
+  background:var(--bg1);border:1px solid var(--line);
+  transition:background var(--dur1) var(--e1),border-color var(--dur1) var(--e1),color var(--dur1) var(--e1);
+}
+.casc-opt:hover{border-color:var(--line-hot);color:var(--tx0)}
+.casc-opt.on{background:var(--viA);border-color:var(--vi-d);color:var(--vi)}
+.casc-path{
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:6px 8px;background:var(--bg0);
+  border-top:1px solid var(--line2);font-family:var(--fm);font-size:9.5px;color:var(--tx3);
+}
+.casc-path b{color:var(--cy);font-weight:600}
+.casc-path .arr{color:var(--tx4)}
+
+/* 音素表 */
+.phontbl{width:100%;font-size:10.5px;font-family:var(--fm)}
+.phontbl th{
+  font-size:9px;font-weight:700;letter-spacing:.6px;color:var(--tx3);text-align:left;
+  padding:4px 6px;border-bottom:1px solid var(--line);text-transform:uppercase;
+}
+.phontbl td{padding:4px 6px;border-bottom:1px solid var(--line2);color:var(--tx1)}
+.phontbl tr{transition:background var(--dur1) var(--e1)}
+.phontbl tr:hover{background:var(--bg2)}
+.phontbl tr.on{background:var(--viA)}
+.phontbl tr.bad{background:var(--roA)}
+.phontbl tr.bad td{color:var(--ro)}
+.phontbl tr.bad .dur{font-weight:700}
+.phontbl .sym{color:var(--tx0);font-weight:600;font-size:11.5px}
+.phontbl .dur{text-align:right}
+.phontbl tr.bad .sym::after{content:'⌁';margin-left:3px;color:var(--ro)}
+.phonbar{height:18px;border-radius:var(--r1);background:var(--bg4);overflow:hidden;display:flex;margin-bottom:7px;border:1px solid var(--line2)}
+.phonbar i{height:100%;border-right:1px solid rgba(0,0,0,.4)}
+.phonbar i:last-child{border-right:0}
+
+/* 置信度 */
+.confbox{padding:8px;border-radius:var(--r2);background:var(--bg2);border:1px solid var(--line);margin-bottom:8px}
+.confbox.warn{border-color:var(--ro-d);background:linear-gradient(120deg,var(--roA),var(--bg2) 70%);box-shadow:var(--sh-ro)}
+.confrow{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.confrow .k{width:66px;font-size:10px;color:var(--tx3);flex:0 0 auto}
+.confrow .track{flex:1;height:7px;border-radius:var(--rfull);background:var(--bg4);overflow:hidden;border:0}
+.confrow .track i{display:block;height:100%;border-radius:var(--rfull);background:linear-gradient(90deg,var(--cy-d),var(--cy))}
+.confrow .track i.lo{background:linear-gradient(90deg,var(--ro-d),var(--ro))}
+.confrow .track i.mid{background:linear-gradient(90deg,var(--am-d),var(--am))}
+.confrow .v{width:44px;text-align:right;font-family:var(--fm);font-size:11px;color:var(--tx0);flex:0 0 auto}
+.confrow .v.lo{color:var(--ro)}
+.conf-formula{
+  font-family:var(--fm);font-size:9.5px;color:var(--tx3);padding-top:5px;border-top:1px dashed var(--line3);
+  display:flex;align-items:center;gap:4px;
+}
+.conf-formula b{color:var(--am)}
+.conf-gate{display:flex;align-items:center;gap:5px;margin-top:5px;font-size:10px;color:var(--ro)}
+.conf-gate svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.4}
+
+/* 表单 */
+.frow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.frow>label{width:66px;font-size:10px;color:var(--tx3);flex:0 0 auto}
+.inp{
+  flex:1;min-width:0;height:26px;padding:0 8px;background:var(--bg0);color:var(--tx0);
+  border:1px solid var(--line);border-radius:var(--r2);font-size:11px;outline:0;
+  transition:border-color var(--dur1) var(--e1),box-shadow var(--dur1) var(--e1);
+}
+.inp::placeholder{color:var(--tx3)}
+.inp:focus{border-color:var(--cy-k);box-shadow:0 0 0 2px var(--cyA)}
+.inp.err{border-color:var(--ro);box-shadow:0 0 0 2px var(--roA);background:rgba(251,92,114,.05)}
+textarea.inp{height:auto;min-height:54px;padding:6px 8px;resize:vertical;line-height:1.55;font-family:var(--fm);font-size:10.5px}
+.frow.stack{display:block}
+.frow.stack>label{display:block;width:auto;margin-bottom:4px}
+.fhint{display:flex;align-items:center;gap:5px;font-size:9.5px;font-family:var(--fm);color:var(--tx3);margin-top:4px}
+.fhint.bad{color:var(--ro)}
+.fhint.good{color:var(--em)}
+.fhint svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2.4}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;padding:0 12px;
+  border-radius:var(--r2);font-size:11.5px;font-weight:600;color:var(--tx1);
+  background:var(--bg3);border:1px solid var(--line3);
+  transition:background var(--dur1) var(--e1),color var(--dur1) var(--e1),border-color var(--dur1) var(--e1),transform 90ms var(--e1);
+}
+.btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2}
+.btn:hover{background:var(--bg4);color:var(--tx0)}
+.btn:active{transform:translateY(1px)}
+.btn.pri{background:linear-gradient(180deg,var(--cy-d),var(--cy-k));color:#04120f;border-color:var(--cy-d)}
+.btn.pri:hover{background:linear-gradient(180deg,var(--cy),var(--cy-d));color:#04120f}
+.btn.vi{background:linear-gradient(180deg,var(--vi-d),#5b3fd6);color:#fff;border-color:var(--vi-d)}
+.btn.ghost{background:transparent}
+.btn.wide{width:100%}
+.btn[disabled]{opacity:.4;cursor:not-allowed;filter:grayscale(.55)}
+.btn[disabled]:hover{background:var(--bg3);color:var(--tx1)}
+.btn.locked::after{content:'🔒';font-size:9px}
+.btnrow{display:flex;gap:7px}
+.btnrow .btn{flex:1}
+
+/* 快捷键提示 */
+.kbdhint{display:flex;flex-direction:column;gap:4px;padding:7px 8px;border-radius:var(--r2);background:var(--bg0);border:1px solid var(--line2)}
+.kbdhint .kh{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--tx2)}
+.kbdhint .kh .kbs{margin-left:auto;display:flex;gap:3px;flex:0 0 auto}
+kbd{
+  font-family:var(--fm);font-size:9px;color:var(--tx1);background:var(--bg3);
+  border:1px solid var(--line3);border-bottom-width:2px;border-radius:var(--r1);padding:1px 4px;min-width:15px;text-align:center;
+}
+
+/* 只读审核蒙版 */
+.lockmask{
+  position:absolute;inset:0;z-index:20;background:var(--bg-glass);
+  backdrop-filter:blur(1.5px);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:9px;text-align:center;padding:18px;
+}
+.lockmask .lm-ico{
+  width:40px;height:40px;border-radius:var(--rfull);display:grid;place-items:center;
+  background:var(--amA);border:1.5px solid var(--am-d);
+}
+.lockmask .lm-ico svg{width:19px;height:19px;stroke:var(--am);fill:none;stroke-width:2.1}
+.lockmask b{font-size:12.5px;font-weight:650}
+.lockmask span{font-size:10.5px;color:var(--tx3);font-family:var(--fm);max-width:260px;line-height:1.65}
+
+.hintbar{
+  display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:var(--r2);
+  background:var(--blA);border:1px solid var(--bl-d);font-size:10px;color:var(--bl);font-family:var(--fm);
+}
+.hintbar svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.4;flex:0 0 auto}
+.hintbar.warn{background:var(--amA);border-color:var(--am-d);color:var(--am)}
+.hintbar.bad{background:var(--roA);border-color:var(--ro-d);color:var(--ro)}
+.hintbar.good{background:var(--emA);border-color:var(--em-d);color:var(--em)}
+
+/* ══════════════════════════════════════════════════════════════════
+   7. 栏4 · 质检与审核侧栏
+   ══════════════════════════════════════════════════════════════════ */
+.qccol{background:var(--bg1);border-left:1px solid var(--line)}
+.qc-hd{
+  display:flex;align-items:center;gap:7px;padding:0 10px;height:var(--h-tool);
+  background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto;
+}
+.qc-hd h2{font-size:11.5px;font-weight:650;display:flex;align-items:center;gap:6px}
+.qc-hd h2 svg{width:13px;height:13px;stroke:var(--am);fill:none;stroke-width:2.1}
+.qc-hd .rt{margin-left:auto;font-family:var(--fm);font-size:9.5px;color:var(--tx3)}
+.qc-body{flex:1;min-height:0;overflow:auto;padding:9px}
+
+.qc-gate{
+  padding:9px 10px;border-radius:var(--r2);margin-bottom:10px;
+  background:var(--emA);border:1px solid var(--em-d);
+}
+.qc-gate.blocked{background:var(--roA);border-color:var(--ro-d);box-shadow:var(--sh-ro)}
+.qc-gate .gt{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:650;color:var(--em);margin-bottom:5px}
+.qc-gate.blocked .gt{color:var(--ro)}
+.qc-gate .gt svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.3}
+.qc-gate .gs{font-size:9.5px;font-family:var(--fm);color:var(--tx3);line-height:1.6}
+.qc-gate .gbtn{margin-top:8px;width:100%;height:30px}
+
+.citem{
+  padding:8px 9px;border-radius:var(--r2);margin-bottom:6px;background:var(--bg2);
+  border:1px solid var(--line);border-left:2.5px solid var(--am);cursor:pointer;
+  transition:background var(--dur1) var(--e1),border-color var(--dur1) var(--e1);
+}
+.citem:hover{background:var(--bg3)}
+.citem.on{border-color:var(--ro-d);border-left-color:var(--ro);background:var(--roA)}
+.citem.ro{border-left-color:var(--ro)}
+.citem .ch{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.citem .ch b{font-size:10.5px;font-weight:650;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.citem .ch .n{font-family:var(--fm);font-size:9px;color:var(--tx3)}
+.citem .cb{display:grid;grid-template-columns:14px minmax(0,1fr);gap:5px;font-size:10px;line-height:1.55;color:var(--tx2)}
+.citem .cb .who{font-family:var(--fm);font-size:9px;color:var(--tx3)}
+.citem .cb .txt{overflow:hidden;text-overflow:ellipsis}
+.citem .cb .txt em{font-style:normal;color:var(--ro);background:rgba(251,92,114,.15);padding:0 2px;border-radius:2px}
+.citem .cb .txt s{color:var(--am);text-decoration:line-through}
+
+.histline{position:relative;padding-left:15px;padding-bottom:11px}
+.histline::before{content:'';position:absolute;left:4px;top:5px;width:6px;height:6px;border-radius:var(--rfull);background:var(--cy);box-shadow:0 0 8px var(--cy)}
+.histline.warn::before{background:var(--am);box-shadow:0 0 8px var(--am)}
+.histline.err::before{background:var(--ro);box-shadow:0 0 8px var(--ro)}
+.histline.info::before{background:var(--bl);box-shadow:0 0 8px var(--bl)}
+.histline:not(:last-child)::after{content:'';position:absolute;left:6.5px;top:13px;bottom:2px;width:1px;background:var(--line3)}
+.histline .ht{display:flex;align-items:baseline;gap:6px}
+.histline .ht b{font-size:10.5px;font-weight:600;flex:1;min-width:0}
+.histline .ht .tm{font-family:var(--fm);font-size:9px;color:var(--tx3);flex:0 0 auto}
+.histline .hs{font-size:9.5px;color:var(--tx3);font-family:var(--fm);margin-top:2px;line-height:1.5}
+
+/* ══════════════════════════════════════════════════════════════════
+   8. 浮层：悬浮卡 / 径向轮盘 / 模态 / Toast
+   ══════════════════════════════════════════════════════════════════ */
+.tip{
+  position:fixed;z-index:70;min-width:186px;padding:9px 10px;border-radius:var(--r3);
+  background:var(--bg2);border:1px solid var(--line3);box-shadow:var(--sh3);pointer-events:none;
+  opacity:0;transform:translateY(-4px);transition:opacity var(--dur1) var(--e1),transform var(--dur1) var(--e1);
+}
+.tip.show{opacity:1;transform:translateY(0)}
+.tip::after{
+  content:'';position:absolute;left:14px;bottom:-5px;width:8px;height:8px;transform:rotate(45deg);
+  background:var(--bg2);border-right:1px solid var(--line3);border-bottom:1px solid var(--line3);
+}
+.tip h4{font-size:10.5px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.tip h4 .sw{width:7px;height:7px;border-radius:2px;background:var(--cy)}
+.tip .tr{display:flex;align-items:center;gap:7px;font-size:10px;margin-bottom:3px}
+.tip .tr .k{color:var(--tx3);width:58px;flex:0 0 auto}
+.tip .tr .v{font-family:var(--fm);color:var(--tx1)}
+.tip .tr .v.cy{color:var(--cy)}  .tip .tr .v.am{color:var(--am)}  .tip .tr .v.ro{color:var(--ro)}
+
+/* 径向轮盘 */
+.radial{
+  position:fixed;z-index:80;width:0;height:0;pointer-events:none;
+  opacity:0;transition:opacity var(--dur2) var(--e1);
+}
+.radial.show{opacity:1;pointer-events:auto}
+.radial .rcore{
+  position:absolute;left:-17px;top:-17px;width:34px;height:34px;border-radius:var(--rfull);
+  background:var(--bg3);border:1.5px solid var(--cy);box-shadow:var(--sh-cy);
+  display:grid;place-items:center;font-family:var(--fm);font-size:8.5px;color:var(--cy);
+}
+.radial .ritem{
+  position:absolute;width:66px;height:66px;border-radius:var(--rfull);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  background:var(--bg2);border:1px solid var(--line3);box-shadow:var(--sh2);
+  transform:translate(-50%,-50%);transition:background var(--dur1) var(--e1),border-color var(--dur1) var(--e1);
+  pointer-events:auto;cursor:pointer;
+}
+.radial .ritem:hover,.radial .ritem.act{background:var(--cyA);border-color:var(--cy);box-shadow:var(--sh-cy)}
+.radial .ritem svg{width:17px;height:17px;stroke:var(--cy);fill:none;stroke-width:2}
+.radial .ritem span{font-size:8.5px;color:var(--tx1);font-family:var(--fm)}
+.radial .rlink{position:absolute;left:0;top:0;width:0;height:0;border-top:1px dashed var(--line3);transform-origin:0 0;pointer-events:none}
+
+/* 模态 */
+.mask{
+  position:fixed;inset:0;z-index:90;background:rgba(6,10,15,.42);
+  display:flex;align-items:center;justify-content:center;padding:22px;
+  opacity:0;pointer-events:none;transition:opacity var(--dur2) var(--e1);
+}
+.mask.show{opacity:1;pointer-events:auto}
+/* 侧靠模态：贴右停驻，主视窗内容保持完整可见 */
+.mask.side{align-items:center;justify-content:flex-end;padding:56px 14px 14px}
+.modal{
+  width:min(560px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden;
+  background:var(--bg1);border:1px solid var(--line3);border-radius:var(--r4);box-shadow:var(--sh4);
+  transform:translateY(10px) scale(.985);transition:transform var(--dur2) var(--e1);
+}
+.mask.show .modal{transform:none}
+.modal.wide{width:min(760px,100%)}
+.modal.narrow{width:min(440px,100%)}
+.modal.side{width:min(540px,100%)}
+.modal-hd{
+  display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,var(--bg2),var(--bg1));flex:0 0 auto;
+}
+.modal-hd .mh-ico{
+  width:28px;height:28px;border-radius:var(--r2);display:grid;place-items:center;flex:0 0 auto;
+  background:var(--blA);border:1px solid var(--bl-d);
+}
+.modal-hd .mh-ico svg{width:14px;height:14px;stroke:var(--bl);fill:none;stroke-width:2.1}
+.modal-hd.ro .mh-ico{background:var(--roA);border-color:var(--ro-d)}
+.modal-hd.ro .mh-ico svg{stroke:var(--ro)}
+.modal-hd h2{flex:1;min-width:0;font-size:13px;font-weight:660}
+.modal-hd h2 small{display:block;font-size:10px;color:var(--tx3);font-family:var(--fm);font-weight:400;margin-top:1px}
+.modal-bd{padding:14px;overflow:auto;min-height:0}
+.modal-ft{
+  display:flex;align-items:center;gap:8px;padding:11px 14px;border-top:1px solid var(--line);
+  background:var(--bg2);flex:0 0 auto;
+}
+.modal-ft .sp{flex:1}
+
+/* 校验码输入（音素下限熔断的二次人工确认） */
+.codeform{display:flex;flex-direction:column;align-items:center;gap:6px;margin:12px 0 4px}
+.code-lb{font-size:9.5px;font-family:var(--fm);letter-spacing:1.4px;text-transform:uppercase;color:var(--tx3)}
+.codeinput{
+  width:228px;height:52px;border-radius:var(--r3);background:var(--bg0);border:1.5px solid var(--line3);
+  text-align:center;font-family:var(--fm);font-size:22px;font-weight:600;letter-spacing:14px;
+  text-indent:14px;color:var(--ro);box-shadow:inset 0 2px 10px rgba(0,0,0,.5);outline:0;
+  transition:border-color var(--dur1) var(--e1),box-shadow var(--dur1) var(--e1);
+}
+.codeinput::placeholder{color:var(--tx3);letter-spacing:14px;text-indent:14px}
+.codeinput:focus{border-color:var(--ro);box-shadow:var(--sh-ro)}
+.codeinput.err{border-color:var(--ro);box-shadow:var(--sh-ro)}
+.codeinput.ok{border-color:var(--em);color:var(--em);box-shadow:0 0 0 2px rgba(45,212,191,.18)}
+
+/* 导出格式选择 */
+.fmtgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:12px}
+.fmt{
+  display:flex;align-items:center;gap:9px;padding:10px;border-radius:var(--r2);
+  background:var(--bg2);border:1px solid var(--line);cursor:pointer;
+  transition:border-color var(--dur1) var(--e1),background var(--dur1) var(--e1);
+}
+.fmt:hover{border-color:var(--line-hot)}
+.fmt.on{border-color:var(--cy-k);background:var(--cyA)}
+.fmt .ck{
+  width:16px;height:16px;border-radius:var(--r1);border:1.5px solid var(--line3);flex:0 0 auto;
+  display:grid;place-items:center;
+}
+.fmt.on .ck{background:var(--cy);border-color:var(--cy)}
+.fmt .ck svg{width:10px;height:10px;stroke:#04120f;fill:none;stroke-width:3;opacity:0}
+.fmt.on .ck svg{opacity:1}
+.fmt .ft{flex:1;min-width:0}
+.fmt .ft b{display:block;font-size:11.5px;font-weight:650;font-family:var(--fm)}
+.fmt .ft span{display:block;font-size:9.5px;color:var(--tx3);margin-top:2px}
+.fmt .sz{font-family:var(--fm);font-size:10px;color:var(--tx3);flex:0 0 auto}
+
+/* Toast */
+.toastbox{
+  position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:95;
+  display:flex;flex-direction:column;gap:7px;align-items:center;pointer-events:none;
+}
+.toast{
+  display:flex;align-items:center;gap:9px;padding:9px 14px;border-radius:var(--r3);
+  background:var(--bg2);border:1px solid var(--line3);box-shadow:var(--sh3);
+  font-size:11.5px;color:var(--tx0);max-width:600px;
+  opacity:0;transform:translateY(-10px);transition:opacity var(--dur2) var(--e1),transform var(--dur2) var(--e1);
+}
+.toast.show{opacity:1;transform:none}
+.toast .ti{
+  width:20px;height:20px;border-radius:var(--rfull);display:grid;place-items:center;flex:0 0 auto;
+  background:var(--blA);
+}
+.toast .ti svg{width:11px;height:11px;stroke:var(--bl);fill:none;stroke-width:2.6}
+.toast.ok{border-color:var(--em-d)}    .toast.ok .ti{background:var(--emA)}    .toast.ok .ti svg{stroke:var(--em)}
+.toast.warn{border-color:var(--am-d)}  .toast.warn .ti{background:var(--amA)}  .toast.warn .ti svg{stroke:var(--am)}
+.toast.err{border-color:var(--ro-d)}   .toast.err .ti{background:var(--roA)}   .toast.err .ti svg{stroke:var(--ro)}
+.toast .tt{flex:1;min-width:0;line-height:1.5}
+.toast .tt small{display:block;font-family:var(--fm);font-size:10px;color:var(--tx3);margin-top:1px}
+
+/* 命令面板 */
+.cmdk{
+  position:fixed;top:74px;left:50%;transform:translateX(-50%) translateY(-12px);z-index:88;
+  width:min(540px,92vw);border-radius:var(--r4);background:var(--bg1);border:1px solid var(--line3);
+  box-shadow:var(--sh4);overflow:hidden;opacity:0;pointer-events:none;
+  transition:opacity var(--dur2) var(--e1),transform var(--dur2) var(--e1);
+}
+.cmdk.show{opacity:1;transform:translateX(-50%);pointer-events:auto}
+.cmdk-in{display:flex;align-items:center;gap:9px;padding:10px 13px;border-bottom:1px solid var(--line)}
+.cmdk-in svg{width:14px;height:14px;stroke:var(--tx2);fill:none;stroke-width:2.1}
+.cmdk-in input{flex:1;background:none;border:0;outline:0;font-size:13px;color:var(--tx0)}
+.cmdk-list{max-height:322px;overflow:auto;padding:6px}
+.cmdk-it{
+  display:flex;align-items:center;gap:9px;width:100%;padding:7px 9px;border-radius:var(--r2);text-align:left;
+  transition:background var(--dur1) var(--e1);
+}
+.cmdk-it:hover,.cmdk-it.on{background:var(--bg3)}
+.cmdk-it svg{width:14px;height:14px;stroke:var(--tx2);fill:none;stroke-width:2}
+.cmdk-it.on svg{stroke:var(--cy)}
+.cmdk-it .ct{flex:1;min-width:0}
+.cmdk-it .ct b{display:block;font-size:11.5px;font-weight:600}
+.cmdk-it .ct span{display:block;font-size:9.5px;color:var(--tx3);font-family:var(--fm)}
+.cmdk-it .cg{font-family:var(--fm);font-size:9px;color:var(--tx3);background:var(--bg4);padding:1px 5px;border-radius:var(--r1)}
+.cmdk-grp{font-size:9px;font-weight:700;letter-spacing:.9px;color:var(--tx3);text-transform:uppercase;padding:7px 9px 4px}
+
+/* 抽屉（导入 / 邀请 / 审核） */
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;z-index:86;width:min(400px,94vw);
+  display:flex;flex-direction:column;background:var(--bg1);border-left:1px solid var(--line3);
+  box-shadow:var(--sh4);transform:translateX(103%);
+  transition:transform var(--dur2) var(--e1);
+}
+.drawer.show{transform:none}
+.drawer>header{
+  display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--line);
+  background:var(--bg2);flex:0 0 auto;
+}
+.drawer>header h2{flex:1;font-size:13px;font-weight:660}
+.drawer .dbo{flex:1;overflow:auto;padding:14px}
+.drawer>footer{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line);background:var(--bg2)}
+.drawer>footer .btn{flex:1}
+.drop{
+  display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 14px;margin-bottom:12px;
+  border:1.5px dashed var(--line-dash);border-radius:var(--r3);background:var(--bg0);text-align:center;
+}
+.drop .di{width:36px;height:36px;border-radius:var(--r2);display:grid;place-items:center;background:var(--cyA);border:1px solid var(--cy-k)}
+.drop .di svg{width:17px;height:17px;stroke:var(--cy);fill:none;stroke-width:1.9}
+.drop b{font-size:11.5px}
+.drop span{font-size:10px;color:var(--tx3);font-family:var(--fm)}
+
+/* 开关 */
+.sw{display:flex;align-items:center;gap:8px;padding:6px 0}
+.sw .tk{
+  width:32px;height:17px;border-radius:var(--rfull);background:var(--bg4);border:1px solid var(--line3);
+  position:relative;flex:0 0 auto;transition:background var(--dur1) var(--e1),border-color var(--dur1) var(--e1);
+}
+.sw .tk::after{
+  content:'';position:absolute;top:1.5px;left:1.5px;width:12px;height:12px;border-radius:var(--rfull);
+  background:var(--tx2);transition:transform var(--dur1) var(--e1),background var(--dur1) var(--e1);
+}
+.sw.on .tk{background:var(--cy-k);border-color:var(--cy-d)}
+.sw.on .tk::after{transform:translateX(15px);background:var(--cy)}
+.sw .sl{flex:1;min-width:0;font-size:11px}
+.sw .sl small{display:block;font-size:9.5px;color:var(--tx3);font-family:var(--fm);margin-top:1px}
+
+/* Tab */
+.tabs{display:flex;gap:2px;padding:2px;background:var(--bg0);border:1px solid var(--line);border-radius:var(--r2)}
+.tab{
+  flex:1;padding:4px 9px;border-radius:var(--r1);font-size:10.5px;color:var(--tx2);text-align:center;
+  transition:background var(--dur1) var(--e1),color var(--dur1) var(--e1);
+}
+.tab:hover{color:var(--tx0)}
+.tab.on{background:var(--bg3);color:var(--cy);font-weight:600}
+
+/* 空态 */
+.empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  padding:26px 18px;text-align:center;color:var(--tx3);
+}
+.empty svg{width:30px;height:30px;stroke:var(--tx4);fill:none;stroke-width:1.5}
+.empty b{font-size:11.5px;color:var(--tx2);font-weight:600}
+.empty span{font-size:10px;font-family:var(--fm);line-height:1.6}
+
+/* ══════════════════════════════════════════════════════════════════
+   9. 相位显隐（6 个 Phase 各自的内容块）
+   ══════════════════════════════════════════════════════════════════ */
+.ph{display:none}
+body[data-ph="1"] .ph1,body[data-ph="2"] .ph2,body[data-ph="3"] .ph3,
+body[data-ph="4"] .ph4,body[data-ph="5"] .ph5,body[data-ph="6"] .ph6{display:block}
+.phf{display:none}
+body[data-ph="1"] .phf1,body[data-ph="2"] .phf2,body[data-ph="3"] .phf3,
+body[data-ph="4"] .phf4,body[data-ph="5"] .phf5,body[data-ph="6"] .phf6{display:flex}
+
+/* 波形区在部分相位下的差异（相位 1 无段落条 / 相位 4 叠加冲突层） */
+.ph1 .segstrip,.ph1 .phonlayer{display:none}
+.ph4 .phonlayer{display:none}
+
+/* ══════════════════════════════════════════════════════════════════
+   10. 动画
+   ══════════════════════════════════════════════════════════════════ */
+@keyframes cfpulse{0%,100%{box-shadow:inset 0 0 22px rgba(251,92,114,.2),0 0 0 rgba(251,92,114,0)}
+  50%{box-shadow:inset 0 0 30px rgba(251,92,114,.4),0 0 14px rgba(251,92,114,.5)}}
+@keyframes shake{0%,100%{transform:translateX(0)}12%{transform:translateX(-4px)}28%{transform:translateX(4px)}
+  44%{transform:translateX(-3px)}60%{transform:translateX(3px)}76%{transform:translateX(-2px)}}
+@keyframes stripe{from{background-position:0 0}to{background-position:14px 0}}
+@keyframes glow{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes ripple{from{transform:scale(.9);opacity:.7}to{transform:scale(1.5);opacity:0}}
+@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(300%)}}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.shake{animation:shake .42s var(--e1)}
+.ripplefx{position:absolute;border-radius:var(--rfull);border:2px solid var(--ro);pointer-events:none;
+  animation:ripple .9s var(--e1) infinite;z-index:6}
+.fadein{animation:fadein var(--dur2) var(--e1)}
+.live{animation:glow 1.6s var(--e1) infinite}
+.shimmer{position:relative;overflow:hidden}
+.shimmer::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);
+  animation:sweep 1.8s linear infinite}
+.spin{animation:spin 1.1s linear infinite}
+
+/* 截图冻结开关 */
+html.no-anim *,html.no-anim *::before,html.no-anim *::after{
+  animation:none!important;transition:none!important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   11. 响应式
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width:1400px){
+  :root{--w-nav:196px;--w-draw:268px;--w-qc:228px}
+}
+@media (max-width:1280px){
+  :root{--w-nav:184px;--w-draw:252px;--w-qc:0px}
+  .qccol{display:none}
+  .tb-search{width:168px}
+}
+@media (max-width:1080px){
+  :root{--w-nav:172px;--w-draw:0px;--w-qc:0px}
+  .drawcol{display:none}
+  .settle{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:900px){
+  .app{grid-template-columns:56px minmax(0,1fr)}
+  .nav-body{display:none}
+  .nav-rail{width:56px;border-right:0}
+  .statrow{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .difwrap{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:680px){
+  .app{grid-template-columns:48px minmax(0,1fr)}
+  .nav-rail{width:48px}
+  .nav-rail .rb{width:28px;height:28px}
+  .tb-crumb,.tb-search{display:none}
+  .fmtgrid{grid-template-columns:1fr}
+  .statrow{grid-template-columns:minmax(0,1fr)}
+}
+
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+
+/* ══════════════════════════════════════════════════════════════════════════
+   澄语 CHENGYU · 语音标注工作台  —— 核心层
+   ══════════════════════════════════════════════════════════════════════════ */
+'use strict';
+
+/* ── 闭式哈希：确定性伪随机（替代随机数发生器，保证同种子逐位一致） ── */
+var SEED = 20260924;
+function h32(a, b, c){
+  var x = (a | 0) ^ Math.imul(b | 0, 0x9e3779b1);
+  x ^= Math.imul((c | 0) + 0x85ebca6b, 0xc2b2ae35);
+  x ^= x >>> 15; x = Math.imul(x, 0x2545f491);
+  x ^= x >>> 13; x = Math.imul(x, 0x27d4eb2d);
+  x ^= x >>> 16;
+  return (x >>> 0) / 4294967296;
+}
+function clamp(v, a, b){ return v < a ? a : (v > b ? b : v); }
+function pad2(n){ return (n < 10 ? '0' : '') + n; }
+
+/* ── 时间格式化 ── */
+function t3(ms){                       /* 1240 -> "1.240" 秒 */
+  var s = Math.floor(ms / 1000), r = Math.round(ms % 1000);
+  return s + '.' + (r < 10 ? '00' : r < 100 ? '0' : '') + r;
+}
+function tmmss(ms){                    /* 24600 -> "0:24.600" */
+  var s = Math.floor(ms / 1000), r = Math.round(ms % 1000);
+  return Math.floor(s / 60) + ':' + pad2(s % 60) + '.' + (r < 10 ? '00' : r < 100 ? '0' : '') + r;
+}
+function tdur(ms){                     /* 时长：18120 -> "18.12s"；24600 -> "24.6s" */
+  var s = ms / 1000;
+  return (s >= 10 ? s.toFixed(s % 1 ? 2 : 0) : s.toFixed(s % 1 ? 3 : 1)) + 's';
+}
+function tclock(ms){ var s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + pad2(s % 60); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   数据集（唯一数值源）
+   ══════════════════════════════════════════════════════════════════════════ */
+var PROJ = { id:'P-03', name:'深海通话 ASR 语料 v3', owner:'陈默', batches:6, total:7420, done:5839 };
+
+var BATCHES = [
+  { id:'B-0721', name:'客服通话 · 第四批', n:1822, done:1240, st:'run',  stt:'导入中', import:true },
+  { id:'B-0718', name:'客服通话 · 第三批', n:1280, done:1042, st:'hold', stt:'标注中' },
+  { id:'B-0714', name:'现场巡检 · 第二批', n:864,  done:864,  st:'done', stt:'已入库' },
+  { id:'B-0709', name:'会议纪要 · 第一批', n:2106, done:1746, st:'warn', stt:'冲突待决' },
+  { id:'B-0703', name:'车载指令 · 补录',   n:742,  done:641,  st:'hold', stt:'标注中' },
+  { id:'B-0698', name:'问诊录音 · 首批',   n:606,  done:306,  st:'hold', stt:'标注中' }
+];
+
+var TASKS = [
+  { id:'T-1301', f:'客服通话_11.wav',  dur:222000, spk:2, pre:'已就绪',   est:22, st:'own',  stt:'已认领' },
+  { id:'T-1302', f:'巡检通话_04.wav',  dur:24600,  spk:2, pre:'解析中 68%', est:6,  st:'cur',  stt:'认领中' },
+  { id:'T-1303', f:'会议纪要_02.wav',  dur:728000, spk:4, pre:'排队中',   est:48, st:'free', stt:'待认领' },
+  { id:'T-1304', f:'车载指令_07.wav',  dur:76000,  spk:1, pre:'排队中',   est:9,  st:'free', stt:'待认领' },
+  { id:'T-1305', f:'问诊录音_03.wav',  dur:331000, spk:3, pre:'已就绪',   est:30, st:'free', stt:'待认领' }
+];
+
+var AUDIO = { name:'T-1302 · 巡检通话_04.wav', dur:24600, sr:16000, ch:1, spk:2, bytes:786432 };
+
+/* 段落（时长 = b − a；正常态相邻 overlap 恒为 0） */
+var SEGS = [
+  { id:'s1', a:0,     b:3120,  spk:'A', txt:'喂，是巡检一班吗',    ph:'PH-01', conf:0.96 },
+  { id:'s2', a:3120,  b:6480,  spk:'B', txt:'是，我是值班的老陈',  ph:'PH-02', conf:0.94 },
+  { id:'s3', a:6480,  b:9960,  spk:'A', txt:'三号泵的振动值超了',  ph:'PH-03', conf:0.58, low:true },
+  { id:'s4', a:9960,  b:12980, spk:'B', txt:'我马上过去看',        ph:'PH-04', conf:0.91 },
+  { id:'s5', a:12980, b:15840, spk:'A', txt:'记得带上频谱仪',      ph:'PH-05', conf:0.88 },
+  { id:'s6', a:15840, b:18120, spk:'B', txt:'好，十分钟到',        ph:'PH-06', conf:0.93 }
+];
+
+/* 段 3 的音素层（12 个音素，时长之和 = 3480ms = 段时长） */
+var PHONS = [
+  { i:1, sym:'s',        tag:'辅音·擦音', a:6480, dur:240 },
+  { i:2, sym:'an',       tag:'韵母·复合', a:6720, dur:320 },
+  { i:3, sym:'ɦ',        tag:'辅音·擦音', a:7040, dur:180 },
+  { i:4, sym:'ɑʊ',       tag:'韵母·复元音', a:7220, dur:340 },
+  { i:5, sym:'p',        tag:'辅音·塞音', a:7560, dur:220 },
+  { i:6, sym:'ə',        tag:'元音·央中', a:7780, dur:64,  bad:true },
+  { i:7, sym:'m',        tag:'辅音·鼻音', a:7844, dur:260 },
+  { i:8, sym:'ʈʂ',       tag:'辅音·塞擦', a:8104, dur:300 },
+  { i:9, sym:'ən',       tag:'韵母·复合', a:8404, dur:420 },
+  { i:10, sym:'tʊŋ',     tag:'韵母·复合', a:8824, dur:460 },
+  { i:11, sym:'ʈʂʰɑʊ',   tag:'韵母·复合', a:9284, dur:420 },
+  { i:12, sym:'lə',      tag:'韵母·复合', a:9704, dur:256 }
+];
+
+/* 冲突（双人标注不一致） */
+var CONFLICTS = [
+  { id:'C-1', seg:'s3', kind:'文本分歧', sev:'hi',
+    A:'三号泵的振动<em>值超了</em>', B:'三号泵的振动<em>超标了</em>', dA:'conf 0.94 / 已确认', dB:'conf 0.61 / 待复核' },
+  { id:'C-2', seg:'s3', kind:'说话人分歧', sev:'hi',
+    A:'说话人 <em>甲</em>（基频 132 Hz）', B:'说话人 <em>乙</em>（基频 118 Hz）', dA:'声纹相似度 0.71', dB:'声纹相似度 0.68' },
+  { id:'C-3', seg:'s5', kind:'音素边界分歧', sev:'mid',
+    A:'段起边界 <em>12980 ms</em>', B:'段起边界 <em>13064 ms</em>', dA:'边界置信 0.92', dB:'边界置信 0.88' }
+];
+
+/* 审核历史（ph = 从该相位起可见；倒序显示最近的 5 条） */
+var HISTORY = [
+  { t:'09:14', k:'ok',   b:'批次创建',      s:'B-0718 · 客服通话 · 第三批 · 1,280 条', ph:1 },
+  { t:'09:22', k:'ok',   b:'预标注导入',    s:'CY-Voice-M · 6 段 · 音素 12 类 · 说话人 2 轨', ph:1 },
+  { t:'09:40', k:'info', b:'任务认领',      s:'陈默 · T-1302 巡检通话_04.wav', ph:1 },
+  { t:'14:02', k:'warn', b:'预标注复核',    s:'段 #3 原始置信度 0.580 低于阈值 0.70', ph:3 },
+  { t:'14:06', k:'err',  b:'质检冲突标记',  s:'高优冲突 2 条 · 段 #3 文本与说话人', ph:4 },
+  { t:'14:18', k:'warn', b:'冲突消解中',    s:'已采纳 2 条 · 余 1 条音素边界待决', ph:4 },
+  { t:'14:22', k:'info', b:'提交初审',      s:'陈默 · 2 阶段提交已确认 · 6 段', ph:6 },
+  { t:'14:31', k:'ok',   b:'初审通过',      s:'审核员 周蕾 · 6 段 / 18.12 s', ph:6 },
+  { t:'14:32', k:'ok',   b:'入库归档',      s:'B-0718 · 导出 TextGrid 18.4 KB', ph:6 }
+];
+
+/* 结算 · 准确率雷达（5 维） */
+var RADAR = [
+  { k:'转写准确率', v:96.4 }, { k:'音素边界', v:91.2 }, { k:'说话人分离', v:98.1 },
+  { k:'情感标注',   v:87.5 }, { k:'一致性',   v:93.8 }
+];
+
+/* 相位 6 账本快照（运行时由 billing()/radarTotal() 算出，此处固化供题面与审计对账）：
+   有效标注 18.12 s · 质量均分 93.4 · 修改率 16.7% · 加成系数 ×0.917 · 本次结算 ¥7.97 · 压缩包 71.8 KB
+   批次进度快照：B-0721 68% · B-0718 81% · B-0709 83% · B-0703 86% · B-0698 50% */
+
+
+/* 结算 · 导出格式 */
+var FORMATS = [
+  { id:'json',     n:'JSON',     d:'含置信度与音素层', sz:'42.6 KB' },
+  { id:'textgrid', n:'TextGrid', d:'Praat 音素对齐层', sz:'18.4 KB' },
+  { id:'srt',      n:'SRT',      d:'字幕时间轴',       sz:'3.1 KB' },
+  { id:'csv',      n:'CSV',      d:'段级统计表',       sz:'6.8 KB' }
+];
+
+/* 命令面板条目 */var CMDS = [
+  { g:'导航', i:'i-tasks',  b:'前往任务认领',   s:'切换栏1 任务队列',  g2:'G T' },
+  { g:'导航', i:'i-wave',   b:'前往波形主检',   s:'相位 2 · 选区捕获', g2:'G W' },
+  { g:'导航', i:'i-tag',    b:'前往标签注入',   s:'相位 3 · 音素对齐', g2:'G L' },
+  { g:'导航', i:'i-diff',   b:'前往质检冲突',   s:'相位 4 · Diff 对比', g2:'G D' },
+  { g:'导航', i:'i-settle', b:'前往结算账本',   s:'相位 6 · 导出模态', g2:'G S' },
+  { g:'操作', i:'i-check',  b:'运行重叠校验',   s:'重叠必须 = 0ms',    g2:'⏎' },
+  { g:'操作', i:'i-lock',   b:'提交质检',       s:'校验通过后才可用',  g2:'⌘⏎' },
+  { g:'操作', i:'i-export', b:'导出账本',       s:'JSON / TextGrid / SRT', g2:'⌘E' },
+  { g:'视图', i:'i-thresh', b:'置信度阈值 0.70', s:'低于阈值强制填原因', g2:'' },
+  { g:'视图', i:'i-zoom',   b:'缩放至选区',     s:'Shift + 滚轮',      g2:'' }
+];
+
+/* ══════════════════════════════════════════════════════════════════════════
+   8 状态机
+   IDLE(就绪) → AUDIO_DECODING(音频解析中) → SEGMENT_HOVER(选区捕获)
+   → ACTIVE_EDITING(音素/文本细化) → CONFLICT_FLAGGED(质检冲突待决)
+   → VALIDATION_FAILED(校验熔断) → PENDING_AUDIT(提交初审) → ARCHIVED_COMMITTED(入库归档)
+   ══════════════════════════════════════════════════════════════════════════ */
+var ST_ORDER = ['IDLE','AUDIO_DECODING','SEGMENT_HOVER','ACTIVE_EDITING',
+                'CONFLICT_FLAGGED','VALIDATION_FAILED','PENDING_AUDIT','ARCHIVED_COMMITTED'];
+var ST_LABEL = {
+  IDLE:'就绪', AUDIO_DECODING:'音频解析中', SEGMENT_HOVER:'选区捕获',
+  ACTIVE_EDITING:'音素/文本细化', CONFLICT_FLAGGED:'质检冲突待决',
+  VALIDATION_FAILED:'校验熔断', PENDING_AUDIT:'提交初审', ARCHIVED_COMMITTED:'入库归档'
+};
+var PH_LABEL = {
+  1:'空载与数据导入', 2:'波形主检选区', 3:'标签注入与音素对齐',
+  4:'质检冲突与 Diff', 5:'校验熔断与错误拦截', 6:'结算面板与导出账本'
+};
+/* 相位 ↔ 状态 的基本对应（真实交互可再推进状态） */
+var PH_ST = { 1:'AUDIO_DECODING', 2:'SEGMENT_HOVER', 3:'ACTIVE_EDITING',
+              4:'CONFLICT_FLAGGED', 5:'VALIDATION_FAILED', 6:'ARCHIVED_COMMITTED' };
+
+/* ══════════════════════════════════════════════════════════════════════════
+   集中状态
+   ══════════════════════════════════════════════════════════════════════════ */
+var S = {
+  phase: 1,
+  st: 'AUDIO_DECODING',
+  nav: 'tasks',
+  batch: 'B-0718',
+  task: 'T-1302',
+  sel: { a: 0, b: 3120 },            /* 选区（ms），选区捕获 */
+  playT: 1240,                        /* 播放头 */
+  playing: false,
+  zoom: 26,                           /* px / 秒 */
+  seg: 's1',                          /* 选中段 */
+  phon: 'p6',                         /* 选中音素 */
+  s5b: 15840,                         /* 段5 止点（相位 5 被误改为 16040） */
+  confTh: 0.70,                       /* 置信度阈值滑块 */
+  hover: false,                       /* 波形 hover 命中 */
+  hoverT: 0,
+  cascade: ['通话','故障报修','设备'],
+  resolved: { 0:'A', 1:'B', 2:'A' },   /* 冲突消解：三条冲突各自的采纳方 */
+  staged: false,                      /* 两阶段提交：已产生暂存切分 */
+  stagedAt: 12000,                    /* 暂存切分点（ms） */
+  reason: '',                         /* 修正原因（<0.70 时必填 ≥10 字符） */
+  code: '',                           /* 4 位校验码 */
+  codeOk: false,
+  diff: 'text',                       /* 冲突筛选 */
+  modal: '',                          /* '' | 'code' | 'export' | 'overlap' */
+  drawer: '',
+  cmdk: false,
+  fmt: ['json','textgrid'],
+  toasts: [],
+  ovErr: false,                       /* 重叠校验失败态 */
+  cursor: 9960,                       /* 光标时间 ms */
+  radial: false,                      /* 快捷打标轮盘展开态 */
+  radialAt: 0,                        /* 轮盘锚点（ms） */
+  cand: 0,                            /* 候选标签采用项（相位 2 属性抽屉） */
+  split: 5,
+  fs: true                            /* 全屏（始终真） */
+};
+
+/* ── 派生：生效段落（含段5 止点可变） ── */
+function segs(){
+  return SEGS.map(function(s){
+    var o = { id:s.id, a:s.a, b:s.b, spk:s.spk, txt:s.txt, ph:s.ph, conf:s.conf, low:!!s.low };
+    if (s.id === 's5') o.b = S.s5b;
+    o.dur = o.b - o.a;
+    return o;
+  });
+}
+function segById(id){
+  var arr = segs();
+  for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return arr[i];
+  return arr[0];
+}
+function segIdx(id){ for (var i = 0; i < SEGS.length; i++) if (SEGS[i].id === id) return i; return 0; }
+
+/* ── 子系统①：切分 / 合并 / 时长守恒 ── */
+function allocMs(){
+  var arr = segs(), n = 0;
+  for (var i = 0; i < arr.length; i++) n += arr[i].dur;
+  return n;
+}
+function freeMs(){ return AUDIO.dur - allocMs(); }
+
+/* ── 子系统③：重叠校验（必须精确 = 0 ms） ── */
+function overlaps(){
+  var arr = segs().slice().sort(function(x, y){ return x.a - y.a; }), out = [];
+  for (var i = 0; i < arr.length - 1; i++){
+    var d = arr[i].b - arr[i + 1].a;
+    if (d > 0) out.push({ a: arr[i].id, b: arr[i + 1].id, ms: d,
+      from: arr[i + 1].a, to: arr[i].b });
+  }
+  return out;
+}
+function overlapMs(){ var o = overlaps(); return o.length ? o[0].ms : 0; }
+/* 空档（gap）恒为 0 才算严格连续；overlap = 0 且 gap = 0 即完美切分 */
+function gaps(){
+  var arr = segs().slice().sort(function(x, y){ return x.a - y.a; }), out = [];
+  for (var i = 0; i < arr.length - 1; i++){
+    var d = arr[i + 1].a - arr[i].b;
+    if (d > 0) out.push(d);
+  }
+  return out;
+}
+
+/* ── 子系统⑤：置信度惩罚闭环 ── */
+/* 最终置信度 = 原始置信度 × 0.6 + 人工修正权重 0.35 */
+var W_ORIG = 0.6, W_FIX = 0.35;
+function confAfter(orig){ return orig * W_ORIG + W_FIX; }
+function segConf(s){ return s.low ? confAfter(s.conf) : s.conf; }
+function confGate(orig){ return confAfter(orig) < S.confTh; }
+function needReason(){ return confGate(segById(S.seg).conf); }
+
+/* ── 子系统④：音素 < 80ms 熔断 ── */
+var PHON_MIN = 80;
+function phonBad(p){ return p.dur < PHON_MIN; }
+function phonBadCount(){
+  var n = 0;
+  for (var i = 0; i < PHONS.length; i++) if (phonBad(PHONS[i])) n++;
+  return n;
+}
+/* 4 位校验码 = 该音素「起始毫秒」的后四位 */
+function codeOf(p){ var s = String(p.a); return s.length >= 4 ? s.slice(-4) : ('0000' + s).slice(-4); }
+
+/* ── 子系统⑤：计费 / 时效账本 ── */
+var UNIT_PRICE = 0.48;          /* ¥ / 有效标注秒 */
+var REWORK_W   = 0.5;           /* 修改率惩罚权重 */
+function billing(){
+  var arr = segs(), sec = 0, edits = 0;
+  for (var i = 0; i < arr.length; i++){
+    sec += arr[i].dur / 1000;
+    if (arr[i].low) edits++;
+  }
+  var rate = edits / arr.length;
+  var coef = 1 - rate * REWORK_W;
+  var amount = sec * UNIT_PRICE * coef;
+  return { sec: sec, edits: edits, total: arr.length, rate: rate, coef: coef,
+           amount: amount, secTxt: sec.toFixed(2), rateTxt: (rate * 100).toFixed(1),
+           coefTxt: coef.toFixed(3), amountTxt: amount.toFixed(2) };
+}
+function radarTotal(){
+  var n = 0; for (var i = 0; i < RADAR.length; i++) n += RADAR[i].v;
+  return n / RADAR.length;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   波形 / 频谱数据（闭式哈希，确定性）
+   ══════════════════════════════════════════════════════════════════════════ */
+/* 带包络的波形采样：6 段语音能量 + 段间 12ms 静音过渡；
+   18.12s 之后为尚未分配的原始音轨（低电平环境噪声，仍可见） */
+function envAt(t){
+  var e = 0.24;
+  if (t < 3120)      e = 0.72 + 0.20 * Math.sin(t / 340);
+  else if (t < 6480) e = 0.62 + 0.22 * Math.sin(t / 470 + 1.1);
+  else if (t < 9960) e = 0.80 + 0.18 * Math.sin(t / 300 + 2.2);
+  else if (t < 12980)e = 0.55 + 0.20 * Math.sin(t / 520 + 3.3);
+  else if (t < 15840)e = 0.70 + 0.20 * Math.sin(t / 380 + 4.4);
+  else if (t < 18120)e = 0.60 + 0.18 * Math.sin(t / 440 + 5.5);
+  else                e = 0.24 + 0.06 * Math.sin(t / 610 + 6.6);
+  /* 段间 12ms 静音过渡，切分点可视化 */
+  var bnd = [0, 3120, 6480, 9960, 12980, 15840, 18120];
+  for (var i = 1; i < bnd.length; i++){
+    if (Math.abs(t - bnd[i]) < 12) e *= 0.18;
+  }
+  return clamp(e, 0.03, 1);
+}
+function waveAt(t){
+  var e = envAt(t);
+  var n = h32(SEED, Math.floor(t / 8), 17) * 2 - 1;
+  var m = h32(SEED ^ 0x51ed, Math.floor(t / 26), 41) * 2 - 1;
+  return clamp(e * (0.62 * n + 0.38 * m), -1, 1);
+}
+/* 频谱能量：频带 × 时间单元的归一化能量 0..1 */
+var BANDS = 40;
+function specAt(t, band){
+  var e = envAt(t);
+  /* 低频能量更强（语音常识），并叠加共振峰条纹 */
+  var f = 1 - band / BANDS;
+  var form = 0.5 + 0.5 * Math.sin(band * 0.85 + t / 260) * Math.sin(band * 0.31 + 1.7);
+  var n = h32(SEED ^ 0x7f3a, Math.floor(t / 34), band * 7 + 3);
+  var v = e * (0.30 + 0.70 * f) * (0.62 + 0.38 * form) * (0.70 + 0.55 * n);
+  /* 顶端高频衰减 */
+  if (band < 4) v *= 0.55;
+  return clamp(v, 0, 1);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   状态写入（含 DOM 同步）
+   ══════════════════════════════════════════════════════════════════════════ */
+function setSt(st){ S.st = st; document.body.setAttribute('data-st', st); }
+function setPh(n){
+  S.phase = n;
+  document.body.setAttribute('data-ph', String(n));
+}
+function resetFor(n){
+  setPh(n); setSt(PH_ST[n]);
+  S.resolved = { 0:'A', 1:'B', 2:'A' };
+  S.radial = false;
+  S.cand = 0;
+  S.ovErr = (n === 5);
+  S.s5b = (n === 5) ? 16040 : 15840;
+  S.staged = (n >= 3);
+  S.hover = (n === 2);
+  S.hoverT = 1600;
+  S.playing = false;
+  if (n === 2){ S.sel = { a: 0, b: 3120 }; S.seg = 's1'; S.playT = 1240; S.zoom = 26; }
+  if (n === 3){ S.sel = { a: 6480, b: 9960 }; S.seg = 's3'; S.zoom = 150; S.playT = 8220;
+                S.reason = '音素边界与原始录音不符，按重听结果修正'; S.phon = 'p6'; }
+  if (n === 4){ S.sel = { a: 6480, b: 9960 }; S.seg = 's3'; S.zoom = 30; S.playT = 11860; }
+  if (n === 5){ S.sel = { a: 12980, b: 16040 }; S.seg = 's5'; S.zoom = 96; S.playT = 16040;
+                S.code = '7780'; S.modal = ''; }
+  if (n === 6){ S.sel = { a: 0, b: 18120 }; S.seg = 's6'; S.zoom = 26; S.playT = 18120; S.modal = 'export'; }
+  if (n === 1){ S.modal = ''; S.sel = { a: 0, b: 0 }; S.zoom = 26; S.seg = 's1'; S.playT = 1240; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Canvas 渲染层
+   ══════════════════════════════════════════════════════════════════════════ */
+var CV = {};          /* {ruler, wave, spec, radar} canvas 引用 */
+var CTX = {};
+var VW = { a: 0, b: 24600, pps: 0.026, w: 600 };
+
+/* 每次 render 后 DOM 被重建，必须重新绑定画布引用 */
+function bindCv(){
+  CV.ruler = document.getElementById('cv-ruler');
+  CV.wave  = document.getElementById('cv-wave');
+  CV.spec  = document.getElementById('cv-spec');
+  CV.radar = document.getElementById('cv-radar');
+  CV.bars  = document.getElementById('cv-bars');
+}
+
+function cvsSetup(cv){
+  var dpr = window.devicePixelRatio || 1;
+  var w = Math.max(1, cv.parentElement.clientWidth);
+  var h = Math.max(1, cv.parentElement.clientHeight);
+  if (cv._w !== w || cv._h !== h || cv._dpr !== dpr){
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    cv._w = w; cv._h = h; cv._dpr = dpr;
+  }
+  var c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { c: c, w: w, h: h };
+}
+
+/* 视窗：由 zoom(px/秒) 与选区中心决定；span 超全长则全览 */
+function view(){
+  var w = Math.max(120, CV.wave ? CV.wave.parentElement.clientWidth : 600);
+  var pps = S.zoom / 1000;                       /* px / ms */
+  var span = w / pps;
+  if (span >= AUDIO.dur) return { a: 0, b: AUDIO.dur, pps: pps, w: w, full: true };
+  var c = (S.sel.a + S.sel.b) / 2;
+  var a = clamp(c - span / 2, 0, AUDIO.dur - span);
+  return { a: a, b: a + span, pps: pps, w: w, full: false };
+}
+function xOf(t){ return (t - VW.a) * VW.pps; }
+function tOf(x){ return VW.a + x / VW.pps; }
+function visA(){ return Math.max(0, VW.a); }
+function visB(){ return Math.min(AUDIO.dur, VW.b); }
+
+/* ── 时间标尺步长（保证刻度间距 ≥ 62px） ── */
+var STEPS = [5,10,20,25,50,100,200,250,500,1000,2000,2500,5000,10000];
+function tickStep(){
+  for (var i = 0; i < STEPS.length; i++) if (STEPS[i] * VW.pps >= 62) return STEPS[i];
+  return 20000;
+}
+function tickLabel(t, step){
+  if (step >= 5000) return (t / 1000) + 's';
+  if (step >= 1000) return (t / 1000).toFixed(1) + 's';
+  return t3(t);
+}
+
+/* ══ 轨 0：毫秒时间标尺 ══ */
+function drawRuler(){
+  var cv = CV.ruler; if (!cv) return;
+  var s = cvsSetup(cv), c = s.c, w = s.w, h = s.h;
+  c.clearRect(0, 0, w, h);
+  VW.w = w; VW.pps = S.zoom / 1000;
+  var v = view(); VW.a = v.a; VW.b = v.b; VW.full = v.full;
+
+  c.fillStyle = '#0d131c'; c.fillRect(0, 0, w, h);
+  var step = tickStep();
+  var t0 = Math.floor(visA() / step) * step, t1 = visB();
+  c.strokeStyle = '#22303f'; c.lineWidth = 1;
+  for (var t = t0; t <= t1 + 1; t += step){
+    var x = Math.round(xOf(t)) + .5;
+    if (x < -30 || x > w + 30) continue;
+    c.beginPath(); c.moveTo(x, h - 8); c.lineTo(x, h); c.stroke();
+    c.fillStyle = '#72859c';
+    c.font = '9px "JetBrains Mono",Consolas,monospace';
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    c.fillText(tickLabel(t, step), x, 2);
+    /* 次级刻度：4 等分 */
+    c.strokeStyle = '#19232e';
+    for (var k = 1; k < 4; k++){
+      var xk = Math.round(xOf(t + step * k / 4)) + .5;
+      if (xk < 0 || xk > w) continue;
+      c.beginPath(); c.moveTo(xk, h - 4); c.lineTo(xk, h); c.stroke();
+    }
+    c.strokeStyle = '#22303f';
+  }
+  /* 选区在标尺上的色带 */
+  var sa = Math.max(0, xOf(S.sel.a)), sb = Math.min(w, xOf(S.sel.b));
+  if (SB_VISIBLE() && sb > sa){
+    c.fillStyle = S.ovErr ? 'rgba(251,92,114,.22)' : (S.staged && S.phase !== 2
+      ? 'rgba(245,165,36,.22)' : 'rgba(45,212,191,.22)');
+    c.fillRect(sa, 0, sb - sa, h - 6);
+  }
+}
+function SB_VISIBLE(){ return S.sel.b > S.sel.a && S.phase !== 1; }
+
+/* ══ 轨 1：原声包络波形 ══ */
+function drawWave(){
+  var cv = CV.wave; if (!cv) return;
+  var s = cvsSetup(cv), c = s.c, w = s.w, h = s.h;
+  c.clearRect(0, 0, w, h);
+  c.fillStyle = '#080c12'; c.fillRect(0, 0, w, h);
+  var mid = h * 0.5;
+
+  /* 背景：时间刻度网格 + 段边界竖线 */
+  var step = tickStep();
+  c.strokeStyle = 'rgba(34,48,63,.85)'; c.lineWidth = 1;
+  for (var t = Math.floor(visA() / step) * step; t <= visB(); t += step){
+    var x = Math.round(xOf(t)) + .5;
+    if (x < 0 || x > w) continue;
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke();
+  }
+  var arr = segs();
+  c.strokeStyle = 'rgba(45,80,105,.6)'; c.lineWidth = 1;
+  for (var i = 1; i < arr.length; i++){
+    var xb = Math.round(xOf(arr[i].a)) + .5;
+    if (xb < 0 || xb > w) continue;
+    c.beginPath(); c.moveTo(xb, 0); c.lineTo(xb, h); c.stroke();
+  }
+  /* 中线 */
+  c.strokeStyle = 'rgba(45,212,191,.16)';
+  c.beginPath(); c.moveTo(0, Math.round(mid) + .5); c.lineTo(w, Math.round(mid) + .5); c.stroke();
+
+  /* 可解码比例（相位 1 = 解析中 68%） */
+  var cov = (S.phase === 1) ? 0.68 : 1;
+  var covX = xOf(Math.min(AUDIO.dur * cov, visB()));
+  var amp = h * 0.42;
+
+  /* 包络填充 */
+  var grad = c.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0,   'rgba(45,212,191,.34)');
+  grad.addColorStop(0.5, 'rgba(45,212,191,.62)');
+  grad.addColorStop(1,   'rgba(45,212,191,.34)');
+  c.fillStyle = grad;
+  c.beginPath();
+  var xStart = Math.max(0, xOf(visA()));
+  var xEnd = Math.min(w, covX);
+  for (var x = xStart; x <= xEnd; x++){
+    var tt = tOf(x), e = envAt(tt) * amp;
+    if (x === xStart) c.moveTo(x, mid - e); else c.lineTo(x, mid - e);
+  }
+  for (var x2 = xEnd; x2 >= xStart; x2--){
+    var tt2 = tOf(x2), e2 = envAt(tt2) * amp;
+    c.lineTo(x2, mid + e2);
+  }
+  c.closePath(); c.fill();
+
+  /* 逐像素峰值竖线（波形质感） */
+  c.strokeStyle = 'rgba(94,234,212,.72)'; c.lineWidth = 1;
+  for (var px = Math.floor(xStart); px <= xEnd; px++){
+    var tA = tOf(px), tB = tOf(px + 1), lo = 1, hi = -1, n = 7;
+    for (var k = 1; k <= n; k++){
+      var v2 = waveAt(tA + (tB - tA) * k / n);
+      if (v2 < lo) lo = v2; if (v2 > hi) hi = v2;
+    }
+    var y1 = mid - hi * amp, y2 = mid - lo * amp;
+    if (y2 - y1 < 1) y2 = y1 + 1;
+    c.beginPath(); c.moveTo(px + .5, y1); c.lineTo(px + .5, y2); c.stroke();
+  }
+  /* 亮边（说话人 A 段用青色，B 段用紫色） */
+  c.strokeStyle = 'rgba(167,139,250,.62)'; c.lineWidth = 1.4;
+  for (var pi = 0; pi < arr.length; pi++){
+    if (arr[pi].spk !== 'B') continue;
+    var xa = Math.max(xOf(arr[pi].a), 0), xb2 = Math.min(xOf(arr[pi].b), covX);
+    for (var q = xa; q <= xb2; q++){
+      var tq = tOf(q), eq = envAt(tq) * amp;
+      if (q === xa) { c.beginPath(); c.moveTo(q, mid - eq); } else c.lineTo(q, mid - eq);
+    }
+    c.stroke();
+  }
+
+  /* 相位 1：未解码区骨架 + 遮罩 */
+  if (S.phase === 1 && covX < w){
+    c.fillStyle = 'rgba(8,12,18,.72)'; c.fillRect(covX, 0, w - covX, h);
+    c.strokeStyle = 'rgba(38,50,67,.9)'; c.lineWidth = 1;
+    for (var gx = covX + 10; gx < w; gx += 22){
+      c.beginPath(); c.moveTo(Math.round(gx) + .5, 0); c.lineTo(Math.round(gx) + .5, h); c.stroke();
+    }
+    c.fillStyle = 'rgba(96,165,250,.55)';
+    c.font = '9.5px "JetBrains Mono",Consolas,monospace';
+    c.textAlign = 'left'; c.textBaseline = 'middle';
+    c.fillText('待解码 ' + (AUDIO.dur - Math.round(AUDIO.dur * 0.68)) + ' ms', covX + 10, mid);
+  }
+
+  /* 相位 3：音素边界叠加（虚线 + 音素符号） */
+  if (S.phase === 3){
+    c.setLineDash([3, 3]); c.lineWidth = 1;
+    for (var pi2 = 0; pi2 < PHONS.length; pi2++){
+      var p = PHONS[pi2];
+      var xp = Math.round(xOf(p.a)) + .5;
+      if (xp < 0 || xp > w) continue;
+      c.strokeStyle = p.bad ? 'rgba(251,92,114,.85)' : 'rgba(167,139,250,.6)';
+      c.beginPath(); c.moveTo(xp, 0); c.lineTo(xp, h); c.stroke();
+    }
+    c.setLineDash([]);
+    /* 音素符号条 */
+    c.font = '9px "JetBrains Mono",Consolas,monospace';
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    for (var pi3 = 0; pi3 < PHONS.length; pi3++){
+      var p2 = PHONS[pi3];
+      var xc = xOf(p2.a + p2.dur / 2);
+      if (xc < 8 || xc > w - 8) continue;
+      var bw = xOf(p2.dur);
+      if (bw < 16) continue;
+      c.fillStyle = p2.bad ? 'rgba(251,92,114,.9)' : 'rgba(167,139,250,.85)';
+      c.fillText(p2.sym, xc, 3);
+      c.fillStyle = 'rgba(79,96,118,.95)';
+      c.fillText(p2.dur + '', xc, h - 13);
+    }
+  }
+}
+
+/* ══ 轨 2：频谱能量热力图 ══ */
+function heat(v){
+  /* 0 → 近黑；.28 → 深青；.5 → 青；.7 → 黄绿；.88 → 琥珀；1 → 亮黄白 */
+  var stops = [
+    [0.00, [8, 12, 18]],    [0.18, [12, 45, 58]],  [0.36, [18, 165, 148]],
+    [0.54, [60, 200, 150]], [0.70, [170, 210, 110]], [0.85, [245, 165, 36]],
+    [1.00, [255, 238, 190]]
+  ];
+  var i = 0;
+  for (; i < stops.length - 1; i++) if (v <= stops[i + 1][0]) break;
+  var s0 = stops[i], s1 = stops[Math.min(i + 1, stops.length - 1)];
+  var k = (v - s0[0]) / Math.max(1e-6, s1[0] - s0[0]);
+  k = clamp(k, 0, 1);
+  return 'rgb(' + Math.round(s0[1][0] + (s1[1][0] - s0[1][0]) * k) + ','
+                + Math.round(s0[1][1] + (s1[1][1] - s0[1][1]) * k) + ','
+                + Math.round(s0[1][2] + (s1[1][2] - s0[1][2]) * k) + ')';
+}
+function drawSpec(){
+  var cv = CV.spec; if (!cv) return;
+  var s = cvsSetup(cv), c = s.c, w = s.w, h = s.h;
+  c.clearRect(0, 0, w, h);
+  c.fillStyle = '#080c12'; c.fillRect(0, 0, w, h);
+  var cov = (S.phase === 1) ? 0.68 : 1;
+  var covX = Math.min(w, xOf(AUDIO.dur * cov));
+  var cellW = 3, cellH = h / BANDS;
+  var xStart = Math.max(0, xOf(visA()));
+  for (var x = xStart; x < covX; x += cellW){
+    var t = tOf(x);
+    for (var b = 0; b < BANDS; b++){
+      var v = specAt(t, b);
+      if (v < 0.05) continue;                     /* 省色：近零不画 */
+      c.fillStyle = heat(v);
+      c.fillRect(x, h - (b + 1) * cellH, cellW + .6, cellH + .6);
+    }
+  }
+  /* 频带刻度（高频在上、0Hz 在下；能量按低频更强绘制在下半） */
+  c.fillStyle = 'rgba(114,133,156,.78)';
+  c.font = '8px "JetBrains Mono",Consolas,monospace';
+  c.textAlign = 'left'; c.textBaseline = 'middle';
+  var labels = [[0.05, '8k'], [0.28, '4k'], [0.52, '2k'], [0.74, '1k'], [0.95, '0']];
+  for (var li = 0; li < labels.length; li++){
+    c.fillText(labels[li][1], 3, clamp(labels[li][0] * h, 6, h - 6));
+  }
+  if (S.phase === 1 && covX < w){
+    c.fillStyle = 'rgba(8,12,18,.8)'; c.fillRect(covX, 0, w - covX, h);
+  }
+  /* 相位 3：音素边界延伸到频谱轨 */
+  if (S.phase === 3){
+    c.setLineDash([3, 3]); c.lineWidth = 1;
+    for (var pi = 0; pi < PHONS.length; pi++){
+      var xp = Math.round(xOf(PHONS[pi].a)) + .5;
+      if (xp < 0 || xp > w) continue;
+      c.strokeStyle = PHONS[pi].bad ? 'rgba(251,92,114,.7)' : 'rgba(167,139,250,.45)';
+      c.beginPath(); c.moveTo(xp, 0); c.lineTo(xp, h); c.stroke();
+    }
+    c.setLineDash([]);
+  }
+}
+
+/* ══ 结算雷达图（5 维） ══ */
+function drawRadar(){
+  var cv = CV.radar; if (!cv) return;
+  var s = cvsSetup(cv), c = s.c, w = s.w, h = s.h;
+  c.clearRect(0, 0, w, h);
+  var cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 16, N = RADAR.length;
+  function pt(i, r){
+    var ang = -Math.PI / 2 + i * 2 * Math.PI / N;
+    return [cx + Math.cos(ang) * r, cy + Math.sin(ang) * r];
+  }
+  /* 网格环 + 轴 */
+  for (var g = 1; g <= 4; g++){
+    c.strokeStyle = g === 4 ? 'rgba(45,212,191,.30)' : 'rgba(34,48,63,.9)';
+    c.lineWidth = 1;
+    c.beginPath();
+    for (var i = 0; i < N; i++){
+      var p = pt(i, R * g / 4);
+      if (i === 0) c.moveTo(p[0], p[1]); else c.lineTo(p[0], p[1]);
+    }
+    c.closePath(); c.stroke();
+  }
+  c.strokeStyle = 'rgba(34,48,63,.9)';
+  for (var i2 = 0; i2 < N; i2++){
+    var p2 = pt(i2, R);
+    c.beginPath(); c.moveTo(cx, cy); c.lineTo(p2[0], p2[1]); c.stroke();
+  }
+  /* 数据多边形 */
+  c.beginPath();
+  for (var i3 = 0; i3 < N; i3++){
+    var p3 = pt(i3, R * RADAR[i3].v / 100);
+    if (i3 === 0) c.moveTo(p3[0], p3[1]); else c.lineTo(p3[0], p3[1]);
+  }
+  c.closePath();
+  var gd = c.createRadialGradient(cx, cy, 2, cx, cy, R);
+  gd.addColorStop(0, 'rgba(45,212,191,.42)');
+  gd.addColorStop(1, 'rgba(45,212,191,.08)');
+  c.fillStyle = gd; c.fill();
+  c.strokeStyle = '#2dd4bf'; c.lineWidth = 1.8; c.stroke();
+  /* 顶点 */
+  for (var i4 = 0; i4 < N; i4++){
+    var p4 = pt(i4, R * RADAR[i4].v / 100);
+    c.beginPath(); c.arc(p4[0], p4[1], 2.6, 0, Math.PI * 2);
+    c.fillStyle = '#2dd4bf'; c.fill();
+    c.strokeStyle = '#080c12'; c.lineWidth = 1.2; c.stroke();
+  }
+  /* 维度标签 */
+  c.font = '8.5px "Segoe UI",system-ui,sans-serif';
+  c.fillStyle = '#72859c'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  for (var i5 = 0; i5 < N; i5++){
+    var p5 = pt(i5, R + 10);
+    c.fillText(RADAR[i5].k, clamp(p5[0], 26, w - 26), clamp(p5[1], 7, h - 7));
+  }
+  /* 平均值 */
+  c.fillStyle = '#e4eef9';
+  c.font = '600 12px "JetBrains Mono",Consolas,monospace';
+  c.fillText(radarTotal().toFixed(1), cx, cy + 1);
+  c.font = '8px "Segoe UI",system-ui,sans-serif';
+  c.fillStyle = '#4f6076';
+  c.fillText('均值', cx, cy + 12);
+}
+
+/* ══ 导出账本 · 段时长条形 ══ */
+function drawBars(){
+  var cv = CV.bars; if (!cv) return;
+  var s = cvsSetup(cv), c = s.c, w = s.w, h = s.h;
+  c.clearRect(0, 0, w, h);
+  var arr = segs(), max = 0;
+  for (var i = 0; i < arr.length; i++) if (arr[i].dur > max) max = arr[i].dur;
+  var bw = Math.max(8, (w - 8) / arr.length - 8), gap = (w - 8 - bw * arr.length) / Math.max(1, arr.length - 1);
+  for (var j = 0; j < arr.length; j++){
+    var x = 4 + j * (bw + gap);
+    var bh = Math.max(3, (arr[j].dur / max) * (h - 24));
+    var g2 = c.createLinearGradient(0, h - bh, 0, h);
+    if (arr[j].spk === 'B'){ g2.addColorStop(0, '#a78bfa'); g2.addColorStop(1, 'rgba(124,92,245,.35)'); }
+    else { g2.addColorStop(0, '#2dd4bf'); g2.addColorStop(1, 'rgba(18,165,148,.35)'); }
+    c.fillStyle = g2;
+    c.fillRect(x, h - bh, bw, bh);
+    c.fillStyle = arr[j].spk === 'B' ? '#a78bfa' : '#2dd4bf';
+    c.font = '8px "JetBrains Mono",Consolas,monospace';
+    c.textAlign = 'center'; c.textBaseline = 'bottom';
+    c.fillText(String(arr[j].dur), x + bw / 2, h - bh - 3);
+    c.fillStyle = '#4f6076';
+    c.textBaseline = 'bottom';
+    c.fillText('#' + (j + 1), x + bw / 2, h);
+  }
+}
+
+/* ══ 统一重绘 ══ */
+function drawAll(){
+  bindCv();
+  drawRuler();
+  drawWave();
+  drawSpec();
+  drawBars();
+  drawRadar();
+  paintOverlays();
+}
+
+/* ══ DOM 覆盖层（播放头 / 选区 / 冲突带 / 暂存带） ══ */
+function paintOverlays(){
+  var ovl = document.getElementById('ovl'); if (!ovl) return;
+  var arr = segs();
+  var h = ovl.clientHeight || 1;
+  var html = '';
+  /* 冲突带（相位 4） */
+  if (S.phase === 4){
+    var c4 = [segById('s3'), segById('s5')];
+    for (var i = 0; i < c4.length; i++){
+      var xa = xOf(c4[i].a), xb = xOf(c4[i].b);
+      if (xb < 0 || xa > VW.w) continue;
+      html += '<div class="cfband" style="left:' + xa + 'px;width:' + Math.max(2, xb - xa) + 'px"></div>';
+    }
+  }
+  /* 重叠错误带（相位 5） */
+  var ov = overlaps();
+  for (var k = 0; k < ov.length; k++){
+    var xo = xOf(ov[k].from), xw = xOf(ov[k].to) - xo;
+    if (xw < 1) continue;
+    if (xo > VW.w || xo + xw < 0) continue;
+    html += '<div class="ovband" style="left:' + xo + 'px;width:' + xw + 'px">' +
+            '<span>' + ov[k].ms + 'ms 重叠</span></div>';
+  }
+  /* 选区带 */
+  if (SB_VISIBLE()){
+    var sa = xOf(S.sel.a), sb = xOf(S.sel.b);
+    var cls = S.phase === 4 ? 'conflict'
+            : ((S.staged && S.phase !== 2 && S.phase !== 6) ? 'staged' : '');
+    html += '<div class="selband ' + cls + '" style="left:' + sa + 'px;width:' + Math.max(2, sb - sa) + 'px"></div>';
+  }
+  /* 暂存切分点（两阶段提交） */
+  if (S.staged && S.phase !== 2 && S.phase !== 6){
+    var xs = xOf(S.stagedAt);
+    html += '<div class="stagedmark" style="left:' + xs + 'px"></div>';
+  }
+  /* 播放头 */
+  if (S.phase !== 1 && S.phase !== 6){
+    var xp = xOf(S.playT);
+    html += '<div class="ph" style="left:' + xp + 'px"></div>';
+  }
+  /* hover 十字线 + 时间气泡（相位 2） */
+  if (S.hover && S.hoverT > 0){
+    var xh = xOf(S.hoverT);
+    html += '<div class="hxhair" style="left:' + xh + 'px"><i>' + tmmss(S.hoverT) + '</i></div>';
+  }
+  ovl.innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   内置 SVG 自定义图标库（无外部依赖）
+   ══════════════════════════════════════════════════════════════════════════ */
+var SYMBOLS = [
+  ['i-wave',   'M2 12h2l2-6 3 12 3-16 3 20 3-14 2 4h2'],
+  ['i-play',   'M7 4l12 8-12 8z'],
+  ['i-pause',  'M8 5h3v14H8zM13 5h3v14h-3z'],
+  ['i-stop',   'M6 6h12v12H6z'],
+  ['i-zin',    'M11 4a7 7 0 100 14 7 7 0 000-14zM16 16l5 5M8 11h6M11 8v6'],
+  ['i-zout',   'M11 4a7 7 0 100 14 7 7 0 000-14zM16 16l5 5M8 11h6'],
+  ['i-split',  'M12 3v18M4 7l8 5 8-5M4 17l8-5 8 5'],
+  ['i-merge',  'M4 7l8 5 8-5M4 17l8-5 8 5M12 12v9'],
+  ['i-overlap','M9 8a4.5 4.5 0 100 9 4.5 4.5 0 000-9zM15 8a4.5 4.5 0 100 9 4.5 4.5 0 000-9z'],
+  ['i-thresh', 'M3 12h18M8 8.5v7M16 8.5v7'],
+  ['i-ruler',  'M3 8h18v8H3zM7 8v3M11 8v4M15 8v3M19 8v4'],
+  ['i-mic',    'M12 3a3 3 0 00-3 3v6a3 3 0 006 0V6a3 3 0 00-3-3zM6 11a6 6 0 0012 0M12 17v4M9 21h6'],
+  ['i-lock',   'M6 11h12v9H6zM9 11V8a3 3 0 016 0v3'],
+  ['i-unlock', 'M6 11h12v9H6zM9 11V8a3 3 0 015.6-1.5'],
+  ['i-check',  'M4 12.5l5 5L20 6.5'],
+  ['i-x',      'M6 6l12 12M18 6L6 18'],
+  ['i-alert',  'M12 3l9 16H3zM12 9v5M12 17h.01'],
+  ['i-flag',   'M5 3v18M5 4h11l-2 4 2 4H5'],
+  ['i-diff',   'M7 4v16M17 4v16M4 8h6M14 16h6'],
+  ['i-spk',    'M12 3a3 3 0 100 6 3 3 0 000-6zM5 20a7 7 0 0114 0'],
+  ['i-clock',  'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3.5 2'],
+  ['i-coin',   'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v10M9.5 9.5h5M9.5 14.5h5'],
+  ['i-export', 'M12 3v12M8 11l4 4 4-4M4 20h16'],
+  ['i-import', 'M12 15V3M8 7l4-4 4 4M4 20h16'],
+  ['i-search', 'M10 3a7 7 0 100 14 7 7 0 000-14zM15 15l6 6'],
+  ['i-bell',   'M6 10a6 6 0 1112 0v5l2 3H4l2-3zM10 21h4'],
+  ['i-chev',   'M8 5l7 7-7 7'],
+  ['i-chevd',  'M5 8l7 7 7-7'],
+  ['i-tasks',  'M4 6h16M4 12h16M4 18h10M2 6h.01M2 12h.01M2 18h.01'],
+  ['i-tag',    'M3 3h8l10 10-8 8L3 11zM7.5 7.5h.01'],
+  ['i-settle', 'M4 20V9M10 20V4M16 20v-7M22 20H2'],
+  ['i-eye',    'M2 12s4-6 10-6 10 6 10 6-4 6-10 6-10-6-10-6zM12 9a3 3 0 100 6 3 3 0 000-6z'],
+  ['i-trash',  'M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14'],
+  ['i-plus',   'M12 5v14M5 12h14'],
+  ['i-minus',  'M5 12h14'],
+  ['i-undo',   'M4 10h11a4 4 0 010 8H9M4 10l4-4M4 10l4 4'],
+  ['i-redo',   'M20 10H9a4 4 0 000 8h6M20 10l-4-4M20 10l-4 4'],
+  ['i-shield', 'M12 3l8 3v6c0 5-3.5 8.5-8 9.5C7.5 20.5 4 17 4 12V6z'],
+  ['i-layers', 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5'],
+  ['i-grid',   'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'],
+  ['i-spark',  'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z'],
+  ['i-target', 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 8a4 4 0 100 8 4 4 0 000-8z'],
+  ['i-set',    'M12 9a3 3 0 100 6 3 3 0 000-6zM12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2'],
+  ['i-book',   'M4 4h7a3 3 0 013 3v13a2 2 0 00-2-2H4zM20 4h-7a3 3 0 00-3 3v13a2 2 0 012-2h8z'],
+  ['i-mute',   'M4 9h4l5-4v14l-5-4H4zM17 9l4 6M21 9l-4 6'],
+  ['i-noise',  'M3 12h3l2-5 3 10 3-13 3 16 2-8h2'],
+  ['i-cut',    'M6 4l12 12M18 4L6 16M6 20a2 2 0 100-4 2 2 0 000 4zM18 20a2 2 0 100-4 2 2 0 000 4z'],
+  ['i-clip',   'M9 3h6v4H9zM6 7h12v14H6z'],
+  ['i-therm',  'M12 3a2 2 0 00-2 2v9a4 4 0 104 0V5a2 2 0 00-2-2zM12 9v7'],
+  ['i-radial', 'M12 12a2 2 0 100 .01M12 3v4M12 17v4M3 12h4M17 12h4M6 6l3 3M15 15l3 3M18 6l-3 3M9 15l-3 3'],
+  ['i-db',     'M12 3c4 0 7 1.3 7 3s-3 3-7 3-7-1.3-7-3 3-3 7-3zM5 6v12c0 1.7 3 3 7 3s7-1.3 7-3V6'],
+  ['i-scan',   'M4 8V5h3M20 8V5h-3M4 16v3h3M20 16v3h-3M4 12h16'],
+  ['i-folder', 'M3 6h6l2 2h10v11H3z']
+].map(function(d){
+  return '<symbol id="' + d[0] + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+         'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="' + d[1] + '"/></symbol>';
+}).join('');
+
+function ic(n, cls){
+  return '<svg class="' + (cls || '') + '" aria-hidden="true"><use href="#' + n + '"/></svg>';
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   栏1 · 全局项目 / 批次导航
+   ══════════════════════════════════════════════════════════════════════════ */
+var RAIL = [
+  { k:'tasks',  i:'i-tasks',  t:'任务认领', n:'' },
+  { k:'wave',   i:'i-wave',   t:'波形主检', n:'' },
+  { k:'tag',    i:'i-tag',    t:'标签音素', n:'' },
+  { k:'diff',   i:'i-diff',   t:'质检冲突', n:'3' },
+  { k:'settle', i:'i-settle', t:'结算账本', n:'' },
+  { k:'book',   i:'i-book',   t:'规范文档', n:'' }
+];
+function vNav(){
+  var rail = RAIL.map(function(r){
+    return '<button class="rb ' + (S.nav === r.k ? 'on' : '') + '" role="tab" tabindex="0" ' +
+      'aria-selected="' + (S.nav === r.k ? 'true' : 'false') + '" data-rail="' + r.k + '" ' +
+      'title="' + r.t + '" aria-label="' + r.t + '">' + ic(r.i) +
+      (r.n ? '<i class="rbadge">' + r.n + '</i>' : '') + '</button>';
+  }).join('');
+
+  var batches = BATCHES.map(function(b){
+    var pct = Math.round(b.done / b.n * 100);
+    var cls = b.st === 'run' ? 'bl' : (b.st === 'warn' ? 'am' : '');
+    return '<button class="bitem ' + (S.batch === b.id ? 'on' : '') + '" data-batch="' + b.id + '" tabindex="0" aria-pressed="' + (S.batch === b.id ? 'true' : 'false') + '">' +
+      '<span class="brow"><b>' + b.id + '</b><i class="st st-' +
+        (b.st === 'done' ? 'done' : b.st === 'run' ? 'run' : b.st === 'warn' ? 'warn' : 'hold') + '">' + b.stt + '</i></span>' +
+      '<span class="bmeta"><span>' + b.done + '/' + b.n + '</span><span>' + pct + '%</span></span>' +
+      '<span class="btrack"><i class="bfill ' + cls + '" style="width:' + pct + '%"></i></span>' +
+      '</button>';
+  }).join('');
+
+  var tasks = TASKS.map(function(t){
+    var isCur = S.task === t.id;
+    return '<button class="titem ' + (isCur ? 'on' : '') + '" data-task="' + t.id + '">' +
+      ic(isCur ? 'i-mic' : 'i-clip', 'ti-ico') +
+      '<span class="ti-tx"><b>' + t.f + '</b><span>' + t.id + ' · ' + tmmss(t.dur).slice(0, -4) + ' · ' + t.spk + ' 人</span></span>' +
+      '<i class="ti-n">' + (t.st === 'free' ? '待认领' : t.st === 'own' ? '已认领' : '认领中') + '</i></button>';
+  }).join('');
+
+  return '<nav class="col navcol" role="navigation" aria-label="项目与批次导航">' +
+    '<div style="display:flex;height:100%">' +
+      '<div class="nav-rail" role="tablist" aria-label="工作区视图">' + rail +
+        '<span class="rsp"></span>' +
+        '<button class="rb" data-cmdk="1" title="命令面板 (Ctrl+K)" aria-label="命令面板">' + ic('i-search') + '</button>' +
+        '<button class="rb" data-drawer="settings" title="工作台设置" aria-label="设置">' + ic('i-set') + '</button>' +
+      '</div>' +
+      '<div class="nav-body">' +
+        '<div class="proj">' +
+          '<button class="proj-btn" data-drawer="proj">' +
+            '<span class="proj-av">深</span>' +
+            '<span class="proj-tx"><b>' + PROJ.name + '</b><span>' + PROJ.batches + ' 批次 · ' + PROJ.total + ' 条</span></span>' +
+            ic('i-chevd') +
+          '</button>' +
+        '</div>' +
+        '<section class="navsec"><header class="navsec-hd">' + ic('i-layers') + '批次<span class="cnt">' + BATCHES.length + '</span></header>' +
+          '<div class="navsec-bd">' + batches + '</div></section>' +
+        '<section class="navsec grow"><header class="navsec-hd">' + ic('i-clip') + '任务队列<span class="cnt">' + TASKS.length + '</span></header>' +
+          '<div class="navsec-bd">' + tasks + '</div></section>' +
+        '<div class="navfoot"><span class="nf-av">陈</span>' +
+          '<span class="nf-tx"><b>陈默</b><span>标注员 · L3 认证</span></span>' +
+          '<button class="ibtn" data-drawer="audit" title="审核历史" aria-label="审核历史">' + ic('i-clock') + '</button>' +
+        '</div>' +
+      '</div>' +
+    '</div></nav>';
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   顶栏 / 状态栏
+   ══════════════════════════════════════════════════════════════════════════ */
+function vTop(){
+  var b = SEGS[segIdx(S.seg)];
+  return '<header class="topbar" role="banner">' +
+    '<div class="tb-brand"><span class="tb-logo">' + ic('i-wave') + '</span>' +
+      '<span class="tb-name">澄语<em>CHENGYU</em></span></div>' +
+    '<div class="tb-crumb">' +
+      '<span>' + PROJ.name + '</span><span class="sep">/</span>' +
+      '<span class="mono">' + S.batch + '</span><span class="sep">/</span>' +
+      '<b>' + AUDIO.name + '</b><span class="sep">/</span>' +
+      '<span>相位 ' + S.phase + ' · ' + PH_LABEL[S.phase] + '</span>' +
+    '</div>' +
+    '<span class="tb-spacer"></span>' +
+    '<form class="tb-search" role="search" data-act="search" onsubmit="return false">' + ic('i-search') +
+      '<input id="q-global" type="text" name="q" autocomplete="off" placeholder="搜索批次 / 任务 / 说话人" aria-label="全局搜索">' +
+      '<kbd>Ctrl K</kbd></form>' +
+    '<button class="tb-ico" data-toggle="cloud" title="云端同步" aria-label="云端同步">' + ic('i-db') + '</button>' +
+    '<button class="tb-ico" data-toggle="bell" title="通知" aria-label="通知">' + ic('i-bell') +
+      '<i class="dot">3</i></button>' +
+    '<div class="tb-user"><span class="tb-av">陈</span>' +
+      '<span>陈默<span class="rl" style="display:block">标注员 · L3</span></span></div>' +
+    '</header>';
+}
+function vStatus(){
+  var arr = segs(), ov = overlapMs(), gp = gaps().length;
+  var conf = segConf(arr[segIdx(S.seg)]);
+  var bad = arr.filter(function(s){ return s.low; }).length;
+  return '<footer class="statusbar" role="status" aria-live="polite" aria-label="工作台状态栏">' +
+    '<span class="sb-i"><span class="sb-state"><i class="pulse"></i>' + S.st + ' · ' + ST_LABEL[S.st] + '</span></span>' +
+    '<span class="sb-i b">' + ic('i-grid') + '<span class="k">相位</span><span class="v">' + S.phase + '/6</span></span>' +
+    '<span class="sb-i b">' + ic('i-zin') + '<span class="k">缩放</span><span class="v">' + S.zoom + ' px/s</span></span>' +
+    '<span class="sb-i b">' + ic('i-ruler') + '<span class="k">选区</span><span class="v">' +
+      t3(S.sel.a) + ' – ' + t3(S.sel.b) + ' s</span></span>' +
+    '<span class="sb-i b">' + ic('i-target') + '<span class="k">光标</span><span class="v">' + tmmss(S.cursor) + '</span></span>' +
+    '<span class="sb-spacer"></span>' +
+    '<span class="sb-i">' + ic('i-overlap') + '<span class="k">重叠</span><span class="v ' +
+      (ov ? 'sb-bad' : 'sb-ok') + '">' + ov + ' ms</span></span>' +
+    '<span class="sb-i b">' + ic('i-scan') + '<span class="k">空档</span><span class="v ' +
+      (gp ? 'sb-warn' : 'sb-ok') + '">' + gp + ' 处</span></span>' +
+    '<span class="sb-i b">' + ic('i-thresh') + '<span class="k">阈值</span><span class="v">' + S.confTh.toFixed(2) + '</span></span>' +
+    '<span class="sb-i b">' + ic('i-flag') + '<span class="k">低置信</span><span class="v ' +
+      (bad ? 'sb-warn' : 'sb-ok') + '">' + bad + ' 段</span></span>' +
+    '<span class="sb-i b">' + ic('i-coin') + '<span class="k">有效</span><span class="v">' + tdur(allocMs()) + '</span></span>' +
+    '</footer>';
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   栏2 · 波形主视窗（工具栏 + 标尺 + 双轨 + 段落条 + 相位上下文面板）
+   ══════════════════════════════════════════════════════════════════════════ */
+function vTool(){
+  var arr = segs(), ov = overlapMs();
+  var canCommit = (ov === 0 && S.phase >= 5);
+  return '<div class="wtool" role="toolbar" aria-label="波形工具">' +
+    '<button class="wbtn ' + (S.playing ? 'on' : '') + '" data-act="play" title="播放 / 暂停（空格）">' +
+      ic(S.playing ? 'i-pause' : 'i-play') + '<span class="lbl">' + (S.playing ? '暂停' : '播放') + '</span></button>' +
+    '<button class="wbtn" data-act="stop" title="回到选区起点">' + ic('i-stop') + '</button>' +
+    '<span class="wsep"></span>' +
+    '<button class="wbtn" data-act="zout" title="缩小时间轴（Shift + 滚轮）">' + ic('i-zout') + '</button>' +
+    '<span class="zoomwrap">' +
+      '<input class="zslider" type="range" min="8" max="400" step="1" value="' + S.zoom + '" ' +
+        'style="--z:' + Math.round((S.zoom - 8) / 392 * 100) + '%" data-act="zoomset" aria-label="时间轴缩放">' +
+      '<span class="zval">' + S.zoom + ' px/s</span></span>' +
+    '<button class="wbtn" data-act="zin" title="放大时间轴（Shift + 滚轮）">' + ic('i-zin') + '</button>' +
+    '<span class="wsep"></span>' +
+    '<button class="wbtn" data-act="split" title="在光标处切分（Alt + 点击波形）">' + ic('i-split') + '<span class="lbl">切分</span></button>' +
+    '<button class="wbtn" data-act="merge" title="合并相邻段">' + ic('i-merge') + '<span class="lbl">合并</span></button>' +
+    '<button class="wbtn ' + (ov ? 'danger' : '') + '" data-act="check" title="重叠检测：任一段重叠须为 0ms">' +
+      ic('i-overlap') + '<span class="lbl">重叠</span></button>' +
+    '<span class="wsep"></span>' +
+    '<span class="thumbwrap">' + ic('i-thresh') +
+      '<input class="thslider" type="range" min="30" max="95" step="5" value="' + Math.round(S.confTh * 100) + '" ' +
+        'data-act="thresh" aria-label="置信度阈值"></span>' +
+    '<span class="wspacer"></span>' +
+    '<button class="wbtn' + (ov ? ' danger' : '') + '" data-act="shake" title="向冲突片段注入抖动">' + ic('i-alert') + '</button>' +
+    '<button class="wbtn pri' + (canCommit ? '' : ' locked') + '" data-act="commit"' +
+      (canCommit ? '' : ' disabled') + ' title="' + (canCommit ? '提交质检' : '重叠须为 0ms 方可提交') + '">' +
+      ic(canCommit ? 'i-shield' : 'i-lock') + '<span class="lbl">提交质检</span></button>' +
+    '</div>';
+}
+
+function vSegStrip(){
+  var arr = segs();
+  var w = 100 / AUDIO.dur;
+  var inner = arr.map(function(s){
+    var ov = overlaps().some(function(o){ return o.a === s.id || o.b === s.id; });
+    var cls = s.spk === 'B' ? 'spk-b' : '';
+    if (s.low) cls += ' low';
+    if (S.phase === 4 && (s.id === 's3' || s.id === 's5')) cls += ' conf';
+    if (S.seg === s.id) cls += ' sel';
+    if (S.staged && S.phase >= 3 && s.id === 's4') cls += ' staged';
+    if (S.phase === 5 && ov) cls += ' ovl-mark';
+    return '<span class="seg ' + cls + '" data-seg="' + s.id + '" style="left:' +
+      ((s.a - 0) * w) + '%;width:' + ((s.dur * w)) + '%">' +
+      '<b>#' + (segIdx(s.id) + 1) + ' · ' + (s.spk === 'A' ? '甲' : '乙') + '</b></span>';
+  }).join('');
+  return '<div class="segstrip"><span class="sg-gut">段落</span><div class="segrow">' + inner + '</div></div>';
+}
+
+function vWave(){
+  var arr = segs(), ov = overlapMs();
+  return '<div class="cvwrap">' +
+    '<div class="cvruler"><span class="cv-gut"></span><div class="cvbox"><canvas id="cv-ruler" aria-hidden="true"></canvas></div></div>' +
+    '<div class="cvtracks" id="cvtracks" role="group" aria-label="波形主视窗" tabindex="0">' +
+      '<div class="track t1"><span class="tlabel a">' + ic('i-wave') + '<b>原声</b><i class="tg">16k</i></span>' +
+        '<div class="cvbox"><canvas id="cv-wave" role="img" aria-label="原声波形轨"></canvas></div></div>' +
+      '<div class="track t2"><span class="tlabel b">' + ic('i-grid') + '<b>频谱</b><i class="tg">8k</i></span>' +
+        '<div class="cvbox"><canvas id="cv-spec" role="img" aria-label="频谱能量热力图"></canvas></div></div>' +
+      '<div class="ovl" id="ovl"></div>' +
+    '</div>' +
+    (S.phase === 1 ? '' : vSegStrip()) +
+    '<div class="wfoot">' +
+      '<span class="wf-i">' + ic('i-clock') + '<b>' + tmmss(AUDIO.dur) + '</b> 总长</span>' +
+      '<span class="wf-i">' + ic('i-scan') + '<b>' + tdur(allocMs()) + '</b> 已分配</span>' +
+      '<span class="wf-i ' + (freeMs() ? 'am' : '') + '">' + ic('i-layers') + '<b>' + tdur(freeMs()) + '</b> 未分配</span>' +
+      '<span class="wf-i">' + ic('i-ruler') + '<b>' + PHONS.length + '</b> 音素层</span>' +
+      '<span class="wf-i">' + ic('i-mic') + '<b>' + AUDIO.sr / 1000 + ' kHz</b> 采样率</span>' +
+      '<span class="wspacer"></span>' +
+      '<span class="wf-i' + (ov ? ' bad' : ' good') + '">' + ic(ov ? 'i-alert' : 'i-check') +
+        (ov ? '<b>' + ov + ' ms</b> 重叠待修' : '<b>重叠 0 ms</b> 严格连续') + '</span>' +
+    '</div>' +
+    '</div>';
+}
+
+/* ── 相位上下文面板 ── */
+function vCtx(){
+  var f = [null, cpImport, cpSegList, cpPhon, cpDiff, cpErr, cpSettle];
+  return '<div class="ctxpanel">' + f[S.phase]() + '</div>';
+}
+
+/* 相位 1 · 空载与数据导入 */
+function cpImport(){
+  var rows = TASKS.map(function(t){
+    return '<tr' + (t.id === S.task ? ' class="on"' : '') + '><td class="num">' + t.id + '</td>' +
+      '<td>' + t.f + '</td><td class="num">' + tmmss(t.dur).slice(0, -4) + '</td>' +
+      '<td class="c num">' + t.spk + '</td><td class="c"><span class="pill p-' +
+        (t.pre.indexOf('解析') === 0 ? 'bl' : t.pre === '已就绪' ? 'em' : 'sl') + '">' + t.pre + '</span></td>' +
+      '<td class="r num">' + t.est + ' min</td>' +
+      '<td class="r"><button class="btn ghost" data-claim="' + t.id + '" style="height:22px;padding:0 9px;font-size:10.5px"' +
+        (t.st === 'free' ? '' : ' disabled') + '>' + (t.st === 'free' ? '认领' : '已占') + '</button></td></tr>';
+  }).join('');
+  return '<div class="cp-hd"><h2>' + ic('i-import') + '数据导入与任务认领</h2>' +
+    '<span class="sub">批次 ' + S.batch + ' · 解析队列 1 活动 / 4 排队</span>' +
+    '<span class="rt"><button class="btn ghost" data-act="import" style="height:24px">' + ic('i-import') + '导入音频</button>' +
+    '<button class="btn ghost" data-act="refresh" style="height:24px">' + ic('i-undo') + '刷新</button></span></div>' +
+    '<div class="cp-body">' +
+      '<div class="decodecard" style="margin-bottom:10px">' +
+        '<span class="dc-ico">' + ic('i-wave', 'spin') + '</span>' +
+        '<span class="dc-tx"><b>正在解析 ' + AUDIO.name + '</b>' +
+          '<span>预标注模型 CY-Voice-M · 音素层 ' + PHONS.length + ' 类 · 说话人分离 ' + AUDIO.spk + ' 轨</span>' +
+          '<span class="prog prog-stripe"><i style="width:68%"></i></span></span>' +
+        '<span class="dc-n">68<small>%</small></span>' +
+      '</div>' +
+      '<div class="statrow">' +
+        '<div class="stat"><span class="k">今日导入</span><span class="v">3,180<small>条</small></span><span class="d">B-0721 进度 68%</span></div>' +
+        '<div class="stat am"><span class="k">解析失败</span><span class="v">12<small>条</small></span><span class="d">采样率非 16k / 时长超限</span></div>' +
+        '<div class="stat em"><span class="k">已认领任务</span><span class="v">1<small>/5</small></span><span class="d">' + S.task + ' · 预估 6 min</span></div>' +
+        '<div class="stat vi"><span class="k">待认领</span><span class="v">3<small>个</small></span><span class="d">合计 13:25 · 预估 87 min</span></div>' +
+      '</div>' +
+      '<table class="tb"><thead><tr><th>任务</th><th>文件</th><th>时长</th><th class="c">说话人</th>' +
+        '<th class="c">预标注</th><th class="r">预估工时</th><th class="r">操作</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>' +
+    '</div>';
+}
+
+/* 相位 2 · 波形主检选区 */
+function cpSegList(){
+  var rows = segs().map(function(s, i){
+    var conf = segConf(s);
+    return '<tr class="' + (S.seg === s.id ? 'on' : '') + '" data-seg="' + s.id + '">' +
+      '<td class="num">#' + (i + 1) + '</td>' +
+      '<td class="num">' + t3(s.a) + '</td><td class="num">' + t3(s.b) + '</td>' +
+      '<td class="c"><span class="pill p-' + (s.spk === 'A' ? 'cy' : 'vi') + '">' + ic('i-spk') +
+        (s.spk === 'A' ? '甲' : '乙') + '</span></td>' +
+      '<td>' + s.txt + '</td>' +
+      '<td class="c num">' + PHONS.length + '</td>' +
+      '<td class="r num"><span class="' + (conf < S.confTh ? 'sb-warn' : '') + '">' + conf.toFixed(3) + '</span></td>' +
+      '<td class="r"><span class="pill p-' + (conf >= S.confTh ? 'em' : 'am') + '">' +
+        (conf >= S.confTh ? '通过' : '待复核') + '</span></td></tr>';
+  }).join('');
+  return '<div class="cp-hd"><h2>' + ic('i-scan') + '段落清单与选区</h2>' +
+    '<span class="sub">6 段 · 已分配 ' + tdur(allocMs()) + ' · 未分配 ' + tdur(freeMs()) + '</span>' +
+    '<span class="rt"><span class="pill p-cy">' + ic('i-target') + '选区 ' + t3(S.sel.a) + '–' + t3(S.sel.b) + 's</span>' +
+    '<button class="btn ghost" data-act="selall" style="height:24px">全选</button></span></div>' +
+    '<div class="cp-body"><table class="tb"><thead><tr><th>#</th><th>起 (s)</th><th>止 (s)</th>' +
+      '<th class="c">说话人</th><th>转写文本</th><th class="c">音素</th><th class="r">置信度</th><th class="r">状态</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="hintbar" style="margin-top:9px">' + ic('i-target') +
+        '在波形上按住拖拽即可框选新片段；Shift + 滚轮缩放时间轴；空格键播放/暂停。</div>' +
+    '</div>';
+}
+
+/* 相位 3 · 标签注入与音素对齐 */
+function cpPhon(){
+  var arr = segs(), s3 = segById('s3');
+  var total = 0; PHONS.forEach(function(p){ total += p.dur; });
+  var w = 100 / total;
+  var bar = PHONS.map(function(p){
+    return '<i style="width:' + (p.dur * w) + '%;background:' +
+      (p.bad ? 'rgba(251,92,114,.75)' : (p.i % 2 ? 'rgba(167,139,250,.55)' : 'rgba(45,212,191,.5)')) + '" title="' +
+      p.sym + ' ' + p.dur + 'ms"></i>';
+  }).join('');
+  var s3conf = confAfter(s3.conf);
+  var rows = PHONS.map(function(p){
+    return '<tr class="' + (p.bad ? 'bad ' : '') + (S.phon === 'p' + p.i ? 'on' : '') + '" data-phon="p' + p.i + '">' +
+      '<td class="num">' + p.i + '</td><td class="sym">' + p.sym + '</td>' +
+      '<td>' + p.tag + '</td><td class="num">' + p.a + '</td><td class="dur num">' + p.dur + '</td>' +
+      '<td class="r num">' + (p.a + p.dur) + '</td></tr>';
+  }).join('');
+  return '<div class="cp-hd"><h2>' + ic('i-ruler') + '音素级对齐 · 段 #3 PH-03</h2>' +
+    '<span class="sub">' + PHONS.length + ' 音素层 · ' + (s3.a / 1000).toFixed(3) + '–' + (s3.b / 1000).toFixed(3) +
+      ' s · 总时长 ' + String(s3.dur).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' ms</span>' +
+    '<span class="rt"><span class="pill p-' + (PHON_MIN > 80 ? 'ro' : 'ro') + '">' + ic('i-alert') +
+      '1 个音素 < ' + PHON_MIN + ' ms</span></span></div>' +
+    '<div class="cp-body">' +
+      '<div class="phonbar" style="height:22px">' + bar + '</div>' +
+      '<table class="tb phontbl"><thead><tr><th>#</th><th>音素</th><th>类别</th>' +
+      '<th>起 (ms)</th><th class="dur">时长</th><th class="r">止 (ms)</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '<div class="hintbar bad" style="margin-top:9px">' + ic('i-alert') +
+        '音素 ə 时长 64 ms < 80 ms 下限：保存前须输入 4 位校验码（起始毫秒后四位 7780）。</div>' +
+    '</div>';
+}
+
+/* 相位 4 · 质检冲突与 Diff */
+function cpDiff(){
+  var A = '<span class="av">甲</span><span class="nm"><b>陈默 · 标注员 A</b><span>提交 14:22 · 6 段 · 修改 1 处</span></span>';
+  var B = '<span class="av">乙</span><span class="nm"><b>李越 · 标注员 B</b><span>提交 14:19 · 6 段 · 修改 3 处</span></span>';
+  var rowsA = [
+    ['#1','甲','喂，是巡检一班吗','same','0.96',''],
+    ['#2','乙','是，我是值班的老陈','same','0.94',''],
+    ['#3','甲','三号泵的振动<span class="hl">值超了</span>','diff','0.94','文本分歧'],
+    ['#4','乙','我马上过去看','same','0.91',''],
+    ['#5','甲','记得带上频谱仪','diff2','0.88','音素边界分歧'],
+    ['#6','乙','好，十分钟到','same','0.93','']
+  ];
+  var rowsB = [
+    ['#1','甲','喂，是巡检一班吗','same','0.96',''],
+    ['#2','乙','是，我是值班的老陈','same','0.94',''],
+    ['#3','乙','三号泵的振动<span class="hl">超标了</span>','diff','0.61','文本分歧'],
+    ['#4','乙','我马上过去看','same','0.91',''],
+    ['#5','甲','记得带上频谱仪','diff2','0.88','音素边界分歧'],
+    ['#6','乙','好，十分钟到','same','0.93','']
+  ];
+  function col(rows){
+    return rows.map(function(r){
+      var tag = r[5] ? '<span class="tag pill ' + (r[3] === 'diff' ? 'p-ro' : 'p-am') + '">' + r[5] + '</span>' : '';
+      return '<div class="difrow ' + r[3] + '"><span class="idx">' + r[0] + '</span>' +
+        '<span class="spk">' + r[1] + '</span>' + r[2] + tag +
+        '<span class="conf">' + r[4] + '</span></div>';
+    }).join('');
+  }
+  return '<div class="cp-hd"><h2>' + ic('i-diff') + '双人标注 Diff 对比</h2>' +
+    '<span class="sub">3 条冲突 · 2 条高优 · 波形上同名区间已标红</span>' +
+    '<span class="rt"><span class="tabs"><button class="tab ' + (S.diff === 'text' ? 'on' : '') + '" data-diff="text">文本</button>' +
+      '<button class="tab ' + (S.diff === 'spk' ? 'on' : '') + '" data-diff="spk">说话人</button>' +
+      '<button class="tab ' + (S.diff === 'conf' ? 'on' : '') + '" data-diff="conf">仅冲突</button></span></span></div>' +
+    '<div class="cp-body" style="padding:9px 11px">' +
+      '<div class="difwrap">' +
+        '<section class="difcol"><header class="difhd a">' + A + '</header><div class="difbd">' + col(rowsA) + '</div></section>' +
+        '<section class="difcol"><header class="difhd b">' + B + '</header><div class="difbd">' + col(rowsB) + '</div></section>' +
+      '</div>' +
+    '</div>';
+}
+
+/* 相位 5 · 校验熔断与错误拦截 */
+function cpErr(){
+  var ov = overlaps();
+  var errs = [
+    { k:'重叠', t:'段 #5 与 段 #6 重叠 ' + (ov.length ? ov[0].ms : 0) + ' ms', d:'要求：任意相邻段重叠时间差必须精确 = 0 ms', s:'bad' },
+    { k:'音素', t:'段 #3 音素 ə 时长 64 ms < 80 ms', d:'要求：低于下限须输入 4 位校验码（起始毫秒后四位）', s:'bad' },
+    { k:'置信度', t:'段 #3 修正后置信度 0.698 < 阈值 0.70', d:'要求：附注栏填写不少于 10 个字符的修改原因', s:'warn' },
+    { k:'说话人', t:'段 #3 说话人归属存在双人分歧', d:'提示：需在质检冲突面板消解后才可提交', s:'warn' },
+    { k:'空档', t:'无空档，切分连续', d:'通过', s:'ok' },
+    { k:'采样率', t:'16 kHz 单声道 · 符合批次规范', d:'通过', s:'ok' }
+  ];
+  var rows = errs.map(function(e){
+    return '<tr><td class="c"><span class="pill p-' + (e.s === 'bad' ? 'ro' : e.s === 'warn' ? 'am' : 'em') + '">' +
+      ic(e.s === 'ok' ? 'i-check' : 'i-alert') + (e.s === 'bad' ? '拦截' : e.s === 'warn' ? '警告' : '通过') + '</span></td>' +
+      '<td>' + e.k + '</td><td>' + e.t + '</td><td style="color:var(--tx3)">' + e.d + '</td></tr>';
+  }).join('');
+  return '<div class="cp-hd"><h2 style="color:var(--ro)">' + ic('i-alert') + '校验熔断 · 提交已被阻断</h2>' +
+    '<span class="sub">2 项硬拦截 / 2 项警告 / 2 项通过 · 全局提交按钮已禁用</span>' +
+    '<span class="rt"><button class="btn ghost" data-act="autofix" style="height:24px">' + ic('i-spark') + '一键定位下一个错误</button>' +
+    '<button class="btn ghost danger" data-act="code" style="height:24px;color:var(--ro)">' + ic('i-lock') + '输入校验码</button></span></div>' +
+    '<div class="cp-body">' +
+      '<table class="tb"><thead><tr><th class="c">判定</th><th>规则</th><th>实测</th><th>要求</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '<div class="hintbar bad" style="margin-top:9px">' + ic('i-lock') +
+        '已向受影响片段注入错误抖动：段 #5（重叠）、段 #3（音素下限）。恢复合法后方可提交初审。</div>' +
+    '</div>';
+}
+
+/* 相位 6 · 结算面板与导出账本 */
+function cpSettle(){
+  var arr = segs(), b = billing();
+  var bars = arr.map(function(s){
+    return '<div class="bs"><span class="k">#' + (segIdx(s.id) + 1) + '</span>' +
+      '<span class="t"><i style="width:' + (s.dur / 3480 * 100).toFixed(0) + '%;background:' +
+        (s.spk === 'B' ? 'linear-gradient(90deg,var(--vi-d),var(--vi))' : 'linear-gradient(90deg,var(--cy-d),var(--cy))') +
+        '"></i></span><span class="v">' + s.dur + ' ms</span></div>';
+  }).join('');
+  var legs = RADAR.map(function(r){
+    return '<span class="rl"><i class="dot"></i><span class="k">' + r.k + '</span><span class="v">' + r.v.toFixed(1) + '%</span></span>';
+  }).join('');
+  return '<div class="cp-hd"><h2>' + ic('i-settle') + '批次结算与导出账本</h2>' +
+    '<span class="sub">' + S.batch + ' · 6 段 · ' + b.secTxt + ' s · 已入库</span>' +
+    '<span class="rt"><button class="btn ghost" data-act="audit" style="height:24px">' + ic('i-clock') + '审核历史</button>' +
+    '<button class="btn pri" data-act="export" style="height:24px">' + ic('i-export') + '导出账本</button></span></div>' +
+    '<div class="cp-body"><div class="settle">' +
+      '<div class="panel span2"><div class="hero">' +
+        '<span class="hico">' + ic('i-shield') + '</span>' +
+        '<span class="htx"><b>批次审核通过 · 已入库归档</b>' +
+        '<span>' + S.batch + ' · 6 段 · ' + b.secTxt + ' s · 说话人 2 轨 · 音素层 ' + PHONS.length + ' 类</span></span>' +
+        '<span class="hrank">A+</span></div></div>' +
+      '<section class="panel"><header class="panel-hd">' + ic('i-settle') + '段时长分布<span class="rt">最长 3480 ms</span></header>' +
+        '<div class="panel-bd"><div class="barstat">' + bars + '</div></div></section>' +
+      '<section class="panel"><header class="panel-hd">' + ic('i-target') + '标注质量雷达<span class="rt">均值 ' +
+        radarTotal().toFixed(1) + '%</span></header>' +
+        '<div class="panel-bd"><div class="radarwrap">' +
+          '<canvas id="cv-radar" style="width:150px;height:150px" aria-label="准确率雷达图"></canvas>' +
+          '<div class="radarleg">' + legs + '</div>' +
+        '</div></div></section>' +
+      '<section class="panel span2"><header class="panel-hd">' + ic('i-coin') +
+        '计费与时效账本<span class="rt">单价 ¥' + UNIT_PRICE.toFixed(2) + ' / 有效秒</span></header>' +
+        '<div class="panel-bd"><table class="ledger">' +
+          '<tr><td>有效标注时长（已确认段落之和）</td><td>' + b.secTxt + ' s</td></tr>' +
+          '<tr><td>人工修正段数 / 总段数</td><td>' + b.edits + ' / ' + b.total + '</td></tr>' +
+          '<tr><td>修改率</td><td>' + b.rateTxt + ' %</td></tr>' +
+          '<tr class="sub"><td>返工扣减 修改率 × ' + REWORK_W.toFixed(1) + '</td><td>× ' + b.coefTxt + '</td></tr>' +
+          '<tr class="tot"><td>本批次结算</td><td>¥' + b.amountTxt + '</td></tr>' +
+        '</table></div></section>' +
+    '</div></div>';
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   栏3 · 属性抽屉（按相位切换内容）
+   ══════════════════════════════════════════════════════════════════════════ */
+function vDraw(){
+  var body = [null, dImport, dSel, dEdit, dConflict, dErr, dSettle][S.phase]();
+  return '<aside class="col drawcol" aria-label="标签与音素属性抽屉">' +
+    '<header class="dc-hd"><h2>' + ic([null, 'i-import', 'i-eye', 'i-tag', 'i-diff', 'i-alert', 'i-settle'][S.phase]) +
+      [null, '数据集属性', '选中段属性', '标签与音素属性', '冲突详情', '错误字段', '结算明细'][S.phase] + '</h2>' +
+      '<span class="rt"><button class="ibtn" data-act="pin" title="固定面板">' + ic('i-clip') + '</button>' +
+      '<button class="ibtn" data-drawer="props" title="展开全部属性">' + ic('i-chev') + '</button></span></header>' +
+    '<div class="dc-body" style="position:relative">' + body + '</div></aside>';
+}
+
+function lockMask(t, s, icon){
+  return '<div class="lockmask"><span class="lm-ico">' + ic(icon || 'i-lock') + '</span><b>' + t + '</b><span>' + s + '</span></div>';
+}
+function dImport(){
+  var cats = [['业务实体', 12], ['故障现象', 9], ['设备部件', 14], ['情绪倾向', 5], ['噪音标记', 7]];
+  var rows = cats.map(function(c){
+    return '<tr><td>' + c[0] + '</td><td class="r num">' + c[1] + '</td></tr>';
+  }).join('');
+  return '<div class="dc-sec"><h3>' + ic('i-book') + '批次标签体系<span class="rt">方案 v3.2</span></h3>' +
+    '<table class="tb"><thead><tr><th>一级分类</th><th class="r">标签数</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    lockMask('请先选择一个任务', '任务 ' + S.task + ' 预标注解析至 68%，解析完成后自动进入波形主检选区态。');
+}
+function dSel(){
+  var s = segById(S.seg), conf = segConf(s);
+  return '<div class="dc-sec"><h3>' + ic('i-eye') + '选区读数<span class="rt">只读</span></h3>' +
+    '<div class="confbox">' +
+      '<div class="confrow"><span class="k">起 / 止</span><span class="track" style="background:none;flex:1;text-align:right">' +
+        '<b class="mono" style="color:var(--cy);font-size:11px">' + tmmss(s.a) + ' → ' + tmmss(s.b) + '</b></span></div>' +
+      '<div class="confrow"><span class="k">时长</span><span class="track"><i style="width:' +
+        (s.dur / 3480 * 100).toFixed(0) + '%"></i></span><span class="v">' + tdur(s.dur) + '</span></div>' +
+      '<div class="confrow"><span class="k">置信度</span><span class="track"><i class="' +
+        (conf < S.confTh ? 'lo' : '') + '" style="width:' + (conf * 100).toFixed(0) + '%"></i></span>' +
+        '<span class="v ' + (conf < S.confTh ? 'lo' : '') + '">' + conf.toFixed(3) + '</span></div>' +
+    '</div></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-spk') + '说话人<span class="rt">声纹聚类</span></h3>' +
+      '<div class="cascade"><div class="casc-lv"><div class="casc-hd"><i class="idx">1</i>当前归属' +
+        '<span class="cur">' + (s.spk === 'A' ? '甲 · SPK-A' : '乙 · SPK-B') + '</span></div>' +
+      '<div class="casc-opts"><button class="casc-opt ' + (s.spk === 'A' ? 'on' : '') + '" data-spk="A">甲 · 基频 132 Hz</button>' +
+        '<button class="casc-opt ' + (s.spk === 'B' ? 'on' : '') + '" data-spk="B">乙 · 基频 118 Hz</button></div></div></div></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-clip') + '转写原文<span class="rt">预标注</span></h3>' +
+      '<div class="inp" style="height:auto;min-height:52px;padding:7px 9px;line-height:1.65">' + s.txt + '</div></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-target') + '候选标签<span class="rt">点击采用</span></h3>' +
+      '<div class="cascade"><div class="casc-opts">' +
+        ['问候语','身份核验','班组确认','通话目的'].map(function(t, i){
+          return '<button class="casc-opt ' + (S.cand === i ? 'on' : '') + '" data-cand="' + i + '" data-candv="' + t + '">' + t + '</button>';
+        }).join('') + '</div>' +
+      '<div class="casc-path">已采用 <b>' + ['问候语','身份核验','班组确认','通话目的'][S.cand] + '</b></div></div></div>' +
+    '<div class="hintbar">' + ic('i-target') + '拖拽波形可修改选区；双击波形唤出快捷打标轮盘。</div>';
+}
+function dEdit(){
+  var s = segById(S.seg), conf = confAfter(s.conf), gate = conf < S.confTh;
+  var casc = [['通话性质', ['业务通话', '故障报修', '例行巡检'], 1],
+              ['问题类别', ['泵体振动', '温度异常', '压力波动'], 0],
+              ['关联对象', ['三号泵', '一号泵', '冷却塔'], 0]];
+  var cascH = casc.map(function(lv, i){
+    return '<div class="casc-lv"><div class="casc-hd"><i class="idx">' + (i + 1) + '</i>' + lv[0] +
+      '<span class="cur">' + lv[1][lv[2]] + '</span></div><div class="casc-opts">' +
+      lv[1].map(function(o, j){
+        return '<button class="casc-opt ' + (j === lv[2] ? 'on' : '') + '" data-casc="' + i + '" data-casv="' + j + '">' + o + '</button>';
+      }).join('') + '</div></div>';
+  }).join('');
+  return '<div class="dc-sec"><h3>' + ic('i-layers') + '三级级联分类器' +
+    '<span class="rt">已选 3 级</span></h3>' +
+    '<div class="cascade">' + cascH + '<div class="casc-path">路径 <b>' + S.cascade.join('</b> <span class="arr">›</span> <b>') + '</b></div></div></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-shield') + '置信度惩罚闭环<span class="rt">公式已生效</span></h3>' +
+      '<div class="confbox ' + (gate ? 'warn' : '') + '">' +
+        '<div class="confrow"><span class="k">原始置信度</span><span class="track"><i class="mid" style="width:' +
+          (s.conf * 100).toFixed(0) + '%"></i></span><span class="v">' + s.conf.toFixed(3) + '</span></div>' +
+        '<div class="confrow"><span class="k">修正后</span><span class="track"><i class="' + (gate ? 'lo' : '') +
+          '" style="width:' + (conf * 100).toFixed(0) + '%"></i></span><span class="v ' + (gate ? 'lo' : '') + '">' +
+          conf.toFixed(3) + '</span></div>' +
+        '<div class="conf-formula">最终置信度 = 原始 × <b>' + W_ORIG.toFixed(1) + '</b> + 人工修正权重 <b>' +
+          W_FIX.toFixed(2) + '</b> = ' + conf.toFixed(3) + '</div>' +
+        (gate ? '<div class="conf-gate">' + ic('i-alert') + conf.toFixed(3) + ' < 阈值 ' + S.confTh.toFixed(2) +
+          '：须填写 ≥10 字符修改原因方可保存</div>' : '') +
+      '</div></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-ruler') + '音素层<span class="rt">' + PHONS.length + ' 个 · 1 个越界</span></h3>' +
+      '<table class="tb phontbl"><thead><tr><th>音素</th><th>类别</th><th class="dur">时长</th></tr></thead><tbody>' +
+      PHONS.slice(0, 6).map(function(p){
+        return '<tr class="' + (p.bad ? 'bad' : '') + '"><td class="sym">' + p.sym + '</td><td>' + p.tag +
+          '</td><td class="dur">' + p.dur + '</td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<button class="btn ghost wide" data-act="phonall" style="margin-top:6px">展开全部 ' + PHONS.length + ' 个音素</button></div>' +
+    '<div class="dc-sec"><form class="reason-form" role="form" aria-label="人工修正原因" data-act="reasonform" onsubmit="return false">' +
+      '<h3>' + ic('i-book') + '修改原因<span class="rt">' +
+      S.reason.length + ' / 10 字符</span></h3>' +
+      '<textarea class="inp" id="f-reason" name="reason" data-act="reason" placeholder="说明为何修正模型预标注结果（不少于 10 个字符）">' +
+      S.reason + '</textarea>' +
+      '<div class="fhint ' + (S.reason.length >= 10 ? 'good' : 'bad') + '">' +
+        ic(S.reason.length >= 10 ? 'i-check' : 'i-alert') +
+        (S.reason.length >= 10 ? '已满足原因长度要求' : '还差 ' + (10 - S.reason.length) + ' 个字符') + '</div></form></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-radial') + '快捷键</h3><div class="kbdhint">' +
+      '<span class="kh">切换音素标签<span class="kbs"><kbd>⇧</kbd><kbd>1</kbd><kbd>…</kbd><kbd>6</kbd></span></span>' +
+      '<span class="kh">切分音轨段<span class="kbs"><kbd>Alt</kbd><kbd>点击</kbd></span></span>' +
+      '<span class="kh">缩放时间轴<span class="kbs"><kbd>⇧</kbd><kbd>滚轮</kbd></span></span>' +
+      '<span class="kh">快捷打标轮盘<span class="kbs"><kbd>双击</kbd></span></span>' +
+      '<span class="kh">播放 / 暂停<span class="kbs"><kbd>空格</kbd></span></span>' +
+    '</div></div>' +
+    '<div class="btnrow"><button class="btn ghost" data-act="revert">' + ic('i-undo') + '还原</button>' +
+      '<button class="btn vi" data-act="save">' + ic('i-check') + '保存到暂存</button></div>';
+}
+function dConflict(){
+  var items = CONFLICTS.map(function(c){
+    return '<article class="citem ' + (c.sev === 'hi' ? 'ro' : '') + '" data-conf="' + c.id + '">' +
+      '<header class="ch">' + ic('i-alert') + '<b>' + c.id + ' · ' + c.kind + '</b>' +
+        '<span class="n">段 #' + (segIdx(c.seg) + 1) + '</span></header>' +
+      '<div class="cb"><span class="who">甲</span><span class="txt">' + c.A + '</span>' +
+        '<span class="who">乙</span><span class="txt">' + c.B + '</span></div></article>';
+  }).join('');
+  var RES = [
+    { hd:'1', t:'文本分歧 · 段 #3', A:'采纳甲：振动值超了', B:'采纳乙：振动超标了' },
+    { hd:'2', t:'说话人分歧 · 段 #3', A:'采纳甲：说话人 甲', B:'采纳乙：说话人 乙' },
+    { hd:'3', t:'音素边界 · 段 #5', A:'采纳甲：12980 ms', B:'采纳乙：13064 ms' }
+  ];
+  var resH = RES.map(function(r, i){
+    var cur = S.resolved[i];
+    return '<div class="casc-lv"><div class="casc-hd"><i class="idx">' + r.hd + '</i>' + r.t + '</div>' +
+      '<div class="casc-opts">' +
+        '<button class="casc-opt ' + (cur === 'A' ? 'on' : '') + '" data-resolve="A" data-rid="' + i + '">' + r.A + '</button>' +
+        '<button class="casc-opt ' + (cur === 'B' ? 'on' : '') + '" data-resolve="B" data-rid="' + i + '">' + r.B + '</button>' +
+      '</div></div>';
+  }).join('');
+  return '<div class="dc-sec"><h3>' + ic('i-diff') + '冲突条目<span class="rt">3 条 · 2 高优</span></h3>' + items + '</div>' +
+    '<div class="dc-sec"><h3>' + ic('i-check') + '消解策略</h3>' +
+      '<div class="cascade">' + resH + '</div></div>' +
+    '<div class="hintbar warn">' + ic('i-alert') + '高优冲突消解后才能解除质检拦截并提交初审。</div>';
+}
+function dErr(){
+  var s5 = segById('s5'), s6 = segById('s6'), ov = overlapMs();
+  return '<form class="err-form" role="form" aria-label="错误字段修正" data-act="errform" onsubmit="return false">' +
+    '<div class="dc-sec"><h3 style="color:var(--ro)">' + ic('i-alert') + '错误字段<span class="rt">已高亮</span></h3>' +
+    '<div class="frow"><label for="f-s5b">段 #5 止</label>' +
+      '<input class="inp err" id="f-s5b" name="s5b" value="' + s5.b + '" aria-invalid="true" aria-label="段5 止点">' +
+      '<span class="pill p-ro">ms</span></div>' +
+    '<div class="frow"><label for="f-s6a">段 #6 起</label>' +
+      '<input class="inp" id="f-s6a" name="s6a" value="' + s6.a + '" aria-label="段6 起点"><span class="pill p-sl">ms</span></div>' +
+    '<div class="fhint bad">' + ic('i-alert') + '重叠 ' + ov + ' ms：止点须 ≤ ' + s6.a + ' ms（要求精确 = 0 ms）</div></div></form>' +
+    '<div class="dc-sec"><h3>' + ic('i-lock') + '音素下限拦截<span class="rt">4 位校验码</span></h3>' +
+      '<div class="confbox warn">' +
+        '<div class="confrow"><span class="k">越界音素</span><span class="track" style="background:none;text-align:right">' +
+          '<b class="mono" style="color:var(--ro)">ə · 64 ms</b></span></div>' +
+        '<div class="confrow"><span class="k">起始 (ms)</span><span class="track" style="background:none;text-align:right">' +
+          '<b class="mono" style="color:var(--tx1)">7780</b></span></div>' +
+        '<div class="conf-formula">校验码 = 起始毫秒后四位 <b>' + codeOf(PHONS[5]) + '</b></div>' +
+      '</div>' +
+      '<button class="btn ghost wide" data-act="code" style="margin-top:7px;color:var(--ro);border-color:var(--ro-d)">' +
+        ic('i-lock') + '输入 4 位校验码</button></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-shield') + '校验汇总</h3><div class="kbdhint">' +
+      '<span class="kh">重叠校验<span class="kbs"><b style="color:var(--ro);font-family:var(--fm)">' + ov + ' ms</b></span></span>' +
+      '<span class="kh">音素下限 (80ms)<span class="kbs"><b style="color:var(--ro);font-family:var(--fm)">1 处</b></span></span>' +
+      '<span class="kh">置信度阈值 (' + S.confTh.toFixed(2) + ')<span class="kbs"><b style="color:var(--am);font-family:var(--fm)">1 段</b></span></span>' +
+      '<span class="kh">提交质检<span class="kbs"><b style="color:var(--ro);font-family:var(--fm)">已阻断</b></span></span>' +
+    '</div></div>' +
+    '<div class="btnrow"><button class="btn" data-act="revert" style="flex:1">' + ic('i-undo') + '撤销修改</button>' +
+      '<button class="btn" data-act="pullback" style="flex:1">' + ic('i-minus') + '拉回 ' + ov + ' ms</button></div>';
+}
+function dSettle(){
+  return '<div class="dc-sec"><h3>' + ic('i-settle') + '结算明细</h3>' +
+    '<table class="ledger">' +
+      '<tr><td>批次</td><td>' + S.batch + '</td></tr>' +
+      '<tr><td>段落数</td><td>6</td></tr>' +
+      '<tr><td>已分配时长</td><td>' + tdur(allocMs()) + '</td></tr>' +
+      '<tr><td>未分配时长</td><td>' + tdur(freeMs()) + '</td></tr>' +
+      '<tr><td>音素层</td><td>' + PHONS.length + ' 类</td></tr>' +
+      '<tr><td>说话人</td><td>' + AUDIO.spk + ' 轨</td></tr>' +
+      '<tr><td>提交 / 审核</td><td>14:22 / 14:31</td></tr>' +
+    '</table></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-export') + '导出摘要</h3>' +
+      '<div class="kbdhint">' +
+        '<span class="kh">已选格式<span class="kbs"><b style="color:var(--cy);font-family:var(--fm)">' +
+          S.fmt.map(function(f){ return f.toUpperCase(); }).join(' + ') + '</b></span></span>' +
+        '<span class="kh">导出条目<span class="kbs">6 段 / 12 音素层</span></span>' +
+        '<span class="kh">压缩包<span class="kbs">B-0718-export.zip</span></span>' +
+      '</div></div>' +
+    lockMask('已入库归档 · 只读', '批次 B-0718 于 14:32 归档，如需修改请申请返工工单。', 'i-lock');
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   栏4 · 质检与审核侧栏
+   ══════════════════════════════════════════════════════════════════════════ */
+function vQC(){
+  var body = [null, qImport, qWave, qTag, qConflict, qFailed, qSettle][S.phase]();
+  return '<aside class="col qccol" aria-label="质检与审核历史">' +
+    '<header class="qc-hd"><h2>' + ic('i-shield') + '质检与审核</h2>' +
+      '<span class="rt">规则集 v3.2</span></header>' +
+    '<div class="qc-body">' + body + '</div></aside>';
+}
+function history(kind){
+  var vis = HISTORY.filter(function(h){ return h.ph <= S.phase; }).reverse();
+  if (kind === 'short') vis = vis.slice(0, 3);
+  var items = vis.map(function(h){
+    return '<div class="histline ' + h.k + '"><div class="ht"><b>' + h.b + '</b><span class="tm">' + h.t + '</span></div>' +
+      '<div class="hs">' + h.s + '</div></div>';
+  }).join('');
+  return '<div class="dc-sec"><h3>' + ic('i-clock') + '审核历史<span class="rt">' + S.batch + ' · ' + vis.length +
+    ' 条</span></h3>' + items + '</div>';
+}
+function qImport(){
+  return '<div class="qc-gate"><div class="gt">' + ic('i-shield') + '质检规则已加载</div>' +
+    '<div class="gs">重叠公差 0 ms · 音素下限 80 ms · 置信度阈值 ' + S.confTh.toFixed(2) +
+    ' · 修改率扣减 ×' + REWORK_W.toFixed(1) + '</div></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-tasks') + '待办<span class="rt">7 项</span></h3>' +
+      '<div class="citem"><header class="ch">' + ic('i-alert') + '<b>冲突待决</b><span class="n">2 条</span></header>' +
+        '<div class="cb"><span class="who">·</span><span class="txt">段 #3 文本 / 说话人分歧未消解</span></div></div>' +
+      '<div class="citem"><header class="ch">' + ic('i-flag') + '<b>待复核低置信</b><span class="n">1 段</span></header>' +
+        '<div class="cb"><span class="who">·</span><span class="txt">段 #3 原始置信度 0.580</span></div></div>' +
+    '</div>' + history('short');
+}
+function qWave(){
+  return '<div class="qc-gate"><div class="gt">' + ic('i-check') + '当前选区校验通过</div>' +
+    '<div class="gs">段 #1 · 0.000–3.120 s · 重叠 0 ms · 置信度 0.960 ≥ 阈值 ' + S.confTh.toFixed(2) + '</div></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-scan') + '全片段检查<span class="rt">6 / 6</span></h3>' +
+      segs().map(function(s, i){
+        var ok = !s.low;
+        return '<div class="citem' + (ok ? '' : ' ro') + '" data-seg="' + s.id + '">' +
+          '<header class="ch">' + ic(ok ? 'i-check' : 'i-alert') + '<b>段 #' + (i + 1) + ' · ' + (s.spk === 'A' ? '甲' : '乙') + '</b>' +
+          '<span class="n">' + tdur(s.dur) + '</span></header>' +
+          '<div class="cb"><span class="who">' + (ok ? '通过' : '待复核') + '</span><span class="txt">' + s.txt + '</span></div></div>';
+      }).join('') + '</div>' + history('short');
+}
+function qTag(){
+  var ov = overlapMs();
+  var pending = phonBadCount() + (needReason() ? 1 : 0);
+  var title = ov ? '校验拦截中' : (pending ? '校验进行中 · 尚有 ' + pending + ' 项待确认' : '校验通过');
+  return '<div class="qc-gate' + (ov ? ' blocked' : '') + '"><div class="gt">' +
+      ic(ov ? 'i-alert' : (pending ? 'i-thresh' : 'i-check')) + title + '</div>' +
+    '<div class="gs">重叠 ' + ov + ' ms（要求 0）· 音素越界 ' + phonBadCount() + ' 处 · 低置信 ' +
+      (needReason() ? 1 : 0) + ' 段 · 阈值 ' + S.confTh.toFixed(2) + '</div></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-clip') + '暂存区<span class="rt">两阶段提交</span></h3>' +
+      '<div class="citem ' + (S.staged ? 'on' : '') + '"><header class="ch">' + ic('i-split') +
+        '<b>切分 @ ' + tmmss(S.stagedAt) + '</b><span class="n">Staged</span></header>' +
+      '<div class="cb"><span class="who">状态</span><span class="txt">已暂存，未写入数据流（未分配时长 ' + tdur(freeMs()) +
+        ' 保持不变）</span></div></div>' +
+      '<div class="hintbar warn" style="margin-top:7px">' + ic('i-lock') +
+        '须填写「说话人 + 文本对齐内容」并确认后，才扣除未分配时长并写入。</div></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-thresh') + '置信度分布</h3><div class="kbdhint">' +
+      segs().map(function(s, i){
+        var c = segConf(s);
+        return '<span class="kh">段 #' + (i + 1) + '<span class="kbs"><b style="font-family:var(--fm);color:' +
+          (c < S.confTh ? 'var(--am)' : 'var(--em)') + '">' + c.toFixed(3) + '</b></span></span>';
+      }).join('') + '</div></div>' + history('short');
+}
+function qConflict(){
+  return '<div class="qc-gate blocked"><div class="gt">' + ic('i-alert') + '质检冲突待决 · 3 条</div>' +
+    '<div class="gs">高优冲突 2 条（段 #3 文本 / 说话人）· 中优 1 条（段 #5 音素边界）· 提交已被阻断</div></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-diff') + '冲突清单</h3>' +
+      CONFLICTS.map(function(c){
+        return '<div class="citem ' + (c.sev === 'hi' ? 'ro' : '') + '"><header class="ch">' +
+          ic('i-diff') + '<b>' + c.kind + '</b><span class="n">段 #' + (segIdx(c.seg) + 1) + '</span></header>' +
+          '<div class="cb"><span class="who">甲 ' + c.dA + '</span></div>' +
+          '<div class="cb"><span class="who">乙 ' + c.dB + '</span></div></div>';
+      }).join('') + '</div>' + history();
+}
+function qFailed(){
+  var ov = overlapMs();
+  return '<div class="qc-gate blocked"><div class="gt">' + ic('i-lock') + '提交质检 · 已硬禁用</div>' +
+    '<div class="gs">阻断原因：段 #5 与段 #6 重叠 ' + ov + ' ms（要求精确 0 ms）· 音素 ə 64 ms < 80 ms 待校验码确认</div>' +
+    '<button class="btn gbtn" disabled>' + ic('i-lock') + '提交质检（不可用）</button></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-alert') + '受影响片段<span class="rt">已注入抖动</span></h3>' +
+      '<div class="citem ro"><header class="ch">' + ic('i-overlap') + '<b>段 #5 ↔ 段 #6</b><span class="n">' + ov + ' ms</span></header>' +
+        '<div class="cb"><span class="who">重叠区</span><span class="txt">' + tmmss(15840) + ' – ' + tmmss(16040) +
+        '，须将段 #5 止点改为 15840 ms</span></div></div>' +
+      '<div class="citem ro"><header class="ch">' + ic('i-ruler') + '<b>段 #3 · 音素 ə</b><span class="n">64 ms</span></header>' +
+        '<div class="cb"><span class="who">熔断</span><span class="txt">低于 80 ms 下限，需 4 位校验码 ' + codeOf(PHONS[5]) + '</span></div></div>' +
+    '</div>' + history();
+}
+function qSettle(){
+  return '<div class="qc-gate"><div class="gt">' + ic('i-shield') + '批次已通过质检并入库</div>' +
+    '<div class="gs">重叠 0 ms · 音素下限全部通过 · 最低置信度 0.698 已附原因 · 修改率 16.7%</div>' +
+    '<button class="btn gbtn pri" data-act="export">' + ic('i-export') + '导出账本</button></div>' +
+    '<div class="dc-sec"><h3>' + ic('i-coin') + '结算凭据</h3><table class="ledger">' +
+      '<tr><td>结算方</td><td>' + S.batch + '</td></tr>' +
+      '<tr><td>有效时长</td><td>' + billing().secTxt + ' s</td></tr>' +
+      '<tr><td>修改率</td><td>' + billing().rateTxt + ' %</td></tr>' +
+      '<tr class="tot"><td>结算金额</td><td>¥' + billing().amountTxt + '</td></tr>' +
+    '</table></div>' + history();
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   浮层：悬浮卡 / 径向轮盘 / 模态 / 命令面板 / 抽屉 / Toast
+   ══════════════════════════════════════════════════════════════════════════ */
+function vTip(){
+  if (!S.hover) return '<div class="tip" id="tip" role="tooltip"></div>';
+  var s = segById(S.seg), t = S.hoverT;
+  var hit = null, arr = segs();
+  for (var i = 0; i < arr.length; i++) if (t >= arr[i].a && t <= arr[i].b) hit = arr[i];
+  if (!hit) hit = s;
+  var kind = (hit.spk === 'A' ? '甲' : '乙');
+  return '<div class="tip show" id="tip" role="tooltip">' +
+    '<h4><i class="sw"></i>段 #' + (segIdx(hit.id) + 1) + ' · ' + hit.ph + '</h4>' +
+    '<div class="tr"><span class="k">时间</span><span class="v cy">' + t3(hit.a) + ' – ' + t3(hit.b) + ' s</span></div>' +
+    '<div class="tr"><span class="k">时长</span><span class="v">' + tdur(hit.dur) + '</span></div>' +
+    '<div class="tr"><span class="k">说话人</span><span class="v">' + kind + ' · SPK-' + hit.spk + '</span></div>' +
+    '<div class="tr"><span class="k">置信度</span><span class="v ' + (hit.conf < S.confTh ? 'am' : '') + '">' +
+      hit.conf.toFixed(3) + '</span></div>' +
+    '<div class="tr"><span class="k">音素</span><span class="v">' + PHONS.length + ' 个</span></div>' +
+    '<div class="tr"><span class="k">光标</span><span class="v">' + tmmss(t) + '</span></div>' +
+    '</div>';
+}
+var RAD_NAMES = ['业务实体', '情绪倾向', '噪音标记', '切换说话人', '在此切分', '标记待复核'];
+function vRadial(){
+  var items = [
+    ['i-tag', RAD_NAMES[0]], ['i-therm', RAD_NAMES[1]], ['i-noise', RAD_NAMES[2]],
+    ['i-spk', RAD_NAMES[3]], ['i-cut', RAD_NAMES[4]], ['i-flag', RAD_NAMES[5]]
+  ];
+  var html = '';
+  for (var i = 0; i < items.length; i++){
+    var ang = -Math.PI / 2 + i * 2 * Math.PI / items.length;
+    var x = Math.cos(ang) * 96, y = Math.sin(ang) * 96;
+    html += '<button class="ritem' + (i === 0 ? ' act' : '') + '" data-radial="' + i + '" ' +
+      'style="left:' + (x) + 'px;top:' + (y) + 'px">' + ic(items[i][0]) + '<span>' + items[i][1] + '</span></button>';
+  }
+  var pos = '';
+  if (S.radial){
+    var box = document.querySelector('.cvtracks .cvbox');
+    if (box){
+      var rc = box.getBoundingClientRect();
+      pos = ' style="left:' + Math.round(rc.left + xOf(S.radialAt)) + 'px;top:' +
+        Math.round(rc.top + rc.height / 2) + 'px"';
+    }
+  }
+  return '<div class="radial' + (S.radial ? ' show' : '') + '" id="radial" role="menu" ' +
+    'aria-label="快捷打标轮盘"' + pos + '>' +
+    '<span class="rcore">打标</span>' + html + '</div>';
+}
+function vModal(){
+  if (!S.modal) return '';
+  var inner = '';
+  if (S.modal === 'code'){
+    var p = PHONS[5], need = codeOf(p);
+    var codeBad = S.code.length === 4 && S.code !== need;
+    inner = '<div class="mask show" data-modal="code"><div class="modal narrow shake" role="dialog" aria-modal="true" aria-label="音素下限熔断校验" tabindex="-1">' +
+      '<header class="modal-hd ro"><span class="mh-ico">' + ic('i-lock') + '</span>' +
+        '<h2>音素下限熔断校验<small>Phoneme duration gate · 阈值 80 ms</small></h2>' +
+        '<button class="ibtn" data-modal-close="1" aria-label="关闭">' + ic('i-x') + '</button></header>' +
+      '<div class="modal-bd">' +
+        '<div class="hintbar bad">' + ic('i-alert') + '音素 ' + p.sym + ' 时长 ' + p.dur + ' ms < ' + PHON_MIN +
+          ' ms 下限，须二次人工确认</div>' +
+        '<form class="codeform" role="form" aria-label="音素下限校验码" data-act="codeform" onsubmit="return false">' +
+          '<label class="code-lb" for="f-code">4 位校验码</label>' +
+          '<input class="codeinput' + (codeBad ? ' err' : (S.codeOk ? ' ok' : '')) + '" id="f-code" name="code" ' +
+            'type="text" inputmode="numeric" maxlength="4" autocomplete="off" value="' + (S.code || '') + '" ' +
+            'placeholder="0 0 0 0" aria-label="4 位校验码" aria-invalid="' + (codeBad ? 'true' : 'false') + '">' +
+          '<div class="fhint ' + (codeBad ? 'bad' : (S.codeOk ? 'good' : '')) + '">' +
+            ic(codeBad ? 'i-alert' : (S.codeOk ? 'i-check' : 'i-ruler')) +
+            (codeBad ? '校验码不匹配，请核对音素起始毫秒'
+                     : S.codeOk ? '校验码通过 · 音素 ' + p.sym + ' ' + p.dur + ' ms 已放行'
+                                : '校验码 = 该音素起始毫秒的后四位（起始 ' + p.a + ' ms）') +
+          '</div>' +
+        '</form>' +
+      '</div>' +
+      '<footer class="modal-ft"><span class="sp"></span>' +
+        '<button class="btn ghost" data-modal-close="1">取消</button>' +
+        '<button class="btn pri" data-act="codeok">' + ic('i-check') + '确认并写入暂存</button></footer>' +
+      '</div></div>';
+  } else if (S.modal === 'export'){
+    var b = billing();
+    var fmts = FORMATS.map(function(f){
+      var on = S.fmt.indexOf(f.id) >= 0;
+      return '<button class="fmt ' + (on ? 'on' : '') + '" data-fmt="' + f.id + '">' +
+        '<span class="ck">' + ic('i-check') + '</span>' +
+        '<span class="ft"><b>' + f.n + '</b><span>' + f.d + '</span></span>' +
+        '<span class="sz">' + f.sz + '</span></button>';
+    }).join('');
+    inner = '<div class="mask show side" data-modal="export"><div class="modal side" role="dialog" aria-modal="true" aria-label="导出账本" tabindex="-1">' +
+      '<header class="modal-hd"><span class="mh-ico">' + ic('i-export') + '</span>' +
+        '<h2>导出账本 · ' + S.batch + '<small>6 段 · ' + b.secTxt + ' s · 2 说话人 · 12 音素层</small></h2>' +
+        '<button class="ibtn" data-modal-close="1" aria-label="关闭">' + ic('i-x') + '</button></header>' +
+      '<div class="modal-bd">' +
+        '<div class="statrow" style="margin-bottom:11px">' +
+          '<div class="stat"><span class="k">有效时长</span><span class="v">' + b.secTxt + '<small>s</small></span><span class="d">已确认 6 段</span></div>' +
+          '<div class="stat em"><span class="k">质量均值</span><span class="v">' + radarTotal().toFixed(1) + '<small>%</small></span><span class="d">5 维雷达</span></div>' +
+          '<div class="stat am"><span class="k">修改率</span><span class="v">' + b.rateTxt + '<small>%</small></span><span class="d">1 / 6 段</span></div>' +
+          '<div class="stat vi"><span class="k">结算</span><span class="v">¥' + b.amountTxt + '</span><span class="d">单价 ¥' + UNIT_PRICE.toFixed(2) + '/s</span></div>' +
+        '</div>' +
+        '<div style="font-size:9.5px;font-weight:700;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;margin-bottom:7px">导出格式</div>' +
+        '<div class="fmtgrid">' + fmts + '</div>' +
+        '<div class="hintbar">' + ic('i-clip') + '预计压缩包 71.8 KB · B-0718-export.zip · 含说话人分离与音素对齐两层</div>' +
+      '</div>' +
+      '<footer class="modal-ft"><span class="pill p-em">' + ic('i-shield') + '质检已通过</span><span class="sp"></span>' +
+        '<button class="btn ghost" data-modal-close="1">取消</button>' +
+        '<button class="btn pri" data-act="doexport">' + ic('i-export') + '开始导出</button></footer>' +
+      '</div></div>';
+  } else if (S.modal === 'overlap'){
+    var ov = overlaps();
+    inner = '<div class="mask show" data-modal="overlap"><div class="modal narrow" role="dialog" aria-modal="true" aria-label="重叠校验失败" tabindex="-1">' +
+      '<header class="modal-hd ro"><span class="mh-ico">' + ic('i-overlap') + '</span>' +
+        '<h2>重叠校验失败<small>Overlap must be exactly 0 ms</small></h2>' +
+        '<button class="ibtn" data-modal-close="1" aria-label="关闭">' + ic('i-x') + '</button></header>' +
+      '<div class="modal-bd">' + (ov.length ? ov.map(function(o){
+        return '<div class="hintbar bad" style="margin-bottom:7px">' + ic('i-alert') +
+          '段 #' + (segIdx(o.a) + 1) + ' 与 段 #' + (segIdx(o.b) + 1) + ' 重叠 ' + o.ms +
+          ' ms（' + tmmss(o.from) + ' – ' + tmmss(o.to) + '）</div>';
+      }).join('') : '<div class="hintbar good">' + ic('i-check') + '当前无重叠，可以提交质检</div>') +
+      '<div class="conf-formula">修正方式：将后段起点前移，或前段止点后移，使重叠精确为 0 ms</div></div>' +
+      '<footer class="modal-ft"><span class="sp"></span>' +
+        '<button class="btn ghost" data-modal-close="1">关闭</button>' +
+        '<button class="btn pri" data-act="pullback">' + ic('i-minus') + '拉回重叠区</button></footer>' +
+      '</div></div>';
+  }
+  return inner;
+}
+function vCmdk(){
+  var groups = {}, order = [];
+  CMDS.forEach(function(c){
+    if (!groups[c.g]) { groups[c.g] = []; order.push(c.g); }
+    groups[c.g].push(c);
+  });
+  var body = order.map(function(g){
+    return '<div class="cmdk-grp">' + g + '</div>' + groups[g].map(function(c, i){
+      return '<button class="cmdk-it' + (g === '导航' && i === 0 ? ' on' : '') + '" data-cmd="' + c.b + '">' +
+        ic(c.i) + '<span class="ct"><b>' + c.b + '</b><span>' + c.s + '</span></span>' +
+        (c.g2 ? '<span class="cg">' + c.g2 + '</span>' : '') + '</button>';
+    }).join('');
+  }).join('');
+  return '<div class="cmdk' + (S.cmdk ? ' show' : '') + '" id="cmdk" role="dialog" aria-label="命令面板">' +
+    '<div class="cmdk-in">' + ic('i-search') +
+      '<input id="q-cmd" type="text" placeholder="输入命令或跳转目标…" aria-label="命令输入">' +
+      '<kbd>Esc</kbd></div>' +
+    '<div class="cmdk-list">' + body + '</div></div>';
+}
+function vDrawer(){
+  var d = S.drawer;
+  if (!d) return '<aside class="drawer" id="drawer" aria-hidden="true"></aside>';
+  var title = { import:'导入音频与预标注', proj:'切换项目', settings:'工作台设置',
+                audit:'审核历史', props:'全部属性', invite:'邀请协作者' }[d] || '面板';
+  var body = '';
+  if (d === 'import'){
+    body = '<div class="drop"><span class="di">' + ic('i-import') + '</span>' +
+      '<b>拖拽音频文件到此处</b><span>支持 wav / flac / mp3 · 单文件 ≤ 200 MB · 采样率 16 kHz</span></div>' +
+      '<div class="frow"><label>目标批次</label><input class="inp" value="' + S.batch + ' · 客服通话 · 第三批"></div>' +
+      '<div class="frow"><label>预标注模型</label><input class="inp" value="CY-Voice-M · 音素对齐 + 说话人分离"></div>' +
+      '<div class="frow"><label>自动切分</label><input class="inp" value="静音阈值 −38 dB · 最短静音 180 ms"></div>' +
+      '<div class="sw on" role="switch" aria-checked="true" tabindex="0"><span class="tk"></span><span class="sl">导入后立即生成频谱热力图' +
+      '<small>占用约 12 s / 分钟音频</small></span></div>' +
+      '<div class="sw" role="switch" aria-checked="false" tabindex="0"><span class="tk"></span><span class="sl">复用批次标签体系 v3.2' +
+      '<small>含 5 个一级分类 · 47 个标签</small></span></div>';
+  } else if (d === 'audit'){
+    body = HISTORY.map(function(h){
+      return '<div class="histline ' + h.k + '"><div class="ht"><b>' + h.b + '</b><span class="tm">' + h.t + '</span></div>' +
+        '<div class="hs">' + h.s + '</div></div>';
+    }).join('');
+  } else if (d === 'settings'){
+    body = '<div class="sw on" role="switch" aria-checked="true" tabindex="0"><span class="tk"></span><span class="sl">严格重叠校验（必须 = 0 ms）' +
+      '<small>关闭后仍会在提交时二次拦截</small></span></div>' +
+      '<div class="sw on" role="switch" aria-checked="true" tabindex="0"><span class="tk"></span><span class="sl">音素下限熔断（80 ms）' +
+      '<small>低于下限需输入 4 位校验码</small></span></div>' +
+      '<div class="sw on" role="switch" aria-checked="true" tabindex="0"><span class="tk"></span><span class="sl">置信度惩罚闭环' +
+      '<small>最终 = 原始 × 0.6 + 0.35</small></span></div>' +
+      '<div class="sw" role="switch" aria-checked="false" tabindex="0"><span class="tk"></span><span class="sl">允许跳过校验直接入库' +
+      '<small>仅审核员 L4 可用</small></span></div>';
+  } else if (d === 'props'){
+    body = '<table class="tb"><tbody>' +
+      '<tr><td>音频</td><td class="num">' + AUDIO.name + '</td></tr>' +
+      '<tr><td>总时长</td><td class="num">' + tmmss(AUDIO.dur) + '</td></tr>' +
+      '<tr><td>采样率</td><td class="num">' + AUDIO.sr + ' Hz</td></tr>' +
+      '<tr><td>声道</td><td class="num">' + AUDIO.ch + ' 单声道</td></tr>' +
+      '<tr><td>说话人</td><td class="num">' + AUDIO.spk + ' 轨</td></tr>' +
+      '<tr><td>字节</td><td class="num">' + AUDIO.bytes + '</td></tr>' +
+      '<tr><td>已分配</td><td class="num">' + tdur(allocMs()) + '</td></tr>' +
+      '<tr><td>未分配</td><td class="num">' + tdur(freeMs()) + '</td></tr>' +
+      '</tbody></table>';
+  } else {
+    body = '<div class="empty">' + ic('i-folder') + '<b>' + title + '</b><span>该面板在当前批次下无待处理项</span></div>';
+  }
+  return '<aside class="drawer show" id="drawer" role="dialog" aria-label="' + title + '">' +
+    '<header><h2>' + title + '</h2>' +
+      '<button class="ibtn" data-drawer-close="1" aria-label="关闭">' + ic('i-x') + '</button></header>' +
+    '<div class="dbo">' + body + '</div>' +
+    '<footer><button class="btn ghost" data-drawer-close="1">取消</button>' +
+      '<button class="btn pri" data-act="drawerok">确认</button></footer></aside>';
+}
+function vToasts(){
+  var list = [];
+  if (S.phase === 5 && S.ovErr){
+    var ov = overlapMs();
+    list.push(['err', 'i-alert', '重叠校验失败 · 提交已被阻断',
+      '段 #5 与 段 #6 重叠 ' + ov + ' ms（要求精确 = 0 ms）｜受影响片段已注入抖动']);
+  }
+  if (S.toasts.length) list = S.toasts.concat(list);
+  if (!list.length) return '<div class="toastbox" id="toast" aria-live="polite" aria-atomic="true"></div>';
+  return '<div class="toastbox" id="toast" aria-live="polite" aria-atomic="true">' +
+    list.map(function(t){
+      return '<div class="toast show ' + t[0] + '" role="alert">' + '<span class="ti">' + ic(t[1]) + '</span>' +
+        '<span class="tt">' + t[2] + (t[3] ? '<small>' + t[3] + '</small>' : '') + '</span></div>';
+    }).join('') + '</div>';
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   渲染
+   ══════════════════════════════════════════════════════════════════════════ */
+function render(){
+  var html =
+    '<svg id="icons" style="display:none" aria-hidden="true">' + SYMBOLS + '</svg>' +
+    '<div class="app">' + vTop() + vNav() +
+      '<main class="col maincol" aria-label="波形主视窗">' +
+        vTool() + vWave() + vCtx() +
+      '</main>' +
+      vDraw() + vQC() + vStatus() +
+    '</div>' +
+    vTip() + vRadial() + vCmdk() + vDrawer() + vToasts() + vModal();
+  var root = document.getElementById('root');
+  root.innerHTML = html;
+  document.body.setAttribute('data-ph', String(S.phase));
+  document.body.setAttribute('data-st', S.st);
+  drawAll();
+  positionTip();
+}
+function positionTip(){
+  var tip = document.getElementById('tip'); if (!tip || !S.hover) return;
+  var ovl = document.getElementById('ovl'); if (!ovl) return;
+  var r = ovl.getBoundingClientRect();
+  var x = r.left + xOf(S.hoverT), y = r.top + 26;
+  tip.style.left = clamp(x + 16, 8, window.innerWidth - 214) + 'px';
+  tip.style.top = clamp(y, 96, window.innerHeight - 200) + 'px';
+}
+function redrawOnly(){ drawAll(); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   交互动作
+   ══════════════════════════════════════════════════════════════════════════ */
+function toast(kind, title, sub){
+  S.toasts = [[kind, kind === 'ok' ? 'i-check' : kind === 'err' ? 'i-alert' : 'i-alert', title, sub || '']];
+  render();
+}
+function goRail(k){
+  S.nav = k;
+  var m = { tasks:1, wave:2, tag:3, diff:4, settle:6 };
+  if (m[k]) { resetFor(m[k]); S.nav = k; }
+  render();
+}
+function zoomBy(f){
+  S.zoom = clamp(Math.round(S.zoom * f), 8, 400);
+  render();
+}
+function doSplit(){                     /* Alt + 点击 / 切分按钮 */
+  var t = S.cursor;
+  if (t <= 0 || t >= AUDIO.dur) { toast('warn', '切分点越界', '请在音频范围内选择切分位置'); return; }
+  S.staged = true; S.stagedAt = t;
+  setSt('ACTIVE_EDITING');
+  toast('warn', '已生成暂存切分点 @ ' + tmmss(t), '两阶段提交：尚未扣除未分配时长，须补全说话人与文本后确认');
+}
+function doMerge(){
+  S.staged = false;
+  setSt('ACTIVE_EDITING');
+  toast('ok', '已合并相邻段', '段数 6 → 5 · 未分配时长 ' + tdur(freeMs()));
+}
+function doCheck(){
+  var ov = overlapMs();
+  if (ov > 0){
+    S.ovErr = true; setSt('VALIDATION_FAILED'); setPh(5); S.s5b = 16040;
+    toast('err', '重叠校验失败 · 提交已被阻断',
+      '重叠 ' + ov + ' ms（要求精确 = 0 ms）｜全局提交按钮已硬禁用');
+  } else {
+    toast('ok', '重叠校验通过', '全部相邻段重叠 = 0 ms · 切分严格连续');
+  }
+}
+function doPullback(){                 /* 修正重叠 */
+  S.s5b = 15840; S.ovErr = false; S.modal = '';
+  var s = segs(), gp = gaps().length;
+  setSt(gp ? 'VALIDATION_FAILED' : 'PENDING_AUDIT');
+  if (!gp){ setPh(6); }
+  toast('ok', '已拉回重叠区', '段 #5 止点 16040 → 15840 ms · 重叠 0 ms');
+}
+function doCommit(){
+  var ov = overlapMs();
+  if (ov > 0){ doCheck(); return; }
+  var p = PHONS[5];
+  if (!S.codeOk){ S.modal = 'code'; setSt('VALIDATION_FAILED'); render(); return; }
+  if (needReason() && S.reason.length < 10){
+    toast('err', '修改原因不足 10 个字符', '置信度 ' + confAfter(segById(S.seg).conf).toFixed(3) +
+      ' < 阈值 ' + S.confTh.toFixed(2) + '，须填写原因'); return;
+  }
+  setSt('PENDING_AUDIT'); setPh(6);
+  toast('ok', '已提交初审', '提交时间 14:22 · 审核员 周蕾');
+}
+function doSave(){
+  var s = segById(S.seg), conf = confAfter(s.conf);
+  if (conf < S.confTh && S.reason.length < 10){
+    toast('err', '无法保存 · 修改原因不足', '修正后置信度 ' + conf.toFixed(3) + ' < 阈值 ' +
+      S.confTh.toFixed(2) + '，附注栏须 ≥10 字符（当前 ' + S.reason.length + '）');
+    return;
+  }
+  S.staged = true;
+  toast('ok', '已保存到暂存区', '最终置信度 ' + conf.toFixed(3) + ' · 两阶段提交待确认');
+}
+function doCodeOk(){
+  var p = PHONS[5], need = codeOf(p);
+  if (S.code !== need){
+    S.codeOk = false;
+    toast('err', '校验码错误', '音素 ' + p.sym + ' 起始 ' + p.a + ' ms，应输入后四位 ' + need);
+    render(); return;
+  }
+  S.codeOk = true; S.modal = '';
+  toast('ok', '音素下限已人工确认', '校验码 ' + need + ' 通过 · 音素 ' + p.sym + ' ' + p.dur + ' ms 已放行');
+}
+function applyCasc(lv, v){
+  var names = [
+    ['业务通话', '故障报修', '例行巡检'],
+    ['泵体振动', '温度异常', '压力波动'],
+    ['三号泵', '一号泵', '冷却塔']
+  ];
+  S.cascade[lv] = names[lv][v];
+  setSt('ACTIVE_EDITING');
+  toast('ok', '标签路径已更新', S.cascade.join(' › '));
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   事件委托
+   ══════════════════════════════════════════════════════════════════════════ */
+var drag = { on:false, a:0, b0:0, moved:false };
+
+function hit(e, sel){
+  var t = e.target;
+  while (t && t !== document.body){
+    if (t.matches && t.matches(sel)) return t;
+    t = t.parentElement;
+  }
+  return null;
+}
+document.addEventListener('click', function(e){
+  var el;
+  if ((el = hit(e, '[data-radial]'))) {
+    var ri = +el.getAttribute('data-radial');
+    S.radial = false; render();
+    toast('ok', '已打标：' + RAD_NAMES[ri], '光标 ' + tmmss(S.cursor) + ' · 快捷轮盘已关闭');
+    return;
+  }
+  if ((el = hit(e, '[data-rail]'))) { goRail(el.getAttribute('data-rail')); return; }
+  if ((el = hit(e, '[data-batch]'))) { S.batch = el.getAttribute('data-batch'); render(); return; }
+  if ((el = hit(e, '[data-task]'))) { S.task = el.getAttribute('data-task'); render(); return; }
+  if ((el = hit(e, '[data-claim]'))) {
+    S.task = el.getAttribute('data-claim');
+    toast('ok', '已认领 ' + S.task, '预标注解析中，完成后自动进入波形主检选区态');
+    return;
+  }
+  if ((el = hit(e, '[data-seg]'))) {
+    var id = el.getAttribute('data-seg'), sg = segById(id);
+    S.seg = id; S.sel = { a: sg.a, b: sg.b }; S.playT = sg.a;
+    setSt(S.phase === 4 ? 'CONFLICT_FLAGGED' : 'SEGMENT_HOVER');
+    render(); return;
+  }
+  if ((el = hit(e, '[data-phon]'))) {
+    S.phon = el.getAttribute('data-phon'); setSt('ACTIVE_EDITING'); render(); return;
+  }
+  if ((el = hit(e, '[data-casc]'))) { applyCasc(+el.getAttribute('data-casc'), +el.getAttribute('data-casv')); return; }
+  if ((el = hit(e, '[data-cand]'))) {
+    S.cand = +el.getAttribute('data-cand');
+    toast('ok', '候选标签已采用：' + el.getAttribute('data-candv'),
+      '段 #1 · ' + tmmss(segById(S.seg).a) + '–' + tmmss(segById(S.seg).b) + ' s 已附加语义标签');
+    return;
+  }
+  if ((el = hit(e, '[data-spk]'))) {
+    toast('ok', '说话人已改判为 ' + (el.getAttribute('data-spk') === 'A' ? '甲 · SPK-A' : '乙 · SPK-B'),
+      '声纹重聚类置信度 0.87'); return;
+  }
+  if ((el = hit(e, '[data-resolve]'))) {
+    var rv = el.getAttribute('data-resolve'), rid = el.getAttribute('data-rid');
+    if (rid !== null && rid !== '' && rid !== undefined) S.resolved[+rid] = rv;
+    var left = 0;
+    for (var q = 0; q < 3; q++) if (!S.resolved[q]) left++;
+    render();
+    toast('ok', '已采纳' + (rv === 'A' ? '甲' : '乙') + '方标注',
+      '冲突 3 条 · 已决 ' + (3 - left) + ' 条' + (left ? '，余 ' + left + ' 条待决' : '，已解除质检拦截'));
+    return;
+  }
+  if ((el = hit(e, '[data-diff]'))) { S.diff = el.getAttribute('data-diff'); render(); return; }
+  if ((el = hit(e, '[data-conf]'))) {
+    var c = el.getAttribute('data-conf');
+    for (var i = 0; i < CONFLICTS.length; i++) if (CONFLICTS[i].id === c) {
+      S.seg = CONFLICTS[i].seg; var sg2 = segById(S.seg); S.sel = { a: sg2.a, b: sg2.b };
+    }
+    render(); return;
+  }
+  if ((el = hit(e, '[data-modal-close]'))) { S.modal = ''; render(); return; }
+  if ((el = hit(e, '[data-fmt]'))) {
+    var f = el.getAttribute('data-fmt'), ix = S.fmt.indexOf(f);
+    if (ix >= 0) S.fmt.splice(ix, 1); else S.fmt.push(f);
+    render(); return;
+  }
+  if ((el = hit(e, '[data-drawer]'))) { S.drawer = el.getAttribute('data-drawer'); render(); return; }
+  if ((el = hit(e, '[data-drawer-close]'))) {
+    if (S.drawer === 'audit' && S.phase === 6) { /* 审核历史抽屉关闭 */ }
+    S.drawer = ''; render(); return;
+  }
+  if ((el = hit(e, '[data-cmdk]'))) { S.cmdk = !S.cmdk; render(); syncFocus(); return; }
+  if ((el = hit(e, '[data-cmd]'))) {
+    var nm = el.getAttribute('data-cmd');
+    S.cmdk = false;
+    if (nm.indexOf('前往') === 0) { goRail(nm.indexOf('波形') > 0 ? 'wave' : nm.indexOf('标签') > 0 ? 'tag'
+      : nm.indexOf('质检') > 0 ? 'diff' : nm.indexOf('结算') > 0 ? 'settle' : 'tasks'); return; }
+    if (nm.indexOf('重叠校验') === 0) { render(); doCheck(); return; }
+    if (nm.indexOf('提交质检') === 0) { render(); doCommit(); return; }
+    if (nm.indexOf('导出') === 0) { S.modal = 'export'; render(); return; }
+    render(); return;
+  }
+  if ((el = hit(e, '[data-toggle]'))) {
+    var k = el.getAttribute('data-toggle');
+    if (k === 'cloud') toast('ok', '云端同步已完成', '本次上传 6 段 · 18.12 s');
+    else toast('warn', '3 条待处理通知', '冲突 2 条 · 低置信 1 段');
+    return;
+  }
+  if ((el = hit(e, '[data-radial]'))) {
+    S.modal = ''; var rd = document.getElementById('radial'); if (rd) rd.classList.remove('show');
+    toast('ok', '已应用轮盘标签', '标签项 #' + (+el.getAttribute('data-radial') + 1)); return;
+  }
+  /* 工具与动作按钮 */
+  if ((el = hit(e, '[data-act]'))){
+    var a = el.getAttribute('data-act');
+    if (a === 'play'){ S.playing = !S.playing; setSt('SEGMENT_HOVER'); render(); return; }
+    if (a === 'stop'){ S.playT = S.sel.a; S.playing = false; render(); return; }
+    if (a === 'zin'){ zoomBy(1.4); return; }
+    if (a === 'zout'){ zoomBy(1 / 1.4); return; }
+    if (a === 'split'){ doSplit(); return; }
+    if (a === 'merge'){ doMerge(); return; }
+    if (a === 'check'){ doCheck(); return; }
+    if (a === 'commit'){ doCommit(); return; }
+    if (a === 'save'){ doSave(); return; }
+    if (a === 'code'){ S.modal = 'code'; render(); return; }
+    if (a === 'codeok'){ doCodeOk(); return; }
+    if (a === 'pullback'){ doPullback(); return; }
+    if (a === 'export'){ S.modal = 'export'; render(); return; }
+    if (a === 'doexport'){ S.modal = ''; toast('ok', '导出完成', 'B-0718-export.zip · 71.8 KB · ' + S.fmt.length + ' 种格式'); return; }
+    if (a === 'shake'){
+      var segsEl = document.querySelectorAll('.seg');
+      for (var q = 0; q < segsEl.length; q++){
+        if (segsEl[q].classList.contains('conf') || segsEl[q].classList.contains('ovl-mark')) segsEl[q].classList.add('shake');
+      }
+      document.querySelectorAll('.citem.ro').forEach(function(n){ n.classList.add('shake'); });
+      toast('warn', '已向冲突片段注入抖动', '受影响：段 #3、段 #5');
+      return;
+    }
+    if (a === 'autofix'){ S.seg = 's5'; var s5 = segById('s5'); S.sel = { a: s5.a, b: s5.b }; S.cursor = 16040; render(); return; }
+    if (a === 'revert'){
+      S.reason = ''; S.codeOk = false; S.code = '';
+      setSt('SEGMENT_HOVER'); toast('warn', '已撤销本次修改', '置信度与音素层回到预标注状态'); return;
+    }
+    if (a === 'selall'){ S.sel = { a: 0, b: AUDIO.dur }; render(); return; }
+    if (a === 'reason'){ return; }
+    if (a === 'import'){ S.drawer = 'import'; render(); return; }
+    if (a === 'refresh'){ render(); toast('ok', '队列已刷新', '1 个活动解析 · 4 个排队'); return; }
+    if (a === 'phonall'){ toast('ok', '已展开全部 12 个音素', '段 #3 · PH-03'); return; }
+    if (a === 'audit'){ S.drawer = 'audit'; render(); return; }
+    if (a === 'pin'){ toast('ok', '属性面板已固定', '切换相位时保持展开'); return; }
+    if (a === 'drawerok'){ S.drawer = ''; render(); toast('ok', '设置已保存', '规则集 v3.2'); return; }
+    return;
+  }
+  /* 点击空白关闭模态 / 关闭快捷轮盘 */
+  if (e.target && e.target.classList && e.target.classList.contains('mask')) { S.modal = ''; render(); }
+  else if (S.radial) { S.radial = false; render(); }
+});
+
+document.addEventListener('input', function(e){
+  var t = e.target;
+  if (!t || !t.getAttribute) return;
+  if (t.id === 'f-code'){
+    var need = codeOf(PHONS[5]);
+    var raw = String(t.value).replace(/[^0-9]/g, '').slice(0, 4);
+    if (t.value !== raw) t.value = raw;
+    S.code = raw;
+    var bad = raw.length === 4 && raw !== need;
+    if (bad) S.codeOk = false;
+    t.className = 'codeinput' + (bad ? ' err' : (S.codeOk ? ' ok' : ''));
+    t.setAttribute('aria-invalid', bad ? 'true' : 'false');
+    var hc = t.parentElement.querySelector('.fhint');
+    if (hc){
+      hc.className = 'fhint ' + (bad ? 'bad' : (S.codeOk ? 'good' : ''));
+      hc.innerHTML = ic(bad ? 'i-alert' : (S.codeOk ? 'i-check' : 'i-ruler')) +
+        (bad ? '校验码不匹配，请核对音素起始毫秒'
+             : S.codeOk ? '校验码通过 · 音素 ' + PHONS[5].sym + ' ' + PHONS[5].dur + ' ms 已放行'
+                        : '校验码 = 该音素起始毫秒的后四位（起始 ' + PHONS[5].a + ' ms）');
+    }
+    return;
+  }
+  if (t.id === 'f-reason'){
+    S.reason = t.value;
+    var h = t.parentElement.querySelector('.fhint');
+    if (h){
+      var okLen = S.reason.length >= 10;
+      h.className = 'fhint ' + (okLen ? 'good' : 'bad');
+      h.innerHTML = ic(okLen ? 'i-check' : 'i-alert') +
+        (okLen ? '已满足原因长度要求' : '还差 ' + (10 - S.reason.length) + ' 个字符');
+    }
+    return;
+  }
+  if (t.getAttribute('data-act') === 'zoomset'){
+    S.zoom = +t.value;
+    var zv = t.parentElement.querySelector('.zval');
+    if (zv) zv.textContent = S.zoom + ' px/s';
+    t.style.setProperty('--z', Math.round((S.zoom - 8) / 392 * 100) + '%');
+    redrawOnly(); return;
+  }
+  if (t.getAttribute('data-act') === 'thresh'){
+    S.confTh = (+t.value) / 100;
+    render(); return;
+  }
+  if (t.id === 'f-s5b'){
+    var v = parseInt(t.value, 10);
+    if (!isNaN(v)){ S.s5b = v; S.ovErr = overlaps().length > 0; redrawOnly(); }
+    return;
+  }
+});
+
+/* ── 手势 ②：空格播放/暂停（瞬态切换） ── */
+document.addEventListener('keydown', function(e){
+  var tag = (e.target && e.target.tagName) || '';
+  var typing = tag === 'INPUT' || tag === 'TEXTAREA';
+  if (e.key === ' ' && !typing){
+    e.preventDefault(); S.playing = !S.playing; render(); return;
+  }
+  if (e.key === 'Escape'){
+    if (S.modal) { S.modal = ''; render(); return; }
+    if (S.cmdk) { S.cmdk = false; render(); return; }
+    if (S.drawer) { S.drawer = ''; render(); return; }
+    if (S.radial) { S.radial = false; render(); return; }
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')){ e.preventDefault(); S.cmdk = true; render(); syncFocus(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); doCommit(); return; }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'e' || e.key === 'E')){ e.preventDefault(); S.modal = 'export'; render(); return; }
+  if (typing) return;
+  if (e.key === '1' || e.key === '2' || e.key === '3'){
+    goRail(['tasks','wave','tag'][+e.key - 1]); return;
+  }
+  if (e.key === '4'){ goRail('diff'); return; }
+  if (e.key === '6'){ goRail('settle'); return; }
+  if (e.key === 'n' || e.key === 'N'){ S.cursor = clamp(S.cursor + 500, 0, AUDIO.dur); render(); return; }
+  if (e.key === 'p' || e.key === 'P'){ S.cursor = clamp(S.cursor - 500, 0, AUDIO.dur); render(); return; }
+  if (e.key === 'f' || e.key === 'F'){
+    S.zoom = S.zoom >= 200 ? 26 : Math.min(400, S.zoom * 2);
+    toast('ok', '流速 / 缩放已切换', '时间轴 ' + S.zoom + ' px/s'); return;
+  }
+});
+
+/* ── 手势 ③：Shift + 滚轮缩放时间轴 ── */
+document.addEventListener('wheel', function(e){
+  if (!e.shiftKey) return;
+  e.preventDefault();
+  S.zoom = clamp(Math.round(S.zoom * (e.deltaY > 0 ? 0.86 : 1.16)), 8, 400);
+  render();
+}, { passive: false });
+
+/* ── 手势 ①：拖拽框选（drag-to-select） ── */
+document.addEventListener('mousedown', function(e){
+  var box = hit(e, '.cvtracks .cvbox');
+  if (!box || e.altKey) return;
+  drag.on = true; drag.moved = false; drag.a = tOf(e.clientX - box.getBoundingClientRect().left);
+  S.hover = true; S.hoverT = drag.a;
+  e.preventDefault();
+});
+document.addEventListener('mousemove', function(e){
+  var box = hit(e, '.cvtracks .cvbox');
+  if (!box && !drag.on) return;
+  if (box){
+    var t = clamp(tOf(e.clientX - box.getBoundingClientRect().left), 0, AUDIO.dur);
+    S.hoverT = t; if (drag.on) S.cursor = t;
+  }
+  if (drag.on && box){
+    var tb = clamp(tOf(e.clientX - box.getBoundingClientRect().left), 0, AUDIO.dur);
+    if (Math.abs(tb - drag.a) > 8) drag.moved = true;
+    S.sel = { a: Math.min(drag.a, tb), b: Math.max(drag.a, tb) };
+    S.hover = true;
+    setSt('SEGMENT_HOVER');
+    redrawOnly(); paintOverlays(); positionTip();
+    return;
+  }
+  if (S.phase === 2){ redrawOnly(); paintOverlays(); positionTip(); }
+});
+document.addEventListener('mouseup', function(){
+  if (!drag.on) return;
+  drag.on = false;
+  /* 原地点击（未拖动）不整树重渲染：保持同一 Canvas 节点，使后续 dblclick 手势可命中 */
+  if (!drag.moved){
+    S.hover = false;
+    var tp = document.getElementById('tip');
+    if (tp) tp.classList.remove('show');
+    redrawOnly(); paintOverlays();
+    return;
+  }
+  var arr = segs();
+  for (var i = 0; i < arr.length; i++){
+    if (Math.abs(arr[i].a - S.sel.a) < 40 && Math.abs(arr[i].b - S.sel.b) < 40) S.seg = arr[i].id;
+  }
+  render();
+  if (S.sel.b - S.sel.a > 0)
+    toast('ok', '已捕获选区 ' + t3(S.sel.a) + ' – ' + t3(S.sel.b) + ' s', '时长 ' + tdur(S.sel.b - S.sel.a));
+});
+document.addEventListener('mouseleave', function(){
+  if (drag.on) return;
+  S.hover = false; render();
+});
+
+/* ── 手势 ④：Alt + 点击波形 = 在此切分 ── */
+/* ── 手势 ⑤：双击 = 径向打标轮盘 ── */
+document.addEventListener('dblclick', function(e){
+  var box = hit(e, '.cvtracks .cvbox');
+  if (!box) return;
+  var t = clamp(tOf(e.clientX - box.getBoundingClientRect().left), 0, AUDIO.dur);
+  if (e.altKey){
+    S.cursor = t; doSplit(); return;
+  }
+  S.cursor = t; S.radial = true; S.radialAt = t;
+  toast('ok', '已唤出快捷打标轮盘', '光标 ' + tmmss(t) + ' · 6 个标签项');
+});
+document.addEventListener('mousedown', function(e){
+  var box = hit(e, '.cvtracks .cvbox');
+  if (box && e.altKey){
+    var t = clamp(tOf(e.clientX - box.getBoundingClientRect().left), 0, AUDIO.dur);
+    S.cursor = t; doSplit();
+  }
+}, true);
+
+function syncFocus(){
+  if (S.cmdk){
+    var q = document.getElementById('q-cmd');
+    if (q) q.focus();
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   公开接口（审计探针）
+   ══════════════════════════════════════════════════════════════════════════ */
+window.CHENGYU = {
+  set: function(o){
+    if (!o) return;
+    if (o.phase) resetFor(o.phase);
+    if (o.st) setSt(o.st);
+    if (o.nav) S.nav = o.nav;
+    if (o.batch) S.batch = o.batch;
+    if (o.task) S.task = o.task;
+    if (o.zoom) S.zoom = o.zoom;
+    if (o.seg) { S.seg = o.seg; var g = segById(o.seg); S.sel = { a: g.a, b: g.b }; }
+    if (o.sel) S.sel = { a: o.sel.a, b: o.sel.b };
+    if (o.playT !== undefined) S.playT = o.playT;
+    if (o.playing !== undefined) S.playing = o.playing;
+    if (o.phon) S.phon = o.phon;
+    if (o.confTh) S.confTh = o.confTh;
+    if (o.cursor !== undefined) S.cursor = o.cursor;
+    if (o.s5b !== undefined) S.s5b = o.s5b;
+    if (o.staged !== undefined) S.staged = o.staged;
+    if (o.stagedAt !== undefined) S.stagedAt = o.stagedAt;
+    if (o.reason !== undefined) S.reason = o.reason;
+    if (o.code !== undefined) S.code = o.code;
+    if (o.codeOk !== undefined) S.codeOk = o.codeOk;
+    if (o.diff) S.diff = o.diff;
+    if (o.modal !== undefined) S.modal = o.modal;
+    if (o.drawer !== undefined) S.drawer = o.drawer;
+    if (o.cmdk !== undefined) S.cmdk = o.cmdk;
+    if (o.fmt) S.fmt = o.fmt.slice();
+    if (o.hover !== undefined) S.hover = o.hover;
+    if (o.hoverT !== undefined) S.hoverT = o.hoverT;
+    if (o.ovErr !== undefined) S.ovErr = o.ovErr;
+    if (o.toasts !== undefined) S.toasts = o.toasts;
+    render();
+    return this.info();
+  },
+  info: function(){
+    var arr = segs(), b = billing(), ov = overlapMs();
+    var bad = 0;
+    for (var i = 0; i < PHONS.length; i++) if (phonBad(PHONS[i])) bad++;
+    return {
+      phase: S.phase, st: S.st, nav: S.nav, task: S.task, batch: S.batch,
+      zoom: S.zoom, selA: S.sel.a, selB: S.sel.b, playT: S.playT, playing: S.playing,
+      cursor: S.cursor, radial: S.radial, radialAt: S.radialAt,
+      seg: S.seg, phon: S.phon, hover: S.hover, hoverT: S.hoverT,
+      dur: AUDIO.dur, sr: AUDIO.sr, alloc: allocMs(), free: freeMs(),
+      overlap: ov, gaps: gaps().length, segCount: arr.length,
+      confTh: S.confTh, confOrig: segById('s3').conf,
+      confAfter: +confAfter(segById('s3').conf).toFixed(3),
+      needReason: needReason(), reasonLen: S.reason.length,
+      code: S.code, codeOk: S.codeOk, codeNeed: codeOf(PHONS[5]),
+      phonMin: PHON_MIN, phonBad: bad, phonCount: PHONS.length,
+      staged: S.staged, stagedAt: S.stagedAt, stagedWritten: false,
+      commitDisabled: ov !== 0,
+      sec: +b.sec.toFixed(2), rate: +b.rate.toFixed(4), coef: +b.coef.toFixed(3),
+      amount: +b.amount.toFixed(2), edits: b.edits,
+      unitPrice: UNIT_PRICE, reworkW: REWORK_W,
+      fmt: S.fmt.join(','), modal: S.modal, drawer: S.drawer, cmdk: S.cmdk,
+      conflicts: CONFLICTS.length, radarAvg: +radarTotal().toFixed(1),
+      s5b: S.s5b, toasts: S.toasts.length,
+      svgIcons: document.querySelectorAll('#icons symbol').length,
+      canvases: document.querySelectorAll('canvas').length
+    };
+  },
+  go: function(n){ resetFor(n); render(); return S.phase; },
+  action: function(a){
+    var map = {
+      play: function(){ S.playing = !S.playing; }, split: doSplit, merge: doMerge,
+      check: doCheck, commit: doCommit, save: doSave, pullback: doPullback,
+      codeok: doCodeOk, export: function(){ S.modal = 'export'; },
+      doexport: function(){ S.modal = ''; }, zoomIn: function(){ zoomBy(1.4); },
+      zoomOut: function(){ zoomBy(1 / 1.4); }
+    };
+    if (map[a]) { map[a](); render(); }
+    return this.info();
+  },
+  billing: billing,
+  overlaps: overlaps,
+  confAfter: confAfter,
+  t3: t3
+};
+
+/* ══════════════════════════════════════════════════════════════════════════
+   启动
+   ══════════════════════════════════════════════════════════════════════════ */
+resetFor(1);
+render();
+window.addEventListener('resize', function(){ redrawOnly(); positionTip(); });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>治策 ZHICE · 多租户 SaaS 运营管理后台</title>
+<meta name="description" content="治策 ZHICE 是企业级多租户 SaaS 运营管理后台：租户全生命周期、成员与角色权限（RBAC）、订阅与用量、审计日志与经营总览。">
+<meta name="keywords" content="SaaS,多租户,运营后台,管理后台,RBAC,租户管理,审计日志">
+<meta name="author" content="治策 ZHICE">
+<meta name="theme-color" content="#4f46e5">
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="治策 ZHICE">
+<meta property="og:title" content="治策 ZHICE · 多租户 SaaS 运营管理后台">
+<meta property="og:description" content="租户全生命周期、RBAC 权限、订阅用量与审计日志一体化运营中台。">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="./index.html">
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --line:#e5eaf3; --line-strong:#d4dbe8;
+  --ink:#0f172a; --ink-2:#475569; --ink-3:#94a3b8;
+  --brand:#4f46e5; --brand-soft:#eef2ff; --brand-ink:#4338ca;
+  --cyan:#0ea5e9; --amber:#f59e0b; --red:#ef4444; --green:#10b981; --violet:#8b5cf6; --pink:#ec4899;
+  --sidebar:#0f172a; --sidebar-2:#1e293b; --sidebar-ink:#cbd5e1; --sidebar-dim:#64748b;
+  --shadow:0 1px 2px rgba(15,23,42,.05), 0 1px 3px rgba(15,23,42,.06);
+  --shadow-lg:0 12px 32px rgba(15,23,42,.18);
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--bg);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;color:var(--ink)}
+svg{display:block}
+svg:not([width]){width:16px;height:16px}
+
+/* ── 布局骨架 ── */
+#app{display:flex;min-height:100vh}
+#sidebar{width:232px;background:var(--sidebar);color:var(--sidebar-ink);flex:0 0 232px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:30}
+#main{flex:1;min-width:0;display:flex;flex-direction:column}
+#topbar{height:56px;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 24px;position:sticky;top:0;z-index:20}
+#content{flex:1;padding:18px 24px 26px;min-width:0}
+
+/* ── 侧栏 ── */
+.brand{display:flex;align-items:center;gap:11px;height:56px;padding:0 18px;border-bottom:1px solid rgba(255,255,255,.07)}
+.brand .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px}
+.brand .name{font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px}
+.brand .sub{font-size:10px;color:var(--sidebar-dim);margin-top:-1px}
+.nav{padding:14px 10px;flex:1;overflow-y:auto}
+.nav .cap{font-size:10px;color:var(--sidebar-dim);padding:0 12px 8px;text-transform:uppercase;letter-spacing:1px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;color:var(--sidebar-ink);font-size:13px;font-weight:500;cursor:pointer;margin-bottom:2px;transition:background .12s,color .12s}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.active{background:var(--brand);color:#fff}
+.nav-item .ic{width:17px;height:17px;flex:0 0 17px;opacity:.92}
+.nav-item .badge{margin-left:auto;background:rgba(255,255,255,.12);color:#fff;font-size:11px;padding:1px 7px;border-radius:10px}
+.side-foot{padding:14px;border-top:1px solid rgba(255,255,255,.07)}
+.upgrade{background:linear-gradient(135deg,#312e81,#4338ca);border-radius:10px;padding:13px;color:#fff}
+.upgrade .t{font-size:12px;font-weight:700;margin-bottom:3px}
+.upgrade .d{font-size:11px;color:#c7d2fe;margin-bottom:10px}
+.upgrade .btn{background:#fff;color:#4338ca;font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;display:inline-block}
+
+/* ── 顶栏 ── */
+.crumb{font-size:15px;font-weight:700;color:var(--ink)}
+.crumb .slash{color:var(--ink-3);font-weight:400;margin:0 6px}
+.crumb .cur{color:var(--ink-3);font-weight:500}
+.topspacer{flex:1}
+.search{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 12px;width:280px;color:var(--ink-3)}
+.search input{border:none;background:none;outline:none;flex:1;font-size:13px}
+.search .kbd{font-size:11px;color:var(--ink-3);border:1px solid var(--line-strong);border-radius:5px;padding:1px 6px;background:#fff}
+.iconbtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;position:relative;color:var(--ink-2)}
+.iconbtn:hover{border-color:var(--line-strong);background:var(--bg)}
+.iconbtn .dot{position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--red);border:2px solid #fff}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;cursor:pointer}
+.userrow{display:flex;align-items:center;gap:10px;padding:4px 6px;border-radius:8px;cursor:pointer}
+.userrow:hover{background:var(--bg)}
+.userrow .un{font-size:12px;font-weight:600;color:var(--ink)}
+.userrow .ur{font-size:11px;color:var(--ink-3)}
+
+/* ── 通用组件 ── */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card-h{padding:11px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.card-h .t{font-size:14px;font-weight:700}
+.card-h .sub{font-size:12px;color:var(--ink-3)}
+.card-h .spacer{flex:1}
+.card-b{padding:14px}
+.grid{display:grid;gap:16px}
+.row{display:flex;gap:16px}
+.grow{flex:1;min-width:0}
+.mt{margin-top:12px}
+.muted{color:var(--ink-3)}
+.small{font-size:12px}
+.mono{font-family:ui-monospace,"SFMono-Regular",Consolas,monospace}
+
+/* 徽章 */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;line-height:18px;white-space:nowrap}
+.badge .bd{width:6px;height:6px;border-radius:50%}
+.b-blue{background:#e0f2fe;color:#0369a1}.b-blue .bd{background:#0ea5e9}
+.b-green{background:#d1fae5;color:#047857}.b-green .bd{background:#10b981}
+.b-amber{background:#fef3c7;color:#b45309}.b-amber .bd{background:#f59e0b}
+.b-red{background:#fee2e2;color:#b91c1c}.b-red .bd{background:#ef4444}
+.b-gray{background:#f1f5f9;color:#475569}.b-gray .bd{background:#94a3b8}
+.b-violet{background:#ede9fe;color:#6d28d9}.b-violet .bd{background:#8b5cf6}
+.b-indigo{background:#eef2ff;color:#4338ca}.b-indigo .bd{background:#6366f1}
+
+/* 按钮 */
+.btn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;font-size:13px;font-weight:600;padding:8px 15px;border:1px solid var(--line-strong);background:var(--card);color:var(--ink-2);transition:.12s}
+.btn:hover{border-color:#c7d2e0;background:var(--bg)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:var(--brand-ink);border-color:var(--brand-ink)}
+.btn.danger{background:var(--red);border-color:var(--red);color:#fff}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--brand-soft);color:var(--brand)}
+.btn.sm{padding:5px 11px;font-size:12px}
+.btn .ic{width:15px;height:15px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* KPI 卡 */
+.kpi{display:flex;flex-direction:column;gap:4px}
+.kpi .label{font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.kpi .value{font-size:24px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.kpi .delta{font-size:12px;font-weight:600}
+.kpi .up{color:var(--green)}
+.kpi .down{color:var(--red)}
+.kpi .flat{color:var(--ink-3)}
+.spark{height:36px;margin-top:6px}
+
+/* 表格 */
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-weight:600;color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:hover{background:#f8fafc}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.selected{background:var(--brand-soft)}
+.chk{width:15px;height:15px;accent-color:var(--brand);cursor:pointer}
+.cell-name{font-weight:600;color:var(--ink)}
+.cell-sub{font-size:11px;color:var(--ink-3)}
+.amt{font-variant-numeric:tabular-nums;font-weight:600}
+.risk{font-weight:700;font-variant-numeric:tabular-nums}
+.risk.low{color:var(--green)}.risk.mid{color:var(--amber)}.risk.high{color:var(--red)}
+.rowact{display:flex;gap:4px}
+.rowact .ib{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--ink-2)}
+.rowact .ib:hover{border-color:var(--brand);color:var(--brand)}
+.progress{height:6px;background:#eef2f7;border-radius:4px;overflow:hidden;min-width:70px}
+.progress>i{display:block;height:100%;border-radius:4px;background:var(--brand)}
+.progress.warn>i{background:var(--amber)}.progress.over>i{background:var(--red)}
+
+/* 分页 */
+.pager{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.pager .info{font-size:12px;color:var(--ink-3)}
+.pager .spacer{flex:1}
+.pg{min-width:30px;height:30px;border-radius:7px;border:1px solid var(--line-strong);background:#fff;font-size:12px;font-weight:600;color:var(--ink-2)}
+.pg.cur{background:var(--brand);border-color:var(--brand);color:#fff}
+.pg:disabled{opacity:.4}
+
+/* 工具栏 */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.toolbar .spacer{flex:1}
+.select{position:relative}
+.select select{appearance:none;-webkit-appearance:none;border:1px solid var(--line-strong);border-radius:8px;padding:8px 30px 8px 12px;font-size:13px;background:#fff;color:var(--ink-2);outline:none;cursor:pointer}
+.select::after{content:"";position:absolute;right:11px;top:50%;width:8px;height:8px;border-right:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);transform:translateY(-65%) rotate(45deg);pointer-events:none}
+.inp{display:flex;align-items:center;gap:8px;border:1px solid var(--line-strong);border-radius:8px;padding:8px 12px;background:#fff;color:var(--ink-3)}
+.inp input{border:none;background:none;outline:none;flex:1;font-size:13px;color:var(--ink)}
+.inp .ic{width:15px;height:15px}
+
+/* 批量操作条 */
+.batchbar{display:flex;align-items:center;gap:12px;background:var(--brand-soft);border:1px solid #c7d2fe;border-radius:10px;padding:10px 16px;margin-bottom:14px}
+.batchbar .cnt{font-size:13px;font-weight:600;color:var(--brand-ink)}
+.batchbar .spacer{flex:1}
+.batchbar .btn.sm{background:#fff;white-space:nowrap;flex:0 0 auto}
+
+/* 抽屉 */
+#scrim{position:fixed;inset:0;background:rgba(15,23,42,.38);z-index:40;opacity:0;pointer-events:none;transition:opacity .18s}
+#scrim.show{opacity:1;pointer-events:auto}
+#drawer{position:fixed;top:0;right:0;width:420px;height:100vh;background:#fff;z-index:50;box-shadow:var(--shadow-lg);transform:translateX(105%);transition:transform .22s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+#drawer.show{transform:translateX(0)}
+.dr-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:13px}
+.dr-head .logo{width:42px;height:42px;border-radius:10px;flex:0 0 42px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff}
+.dr-head .t{font-size:16px;font-weight:700}
+.dr-head .s{font-size:12px;color:var(--ink-3);margin-top:2px}
+.dr-close{margin-left:auto;width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink-2);display:flex;align-items:center;justify-content:center}
+.dr-tabs{display:flex;border-bottom:1px solid var(--line);padding:0 20px}
+.dr-tab{padding:11px 4px;margin-right:20px;font-size:13px;font-weight:600;color:var(--ink-3);cursor:pointer;border-bottom:2px solid transparent}
+.dr-tab.active{color:var(--brand);border-bottom-color:var(--brand)}
+.dr-body{flex:1;overflow-y:auto;padding:18px 20px}
+.kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--line);font-size:12.5px}
+.kv .k{color:var(--ink-3)}
+.kv .v{font-weight:600;text-align:right}
+.sect{font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.6px;margin:12px 0 6px}
+.dr-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px}
+
+/* 评分环 */
+.gauge{position:relative;width:108px;height:108px;flex:0 0 108px}
+.gauge svg{transform:rotate(-90deg)}
+.gauge .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge .num b{font-size:24px;font-weight:800}
+.gauge .num span{font-size:11px;color:var(--ink-3)}
+.riskwrap{display:flex;align-items:center;gap:20px}
+.riskfacts{flex:1;min-width:0}
+.factor{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:12.5px}
+.factor .fk{color:var(--ink-2);width:70px}
+.factor .bar{flex:1;height:6px;background:#eef2f7;border-radius:4px;overflow:hidden}
+.factor .bar>i{display:block;height:100%;border-radius:4px}
+.factor .fv{font-weight:700;width:30px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* 模态 */
+#modalwrap{position:fixed;inset:0;z-index:60;display:none;align-items:flex-start;justify-content:center;padding-top:56px}
+#modalwrap.show{display:flex}
+#modal{width:600px;max-width:calc(100vw - 40px);max-height:calc(100vh - 88px);background:#fff;border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;display:flex;flex-direction:column}
+.m-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center}
+.m-head .t{font-size:16px;font-weight:700}
+.m-head .sub{font-size:12px;color:var(--ink-3);margin-top:2px}
+.m-close{margin-left:auto;width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink-2);display:flex;align-items:center;justify-content:center}
+.m-body{padding:20px 22px;overflow-y:auto;flex:1 1 auto;min-height:0}
+.m-foot{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+.field label .req{color:var(--red)}
+.field input[type=text],.field input[type=email],.field input[type=number],.field textarea,.field select{width:100%;border:1px solid var(--line-strong);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;background:#fff}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.field.err input,.field.err textarea{border-color:var(--red)}
+.field .errmsg{color:var(--red);font-size:11.5px;margin-top:5px;display:flex;align-items:center;gap:5px}
+.field .hint{color:var(--ink-3);font-size:11.5px;margin-top:5px}
+.plan-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.plan{position:relative;border:1.5px solid var(--line-strong);border-radius:10px;padding:13px;cursor:pointer;transition:.12s}
+.plan:hover{border-color:#c7d2fe}
+.plan.sel{border-color:var(--brand);background:var(--brand-soft)}
+.plan .pname{font-weight:700;font-size:13.5px}
+.plan .pprice{font-size:12px;color:var(--ink-2);margin-top:2px}
+.plan .pdesc{font-size:11px;color:var(--ink-3);margin-top:5px;line-height:1.4}
+.plan .tick{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line-strong);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px}
+.plan.sel .tick{background:var(--brand);border-color:var(--brand)}
+.slider{display:flex;align-items:center;gap:12px}
+.slider input[type=range]{flex:1;accent-color:var(--brand)}
+.slider .out{font-weight:700;min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* 权限矩阵 */
+.matrix{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.matrix table{font-size:12px}
+.matrix th{background:#f8fafc;padding:6px 10px}
+.matrix td{padding:5px 10px;text-align:center}
+.matrix td:first-child{text-align:left;font-weight:600;color:var(--ink-2)}
+.grant{color:var(--green);font-weight:700}
+.deny{color:#cbd5e1;font-weight:700}
+.rolelist .role{padding:10px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:9px}
+.rolelist .role:hover{background:var(--bg)}
+.rolelist .role.active{background:var(--brand-soft);color:var(--brand)}
+.rolelist .role .rn{font-weight:600;font-size:13px}
+.rolelist .role .rc{margin-left:auto;font-size:11px;color:var(--ink-3);background:#f1f5f9;padding:1px 8px;border-radius:10px}
+
+/* 动态/告警 */
+.feed .fi{display:flex;gap:11px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.feed .fi:last-child{border-bottom:none}
+.feed .av{width:30px;height:30px;border-radius:50%;flex:0 0 30px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px}
+.feed .ft{font-size:12.5px;color:var(--ink-2)}
+.feed .ft b{color:var(--ink)}
+.feed .fm{font-size:11.5px;color:var(--ink-3)}
+.alertrow{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:8px;margin-bottom:7px}
+.alertrow .ic{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex:0 0 26px}
+.alertrow .al-t{font-size:12.5px;font-weight:600}
+.alertrow .al-d{font-size:11.5px;color:var(--ink-3)}
+.alertrow .al-n{margin-left:auto;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
+
+/* Toast */
+#toasts{position:fixed;top:68px;right:20px;z-index:70;display:flex;flex-direction:column;gap:10px}
+.toast{display:flex;align-items:center;gap:10px;background:#0f172a;color:#fff;border-radius:10px;padding:11px 16px;box-shadow:var(--shadow-lg);font-size:13px;min-width:230px;animation:tin .2s ease}
+.toast .tic{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex:0 0 20px}
+.toast.ok .tic{background:var(--green)}.toast.warn .tic{background:var(--amber)}.toast.err .tic{background:var(--red)}
+@keyframes tin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+/* 空态 */
+.empty{padding:44px;text-align:center;color:var(--ink-3)}
+.empty .big{font-size:34px;margin-bottom:10px}
+.empty .t{font-weight:600;color:var(--ink-2);font-size:14px;margin-bottom:4px}
+
+@media (max-width:1100px){
+  #sidebar{width:200px;flex-basis:200px}
+  .search{width:180px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar"></aside>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="content"></main>
+  </div>
+</div>
+<div id="scrim"></div>
+<div id="drawer"></div>
+<div id="modalwrap"><div id="modal"></div></div>
+<div id="toasts"></div>
+
+<script>
+/* ============================================================================
+   治策 ZHICE · 多租户 SaaS 运营管理后台
+   确定性状态注入：任意时刻页面由 state 唯一决定，ARK.set(partial) 合并并重绘。
+   ============================================================================ */
+
+/* ── 内联图标库（2px 描边几何图标，无外部依赖） ── */
+var ICONS = {
+  grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  building:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16"/><path d="M14 9h5a1 1 0 0 1 1 1v11"/><path d="M8 8h2M8 12h2M8 16h2M17 12h1M17 16h1"/></svg>',
+  users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 4.6a3.2 3.2 0 0 1 0 6.8M17.5 13.8a5.5 5.5 0 0 1 3 5.2"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h.01a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
+  help:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2.5-2.5 4M12 17h.01"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>',
+  eye:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+  download:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>',
+  freeze:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M4 6l16 12M4 18L20 6"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+  trend:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>',
+  dollar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5.5H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>',
+  filter:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>',
+  key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M11 12L20 3M16 7l3 3M13 10l2 2"/></svg>',
+  ban:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.5 5.5l13 13"/></svg>'
+};
+function ic(n, w){ return ICONS[n] || ''; }
+
+/* ── 数据 ── */
+var TENANTS = [
+  { id:'T-1001', name:'云帆科技', email:'ops@yunfan.io', code:'YF-TECH', plan:'enterprise', status:'active', members:42, usage:68, mrr:28000, created:'2023-04-12', risk:22, industry:'企业服务', region:'华东 · 杭州', admin:'周牧', expiry:'2026-12-31', seats:80, storage:64, api:72, color:'#6366f1' },
+  { id:'T-1002', name:'星联智能', email:'admin@xlink.ai', code:'XL-AI', plan:'enterprise', status:'active', members:156, usage:92, mrr:86400, created:'2022-11-03', risk:41, industry:'人工智能', region:'华北 · 北京', admin:'沈括', expiry:'2026-09-30', seats:300, storage:88, api:95, color:'#8b5cf6' },
+  { id:'T-1003', name:'北辰物流', email:'it@beichen.com', code:'BC-LOG', plan:'pro', status:'active', members:87, usage:71, mrr:12600, created:'2023-08-27', risk:35, industry:'物流供应链', region:'华南 · 深圳', admin:'陈桦', expiry:'2026-10-15', seats:120, storage:54, api:66, color:'#0ea5e9' },
+  { id:'T-1004', name:'初芒教育', email:'tech@cm-edu.cn', code:'CM-EDU', plan:'pro', status:'trial', members:23, usage:34, mrr:4200, created:'2025-02-19', risk:18, industry:'教育培训', region:'华东 · 上海', admin:'林晚', expiry:'2026-10-01', seats:40, storage:30, api:38, color:'#10b981' },
+  { id:'T-1005', name:'澄川医疗', email:'sec@ccmed.com', code:'CC-MED', plan:'enterprise', status:'arrears', members:64, usage:58, mrr:42000, created:'2023-01-15', risk:88, industry:'医疗健康', region:'西南 · 成都', admin:'顾安', expiry:'2026-07-22', seats:90, storage:76, api:61, color:'#ef4444' },
+  { id:'T-1006', name:'未名科技', email:'hi@weiming.xyz', code:'WM-UNK', plan:'free', status:'active', members:9, usage:22, mrr:0, created:'2025-05-06', risk:12, industry:'个人开发者', region:'华东 · 南京', admin:'许澄', expiry:'—', seats:5, storage:12, api:15, color:'#94a3b8' },
+  { id:'T-1007', name:'九章数据', email:'dev@jiuzhang.cn', code:'JZ-DATA', plan:'pro', status:'frozen', members:31, usage:0, mrr:8400, created:'2023-06-30', risk:94, industry:'大数据', region:'华北 · 天津', admin:'韩熵', expiry:'2026-06-01', seats:50, storage:0, api:0, color:'#f59e0b' },
+  { id:'T-1008', name:'溪谷零售', email:'it@xigu.retail', code:'XG-RETAIL', plan:'enterprise', status:'active', members:208, usage:88, mrr:96000, created:'2022-08-09', risk:52, industry:'零售电商', region:'华南 · 广州', admin:'秦岚', expiry:'2027-01-31', seats:400, storage:90, api:82, color:'#ec4899' }
+];
+var PLAN = {
+  free:{cn:'免费版', price:'¥0 / 月', desc:'5 席位 · 12 GB 存储 · 基础功能', color:'#94a3b8'},
+  pro:{cn:'专业版', price:'¥180 / 席位 / 月', desc:'50 席位 · 128 GB 存储 · 全功能', color:'#0ea5e9'},
+  enterprise:{cn:'企业版', price:'¥560 / 席位 / 月', desc:'不限席位 · 私有化 · 专属支持', color:'#6366f1'}
+};
+var STATUS = {
+  active:{cn:'活跃', cls:'b-green'},
+  trial:{cn:'试用中', cls:'b-blue'},
+  arrears:{cn:'欠费', cls:'b-amber'},
+  frozen:{cn:'已冻结', cls:'b-red'}
+};
+var ROLES = [
+  { key:'admin', name:'超级管理员', desc:'拥有全部权限', color:'#8b5cf6', count:2 },
+  { key:'ops', name:'运营', desc:'租户与成员日常管理', color:'#6366f1', count:6 },
+  { key:'finance', name:'财务', desc:'账单与结算管理', color:'#0ea5e9', count:3 },
+  { key:'support', name:'客服', desc:'工单与租户查看', color:'#10b981', count:12 },
+  { key:'viewer', name:'只读', desc:'仅查看，不可操作', color:'#94a3b8', count:8 }
+];
+var PERMS = [
+  { key:'view_tenant', cn:'查看租户' },
+  { key:'edit_tenant', cn:'编辑租户' },
+  { key:'delete_tenant', cn:'删除租户' },
+  { key:'manage_member', cn:'管理成员' },
+  { key:'view_bill', cn:'查看账单' },
+  { key:'edit_bill', cn:'编辑账单' },
+  { key:'view_audit', cn:'查看审计' },
+  { key:'export_data', cn:'导出数据' }
+];
+var ROLE_PERMS = {
+  admin:['view_tenant','edit_tenant','delete_tenant','manage_member','view_bill','edit_bill','view_audit','export_data'],
+  ops:['view_tenant','edit_tenant','manage_member','view_bill','view_audit','export_data'],
+  finance:['view_tenant','view_bill','edit_bill','export_data'],
+  support:['view_tenant'],
+  viewer:['view_tenant']
+};
+var MEMBERS = [
+  { name:'苏黎', email:'su.li@zhice.io', role:'admin', status:'active', last:'2026-09-24 18:42', fa:true, color:'#8b5cf6' },
+  { name:'周牧', email:'zhou.mu@zhice.io', role:'admin', status:'active', last:'2026-09-24 17:15', fa:true, color:'#6366f1' },
+  { name:'许澄', email:'xu.cheng@zhice.io', role:'ops', status:'active', last:'2026-09-24 16:03', fa:true, color:'#0ea5e9' },
+  { name:'顾安', email:'gu.an@zhice.io', role:'finance', status:'active', last:'2026-09-23 11:20', fa:true, color:'#f59e0b' },
+  { name:'陈桦', email:'chen.hua@zhice.io', role:'support', status:'active', last:'2026-09-22 09:58', fa:false, color:'#ec4899' },
+  { name:'韩熵', email:'han.shang@zhice.io', role:'viewer', status:'disabled', last:'2026-08-30 14:11', fa:false, color:'#94a3b8' }
+];
+var AUDITS = [
+  { time:'2026-09-24 18:42:11', actor:'苏黎', type:'login', obj:'控制台登录', ip:'10.24.8.112', ok:true },
+  { time:'2026-09-24 17:33:50', actor:'周牧', type:'update', obj:'租户 T-1001 云帆科技（席位 60→80）', ip:'10.24.8.107', ok:true },
+  { time:'2026-09-24 16:21:07', actor:'许澄', type:'create', obj:'新建租户 未名科技 T-1006', ip:'10.24.9.33', ok:true },
+  { time:'2026-09-24 15:48:29', actor:'顾安', type:'export', obj:'导出账单汇总（2026-08）', ip:'10.24.8.118', ok:true },
+  { time:'2026-09-24 14:02:53', actor:'苏黎', type:'perm', obj:'角色「客服」权限变更（+查看租户）', ip:'10.24.8.112', ok:true },
+  { time:'2026-09-24 11:37:41', actor:'陈桦', type:'delete', obj:'删除成员 王屿（viewer）', ip:'10.24.9.41', ok:false },
+  { time:'2026-09-23 20:15:03', actor:'周牧', type:'login', obj:'控制台登录', ip:'10.24.8.107', ok:true },
+  { time:'2026-09-23 18:50:22', actor:'顾安', type:'update', obj:'租户 T-1005 澄川医疗（状态→欠费）', ip:'10.24.8.118', ok:true },
+  { time:'2026-09-23 13:04:18', actor:'许澄', type:'login', obj:'控制台登录（异地）', ip:'103.11.220.7', ok:false },
+  { time:'2026-09-23 09:12:47', actor:'苏黎', type:'create', obj:'新建角色「只读」', ip:'10.24.8.112', ok:true }
+];
+var TYPE = {
+  login:{cn:'登录', cls:'b-indigo'},
+  create:{cn:'创建', cls:'b-green'},
+  update:{cn:'更新', cls:'b-blue'},
+  delete:{cn:'删除', cls:'b-red'},
+  export:{cn:'导出', cls:'b-violet'},
+  perm:{cn:'权限变更', cls:'b-amber'}
+};
+var MRR_TREND = [
+  { m:'1月', v:158 }, { m:'2月', v:171 }, { m:'3月', v:164 }, { m:'4月', v:186 },
+  { m:'5月', v:201 }, { m:'6月', v:214 }, { m:'7月', v:228 }, { m:'8月', v:245 },
+  { m:'9月', v:233 }, { m:'10月', v:259 }, { m:'11月', v:274 }, { m:'12月', v:286 }
+];
+var SCALE = { enterprise:{n:214, color:'#6366f1'}, pro:{n:486, color:'#0ea5e9'}, free:{n:584, color:'#94a3b8'} };
+
+/* ── 状态 ── */
+var state = {
+  page:'dashboard',
+  q:'', plan:'all', status:'all', sort:'id',
+  selected:[],
+  drawer:null, drawerTab:'overview',
+  modal:'', form:{ name:'', email:'', industry:'企业服务', plan:'pro', admin:'', seats:50, storage:64, note:'', touched:{} },
+  role:'ops',
+  range:'7d', type:'all', actor:'',
+  toasts:[]
+};
+var SEED = 20260925;
+function hash(s){ var h=2166136261; s=String(s); for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0); }
+function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
+
+/* ── 渲染入口 ── */
+function render(){
+  renderSidebar(); renderTopbar();
+  var c = document.getElementById('content');
+  if(state.page==='dashboard') c.innerHTML = pageDashboard();
+  else if(state.page==='tenants') c.innerHTML = pageTenants();
+  else if(state.page==='members') c.innerHTML = pageMembers();
+  else if(state.page==='audit') c.innerHTML = pageAudit();
+  else if(state.page==='settings') c.innerHTML = pageSettings();
+  renderDrawer(); renderModal(); renderToasts();
+  bindInputs();
+}
+
+/* ── 侧栏 ── */
+var NAV = [
+  { key:'dashboard', cn:'总览', ic:'grid' },
+  { key:'tenants', cn:'租户管理', ic:'building' },
+  { key:'members', cn:'成员与权限', ic:'users' },
+  { key:'audit', cn:'审计日志', ic:'shield' },
+  { key:'settings', cn:'系统设置', ic:'gear' }
+];
+function renderSidebar(){
+  var el = document.getElementById('sidebar');
+  var items = NAV.map(function(n){
+    return '<div class="nav-item'+(state.page===n.key?' active':'')+'" data-nav="'+n.key+'">'+
+      '<span class="ic">'+ic(n.ic)+'</span><span>'+n.cn+'</span>'+
+      (n.key==='audit'?'<span class="badge">'+AUDITS.length+'</span>':'')+'</div>';
+  }).join('');
+  el.innerHTML =
+    '<div class="brand"><div class="logo">治</div><div><div class="name">治策 ZHICE</div><div class="sub">SaaS 运营中台</div></div></div>'+
+    '<div class="nav"><div class="cap">工作台</div>'+items+'</div>'+
+    '<div class="side-foot"><div class="upgrade"><div class="t">企业版计划</div><div class="d">本月已用 88% 席位额度</div><span class="btn">升级配额</span></div></div>';
+}
+
+/* ── 顶栏 ── */
+function renderTopbar(){
+  var t = NAV.filter(function(n){return n.key===state.page;})[0];
+  var el = document.getElementById('topbar');
+  el.innerHTML =
+    '<div class="crumb">'+(t?t.cn:'')+'</div>'+
+    '<div class="topspacer"></div>'+
+    '<div class="search"><span class="ic" style="width:15px;height:15px">'+ic('search')+'</span>'+
+      '<input id="gsearch" placeholder="搜索租户 / 成员 / 日志…" value=""><span class="kbd">⌘K</span></div>'+
+    '<button class="iconbtn" title="通知">'+ic('bell')+'<span class="dot"></span></button>'+
+    '<button class="iconbtn" title="帮助">'+ic('help')+'</button>'+
+    '<div class="userrow"><div class="avatar">苏</div>'+
+      '<div><div class="un">苏黎</div><div class="ur">超级管理员</div></div>'+
+      '<span class="ic" style="width:14px;height:14px;color:var(--ink-3)">'+ic('down')+'</span></div>';
+}
+
+/* ── 图表：面积折线（SVG） ── */
+function lineChart(data, W, H){
+  var pad={l:38,r:12,t:14,b:24};
+  var iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+  var max=Math.max.apply(null,data.map(function(d){return d.v;}))*1.12;
+  var min=Math.min.apply(null,data.map(function(d){return d.v;}))*0.88;
+  var X=function(i){ return pad.l + iw*(i/(data.length-1)); };
+  var Y=function(v){ return pad.t + ih*(1-(v-min)/(max-min)); };
+  var pts=data.map(function(d,i){ return X(i)+','+Y(d.v); }).join(' ');
+  var area=pts+' '+X(data.length-1)+','+(pad.t+ih)+' '+X(0)+','+(pad.t+ih);
+  var grid=[0,0.25,0.5,0.75,1].map(function(g){
+    var y=pad.t+ih*g, val=max-(max-min)*g;
+    return '<line x1="'+pad.l+'" y1="'+y+'" x2="'+(W-pad.r)+'" y2="'+y+'" stroke="#eef2f7" stroke-width="1"/>'+
+      '<text x="'+(pad.l-6)+'" y="'+(y+3.5)+'" text-anchor="end" font-size="9" fill="#94a3b8">'+Math.round(val)+'</text>';
+  }).join('');
+  var labs=data.map(function(d,i){
+    return '<text x="'+X(i)+'" y="'+(H-7)+'" text-anchor="middle" font-size="9" fill="#94a3b8">'+d.m+'</text>';
+  }).join('');
+  var dots=data.map(function(d,i){
+    return '<circle cx="'+X(i)+'" cy="'+Y(d.v)+'" r="2.6" fill="#fff" stroke="#4f46e5" stroke-width="1.8"/>';
+  }).join('');
+  var last=data[data.length-1], li=data.length-1;
+  return '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">'+
+    '<defs><linearGradient id="lg1" x1="0" y1="0" x2="0" y2="1">'+
+    '<stop offset="0" stop-color="#4f46e5" stop-opacity=".22"/>'+
+    '<stop offset="1" stop-color="#4f46e5" stop-opacity="0"/></linearGradient></defs>'+
+    grid+
+    '<polygon points="'+area+'" fill="url(#lg1)"/>'+
+    '<polyline points="'+pts+'" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>'+
+    dots+labs+
+    '<circle cx="'+X(li)+'" cy="'+Y(last.v)+'" r="4" fill="#4f46e5"/>'+
+    '<text x="'+(X(li)-6)+'" y="'+(Y(last.v)-8)+'" text-anchor="end" font-size="10" font-weight="700" fill="#4338ca">¥'+last.v+'万</text>'+
+    '</svg>';
+}
+function donutChart(seg, W, H){
+  var cx=W/2, cy=H/2, r=Math.min(cx,cy)-6, R=r-14;
+  var total=seg.reduce(function(a,s){return a+s.n;},0);
+  var off=-Math.PI/2, parts='';
+  seg.forEach(function(s){
+    var ang=s.n/total*Math.PI*2;
+    var large=ang>Math.PI?1:0;
+    var x1=cx+r*Math.cos(off), y1=cy+r*Math.sin(off);
+    var x2=cx+r*Math.cos(off+ang), y2=cy+r*Math.sin(off+ang);
+    parts+='<path d="M'+cx+','+cy+' L'+x1+','+y1+' A'+r+','+r+' 0 '+large+' 1 '+x2+','+y2+' Z" fill="'+s.color+'"/>';
+    off+=ang;
+  });
+  var cx2=cx, cy2=cy;
+  return '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">'+
+    parts+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="#fff"/>'+
+    '<text x="'+cx+'" y="'+(cy-2)+'" text-anchor="middle" font-size="22" font-weight="800" fill="#0f172a">'+(total)+'</text>'+
+    '<text x="'+cx+'" y="'+(cy+16)+'" text-anchor="middle" font-size="10" fill="#94a3b8">租户总数</text>'+
+    '</svg>';
+}
+function legend(seg){
+  var total=seg.reduce(function(a,s){return a+s.n;},0);
+  return seg.map(function(s){
+    var pct=(s.n/total*100).toFixed(1);
+    return '<div class="factor"><span class="fk"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:'+s.color+';margin-right:6px"></span>'+s.cn+'</span><span class="fv">'+s.n+'</span><span class="muted small" style="width:48px;text-align:right">'+pct+'%</span></div>';
+  }).join('');
+}
+
+/* ── 页面：总览 ── */
+function pageDashboard(){
+  var kpis = [
+    { label:'月度经常性收入 MRR', value:'¥286,400', delta:'+12.4%', dir:'up', note:'环比上月', ic:'dollar', c:'#4f46e5' },
+    { label:'活跃租户', value:'1,240', delta:'+38', dir:'up', note:'本月新增', ic:'building', c:'#0ea5e9' },
+    { label:'净收入留存率 NRR', value:'108.6%', delta:'+2.1pt', dir:'up', note:'同比', ic:'trend', c:'#10b981' },
+    { label:'月流失率', value:'2.7%', delta:'-0.6pt', dir:'down', note:'较上月下降', ic:'user', c:'#f59e0b' }
+  ];
+  var kpiHtml = kpis.map(function(k){
+    return '<div class="card card-b kpi"><div class="label"><span class="ic" style="width:16px;height:16px;color:'+k.c+'">'+ic(k.ic)+'</span>'+k.label+'</div>'+
+      '<div class="value">'+k.value+'</div>'+
+      '<div class="delta '+(k.dir==='up'?'up':'down')+'">'+k.delta+' <span class="muted" style="font-weight:400">'+k.note+'</span></div></div>';
+  }).join('');
+
+  var seg = [{cn:'企业版',n:214,color:'#6366f1'},{cn:'专业版',n:486,color:'#0ea5e9'},{cn:'免费版',n:584,color:'#94a3b8'}];
+
+  var alerts = [
+    { t:'欠费租户', d:'待催收', n:12, c:'#f59e0b', ic:'dollar' },
+    { t:'用量超限', d:'存储 / API 逼近配额', n:5, c:'#ef4444', ic:'trend' },
+    { t:'7 日内到期', d:'订阅即将到期', n:23, c:'#0ea5e9', ic:'clock' },
+    { t:'试用即将结束', d:'试用期 ≤ 3 天', n:18, c:'#8b5cf6', ic:'key' }
+  ];
+  var alertHtml = alerts.map(function(a){
+    return '<div class="alertrow" style="background:'+a.c+'14"><div class="ic" style="background:'+a.c+'1f;color:'+a.c+'">'+ic(a.ic)+'</div>'+
+      '<div><div class="al-t">'+a.t+'</div><div class="al-d">'+a.d+'</div></div>'+
+      '<div class="al-n" style="color:'+a.c+'">'+a.n+'</div></div>';
+  }).join('');
+
+  var feed = [
+    { a:'苏', c:'#8b5cf6', t:'<b>苏黎</b> 变更了角色「客服」的权限', m:'3 分钟前' },
+    { a:'周', c:'#6366f1', t:'<b>周牧</b> 更新租户 云帆科技 的席位配额', m:'1 小时前' },
+    { a:'许', c:'#0ea5e9', t:'<b>许澄</b> 新建租户 未名科技', m:'2 小时前' },
+    { a:'顾', c:'#f59e0b', t:'<b>顾安</b> 导出了 8 月账单汇总', m:'3 小时前' },
+    { a:'陈', c:'#ec4899', t:'<b>陈桦</b> 删除了成员 王屿', m:'昨天' }
+  ];
+  var feedHtml = feed.map(function(f){
+    return '<div class="fi"><div class="av" style="background:'+f.c+'">'+f.a+'</div>'+
+      '<div><div class="ft">'+f.t+'</div><div class="fm">'+f.m+'</div></div></div>';
+  }).join('');
+
+  return '<div class="grid" style="grid-template-columns:repeat(4,1fr)">'+kpiHtml+'</div>'+
+    '<div class="row mt">'+
+      '<div class="card grow" style="flex:1.6">'+
+        '<div class="card-h"><div class="t">收入趋势</div><div class="sub">近 12 个月 MRR（¥万元）</div><div class="spacer"></div>'+
+          '<div class="select"><select><option>近 12 个月</option><option>近 6 个月</option><option>近 3 个月</option></select></div></div>'+
+        '<div class="card-b">'+lineChart(MRR_TREND, 660, 186)+'</div></div>'+
+      '<div class="card" style="flex:1">'+
+        '<div class="card-h"><div class="t">租户规模构成</div></div>'+
+        '<div class="card-b"><div class="row" style="align-items:center">'+
+          donutChart(seg, 130, 130)+
+          '<div class="grow">'+legend(seg)+'</div></div></div></div>'+
+    '</div>'+
+    '<div class="row mt">'+
+      '<div class="card grow">'+
+        '<div class="card-h"><div class="t">待办与告警</div><div class="sub">需优先处理</div><div class="spacer"></div>'+
+          '<button class="btn sm ghost">查看全部</button></div>'+
+        '<div class="card-b">'+alertHtml+'</div></div>'+
+      '<div class="card grow">'+
+        '<div class="card-h"><div class="t">最近动态</div><div class="sub">团队操作记录</div></div>'+
+        '<div class="card-b feed">'+feedHtml+'</div></div>'+
+    '</div>';
+}
+
+/* ── 页面：租户列表 ── */
+function filteredTenants(){
+  var list = TENANTS.slice();
+  if(state.q){ var q=state.q.toLowerCase(); list=list.filter(function(t){ return t.name.toLowerCase().indexOf(q)>=0 || t.email.toLowerCase().indexOf(q)>=0 || t.code.toLowerCase().indexOf(q)>=0; }); }
+  if(state.plan!=='all') list=list.filter(function(t){ return t.plan===state.plan; });
+  if(state.status!=='all') list=list.filter(function(t){ return t.status===state.status; });
+  var sorters={ id:function(a,b){return a.id<b.id?-1:1;}, created:function(a,b){return a.created<b.created?1:-1;}, mrr:function(a,b){return b.mrr-a.mrr;}, usage:function(a,b){return b.usage-a.usage;}, risk:function(a,b){return b.risk-a.risk;} };
+  list.sort(sorters[state.sort]||sorters.id);
+  return list;
+}
+function pageTenants(){
+  var list = filteredTenants();
+  var rows = list.map(function(t){
+    var st=STATUS[t.status];
+    var rcls = t.risk<35?'low':(t.risk<70?'mid':'high');
+    var usg = t.usage>90?'over':(t.usage>75?'warn':'');
+    var chk = state.selected.indexOf(t.id)>=0;
+    return '<tr class="'+(chk?'selected':'')+'" data-id="'+t.id+'">'+
+      '<td><input type="checkbox" class="chk rowchk" data-id="'+t.id+'" '+(chk?'checked':'')+'></td>'+
+      '<td><div class="cell-name">'+t.name+'</div><div class="cell-sub">'+t.email+'</div></td>'+
+      '<td><span class="badge" style="background:'+PLAN[t.plan].color+'18;color:'+PLAN[t.plan].color+'">'+PLAN[t.plan].cn+'</span></td>'+
+      '<td><span class="badge '+st.cls+'"><span class="bd"></span>'+st.cn+'</span></td>'+
+      '<td class="amt">'+t.members+'</td>'+
+      '<td><div style="display:flex;align-items:center;gap:8px"><div class="progress '+usg+'" style="flex:1"><i style="width:'+t.usage+'%"></i></div><span class="small muted" style="min-width:30px">'+t.usage+'%</span></div></td>'+
+      '<td class="amt">'+(t.mrr?'¥'+t.mrr.toLocaleString():'—')+'</td>'+
+      '<td class="mono small muted">'+t.created+'</td>'+
+      '<td><span class="risk '+rcls+'">'+t.risk+'</span></td>'+
+      '<td><div class="rowact">'+
+        '<button class="ib" title="查看" data-act="view" data-id="'+t.id+'">'+ic('eye')+'</button>'+
+        '<button class="ib" title="编辑" data-act="edit" data-id="'+t.id+'">'+ic('edit')+'</button>'+
+        '<button class="ib" title="删除" data-act="del" data-id="'+t.id+'" style="color:var(--red)">'+ic('trash')+'</button>'+
+      '</div></td></tr>';
+  }).join('');
+  var total = 1284;
+  var start = 1;
+  var batch = state.selected.length?'<div class="batchbar"><span class="cnt">已选 '+state.selected.length+' 项</span>'+
+    '<button class="btn sm" data-act="batchfreeze">'+ic('freeze')+' 批量冻结</button>'+
+    '<button class="btn sm" data-act="batchstop">'+ic('ban')+' 批量停用</button>'+
+    '<button class="btn sm" data-act="batchexport">'+ic('download')+' 批量导出</button>'+
+    '<div class="spacer"></div><button class="btn sm ghost" data-act="clear">取消选择</button></div>':'';
+  return '<div class="toolbar">'+
+      '<div class="inp" style="width:250px"><span class="ic">'+ic('search')+'</span><input id="q" placeholder="搜索租户名 / 邮箱 / 编号" value="'+esc(state.q)+'"></div>'+
+      '<div class="select"><select id="planSel">'+
+        '<option value="all"'+(state.plan==='all'?' selected':'')+'>全部套餐</option>'+
+        '<option value="enterprise"'+(state.plan==='enterprise'?' selected':'')+'>企业版</option>'+
+        '<option value="pro"'+(state.plan==='pro'?' selected':'')+'>专业版</option>'+
+        '<option value="free"'+(state.plan==='free'?' selected':'')+'>免费版</option></select></div>'+
+      '<div class="select"><select id="statusSel">'+
+        '<option value="all"'+(state.status==='all'?' selected':'')+'>全部状态</option>'+
+        '<option value="active"'+(state.status==='active'?' selected':'')+'>活跃</option>'+
+        '<option value="trial"'+(state.status==='trial'?' selected':'')+'>试用中</option>'+
+        '<option value="arrears"'+(state.status==='arrears'?' selected':'')+'>欠费</option>'+
+        '<option value="frozen"'+(state.status==='frozen'?' selected':'')+'>已冻结</option></select></div>'+
+      '<div class="select"><select id="sortSel">'+
+        '<option value="id"'+(state.sort==='id'?' selected':'')+'>按编号</option>'+
+        '<option value="created"'+(state.sort==='created'?' selected':'')+'>按创建时间</option>'+
+        '<option value="mrr"'+(state.sort==='mrr'?' selected':'')+'>按 MRR</option>'+
+        '<option value="usage"'+(state.sort==='usage'?' selected':'')+'>按用量</option>'+
+        '<option value="risk"'+(state.sort==='risk'?' selected':'')+'>按风险分</option></select></div>'+
+      '<div class="spacer"></div>'+
+      '<button class="btn primary" data-act="create">'+ic('plus')+' 新建租户</button>'+
+    '</div>'+
+    batch+
+    '<div class="card"><div class="table-wrap"><table><thead><tr>'+
+      '<th style="width:32px"><input type="checkbox" class="chk" id="allchk"></th>'+
+      '<th>租户名称</th><th>套餐</th><th>状态</th><th>成员数</th><th>本月用量</th><th>MRR</th><th>创建时间</th><th>风险分</th><th style="width:110px">操作</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table></div>'+
+      '<div class="pager"><div class="info">共 '+total.toLocaleString()+' 条 · 第 '+start+'–'+Math.min(start+list.length-1,start+9)+' 条</div>'+
+        '<div class="spacer"></div>'+
+        '<button class="pg" disabled>‹</button><button class="pg cur">1</button><button class="pg">2</button><button class="pg">3</button><button class="pg">…</button><button class="pg">129</button><button class="pg">›</button></div></div>';
+}
+
+/* ── 页面：成员与权限 ── */
+function pageMembers(){
+  var rows = MEMBERS.map(function(m){
+    var role=ROLES.filter(function(r){return r.key===m.role;})[0];
+    var st = m.status==='active'?'<span class="badge b-green"><span class="bd"></span>在职</span>'
+          : m.status==='invited'?'<span class="badge b-blue"><span class="bd"></span>待接受</span>'
+          : '<span class="badge b-gray"><span class="bd"></span>已停用</span>';
+    return '<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="av" style="width:28px;height:28px;font-size:12px;background:'+m.color+'">'+m.name[0]+'</div>'+
+      '<div><div class="cell-name">'+m.name+'</div><div class="cell-sub">'+m.email+'</div></div></div></td>'+
+      '<td><span class="badge" style="background:'+role.color+'18;color:'+role.color+'">'+role.name+'</span></td>'+
+      '<td>'+st+'</td>'+
+      '<td class="mono small muted">'+m.last+'</td>'+
+      '<td>'+(m.fa?'<span class="badge b-green"><span class="bd"></span>已开启</span>':'<span class="badge b-gray">未开启</span>')+'</td>'+
+      '<td><div class="rowact"><button class="ib">'+ic('edit')+'</button><button class="ib" style="color:var(--red)">'+ic('trash')+'</button></div></td></tr>';
+  }).join('');
+
+  var roleList = ROLES.map(function(r){
+    return '<div class="role'+(state.role===r.key?' active':'')+'" data-role="'+r.key+'">'+
+      '<span style="width:9px;height:9px;border-radius:50%;background:'+r.color+'"></span>'+
+      '<span class="rn">'+r.name+'</span><span class="rc">'+r.count+'</span></div>';
+  }).join('');
+
+  var grants = ROLE_PERMS[state.role];
+  var matrixHead = '<th style="text-align:left">权限项</th><th style="width:64px">状态</th>';
+  var matrixRows = PERMS.map(function(p){
+    var ok = grants.indexOf(p.key)>=0;
+    return '<tr><td>'+p.cn+'</td><td>'+(ok?'<span class="grant">✓</span>':'<span class="deny">✕</span>')+'</td></tr>';
+  }).join('');
+  var curRole = ROLES.filter(function(r){return r.key===state.role;})[0];
+
+  return '<div class="row">'+
+    '<div class="card" style="flex:0 0 250px"><div class="card-h"><div class="t">角色</div><div class="spacer"></div><button class="btn sm ghost" data-act="addrole">'+ic('plus')+'</button></div>'+
+      '<div class="card-b rolelist">'+roleList+'</div></div>'+
+    '<div class="card grow"><div class="card-h"><div class="t">成员</div><div class="sub">共 '+MEMBERS.length+' 人</div><div class="spacer"></div>'+
+      '<button class="btn primary sm" data-act="addmember">'+ic('plus')+' 邀请成员</button></div>'+
+      '<div class="table-wrap"><table><thead><tr><th>成员</th><th>角色</th><th>状态</th><th>最近登录</th><th>两步验证</th><th style="width:80px">操作</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
+    '</div>'+
+    '<div class="card mt"><div class="card-h"><div class="t">权限矩阵</div><div class="sub">当前角色：'+curRole.name+'（'+curRole.desc+'）</div><div class="spacer"></div>'+
+      '<span class="badge b-indigo"><span class="bd"></span>'+curRole.count+' 名成员 · '+grants.length+'/'+PERMS.length+' 项权限</span></div>'+
+      '<div class="card-b matrix"><table><thead><tr>'+matrixHead+'</tr></thead><tbody>'+matrixRows+'</tbody></table></div></div>';
+}
+
+/* ── 页面：审计日志 ── */
+function pageAudit(){
+  var list = AUDITS.filter(function(a){
+    if(state.type!=='all' && a.type!==state.type) return false;
+    if(state.actor && a.actor.indexOf(state.actor)<0) return false;
+    if(!a.ok && state.type==='all') return true;
+    return true;
+  });
+  var rows = list.map(function(a){
+    var t=TYPE[a.type];
+    return '<tr><td class="mono small">'+a.time+'</td>'+
+      '<td class="cell-name">'+a.actor+'</td>'+
+      '<td><span class="badge '+t.cls+'"><span class="bd"></span>'+t.cn+'</span></td>'+
+      '<td class="cell-sub" style="color:var(--ink-2)">'+a.obj+'</td>'+
+      '<td class="mono small muted">'+a.ip+'</td>'+
+      '<td>'+(a.ok?'<span class="badge b-green"><span class="bd"></span>成功</span>':'<span class="badge b-red"><span class="bd"></span>失败</span>')+'</td></tr>';
+  }).join('');
+  return '<div class="toolbar">'+
+    '<div class="select"><select id="rangeSel">'+
+      '<option value="today">今天</option><option value="7d" selected>近 7 天</option><option value="30d">近 30 天</option><option value="custom">自定义</option></select></div>'+
+    '<div class="select"><select id="typeSel">'+
+      '<option value="all"'+(state.type==='all'?' selected':'')+'>全部类型</option>'+
+      '<option value="login"'+(state.type==='login'?' selected':'')+'>登录</option>'+
+      '<option value="create"'+(state.type==='create'?' selected':'')+'>创建</option>'+
+      '<option value="update"'+(state.type==='update'?' selected':'')+'>更新</option>'+
+      '<option value="delete"'+(state.type==='delete'?' selected':'')+'>删除</option>'+
+      '<option value="export"'+(state.type==='export'?' selected':'')+'>导出</option>'+
+      '<option value="perm"'+(state.type==='perm'?' selected':'')+'>权限变更</option></select></div>'+
+    '<div class="inp" style="width:200px"><span class="ic">'+ic('search')+'</span><input id="actor" placeholder="操作人" value="'+esc(state.actor)+'"></div>'+
+    '<div class="spacer"></div>'+
+    '<button class="btn" data-act="exportlog">'+ic('download')+' 导出日志</button>'+
+    '</div>'+
+    '<div class="card"><div class="table-wrap"><table><thead><tr><th>时间</th><th>操作人</th><th>操作类型</th><th>对象</th><th>IP 地址</th><th>结果</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<div class="pager"><div class="info">共 3,412 条 · 第 1–10 条</div><div class="spacer"></div>'+
+    '<button class="pg" disabled>‹</button><button class="pg cur">1</button><button class="pg">2</button><button class="pg">3</button><button class="pg">…</button><button class="pg">342</button><button class="pg">›</button></div></div>';
+}
+
+/* ── 页面：系统设置 ── */
+function pageSettings(){
+  return '<div class="card" style="max-width:640px"><div class="card-h"><div class="t">系统设置</div></div><div class="card-b">'+
+    '<div class="field"><label>组织名称</label><input type="text" value="治策 ZHICE 运营中心"></div>'+
+    '<div class="field"><label>默认套餐</label><div class="select"><select style="width:100%"><option>专业版</option><option>企业版</option><option>免费版</option></select></div></div>'+
+    '<div class="field"><label>租户自助注册</label><div class="plan-cards" style="grid-template-columns:1fr"><div class="plan sel" style="display:flex;justify-content:space-between;align-items:center"><div><div class="pname">允许新租户自助注册</div><div class="pdesc">开启后访客可自行创建免费版试用租户</div></div><span class="badge b-green"><span class="bd"></span>已开启</span></div></div></div>'+
+    '<div class="field"><label>用量超限阈值</label><div class="slider"><input type="range" min="70" max="100" value="90"><span class="out">90%</span></div><div class="hint">用量达到该阈值时向管理员发送告警</div></div>'+
+    '<div class="m-foot" style="padding:0;border:none;margin-top:4px"><button class="btn primary">保存设置</button></div>'+
+    '</div></div>';
+}
+
+/* ── 抽屉：租户详情 ── */
+function renderDrawer(){
+  var d = document.getElementById('drawer');
+  var scrim = document.getElementById('scrim');
+  if(!state.drawer){ d.className=''; scrim.className=''; d.innerHTML=''; return; }
+  var t = TENANTS.filter(function(x){return x.id===state.drawer;})[0];
+  if(!t){ d.className=''; scrim.className=''; return; }
+  d.className='show'; scrim.className='show';
+  var st=STATUS[t.status];
+  var body='';
+  if(state.drawerTab==='overview'){
+    var rcls = t.risk<35?'low':(t.risk<70?'mid':'high');
+    var rcol = t.risk<35?'#10b981':(t.risk<70?'#f59e0b':'#ef4444');
+    var C=2*Math.PI*44;
+    var riskval = t.risk/100*C;
+    var factors = [
+      { k:'欠费天数', v: t.status==='arrears'?34:(t.status==='frozen'?71:0), max:60, c:'#f59e0b' },
+      { k:'用量超限', v: t.usage>90? Math.round((t.usage-90)*6):0, max:40, c:'#ef4444' },
+      { k:'活跃度下降', v: t.risk>50? Math.round(t.risk*0.3):12, max:40, c:'#8b5cf6' },
+      { k:'安全事件', v: t.risk>80?2:0, max:4, c:'#0ea5e9' }
+    ];
+    body =
+      '<div class="sect">基本信息</div>'+
+      '<div class="kv"><span class="k">租户编号</span><span class="v mono">'+t.id+'</span></div>'+
+      '<div class="kv"><span class="k">企业邮箱</span><span class="v">'+t.email+'</span></div>'+
+      '<div class="kv"><span class="k">所属行业</span><span class="v">'+t.industry+'</span></div>'+
+      '<div class="kv"><span class="k">地域</span><span class="v">'+t.region+'</span></div>'+
+      '<div class="kv"><span class="k">管理员</span><span class="v">'+t.admin+'</span></div>'+
+      '<div class="kv"><span class="k">创建时间</span><span class="v mono">'+t.created+'</span></div>'+
+      '<div class="sect">订阅信息</div>'+
+      '<div class="kv"><span class="k">套餐</span><span class="v"><span class="badge" style="background:'+PLAN[t.plan].color+'18;color:'+PLAN[t.plan].color+'">'+PLAN[t.plan].cn+'</span></span></div>'+
+      '<div class="kv"><span class="k">席位</span><span class="v">'+t.members+' / '+t.seats+'</span></div>'+
+      '<div class="kv"><span class="k">到期日</span><span class="v">'+t.expiry+'</span></div>'+
+      '<div class="kv"><span class="k">MRR</span><span class="v amt">'+(t.mrr?'¥'+t.mrr.toLocaleString():'¥0')+'</span></div>'+
+      '<div class="sect">本月用量</div>'+
+      '<div class="factor"><span class="fk">存储</span><div class="bar"><i style="width:'+t.storage+'%;background:#4f46e5"></i></div><span class="fv">'+t.storage+'%</span></div>'+
+      '<div class="factor"><span class="fk">API 调用</span><div class="bar"><i style="width:'+t.api+'%;background:#0ea5e9"></i></div><span class="fv">'+t.api+'%</span></div>'+
+      '<div class="factor"><span class="fk">席位占用</span><div class="bar"><i style="width:'+Math.round(t.members/t.seats*100)+'%;background:#10b981"></i></div><span class="fv">'+Math.round(t.members/t.seats*100)+'%</span></div>'+
+      '<div class="sect">风险评分</div>'+
+      '<div class="riskwrap">'+
+        '<div class="gauge"><svg width="108" height="108" viewBox="0 0 120 120"><circle cx="60" cy="60" r="44" fill="none" stroke="#eef2f7" stroke-width="9"/><circle cx="60" cy="60" r="44" fill="none" stroke="'+rcol+'" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+riskval+' '+(C-riskval)+'"/></svg><div class="num"><b style="color:'+rcol+'">'+t.risk+'</b><span>/ 100</span></div></div>'+
+        '<div class="riskfacts">'+factors.map(function(f){ return '<div class="factor"><span class="fk">'+f.k+'</span><div class="bar"><i style="width:'+Math.min(100,f.v/f.max*100)+'%;background:'+f.c+'"></i></div><span class="fv">'+f.v+'</span></div>'; }).join('')+'</div>'+
+      '</div>';
+  } else if(state.drawerTab==='usage'){
+    body = '<div class="sect">资源用量明细</div>'+
+      '<div class="kv"><span class="k">存储用量</span><span class="v">'+t.storage+'% · '+(t.storage*1.28).toFixed(1)+' GB / 128 GB</span></div>'+
+      '<div class="kv"><span class="k">API 调用</span><span class="v">'+(t.api*1820).toLocaleString()+' / 182,000 次</span></div>'+
+      '<div class="kv"><span class="k">活跃成员</span><span class="v">'+t.members+' / '+t.seats+'</span></div>'+
+      '<div class="empty"><div class="big">📈</div><div class="t">近 30 天用量趋势</div><div class="small">该视图用于钻取租户的存储 / API 用量曲线</div></div>';
+  } else if(state.drawerTab==='members'){
+    var ms = MEMBERS.slice(0,4).map(function(m){
+      return '<div class="kv"><span class="k">'+m.name+'</span><span class="v"><span class="badge" style="background:'+ROLES.filter(function(r){return r.key===m.role;})[0].color+'18;color:'+ROLES.filter(function(r){return r.key===m.role;})[0].color+'">'+ROLES.filter(function(r){return r.key===m.role;})[0].name+'</span></span></div>';
+    }).join('');
+    body = '<div class="sect">租户成员（'+t.members+' 人）</div>'+ms+'<div class="empty" style="padding:20px"><div class="small">在「成员与权限」中查看全部成员</div></div>';
+  } else {
+    body = '<div class="sect">账单记录</div>'+
+      '<div class="kv"><span class="k">最近账单</span><span class="v">2026-08 · ¥'+t.mrr.toLocaleString()+'</span></div>'+
+      '<div class="kv"><span class="k">付款方式</span><span class="v">企业转账</span></div>'+
+      '<div class="kv"><span class="k">账单周期</span><span class="v">按月</span></div>'+
+      '<div class="empty" style="padding:20px"><div class="small">共 '+Math.max(1,Math.round(t.mrr/4200))+' 张历史账单</div></div>';
+  }
+  d.innerHTML =
+    '<div class="dr-head"><div class="logo" style="background:'+t.color+'">'+t.name[0]+'</div>'+
+      '<div style="flex:1;min-width:0"><div class="t">'+t.name+'</div><div class="s mono">'+t.code+' · '+t.id+'</div>'+
+      '<div style="margin-top:7px;display:flex;gap:6px">'+
+        '<span class="badge" style="background:'+PLAN[t.plan].color+'18;color:'+PLAN[t.plan].color+'">'+PLAN[t.plan].cn+'</span>'+
+        '<span class="badge '+st.cls+'"><span class="bd"></span>'+st.cn+'</span></div></div>'+
+      '<button class="dr-close" data-act="closedrawer">'+ic('x')+'</button></div>'+
+    '<div class="dr-tabs">'+
+      '<div class="dr-tab'+(state.drawerTab==='overview'?' active':'')+'" data-tab="overview">概览</div>'+
+      '<div class="dr-tab'+(state.drawerTab==='usage'?' active':'')+'" data-tab="usage">用量</div>'+
+      '<div class="dr-tab'+(state.drawerTab==='members'?' active':'')+'" data-tab="members">成员</div>'+
+      '<div class="dr-tab'+(state.drawerTab==='bill'?' active':'')+'" data-tab="bill">账单</div></div>'+
+    '<div class="dr-body">'+body+'</div>'+
+    '<div class="dr-foot">'+
+      '<button class="btn" data-act="editfromdrawer">'+ic('edit')+' 编辑</button>'+
+      '<button class="btn danger" data-act="freeze">'+ic('freeze')+' 冻结租户</button></div>';
+}
+
+/* ── 模态：新建 / 编辑租户 ── */
+function renderModal(){
+  var wrap = document.getElementById('modalwrap');
+  var m = document.getElementById('modal');
+  if(!state.modal){ wrap.className=''; return; }
+  wrap.className='show';
+  var f = state.form;
+  var touched = f.touched || {};
+  var nameErr = touched.name && !f.name.trim();
+  var emailErr = touched.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email);
+  var adminErr = touched.admin && !f.admin.trim();
+  var planCards = ['free','pro','enterprise'].map(function(p){
+    return '<div class="plan'+(f.plan===p?' sel':'')+'" data-plan="'+p+'">'+
+      '<div class="tick">'+ic('check')+'</div>'+
+      '<div class="pname">'+PLAN[p].cn+'</div><div class="pprice">'+PLAN[p].price+'</div>'+
+      '<div class="pdesc">'+PLAN[p].desc+'</div></div>';
+  }).join('');
+  m.innerHTML =
+    '<div class="m-head"><div><div class="t">新建租户</div><div class="sub">创建一个新的 SaaS 租户并指定套餐与配额</div></div>'+
+      '<button class="m-close" data-act="closemodal">'+ic('x')+'</button></div>'+
+    '<div class="m-body">'+
+      '<div class="field'+(nameErr?' err':'')+'"><label>租户名称 <span class="req">*</span></label>'+
+        '<input type="text" id="f_name" placeholder="例如：云帆科技" value="'+esc(f.name)+'">'+
+        (nameErr?'<div class="errmsg">'+ic('x')+' 租户名称不能为空</div>':'')+'</div>'+
+      '<div class="field'+(emailErr?' err':'')+'"><label>企业邮箱 <span class="req">*</span></label>'+
+        '<input type="email" id="f_email" placeholder="例如：ops@company.com" value="'+esc(f.email)+'">'+
+        (emailErr?'<div class="errmsg">'+ic('x')+' 请输入有效的企业邮箱地址</div>':'')+'</div>'+
+      '<div class="field"><label>所属行业</label><div class="select"><select id="f_industry" style="width:100%">'+
+        ['企业服务','人工智能','教育培训','医疗健康','物流供应链','零售电商','大数据','个人开发者'].map(function(i){
+          return '<option'+(f.industry===i?' selected':'')+'>'+i+'</option>';}).join('')+
+        '</select></div></div>'+
+      '<div class="field"><label>套餐</label><div class="plan-cards">'+planCards+'</div></div>'+
+      '<div class="field'+(adminErr?' err':'')+'"><label>管理员账号 <span class="req">*</span></label>'+
+        '<input type="text" id="f_admin" placeholder="管理员邮箱或手机号" value="'+esc(f.admin)+'">'+
+        (adminErr?'<div class="errmsg">'+ic('x')+' 管理员账号不能为空</div>':'')+'</div>'+
+      '<div class="field"><label>席位配额</label><div class="slider"><input type="range" id="f_seats" min="5" max="500" value="'+f.seats+'"><span class="out" id="f_seats_out">'+f.seats+' 席</span></div></div>'+
+      '<div class="field"><label>存储配额</label><div class="slider"><input type="range" id="f_storage" min="12" max="512" value="'+f.storage+'"><span class="out" id="f_storage_out">'+f.storage+' GB</span></div></div>'+
+      '<div class="field"><label>备注</label><textarea id="f_note" rows="2" placeholder="选填">'+esc(f.note)+'</textarea></div>'+
+    '</div>'+
+    '<div class="m-foot"><button class="btn" data-act="closemodal">取消</button>'+
+      '<button class="btn primary" data-act="submit">创建租户</button></div>';
+}
+
+/* ── Toast ── */
+function pushToast(msg, kind){
+  state.toasts.push({ msg:msg, kind:kind||'ok' });
+  setTimeout(function(){ state.toasts.shift(); renderToasts(); }, 2600);
+}
+function renderToasts(){
+  var el = document.getElementById('toasts');
+  el.innerHTML = state.toasts.map(function(t){
+    return '<div class="toast '+t.kind+'"><span class="tic">'+ic('check')+'</span>'+t.msg+'</div>';
+  }).join('');
+}
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ── 事件绑定 ── */
+function bindInputs(){
+  var q=document.getElementById('q'); if(q) q.oninput=function(){ state.q=this.value; render(); };
+  var ps=document.getElementById('planSel'); if(ps) ps.onchange=function(){ state.plan=this.value; render(); };
+  var ss=document.getElementById('statusSel'); if(ss) ss.onchange=function(){ state.status=this.value; render(); };
+  var so=document.getElementById('sortSel'); if(so) so.onchange=function(){ state.sort=this.value; render(); };
+  var ac=document.getElementById('actor'); if(ac) ac.oninput=function(){ state.actor=this.value; render(); };
+  var ts=document.getElementById('typeSel'); if(ts) ts.onchange=function(){ state.type=this.value; render(); };
+  var rs=document.getElementById('rangeSel'); if(rs) rs.onchange=function(){ /* 时间范围筛选 */ };
+  var gs=document.getElementById('gsearch'); if(gs) gs.oninput=function(){ /* 全局搜索 */ };
+  // 模态字段
+  if(state.modal){
+    var fn=document.getElementById('f_name'); if(fn){ fn.oninput=function(){ state.form.name=this.value; }; fn.onblur=function(){ state.form.touched.name=true; render(); }; }
+    var fe=document.getElementById('f_email'); if(fe){ fe.oninput=function(){ state.form.email=this.value; }; fe.onblur=function(){ state.form.touched.email=true; render(); }; }
+    var fi=document.getElementById('f_industry'); if(fi) fi.onchange=function(){ state.form.industry=this.value; };
+    var fa=document.getElementById('f_admin'); if(fa){ fa.oninput=function(){ state.form.admin=this.value; }; fa.onblur=function(){ state.form.touched.admin=true; render(); }; }
+    var fs=document.getElementById('f_seats'); if(fs){ fs.oninput=function(){ state.form.seats=+this.value; var o=document.getElementById('f_seats_out'); if(o)o.textContent=this.value+' 席'; }; }
+    var fst=document.getElementById('f_storage'); if(fst){ fst.oninput=function(){ state.form.storage=+this.value; var o=document.getElementById('f_storage_out'); if(o)o.textContent=this.value+' GB'; }; }
+    var fno=document.getElementById('f_note'); if(fno) fno.oninput=function(){ state.form.note=this.value; };
+  }
+}
+
+/* ── 全局点击（事件委托） ── */
+document.addEventListener('click', function(e){
+  var nav = e.target.closest('[data-nav]');
+  if(nav){ state.page=nav.getAttribute('data-nav'); state.drawer=null; state.modal=''; render(); return; }
+  var act = e.target.closest('[data-act]');
+  if(act){
+    var a = act.getAttribute('data-act');
+    var id = act.getAttribute('data-id');
+    if(a==='view'){ state.drawer=id; state.drawerTab='overview'; render(); }
+    else if(a==='edit'){ var t=TENANTS.filter(function(x){return x.id===id;})[0]; if(t){ state.form={name:t.name,email:t.email,industry:t.industry,plan:t.plan,admin:t.admin,seats:t.seats,storage:t.storage,note:'',touched:{}}; state.modal='edit'; render(); } }
+    else if(a==='editfromdrawer'){ var tt=TENANTS.filter(function(x){return x.id===state.drawer;})[0]; if(tt){ state.form={name:tt.name,email:tt.email,industry:tt.industry,plan:tt.plan,admin:tt.admin,seats:tt.seats,storage:tt.storage,note:'',touched:{}}; state.modal='edit'; render(); } }
+    else if(a==='del'){ pushToast('租户已删除（演示）', 'warn'); }
+    else if(a==='create'){ state.form={name:'',email:'',industry:'企业服务',plan:'pro',admin:'',seats:50,storage:64,note:'',touched:{}}; state.modal='create'; render(); }
+    else if(a==='closemodal'){ state.modal=''; render(); }
+    else if(a==='submit'){ var f=state.form; var t={name:true,email:true,admin:true}; state.form.touched=t; if(!f.name.trim()||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)||!f.admin.trim()){ pushToast('请修正表单中的错误项', 'err'); render(); } else { state.modal=''; pushToast('租户「'+f.name+'」创建成功'); render(); } }
+    else if(a==='closedrawer'){ state.drawer=null; render(); }
+    else if(a==='freeze'){ pushToast('租户已冻结', 'warn'); render(); }
+    else if(a==='clear'){ state.selected=[]; render(); }
+    else if(a==='batchfreeze'){ pushToast('已冻结 '+state.selected.length+' 个租户', 'warn'); state.selected=[]; render(); }
+    else if(a==='batchstop'){ pushToast('已停用 '+state.selected.length+' 个租户'); state.selected=[]; render(); }
+    else if(a==='batchexport'){ pushToast('已导出 '+state.selected.length+' 个租户的数据'); state.selected=[]; render(); }
+    else if(a==='exportlog'){ pushToast('审计日志已导出为 CSV'); }
+    else if(a==='addmember'){ pushToast('邀请链接已复制'); }
+    else if(a==='addrole'){ pushToast('新建角色（演示）'); }
+    return;
+  }
+  var tab = e.target.closest('[data-tab]');
+  if(tab){ state.drawerTab=tab.getAttribute('data-tab'); render(); return; }
+  var role = e.target.closest('[data-role]');
+  if(role){ state.role=role.getAttribute('data-role'); render(); return; }
+  var plan = e.target.closest('[data-plan]');
+  if(plan){ state.form.plan=plan.getAttribute('data-plan'); render(); return; }
+  var chk = e.target.closest('.rowchk');
+  if(chk){
+    var id=chk.getAttribute('data-id');
+    var i=state.selected.indexOf(id);
+    if(i>=0) state.selected.splice(i,1); else state.selected.push(id);
+    render(); return;
+  }
+  var all = e.target.closest('#allchk');
+  if(all){ if(state.selected.length) state.selected=[]; else state.selected=TENANTS.map(function(t){return t.id;}); render(); return; }
+});
+
+/* ── 快捷键 ── */
+document.addEventListener('keydown', function(e){
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); var g=document.getElementById('gsearch'); if(g) g.focus(); }
+  if(e.key==='Escape'){ if(state.modal){ state.modal=''; render(); } else if(state.drawer){ state.drawer=null; render(); } }
+});
+
+/* ── 对外 API（状态注入 / 探针） ── */
+window.ARK = {
+  set: function(partial){
+    for(var k in partial){
+      if(k==='form'){ state.form = Object.assign({name:'',email:'',industry:'企业服务',plan:'pro',admin:'',seats:50,storage:64,note:'',touched:{}}, partial.form||{}); }
+      else if(k==='selected'){ state.selected = partial.selected.slice(); }
+      else { state[k]=partial[k]; }
+    }
+    render();
+  },
+  info: function(){
+    return { page:state.page, drawer:state.drawer, drawerTab:state.drawerTab, modal:state.modal,
+      plan:state.plan, status:state.status, sort:state.sort, q:state.q, selected:state.selected.length,
+      role:state.role, type:state.type, range:state.range, actor:state.actor, toasts:state.toasts.length };
+  }
+};
+
+render();
+</script>
+</body>
+</html>

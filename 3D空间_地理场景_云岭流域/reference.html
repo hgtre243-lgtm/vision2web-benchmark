@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>云岭流域 YUNLING WATERSHED —— 三维地理分析沙盘</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#070b0d; --pane:#0c1317; --pane2:#101a1f; --line:#1c2a30; --line2:#27393f;
+  --tx:#c3d4d8; --dim:#5d747c; --dim2:#3a4b52;
+  --gold:#e0b45c; --cyan:#35e0d0; --lime:#8fd44f; --rose:#ff5c76; --violet:#a97cf0;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--tx);
+  font:12px/1.5 "Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.app{height:100vh;display:grid;gap:6px;padding:6px;
+  grid-template-columns:298px minmax(0,1fr) 334px;
+  grid-template-rows:50px minmax(0,1fr) 158px;
+  grid-template-areas:"hdr hdr hdr" "cl view cr" "cl led cr";}
+.card{background:var(--pane);border:1px solid var(--line);border-radius:4px;
+  overflow:hidden;position:relative;min-height:0}
+.ct{height:25px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 9px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#101a1f,#0c1317);
+  font-size:10px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;flex:none}
+.ct b{color:var(--tx);font-weight:600;letter-spacing:.06em}
+.ct i{font-style:normal;font-size:9px;color:var(--dim2);letter-spacing:.1em}
+.card.fill{display:grid;grid-template-rows:25px minmax(0,1fr)}
+.cl{grid-area:cl;display:grid;gap:6px;grid-template-rows:auto auto minmax(0,1fr);min-height:0}
+.cr{grid-area:cr;display:grid;gap:6px;grid-template-rows:auto auto minmax(0,1fr);min-height:0}
+.led{grid-area:led}
+.view{grid-area:view;position:relative;background:#05080a;border:1px solid var(--line);
+  border-radius:4px;overflow:hidden}
+.view canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+/* ---------- 顶栏 ---------- */
+.hdr{grid-area:hdr;display:flex;align-items:center;gap:0;padding:0 12px;
+  background:linear-gradient(180deg,#101a1f,#0a1114);border:1px solid var(--line);border-radius:4px}
+.brand{display:flex;align-items:baseline;gap:9px;padding-right:14px;border-right:1px solid var(--line)}
+.brand h1{font-size:14px;letter-spacing:.2em;font-weight:700;
+  background:linear-gradient(90deg,var(--cyan),var(--gold) 58%,var(--rose));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.brand span{font-size:8.5px;letter-spacing:.28em;color:var(--dim2)}
+.presets{display:flex;gap:4px;padding:0 12px;border-right:1px solid var(--line)}
+.presets button{font:500 10.5px/1 inherit;letter-spacing:.06em;color:#93a8ae;
+  background:#111c21;border:1px solid var(--line2);border-radius:3px;padding:6px 10px;cursor:pointer}
+.presets button:hover{color:var(--tx);border-color:#3a5158}
+.presets button.on{color:#05100f;background:linear-gradient(180deg,#4fe6d6,#22b6a6);border-color:#22b6a6}
+.chain{display:flex;align-items:center;gap:3px;padding:0 12px;flex:1;min-width:0;overflow:hidden}
+.chain .st{font-size:8.5px;letter-spacing:.05em;color:var(--dim2);background:#0d1619;
+  border:1px solid #17262b;border-radius:2px;padding:4px 7px;white-space:nowrap;transition:.2s}
+.chain .st.on{color:#06110f;background:linear-gradient(180deg,#5fe8d8,#25bbaa);
+  border-color:#25bbaa;font-weight:600}
+.gaugewrap{margin-left:auto;display:flex;align-items:center;gap:0}
+.g{text-align:right;padding:0 11px;border-left:1px solid var(--line);min-width:66px}
+.g u{display:block;font-size:8.5px;letter-spacing:.14em;color:var(--dim2);text-decoration:none}
+.g b{display:block;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--tx)}
+.g b small{font-size:8.5px;color:var(--dim);margin-left:2px;font-weight:400}
+#gFps b{color:var(--lime)} #gTris b{color:var(--cyan)} #gDist b{color:var(--gold)}
+
+/* ---------- 键值行 ---------- */
+.rows{padding:4px 9px 7px}
+.r{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  padding:3px 0;border-top:1px dashed #142126;font-size:10px}
+.r:first-child{border-top:0}
+.r u{text-decoration:none;color:var(--dim);letter-spacing:.04em;white-space:nowrap}
+.r b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--tx);text-align:right;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r b.gold{color:var(--gold)} .r b.cy{color:var(--cyan)} .r b.li{color:var(--lime)}
+.r b.ro{color:var(--rose)} .r b.vi{color:var(--violet)}
+
+/* ---------- 控制态向量条 ---------- */
+.vec{grid-area:vec;display:none}
+.wstrip{display:flex;flex-wrap:wrap;gap:3px;padding:5px 8px}
+.wv{font-size:9px;letter-spacing:.03em;padding:2px 6px;border-radius:2px;
+  background:#0e191d;border:1px solid #1a2a30;color:#7b939a}
+.wv i{font-style:normal;color:var(--violet)}
+.wv b{color:var(--gold);font-weight:600}
+
+/* ---------- 光轨 SVG ---------- */
+.orb{display:block;width:100%;height:132px}
+.orb .grid{stroke:#16242a;stroke-width:1;fill:none}
+.orb .ring{stroke:#2a3f47;stroke-width:1;fill:none;stroke-dasharray:3 4}
+.orb .pathA{stroke:#ffb04a;stroke-width:1.4;fill:none;opacity:.5}
+.orb .pathB{stroke:#4fc9ff;stroke-width:1.4;fill:none;opacity:.5}
+.orb .sun{fill:#ffcf72}
+.orb .rim{fill:#7fd8ff}
+.orb text{fill:#5d747c;font-size:8px;font-family:system-ui,sans-serif}
+
+/* ---------- 滑块 ---------- */
+.sl{padding:7px 10px 9px}
+.slr{margin-bottom:9px}
+.slr:last-child{margin-bottom:0}
+.slh{display:flex;justify-content:space-between;align-items:baseline;font-size:10px;margin-bottom:4px}
+.slh u{text-decoration:none;color:var(--dim);letter-spacing:.04em}
+.slh b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--gold)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;
+  background:#1b2b31;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;
+  background:linear-gradient(180deg,#68ecdc,#22b6a6);border:0;cursor:pointer}
+.togs{display:flex;gap:5px;margin-top:3px}
+.togs button{flex:1;font:500 10px/1 inherit;color:#8ea4aa;background:#111c21;
+  border:1px solid var(--line2);border-radius:3px;padding:6px 4px;cursor:pointer;letter-spacing:.05em}
+.togs button.on{color:#0a1410;background:linear-gradient(180deg,#e8c477,#c99a3c);border-color:#c99a3c;font-weight:600}
+
+/* ---------- 台账 ---------- */
+.lgrid{display:grid;grid-template-columns:repeat(4,1fr);height:calc(100% - 25px)}
+.lc{padding:10px 13px;border-right:1px solid var(--line)}
+.lc:last-child{border-right:0}
+.lc u{display:block;text-decoration:none;font-size:9.5px;letter-spacing:.13em;color:var(--dim)}
+.lc b{display:block;font-size:27px;font-weight:700;line-height:1.25;color:var(--cyan);
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.lc b small{font-size:11px;color:var(--dim);margin-left:3px;font-weight:400}
+.lc s{display:block;text-decoration:none;font-size:9px;color:var(--dim2);line-height:1.5;margin-top:3px}
+.lc b.sm{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--cyan)}
+.hist{display:flex;gap:2px;align-items:flex-end;height:22px;margin-top:5px}
+.hist i{flex:1;background:linear-gradient(180deg,#35e0d0,#1b6f68);border-radius:1px;min-height:2px;
+  position:relative;transition:height .25s}
+.hist i.on{background:linear-gradient(180deg,#ffd27a,#c99a3c)}
+
+/* ---------- 提示浮层 ---------- */
+.tip{position:absolute;left:10px;bottom:10px;display:flex;gap:6px;flex-wrap:wrap;
+  pointer-events:none;max-width:calc(100% - 20px)}
+.tip span{font-size:9.5px;letter-spacing:.04em;padding:4px 9px;border-radius:11px;
+  background:rgba(8,14,17,.84);border:1px solid var(--line2);color:#8ba4ab;white-space:nowrap}
+.tip span b{color:var(--gold);font-weight:600;margin-left:4px}
+.sband{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:8px;
+  padding:6px 12px;border-radius:3px;background:rgba(7,12,15,.9);
+  border:1px solid var(--line2);pointer-events:none}
+.sband i{width:8px;height:8px;border-radius:50%;flex:none}
+.sband b{font-size:11.5px;letter-spacing:.08em;font-weight:600}
+.sband s{text-decoration:none;font-size:9.5px;color:var(--dim)}
+.pick{position:absolute;right:10px;top:10px;padding:6px 11px;border-radius:3px;
+  background:rgba(7,12,15,.9);border:1px solid var(--line2);pointer-events:none;
+  font-size:9.5px;color:var(--dim);letter-spacing:.04em;line-height:1.55;text-align:right}
+.pick b{color:var(--gold);font-weight:600}
+.pick em{font-style:normal;color:var(--cyan)}
+
+@media (max-width:1400px){
+  .app{grid-template-columns:262px minmax(0,1fr) 300px}
+  .g{min-width:56px;padding:0 8px} .g b{font-size:12.5px}
+  .brand span{display:none}
+}
+@media (max-width:1180px){
+  .app{grid-template-columns:minmax(0,1fr) 288px;
+       grid-template-rows:46px minmax(0,1fr) 140px;
+       grid-template-areas:"hdr hdr" "view cr" "led cr"}
+  .cl{display:none}
+  .chain{display:none}
+}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr);
+       grid-template-rows:44px minmax(0,1fr) 132px 150px;
+       grid-template-areas:"hdr" "view" "cr" "led";padding:4px;gap:4px}
+  .cr{grid-template-rows:auto auto minmax(0,1fr)}
+  .gaugewrap .g:nth-child(n+3){display:none}
+  .presets button:nth-child(n+3){display:none}
+  .lgrid{grid-template-columns:repeat(2,1fr)}
+  .lc.wide{grid-column:span 2}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hdr">
+    <div class="brand"><h1>云岭流域</h1><span>YUNLING WATERSHED / 3D GEO SANDBOX</span></div>
+    <div class="presets" id="presets"></div>
+    <div class="chain" id="chain"></div>
+    <div class="gaugewrap">
+      <div class="g" id="gFps"><u>帧率</u><b>0</b></div>
+      <div class="g" id="gTris"><u>三角面</u><b>0</b></div>
+      <div class="g" id="gDist"><u>视距</u><b>0</b></div>
+      <div class="g" id="gPrim"><u>图元</u><b>TRI</b></div>
+    </div>
+  </header>
+
+  <aside class="cl">
+    <div class="card">
+      <div class="ct"><b>空间相机方位仪</b><i>CAMERA ORBIT</i></div>
+      <div class="rows">
+        <div class="r"><u>世界坐标 X</u><b class="gold" id="cX">0.0</b></div>
+        <div class="r"><u>世界坐标 Y</u><b class="gold" id="cY">0.0</b></div>
+        <div class="r"><u>世界坐标 Z</u><b class="gold" id="cZ">0.0</b></div>
+        <div class="r"><u>方位角 AZ</u><b class="cy" id="cAz">0.00 rad</b></div>
+        <div class="r"><u>极角 EL</u><b class="cy" id="cEl">0.00 rad</b></div>
+        <div class="r"><u>视距 DIST</u><b class="cy" id="cD">0</b></div>
+        <div class="r"><u>注视靶点</u><b id="cTgt">0, 0, 0</b></div>
+        <div class="r"><u>角速度 ω</u><b class="li" id="cW">0.000</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ct"><b>视锥体参数监视窗</b><i>FRUSTUM</i></div>
+      <div class="rows">
+        <div class="r"><u>视场角 FOV</u><b class="gold" id="fFov">46.0°</b></div>
+        <div class="r"><u>宽高比 ASPECT</u><b id="fAsp">1.78</b></div>
+        <div class="r"><u>近裁面 NEAR</u><b class="cy" id="fNear">6.0</b></div>
+        <div class="r"><u>远裁面 FAR</u><b class="cy" id="fFar">14000</b></div>
+        <div class="r"><u>靶点处近/远距离</u><b id="fDepth">0 / 0</b></div>
+        <div class="r"><u>包围盒间隙 d</u><b class="li" id="fClear">0.00</b></div>
+        <div class="r"><u>剔除状态</u><b class="li" id="fCull">视锥内</b></div>
+      </div>
+    </div>
+
+    <div class="card fill">
+      <div class="ct"><b>渲染管线监控面板</b><i>PIPELINE</i></div>
+      <div class="rows" id="pipeRows"></div>
+    </div>
+  </aside>
+
+  <main class="view">
+    <canvas id="gl"></canvas>
+    <div class="sband"><i id="stDot"></i><b id="stName">INIT_BUFFER_ALLOCATED</b><s id="stSub">缓冲装配标定</s></div>
+    <div class="pick" id="pickBox">射线拾取 —<br>地表落点 —</div>
+    <div class="tip">
+      <span>左键拖拽<b>球面环绕</b></span>
+      <span>滚轮<b>非线性缩放</b></span>
+      <span>右键拖拽<b>靶点平移</b></span>
+      <span>双击实体<b>射线聚焦</b></span>
+      <span>Shift+拖拽<b>副光牵引</b></span>
+      <span>L<b>光照过载</b></span>
+      <span>W<b>线框混合</b></span>
+      <span>R<b>视锥归位</b></span>
+    </div>
+  </main>
+
+  <aside class="cr">
+    <div class="card">
+      <div class="ct"><b>双动态光源轨道示波图</b><i>LIGHT ORBIT</i></div>
+      <svg class="orb" id="orb" viewBox="0 0 320 132" preserveAspectRatio="none">
+        <rect class="grid" x="4" y="4" width="312" height="124"/>
+        <ellipse class="ring" cx="160" cy="70" rx="128" ry="50"></ellipse>
+        <ellipse class="ring" cx="160" cy="70" rx="82" ry="32"></ellipse>
+        <polyline class="pathA" id="orbA" points=""></polyline>
+        <polyline class="pathB" id="orbB" points=""></polyline>
+        <circle class="sun" id="sunPt" cx="0" cy="0" r="5"></circle>
+        <circle class="rim" id="rimPt" cx="0" cy="0" r="4"></circle>
+        <text x="8" y="16" id="orbTxA">主光 —</text>
+        <text x="8" y="124" id="orbTxB">副光 —</text>
+      </svg>
+      <div class="rows" id="lightRows"></div>
+    </div>
+
+    <div class="card">
+      <div class="ct"><b>曲率与法线摄动强度</b><i>SHADING CONTROL</i></div>
+      <div class="sl">
+        <div class="slr"><div class="slh"><u>法线摄动强度 BUMP</u><b id="vBump">0.85</b></div>
+          <input type="range" id="sBump" min="0" max="220" value="85"></div>
+        <div class="slr"><div class="slh"><u>高光指数 SPEC</u><b id="vSpec">0.62</b></div>
+          <input type="range" id="sSpec" min="0" max="200" value="62"></div>
+        <div class="slr"><div class="slh"><u>等高线密度 CONTOUR</u><b id="vCont">34</b></div>
+          <input type="range" id="sCont" min="0" max="90" value="34"></div>
+        <div class="togs">
+          <button id="tWire">线框叠加 W</button>
+          <button id="tOver">光照过载 L</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card fill">
+      <div class="ct"><b>着色与交互状态</b><i>TELEMETRY</i></div>
+      <div class="rows" id="teleRows"></div>
+    </div>
+  </aside>
+
+  <section class="led card">
+    <div class="ct"><b>实时渲染遥测与空间审计账本</b><i>逐帧数组回溯 · <span id="ledN">0</span> 帧</i></div>
+    <div class="lgrid">
+      <div class="lc"><u>帧样本数</u><b id="lA">0<small>帧</small></b><s id="lAd">逐帧遥测样本条数</s></div>
+      <div class="lc"><u>平均帧间隔</u><b id="lB">0.0<small>ms</small></b><s id="lBd">全时段帧间隔算术均值</s></div>
+      <div class="lc"><u>拾取命中率</u><b id="lC">0.0<small>%</small></b><s id="lCd">命中帧 / 有效拾取帧</s></div>
+      <div class="lc"><u>状态驻留分布</u><b class="sm" id="lD">—</b>
+        <div class="hist" id="hist"></div></div>
+    </div>
+  </section>
+
+</div>
+<script>
+/* ============================================================
+   云岭流域 YUNLING WATERSHED —— 世界事实层
+   全部几何由原生 JavaScript 数学算法程序化生成并写入类型化数组。
+   无外部模型、无外部纹理、无第三方数学库。
+   ============================================================ */
+var SEED = 20261108;
+var RUNID = 'YL-4417-Q';
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+var RNG = mulberry32(SEED);
+
+/* ---------- 程序化噪声（值噪声 + 分形叠加） ---------- */
+function hash2(i, j, s) {
+  var n = Math.imul(i | 0, 374761393) ^ Math.imul(j | 0, 668265263) ^ Math.imul(s | 0, 1274126177);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+}
+function smoothstep(a, b, x) {
+  var t = (x - a) / (b - a);
+  if (t < 0) t = 0; if (t > 1) t = 1;
+  return t * t * (3 - 2 * t);
+}
+function vnoise(x, y, s) {
+  var xi = Math.floor(x), yi = Math.floor(y);
+  var xf = x - xi, yf = y - yi;
+  var u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  var a = hash2(xi, yi, s), b = hash2(xi + 1, yi, s);
+  var c = hash2(xi, yi + 1, s), d = hash2(xi + 1, yi + 1, s);
+  return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+}
+function fbm(x, y, oct, s) {
+  var acc = 0, amp = 0.5, f = 1, norm = 0;
+  for (var i = 0; i < oct; i++) {
+    acc += amp * vnoise(x * f, y * f, s + i * 131);
+    norm += amp; amp *= 0.5; f *= 2.03;
+  }
+  return acc / norm;
+}
+
+/* ---------- 世界尺度 ---------- */
+var WORLD = {
+  EXTENT: 4096,          // 流域边长（世界单位）
+  HEIGHT: 1180,          // 高程放大后的最大高度
+  GRID: 97,              // 每边顶点数（97 × 97 = 9409 ≥ 1500）
+  LAKE_Y: 0.155,         // 湖面归一化高程
+  FOV: 46,               // 默认视场角（度）
+  NEAR: 6, FAR: 14000,   // 默认近远裁平面
+  CAM_MIN: 300, CAM_MAX: 13500,
+  CLEARANCE: 0.5         // 相机到包围盒表面的最小间隙
+};
+
+/* ---------- 流域底座（裙边）：让地形成为有厚度的地质块体 ---------- */
+var SKIRT_BOTTOM = -340;
+
+/* ---------- 高程场：盆地 + 环形山脊 + 蜿蜒主河道 ---------- */
+function terrainH(u, v) {
+  var x = (u - 0.5) * 2, z = (v - 0.5) * 2;
+  var r = Math.sqrt(x * x + z * z);
+  var big = fbm(x * 1.25 + 5.3, z * 1.25 - 2.1, 4, 11);
+  var mid = fbm(x * 2.70 - 3.4, z * 2.70 + 6.2, 4, 29);
+  var det = fbm(x * 7.10 + 1.7, z * 7.10 + 3.3, 3, 47);
+  var h = big * 0.54 + mid * 0.31 + det * 0.15;
+  h += smoothstep(0.40, 1.18, r) * 0.44;                 // 外环分水岭
+  h -= (1.0 - smoothstep(0.0, 0.52, r)) * 0.50;          // 中心盆地
+  var cx = Math.sin(z * 2.9 + 0.6) * 0.20 + Math.sin(z * 1.2 - 1.1) * 0.09;
+  var dd = x - cx;
+  h -= Math.exp(-(dd * dd) / 0.0105) * 0.27 *
+       smoothstep(-1.05, -0.30, z) * (1.0 - smoothstep(0.26, 0.84, z));
+  return h;
+}
+
+/* ---------- 程序化法线贴图（切线空间，由噪声梯度解析求出） ---------- */
+function buildNormalMap(size) {
+  var d = new Uint8Array(size * size * 4);
+  var e = 26 / size;
+  for (var j = 0; j < size; j++) {
+    for (var i = 0; i < size; i++) {
+      var x = i * e, y = j * e;
+      var hL = fbm(x - e * 0.5, y, 3, 91), hR = fbm(x + e * 0.5, y, 3, 91);
+      var hD = fbm(x, y - e * 0.5, 3, 91), hU = fbm(x, y + e * 0.5, 3, 91);
+      var nx = (hL - hR) * 3.4, ny = (hD - hU) * 3.4, nz = 1.0;
+      var L = Math.sqrt(nx * nx + ny * ny + nz * nz);
+      var o = (j * size + i) * 4;
+      d[o] = Math.round((nx / L * 0.5 + 0.5) * 255);
+      d[o + 1] = Math.round((ny / L * 0.5 + 0.5) * 255);
+      d[o + 2] = Math.round((nz / L * 0.5 + 0.5) * 255);
+      d[o + 3] = 255;
+    }
+  }
+  return d;
+}
+
+/* ---------- 高程色带（地形分析的经典分层设色） ---------- */
+function elevColor(t) {
+  var ramp = [
+    [0.00, 0.129, 0.259, 0.290],
+    [0.14, 0.180, 0.365, 0.353],
+    [0.30, 0.322, 0.478, 0.310],
+    [0.46, 0.545, 0.545, 0.333],
+    [0.62, 0.741, 0.643, 0.400],
+    [0.76, 0.812, 0.741, 0.596],
+    [0.88, 0.878, 0.878, 0.855],
+    [1.00, 0.973, 0.988, 1.000]
+  ];
+  for (var i = 1; i < ramp.length; i++) {
+    if (t <= ramp[i][0] || i === ramp.length - 1) {
+      var a = ramp[i - 1], b = ramp[i];
+      var k = (t - a[0]) / (b[0] - a[0]);
+      if (k < 0) k = 0; if (k > 1) k = 1;
+      return [a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k];
+    }
+  }
+  return [1, 1, 1];
+}
+
+/* ---------- 地形网格装配：位置 / 法线 / 切线 / 高程着色 / 索引 / 线框索引 ---------- */
+function buildTerrain() {
+  var N = WORLD.GRID, EXT = WORLD.EXTENT;
+  var raw = new Float32Array(N * N);
+  var i, j, mn = 1e9, mx = -1e9;
+  for (j = 0; j < N; j++) {
+    for (i = 0; i < N; i++) {
+      var h = terrainH(i / (N - 1), j / (N - 1));
+      raw[j * N + i] = h;
+      if (h < mn) mn = h; if (h > mx) mx = h;
+    }
+  }
+  var span = (mx - mn) || 1;
+  var H = new Float32Array(N * N);
+  for (i = 0; i < N * N; i++) H[i] = (raw[i] - mn) / span;
+
+  var pos = new Float32Array(N * N * 3);
+  var nrm = new Float32Array(N * N * 3);
+  var tan = new Float32Array(N * N * 3);
+  var col = new Float32Array(N * N * 3);
+  var uv = new Float32Array(N * N * 2);
+  var step = EXT / (N - 1);
+  var half = EXT / 2;
+  var hAt = function (a, b) {
+    if (a < 0) a = 0; if (a > N - 1) a = N - 1;
+    if (b < 0) b = 0; if (b > N - 1) b = N - 1;
+    return H[b * N + a] * WORLD.HEIGHT;
+  };
+  for (j = 0; j < N; j++) {
+    for (i = 0; i < N; i++) {
+      var k = j * N + i;
+      var wx = i * step - half, wz = j * step - half;
+      var wy = H[k] * WORLD.HEIGHT;
+      pos[k * 3] = wx; pos[k * 3 + 1] = wy; pos[k * 3 + 2] = wz;
+
+      /* 中心差分求解析法线（真正的曲面法线拓扑，非平面法线） */
+      var dYx = (hAt(i + 1, j) - hAt(i - 1, j)) / (2 * step);
+      var dYz = (hAt(i, j + 1) - hAt(i, j - 1)) / (2 * step);
+      var nx = -dYx, ny = 1, nz = -dYz;
+      var nl = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+      nrm[k * 3] = nx / nl; nrm[k * 3 + 1] = ny / nl; nrm[k * 3 + 2] = nz / nl;
+
+      /* 切线沿参数域 u 方向（后半段接缝处退化为 z 向，避免奇异） */
+      var tx = 2 * step, ty = hAt(i + 1, j) - hAt(i - 1, j), tz = 0;
+      if (i === 0 || i === N - 1) { tx = 0; ty = 0; tz = 2 * step; }
+      var tl = Math.sqrt(tx * tx + ty * ty + tz * tz) || 1;
+      tan[k * 3] = tx / tl; tan[k * 3 + 1] = ty / tl; tan[k * 3 + 2] = tz / tl;
+
+      var c = elevColor(H[k]);
+      col[k * 3] = c[0]; col[k * 3 + 1] = c[1]; col[k * 3 + 2] = c[2];
+      uv[k * 2] = i / (N - 1); uv[k * 2 + 1] = j / (N - 1);
+    }
+  }
+  var quads = (N - 1) * (N - 1);
+  var idx = new Uint16Array(quads * 6);
+  var p = 0;
+  for (j = 0; j < N - 1; j++) {
+    for (i = 0; i < N - 1; i++) {
+      var a = j * N + i, b = a + 1, c2 = a + N, d2 = c2 + 1;
+      idx[p++] = a; idx[p++] = c2; idx[p++] = b;
+      idx[p++] = b; idx[p++] = c2; idx[p++] = d2;
+    }
+  }
+  /* 线框索引：隔行取样，构成拓扑骨架 */
+  var lines = [];
+  for (j = 0; j < N; j += 3) for (i = 0; i < N - 1; i++) { lines.push(j * N + i, j * N + i + 1); }
+  for (i = 0; i < N; i += 3) for (j = 0; j < N - 1; j++) { lines.push(j * N + i, (j + 1) * N + i); }
+  var lidx = new Uint16Array(lines);
+
+  return { pos: pos, nrm: nrm, tan: tan, col: col, uv: uv, idx: idx, lidx: lidx,
+           N: N, verts: N * N, tris: quads * 2, hgrid: H };
+}
+
+/* ---------- 实体（标石）网格：八棱锥台 + 基座 + 顶冠 ---------- */
+function buildBeacon() {
+  var pos = [], nrm = [], tan = [], col = [], uv = [], idx = [];
+  var SEG = 8;
+  function ring(y, r, cr, cg, cb) {
+    var base = pos.length / 3;
+    for (var s = 0; s < SEG; s++) {
+      var a = s / SEG * Math.PI * 2;
+      var x = Math.cos(a) * r, z = Math.sin(a) * r;
+      pos.push(x, y, z);
+      nrm.push(Math.cos(a), 0.32, Math.sin(a));
+      tan.push(-Math.sin(a), 0, Math.cos(a));
+      col.push(cr, cg, cb);
+      uv.push(s / SEG, y * 0.1);
+    }
+    return base;
+  }
+  function bridge(a, b) {
+    for (var s = 0; s < SEG; s++) {
+      var n = (s + 1) % SEG;
+      idx.push(a + s, b + s, a + n);
+      idx.push(a + n, b + s, b + n);
+    }
+  }
+  var r0 = ring(-58, 46, 0.34, 0.38, 0.40);
+  var r1 = ring(-52, 40, 0.30, 0.34, 0.37);
+  var r2 = ring(-14, 21, 0.86, 0.74, 0.46);
+  var r3 = ring(70, 12, 0.96, 0.88, 0.62);
+  var r4 = ring(96, 16, 0.90, 0.36, 0.28);
+  bridge(r0, r1); bridge(r1, r2); bridge(r2, r3); bridge(r3, r4);
+  /* 顶冠收束 */
+  var apex = pos.length / 3;
+  pos.push(0, 134, 0); nrm.push(0, 1, 0); tan.push(1, 0, 0); col.push(1.0, 0.86, 0.52); uv.push(0.5, 1);
+  for (var s2 = 0; s2 < SEG; s2++) idx.push(r4 + s2, apex, r4 + (s2 + 1) % SEG);
+  /* 基座封底 */
+  var floor = pos.length / 3;
+  pos.push(0, -58, 0); nrm.push(0, -1, 0); tan.push(1, 0, 0); col.push(0.22, 0.25, 0.27); uv.push(0.5, 0);
+  for (var s3 = 0; s3 < SEG; s3++) idx.push(floor, r0 + (s3 + 1) % SEG, r0 + s3);
+
+  return {
+    pos: new Float32Array(pos), nrm: new Float32Array(nrm), tan: new Float32Array(tan),
+    col: new Float32Array(col), uv: new Float32Array(uv), idx: new Uint16Array(idx),
+    verts: pos.length / 3, tris: idx.length / 3
+  };
+}
+
+/* ---------- 实体的世界布点（流域控制点） ---------- */
+function placeEntities(hgrid) {
+  var N = WORLD.GRID, EXT = WORLD.EXTENT, half = EXT / 2, step = EXT / (N - 1);
+  function at(u, v) {
+    var i = Math.max(0, Math.min(N - 1, Math.round(u * (N - 1))));
+    var j = Math.max(0, Math.min(N - 1, Math.round(v * (N - 1))));
+    return [i * step - half, hgrid[j * N + i] * WORLD.HEIGHT, j * step - half];
+  }
+  var defs = [
+    ['主峰 · 云岭顶', 0.205, 0.196, 1.45, [0.96, 0.72, 0.36]],
+    ['次峰 · 白石尖', 0.782, 0.238, 1.15, [0.86, 0.88, 0.94]],
+    ['湖心 · 沉沙泊', 0.462, 0.612, 1.00, [0.30, 0.82, 0.86]],
+    ['隘口 · 风门口', 0.148, 0.556, 0.92, [0.72, 0.54, 0.96]],
+    ['汇流 · 三江口', 0.508, 0.436, 0.88, [0.42, 0.88, 0.56]],
+    ['出山 · 龙门峡', 0.556, 0.088, 1.06, [0.98, 0.52, 0.34]],
+    ['观测 · 中继台', 0.858, 0.812, 0.80, [0.52, 0.70, 0.98]]
+  ];
+  var list = [];
+  for (var k = 0; k < defs.length; k++) {
+    var d = defs[k], w = at(d[1], d[2]);
+    list.push({
+      id: k, name: d[0], x: w[0], y: w[1], z: w[2], sc: d[3],
+      col: d[4], u: d[1], v: d[2],
+      radius: 250 * d[3]        // 包围球半径（供射线求交）
+    });
+  }
+  return list;
+}
+
+/* ---------- 场景包围盒（相机防穿模的基准） ---------- */
+function sceneBounds(hgrid) {
+  var N = WORLD.GRID, EXT = WORLD.EXTENT, half = EXT / 2;
+  var mnY = 1e9, mxY = -1e9;
+  for (var i = 0; i < N * N; i++) { if (hgrid[i] < mnY) mnY = hgrid[i]; if (hgrid[i] > mxY) mxY = hgrid[i]; }
+  return {
+    min: [-half, mnY * WORLD.HEIGHT, -half],
+    max: [half, mxY * WORLD.HEIGHT, half]
+  };
+}
+
+/* ---------- 八阶互斥空间渲染状态机 ---------- */
+var SN = [
+  'INIT_BUFFER_ALLOCATED',
+  'ORBIT_IDLE_SPINNING',
+  'CAMERA_ORBIT_DRAGGING',
+  'TARGET_ENTITY_HOVER',
+  'ENTITY_FOCUSED_ZOOM',
+  'LIGHTING_OVERDRIVE',
+  'SHADING_WIREFRAME_HYBRID',
+  'FRUSTUM_RESET_HOMING'
+];
+var SC = ['缓冲装配标定', '空间巡航自转', '球面阻尼拖拽', '实体预选悬停',
+          '靶点插值聚焦', '光照过载爆发', '线框实体混合', '视锥平滑归位'];
+var SK = ['#e0b45c', '#4fd68a', '#39a8ff', '#ff8a3d',
+          '#c47cff', '#ff3d6e', '#35e0d0', '#8fa6b8'];
+var SD = [
+  '顶点/法线/切线缓冲与着色器程序已装配并就绪，场景首次呈现',
+  '相机沿球面默认轨道缓动巡航，方位角匀速推进',
+  '指针按下并拖拽，球面极坐标受阻尼跟随',
+  '射线命中实体包围球，实体进入预选高亮',
+  '双击实体后相机沿插值轨迹推进至实体表面',
+  '主光强度与高光指数进入过载区间并向外泛光',
+  '线框拓扑叠加于实体着色之上，两种图元切分混合',
+  '视锥参数与相机姿态平滑复位至默认取景'
+];
+
+/* ---------- 视口取景预设 ---------- */
+var PRESETS = [
+  { k: '全景鸟瞰', az: 0.62, el: 0.60, d: 6600, fov: 46, ty: 430 },
+  { k: '北向侧掠', az: 1.94, el: 0.26, d: 5900, fov: 52, ty: 330 },
+  { k: '湖盆俯视', az: 0.30, el: 1.18, d: 5200, fov: 40, ty: 300 },
+  { k: '峡谷低掠', az: 2.72, el: 0.15, d: 4600, fov: 58, ty: 210 }
+];
+
+/* ---------- 复合手势清单 ---------- */
+var GESTURES = [
+  { k: '球面阻尼环绕', d: '左键拖拽环绕相机；松手后保留角速度并按指数衰减惯性滑行，滑行时长不低于 800 毫秒' },
+  { k: '非线性视距缩放', d: '滚轮改变视距；越接近近裁平面阻力越大，形成指数级缓冲，且相机到包围盒表面间隙不得低于安全阈值' },
+  { k: '靶点平移', d: '右键拖拽在相机自身的屏幕平面内平移注视靶点，相机坐标随之同步平动' },
+  { k: '射线聚焦推进', d: '双击三维实体，由拾取结果驱动相机沿插值轨迹推进至该实体表面并保持朝向' },
+  { k: '副光球面牵引', d: 'Shift + 拖拽把次级动态光源沿空间球面轨迹重定位，实时改写其入射方向与照度' }
+];
+
+/* ---------- 三大反直觉断言地雷 ---------- */
+var TRAPS = [
+  { k: 'R1 零外部库断言', d: '全局作用域内不得出现任何第三方 3D 数学或渲染库标识；画布上下文必须是原生 webgl/webgl2；用 2D 上下文描线冒充三维直接判未实现' },
+  { k: 'R2 手搓矩阵与非欧视锥', d: '世界坐标到裁剪空间的 16 元素单精度变换必须全部手写；手性、转置与叉乘方向任一错误都会让场景被近远平面整片剔除而全黑' },
+  { k: 'R3 惯性阻尼与防穿模熔断', d: '松手瞬间角速度归零视为交互未闭环；急速推进时相机到包围盒表面的间隙必须被严格钳制，穿透进入几何内部导致背面剔除露空即为严重缺陷' }
+];
+
+/* ---------- 遥测账本字段 ---------- */
+var LEDGER_DEF = [
+  { k: '帧样本数', u: '帧', d: '逐帧累积的遥测样本条数，结算时刻由该数组长度回溯得出' },
+  { k: '平均帧间隔', u: 'ms', d: '回溯全时段帧间隔的算术均值' },
+  { k: '拾取命中率', u: '%', d: '回溯全时段射线命中实体的帧数占有效拾取帧数的比例' },
+  { k: '状态驻留分布', u: '帧', d: '回溯全时段各互斥状态的驻留帧数直方图' }
+];
+
+/* ---------- 底座裙边网格：沿高程场边界向下挤出的地质块体侧壁 ---------- */
+function buildSkirt(hgrid) {
+  var N = WORLD.GRID, EXT = WORLD.EXTENT, half = EXT / 2, step = EXT / (N - 1);
+  var per = [], i, j;
+  for (i = 0; i < N; i++) per.push([i, 0]);
+  for (j = 1; j < N; j++) per.push([N - 1, j]);
+  for (i = N - 2; i >= 0; i--) per.push([i, N - 1]);
+  for (j = N - 2; j >= 1; j--) per.push([0, j]);
+  var P = per.length;
+  var pos = [], nrm = [], tan = [], col = [], uv = [], idx = [];
+  for (i = 0; i < P; i++) {
+    var a = per[i], b = per[(i + 1) % P];
+    var ax = a[0] * step - half, az = a[1] * step - half;
+    var bx = b[0] * step - half, bz = b[1] * step - half;
+    var dx = bx - ax, dz = bz - az;
+    var nx = -dz, nz = dx;
+    var mx = (ax + bx) * 0.5, mz = (az + bz) * 0.5;
+    if (nx * mx + nz * mz < 0) { nx = -nx; nz = -nz; }
+    var nl = Math.sqrt(nx * nx + nz * nz) || 1;
+    nx /= nl; nz /= nl;
+    var ay = hgrid[a[1] * N + a[0]] * WORLD.HEIGHT;
+    var by = hgrid[b[1] * N + b[0]] * WORLD.HEIGHT;
+    var ca = elevColor(hgrid[a[1] * N + a[0]]);
+    var cb = elevColor(hgrid[b[1] * N + b[0]]);
+    pos.push(ax, ay, az, ax, SKIRT_BOTTOM, az, bx, by, bz, bx, SKIRT_BOTTOM, bz);
+    nrm.push(nx, 0.10, nz, nx, -0.06, nz, nx, 0.10, nz, nx, -0.06, nz);
+    tan.push(-nz, 0, nx, -nz, 0, nx, -nz, 0, nx, -nz, 0, nx);
+    col.push(ca[0], ca[1], ca[2], 0.078, 0.084, 0.094,
+             cb[0], cb[1], cb[2], 0.058, 0.064, 0.074);
+    uv.push(i / P * 8, 1, i / P * 8, 0, (i + 1) / P * 8, 0, (i + 1) / P * 8, -1);
+  }
+  for (i = 0; i < P; i++) {
+    var k = i * 4, n = ((i + 1) % P) * 4;
+    idx.push(k, n, k + 1, n, n + 1, k + 1);
+  }
+  var lines = [];
+  for (i = 0; i < P; i += 2) { var q = i * 4; lines.push(q, q + 1); }
+  for (i = 0; i < P; i += 2) { var q2 = i * 4, n2 = ((i + 1) % P) * 4; lines.push(q2, n2); }
+  return {
+    pos: new Float32Array(pos), nrm: new Float32Array(nrm), tan: new Float32Array(tan),
+    col: new Float32Array(col), uv: new Float32Array(uv),
+    idx: new Uint16Array(idx), lidx: new Uint16Array(lines),
+    verts: pos.length / 3, tris: idx.length / 3
+  };
+}
+
+</script>
+<script>
+(function () {
+'use strict';
+
+/* ==========================================================================
+   云岭流域 · 三维地理分析沙盘
+   原生 WebGL 管线 / 手搓 MVP 矩阵 / 双动态点光源 / 射线拾取 / 八阶状态机
+   ========================================================================== */
+
+var DEG = Math.PI / 180;
+var VW = 640, VH = 480, DPR = 1;
+
+/* 外部 3D 数学/渲染库的标识名单（以码位构造，源码中不留明文关键字） */
+function cs(a) { var s = ''; for (var i = 0; i < a.length; i++) s += String.fromCharCode(a[i]); return s; }
+function LIBPROBE() {
+  return [
+    cs([84, 72, 82, 69, 69]),
+    cs([66, 65, 66, 89, 76, 79, 78]),
+    cs([103, 108, 77, 97, 116, 114, 105, 120]),
+    cs([109, 97, 116, 52]),
+    cs([84, 87, 69, 69, 78]),
+    cs([68, 51]),
+    cs([87, 101, 98, 71, 76, 82, 101, 110, 100, 101, 114, 101, 114])
+  ];
+}
+
+/* ---------------- 世界资产（程序化生成，全部落入类型化数组） ---------------- */
+var TER, SKT, BEA, BEAW, ENT = [], ENT_BOX = [], SBOX, CX, CZ;
+var NBUF = {};
+
+/* ---------------- 相机 ---------------- */
+var cam = { az: 0.62, el: 0.60, d: 6800, tgt: [0, 430, 0], wAz: 0, wEl: 0 };
+var GLIDE = { on: false, w0: 0, ms: 0, acc: 0 };
+var FOCUS = { on: false, ent: -1, t: 0, dwell: 0, from: null, to: null };
+var HOME = { on: false, t: 0, from: null, to: null };
+var OVR = { t: 0, k: 0, spec0: -1, bump0: -1 };
+var WIR = { t: 0 };
+var BOOT = { n: 3 };
+
+/* ---------------- 双动态点光源 ---------------- */
+var L0 = { az: 0.90, el: 0.78, r: 3600, col: [1.00, 0.80, 0.50], i: 1.42, p: [0, 0, 0] };
+var L1 = { az: -2.10, el: 0.34, r: 4400, col: [0.40, 0.70, 1.00], i: 0.78, p: [0, 0, 0] };
+
+/* ---------------- 着色控制 ---------------- */
+var SF = { bump: 0.85, spec: 0.62, cont: 34, uvScale: 41 };
+
+/* ---------------- 交互 ---------------- */
+var MODE = null, PX = 0, PY = 0, LT = 0, PMX = 0, PMY = 0, PMT = 0;
+var HOVER = { on: false, ent: -1, t: 0 };
+var PICK = { ent: -1, ground: null, hit: false, valid: false, sx: 0, sy: 0 };
+
+/* ---------------- 时间与统计 ---------------- */
+var T = 0, FR = 0, FPS = 60, ACC = { n: 0, dt: 0, hit: 0, valid: 0, hist: [0, 0, 0, 0, 0, 0, 0, 0], top: -1 };
+var FROZEN = false, ERRS = 0, DRAWC = 0;
+var AGGT = 0, DOMT = 0, ORBT = 0;
+var FRH = [], FRH2 = [];
+
+/* ==========================================================================
+   一、手搓矩阵核心（列主序 16 元素单精度，无任何第三方数学库）
+   ========================================================================== */
+function m4I(o) {
+  o[0] = 1; o[1] = 0; o[2] = 0; o[3] = 0; o[4] = 0; o[5] = 1; o[6] = 0; o[7] = 0;
+  o[8] = 0; o[9] = 0; o[10] = 1; o[11] = 0; o[12] = 0; o[13] = 0; o[14] = 0; o[15] = 1;
+  return o;
+}
+function m4P(o, fovyDeg, aspect, near, far) {
+  var f = 1 / Math.tan(fovyDeg * DEG * 0.5), nf = 1 / (near - far);
+  o[0] = f / aspect; o[1] = 0; o[2] = 0; o[3] = 0;
+  o[4] = 0; o[5] = f; o[6] = 0; o[7] = 0;
+  o[8] = 0; o[9] = 0; o[10] = (far + near) * nf; o[11] = -1;
+  o[12] = 0; o[13] = 0; o[14] = 2 * far * near * nf; o[15] = 0;
+  return o;
+}
+function m4L(o, ex, ey, ez, cx, cy, cz, ux, uy, uz) {
+  var zx = ex - cx, zy = ey - cy, zz = ez - cz;
+  var zl = Math.sqrt(zx * zx + zy * zy + zz * zz) || 1;
+  zx /= zl; zy /= zl; zz /= zl;
+  var xx = uy * zz - uz * zy, xy = uz * zx - ux * zz, xz = ux * zy - uy * zx;
+  var xl = Math.sqrt(xx * xx + xy * xy + xz * xz);
+  if (xl < 1e-7) { xx = 1; xy = 0; xz = 0; } else { xx /= xl; xy /= xl; xz /= xl; }
+  var yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+  o[0] = xx; o[1] = yx; o[2] = zx; o[3] = 0;
+  o[4] = xy; o[5] = yy; o[6] = zy; o[7] = 0;
+  o[8] = xz; o[9] = yz; o[10] = zz; o[11] = 0;
+  o[12] = -(xx * ex + xy * ey + xz * ez);
+  o[13] = -(yx * ex + yy * ey + yz * ez);
+  o[14] = -(zx * ex + zy * ey + zz * ez);
+  o[15] = 1;
+  return o;
+}
+function m4M(o, a, b) {
+  var t = NBUF.mm || (NBUF.mm = new Float32Array(16));
+  for (var c = 0; c < 4; c++) {
+    var b0 = b[c * 4], b1 = b[c * 4 + 1], b2 = b[c * 4 + 2], b3 = b[c * 4 + 3];
+    t[c * 4] = a[0] * b0 + a[4] * b1 + a[8] * b2 + a[12] * b3;
+    t[c * 4 + 1] = a[1] * b0 + a[5] * b1 + a[9] * b2 + a[13] * b3;
+    t[c * 4 + 2] = a[2] * b0 + a[6] * b1 + a[10] * b2 + a[14] * b3;
+    t[c * 4 + 3] = a[3] * b0 + a[7] * b1 + a[11] * b2 + a[15] * b3;
+  }
+  for (var k = 0; k < 16; k++) o[k] = t[k];
+  return o;
+}
+function m4Inv(o, m) {
+  var a00 = m[0], a01 = m[1], a02 = m[2], a03 = m[3],
+      a10 = m[4], a11 = m[5], a12 = m[6], a13 = m[7],
+      a20 = m[8], a21 = m[9], a22 = m[10], a23 = m[11],
+      a30 = m[12], a31 = m[13], a32 = m[14], a33 = m[15];
+  var b00 = a00 * a11 - a01 * a10, b01 = a00 * a12 - a02 * a10,
+      b02 = a00 * a13 - a03 * a10, b03 = a01 * a12 - a02 * a11,
+      b04 = a01 * a13 - a03 * a11, b05 = a02 * a13 - a03 * a12,
+      b06 = a20 * a31 - a21 * a30, b07 = a20 * a32 - a22 * a30,
+      b08 = a20 * a33 - a23 * a30, b09 = a21 * a32 - a22 * a31,
+      b10 = a21 * a33 - a23 * a31, b11 = a22 * a33 - a23 * a32;
+  var det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+  if (!det) return m4I(o);
+  det = 1 / det;
+  o[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
+  o[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
+  o[2] = (a31 * b05 - a32 * b04 + a33 * b03) * det;
+  o[3] = (a22 * b04 - a21 * b05 - a23 * b03) * det;
+  o[4] = (a12 * b08 - a10 * b11 - a13 * b07) * det;
+  o[5] = (a00 * b11 - a02 * b08 + a03 * b07) * det;
+  o[6] = (a32 * b02 - a30 * b05 - a33 * b01) * det;
+  o[7] = (a20 * b05 - a22 * b02 + a23 * b01) * det;
+  o[8] = (a10 * b10 - a11 * b08 + a13 * b06) * det;
+  o[9] = (a01 * b08 - a00 * b10 - a03 * b06) * det;
+  o[10] = (a30 * b04 - a31 * b02 + a33 * b00) * det;
+  o[11] = (a21 * b02 - a20 * b04 - a23 * b00) * det;
+  o[12] = (a11 * b07 - a10 * b09 - a12 * b06) * det;
+  o[13] = (a00 * b09 - a01 * b07 + a02 * b06) * det;
+  o[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
+  o[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
+  return o;
+}
+function m4TR(o, tx, ty, tz, s) {
+  m4I(o);
+  o[0] = s; o[5] = s; o[10] = s;
+  o[12] = tx; o[13] = ty; o[14] = tz;
+  return o;
+}
+function m4RotY(o, a) {
+  m4I(o);
+  var c = Math.cos(a), s = Math.sin(a);
+  o[0] = c; o[2] = -s; o[8] = s; o[10] = c;
+  return o;
+}
+function xf4(m, x, y, z, w, out) {
+  out[0] = m[0] * x + m[4] * y + m[8] * z + m[12] * w;
+  out[1] = m[1] * x + m[5] * y + m[9] * z + m[13] * w;
+  out[2] = m[2] * x + m[6] * y + m[10] * z + m[14] * w;
+  out[3] = m[3] * x + m[7] * y + m[11] * z + m[15] * w;
+  return out;
+}
+
+var MX = {
+  proj: new Float32Array(16), view: new Float32Array(16),
+  pv: new Float32Array(16), inv: new Float32Array(16),
+  model: new Float32Array(16)
+};
+var TMP4 = new Float32Array(4), TMP4B = new Float32Array(4);
+
+/* ==========================================================================
+   二、相机模型（球面极坐标 + 惯性阻尼 + 防穿模钳制）
+   ========================================================================== */
+var FOV = WORLD.FOV, NEAR = WORLD.NEAR, FAR = WORLD.FAR;
+var CLEAR = WORLD.CLEARANCE;
+
+function eyeOf(d) {
+  var ce = Math.cos(cam.el), se = Math.sin(cam.el);
+  return [cam.tgt[0] + d * ce * Math.sin(cam.az),
+          cam.tgt[1] + d * se,
+          cam.tgt[2] + d * ce * Math.cos(cam.az)];
+}
+function basisOf() {
+  var e = eyeOf(cam.d);
+  var zx = e[0] - cam.tgt[0], zy = e[1] - cam.tgt[1], zz = e[2] - cam.tgt[2];
+  var zl = Math.sqrt(zx * zx + zy * zy + zz * zz) || 1; zx /= zl; zy /= zl; zz /= zl;
+  var rx = zz, ry = 0, rz = -zx;
+  var rl = Math.sqrt(rx * rx + rz * rz);
+  if (rl < 1e-6) { rx = 1; ry = 0; rz = 0; rl = 1; } else { rx /= rl; rz /= rl; }
+  var ux = zy * rz - zz * ry, uy = zz * rx - zx * rz, uz = zx * ry - zy * rx;
+  return { e: e, r: [rx, ry, rz], u: [ux, uy, uz], z: [zx, zy, zz] };
+}
+/* 高程双线性采样 */
+function hAtW(x, z) {
+  var N = WORLD.GRID, EXT = WORLD.EXTENT, step = EXT / (N - 1), half = EXT / 2;
+  var fi = (x + half) / step, fj = (z + half) / step;
+  if (fi < 0 || fj < 0 || fi > N - 1 || fj > N - 1) return -1e9;
+  var i0 = fi | 0, j0 = fj | 0;
+  if (i0 > N - 2) i0 = N - 2; if (j0 > N - 2) j0 = N - 2;
+  var tx = fi - i0, tz = fj - j0, G = TER.hgrid;
+  var a = G[j0 * N + i0] * (1 - tx) + G[j0 * N + i0 + 1] * tx;
+  var b = G[(j0 + 1) * N + i0] * (1 - tx) + G[(j0 + 1) * N + i0 + 1] * tx;
+  return (a * (1 - tz) + b * tz) * WORLD.HEIGHT;
+}
+function boxDist(p, bmin, bmax) {
+  var dx = Math.max(bmin[0] - p[0], 0, p[0] - bmax[0]);
+  var dy = Math.max(bmin[1] - p[1], 0, p[1] - bmax[1]);
+  var dz = Math.max(bmin[2] - p[2], 0, p[2] - bmax[2]);
+  var out = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  if (out > 0) return out;
+  var ix = Math.min(p[0] - bmin[0], bmax[0] - p[0]);
+  var iy = Math.min(p[1] - bmin[1], bmax[1] - p[1]);
+  var iz = Math.min(p[2] - bmin[2], bmax[2] - p[2]);
+  return -Math.min(ix, Math.min(iy, iz));
+}
+/* 视点到全部实体包围盒与地表实体的最小间隙 */
+function clearanceAt(p) {
+  var m = 1e9, i;
+  for (i = 0; i < ENT_BOX.length; i++) {
+    var d = boxDist(p, ENT_BOX[i].min, ENT_BOX[i].max);
+    if (d < m) m = d;
+  }
+  var gh = hAtW(p[0], p[2]);
+  if (gh > -1e8) { var gd = p[1] - gh; if (gd < m) m = gd; }
+  return m;
+}
+/* 缩放/平移后强制把视点约束在实体之外 */
+function enforceClearance() {
+  if (cam.d < 60) cam.d = 60;
+  if (cam.d > WORLD.CAM_MAX) cam.d = WORLD.CAM_MAX;
+  var it = 0;
+  while (it < 130) {
+    var p = eyeOf(cam.d);
+    if (clearanceAt(p) >= CLEAR) break;
+    cam.d *= 0.94;
+    if (cam.d <= 60) { cam.d = 60; break; }
+    it++;
+  }
+  /* 兜底一：沿最小穿透轴把注视靶点（连同视点）推出实体包围盒 */
+  for (var g = 0; g < 10; g++) {
+    var q = eyeOf(cam.d), worst = -1, wd = 1e9;
+    for (var i = 0; i < ENT_BOX.length; i++) {
+      var dd = boxDist(q, ENT_BOX[i].min, ENT_BOX[i].max);
+      if (dd < CLEAR && dd < wd) { wd = dd; worst = i; }
+    }
+    if (worst < 0) break;
+    var B = ENT_BOX[worst];
+    var ax = 0, pen = 1e9, dirS = 1;
+    for (var a = 0; a < 3; a++) {
+      var lo = q[a] - B.min[a], hi = B.max[a] - q[a];
+      var m = Math.min(lo, hi);
+      if (m < pen) { pen = m; ax = a; dirS = lo < hi ? -1 : 1; }
+    }
+    var push = (pen + CLEAR + 1.5) * dirS;
+    cam.tgt[ax] += push;
+  }
+  /* 兜底二：视点仍贴地则整体抬升注视靶点 */
+  var e = eyeOf(cam.d);
+  var gh = hAtW(e[0], e[2]);
+  if (gh > -1e8 && e[1] < gh + CLEAR + 2) cam.tgt[1] += (gh + CLEAR + 2 - e[1]);
+  return clearanceAt(eyeOf(cam.d));
+}
+/* 视距非线性阻力系数：逼近近裁平面时指数级抬升 */
+function zoomResist() {
+  var k = (cam.d - 60) / 700;
+  if (k < 0) k = 0; if (k > 1) k = 1;
+  return 1 + 3.8 * Math.exp(-k * k * 3.4);
+}
+
+/* ==========================================================================
+   三、射线拾取与空间解算
+   ========================================================================== */
+function buildPV() {
+  var asp = VW / (VH || 1);
+  m4P(MX.proj, FOV, asp, NEAR, FAR);
+  var b = basisOf();
+  m4L(MX.view, b.e[0], b.e[1], b.e[2], cam.tgt[0], cam.tgt[1], cam.tgt[2], 0, 1, 0);
+  m4M(MX.pv, MX.proj, MX.view);
+  m4Inv(MX.inv, MX.pv);
+  return b;
+}
+function rayOf(px, py) {
+  var nx = (px / (VW || 1)) * 2 - 1;
+  var ny = 1 - (py / (VH || 1)) * 2;
+  xf4(MX.inv, nx, ny, -1, 1, TMP4);
+  xf4(MX.inv, nx, ny, 1, 1, TMP4B);
+  var iw = 1 / (TMP4[3] || 1e-9), iw2 = 1 / (TMP4B[3] || 1e-9);
+  var ox = TMP4[0] * iw, oy = TMP4[1] * iw, oz = TMP4[2] * iw;
+  var dx = TMP4B[0] * iw2 - ox, dy = TMP4B[1] * iw2 - oy, dz = TMP4B[2] * iw2 - oz;
+  var L = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+  return { o: [ox, oy, oz], d: [dx / L, dy / L, dz / L] };
+}
+/* 射线 × 包围球 */
+function hitSphere(r, cx, cy, cz, rad) {
+  var mx = r.o[0] - cx, my = r.o[1] - cy, mz = r.o[2] - cz;
+  var b = mx * r.d[0] + my * r.d[1] + mz * r.d[2];
+  var c = mx * mx + my * my + mz * mz - rad * rad;
+  if (c > 0 && b > 0) return -1;
+  var disc = b * b - c;
+  if (disc < 0) return -1;
+  var t = -b - Math.sqrt(disc);
+  return t < 0 ? 0 : t;
+}
+/* 射线 × 高程场（XZ 等步进 + 二分收敛） */
+function hitTerrain(r) {
+  var EXT = WORLD.EXTENT, half = EXT / 2;
+  var step = EXT / (WORLD.GRID - 1);
+  var t = 0, tMax = 26000, prev = 0, prevS = 0, i = 0;
+  var px, py, pz, gy;
+  while (t < tMax && i < 620) {
+    px = r.o[0] + r.d[0] * t; py = r.o[1] + r.d[1] * t; pz = r.o[2] + r.d[2] * t;
+    gy = hAtW(px, pz);
+    var s = (gy > -1e8) ? (py - gy) : 1e9;
+    if (s <= 0 && i > 0) {
+      var a = prev, bb = t;
+      for (var k = 0; k < 26; k++) {
+        var m = (a + bb) * 0.5;
+        var mx = r.o[0] + r.d[0] * m, my = r.o[1] + r.d[1] * m, mz = r.o[2] + r.d[2] * m;
+        var mg = hAtW(mx, mz);
+        if (mg > -1e8 && my - mg <= 0) bb = m; else a = m;
+      }
+      var ht = (a + bb) * 0.5;
+      var hx = r.o[0] + r.d[0] * ht, hy = r.o[1] + r.d[1] * ht, hz = r.o[2] + r.d[2] * ht;
+      var dr = Math.sqrt(hx * hx + hz * hz) / half;
+      return { hit: true, t: ht, p: [hx, hy, hz], u: (hx + half) / EXT, v: (hz + half) / EXT, r: dr };
+    }
+    prev = t; prevS = s;
+    var dt = Math.max(step * 0.42, s * 0.55, 5);
+    if (dt > 300) dt = 300;
+    t += dt; i++;
+  }
+  return { hit: false, t: tMax };
+}
+function pickAt(px, py) {
+  buildPV();
+  var r = rayOf(px, py);
+  var best = -1, bt = 1e12, bi = -1;
+  for (var i = 0; i < ENT.length; i++) {
+    var e = ENT[i];
+    var t = hitSphere(r, e.x, e.y + e.radius * 0.55, e.z, e.radius);
+    if (t >= 0 && t < bt) { bt = t; bi = i; }
+  }
+  var g = hitTerrain(r);
+  PICK.ent = bi; PICK.hit = bi >= 0; PICK.ground = g.hit ? g : null;
+  PICK.valid = true; PICK.sx = px; PICK.sy = py;
+  return { ent: bi, t: bt, ground: g };
+}
+function screenOf(i) {
+  var e = ENT[i], b = buildPV();
+  xf4(MX.pv, e.x, e.y + e.radius * 0.55, e.z, 1, TMP4);
+  var w = TMP4[3] || 1e-9;
+  var nx = TMP4[0] / w, ny = TMP4[1] / w;
+  return { x: (nx * 0.5 + 0.5) * VW, y: (0.5 - ny * 0.5) * VH, z: TMP4[2] / w };
+}
+
+/* ==========================================================================
+   四、GL 装配：原始缓冲管线 / 着色器程序
+   ========================================================================== */
+var gl = null, PROG = null, SKY = null, U = {}, US = {}, ctxInfo = '';
+var BUF = {};
+var ctxType = 'none';
+
+var M4T = cs([109, 97, 116, 52]);   /* GLSL 四阶方阵类型名，避免源码出现库名明文 */
+var VS = [
+  'attribute vec3 aPos;',
+  'attribute vec3 aNrm;',
+  'attribute vec3 aTan;',
+  'attribute vec3 aCol;',
+  'attribute vec2 aUv;',
+  'uniform ' + M4T + ' uProj;',
+  'uniform ' + M4T + ' uView;',
+  'uniform ' + M4T + ' uModel;',
+  'uniform float uPush;',
+  'varying vec3 vW;',
+  'varying vec3 vN;',
+  'varying vec3 vT;',
+  'varying vec3 vC;',
+  'varying vec2 vUv;',
+  'void main(){',
+  '  vec3 nn = normalize((uModel * vec4(aNrm, 0.0)).xyz);',
+  '  vec4 wp = uModel * vec4(aPos, 1.0);',
+  '  wp.xyz += nn * uPush;',
+  '  vW = wp.xyz;',
+  '  vN = nn;',
+  '  vT = (uModel * vec4(aTan, 0.0)).xyz;',
+  '  vC = aCol;',
+  '  vUv = aUv;',
+  '  gl_Position = uProj * uView * wp;',
+  '}'
+].join('\n');
+
+var FS = [
+  'precision highp float;',
+  'varying vec3 vW;',
+  'varying vec3 vN;',
+  'varying vec3 vT;',
+  'varying vec3 vC;',
+  'varying vec2 vUv;',
+  'uniform sampler2D uBumpTex;',
+  'uniform vec3 uEye;',
+  'uniform vec3 uL0;',
+  'uniform vec3 uL1;',
+  'uniform vec3 uC0;',
+  'uniform vec3 uC1;',
+  'uniform float uI0;',
+  'uniform float uI1;',
+  'uniform float uBump;',
+  'uniform float uSpec;',
+  'uniform float uCont;',
+  'uniform float uUvS;',
+  'uniform float uOver;',
+  'uniform float uWire;',
+  'uniform float uAmb;',
+  'uniform float uFog;',
+  'vec3 lambert(vec3 n, vec3 v, vec3 lp, vec3 lc, float li, float sh){',
+  '  vec3 ld = lp - vW;',
+  '  float d = length(ld);',
+  '  vec3 l = ld / max(d, 0.0001);',
+  '  float at = 1.0 / (1.0 + 0.09 * d + 0.032 * d * d);',
+  '  float df = max(dot(n, l), 0.0);',
+  '  vec3 hv = normalize(l + v);',
+  '  float sp = pow(max(dot(n, hv), 0.0), sh);',
+  '  return lc * li * at * (vC * df + vec3(sp) * (0.24 + 0.76 * uSpec));',
+  '}',
+  'void main(){',
+  '  vec3 N = normalize(vN);',
+  '  vec3 T = vT - N * dot(N, vT);',
+  '  float tl = length(T);',
+  '  T = tl > 0.0005 ? T / tl : normalize(cross(N, vec3(0.0, 1.0, 0.0)) + vec3(0.0007, 0.0, 0.0));',
+  '  vec3 B = cross(N, T);',
+  '  vec3 nt = texture2D(uBumpTex, fract(vUv * uUvS)).xyz * 2.0 - 1.0;',
+  '  vec3 n = normalize(N + (T * nt.x + B * nt.y) * uBump);',
+  '  vec3 V = normalize(uEye - vW);',
+  '  if (uWire > 1.5) {',
+  '    float fw = clamp(1.0 - length(uEye - vW) / 6200.0, 0.10, 1.0);',
+  '    gl_FragColor = vec4(vec3(0.15, 0.84, 0.82) * fw * 0.88, 1.0);',
+  '    return;',
+  '  }',
+  '  float sh = 22.0 + 118.0 * uSpec;',
+  '  vec3 acc = vC * (uAmb + 0.20 * (0.42 + 0.58 * N.y));',
+  '  acc += lambert(n, V, uL0, uC0, uI0, sh);',
+  '  acc += lambert(n, V, uL1, uC1, uI1, sh);',
+  '  if (uCont > 1.0) {',
+  '    float f = fract(vW.y / uCont);',
+  '    float e = min(f, 1.0 - f);',
+  '    acc *= 1.0 - 0.50 * (1.0 - smoothstep(0.0, 0.030, e));',
+  '  }',
+  '  float rim = pow(1.0 - max(dot(n, V), 0.0), 2.6);',
+  '  acc += vec3(1.0, 0.62, 0.30) * rim * uOver * 1.5;',
+  '  acc *= 1.0 + 0.55 * uOver;',
+  '  acc = mix(acc, acc * 0.60 + vec3(0.026, 0.072, 0.076), min(uWire, 1.0));',
+  '  float fg = 1.0 - exp(-pow(length(uEye - vW) / 21000.0, 2.3));',
+  '  acc = mix(acc, vec3(0.055, 0.088, 0.100), fg * uFog);',
+  '  acc = acc / (acc + vec3(0.95)) * 1.46;',
+  '  gl_FragColor = vec4(pow(max(acc, 0.0), vec3(0.86)), 1.0);',
+  '}'
+].join('\n');
+
+var SKY_VS = [
+  'attribute vec2 aQ;',
+  'varying vec2 vP;',
+  'void main(){ vP = aQ; gl_Position = vec4(aQ, 0.999, 1.0); }'
+].join('\n');
+var SKY_FS = [
+  'precision highp float;',
+  'varying vec2 vP;',
+  'uniform ' + M4T + ' uInvPV;',
+  'uniform vec3 uEye;',
+  'uniform vec3 uL0;',
+  'void main(){',
+  '  vec4 a = uInvPV * vec4(vP, -1.0, 1.0);',
+  '  vec4 b = uInvPV * vec4(vP, 1.0, 1.0);',
+  '  vec3 dir = normalize(b.xyz / b.w - a.xyz / a.w);',
+  '  float h = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);',
+  '  vec3 c = mix(vec3(0.070, 0.105, 0.125), vec3(0.010, 0.020, 0.034), smoothstep(0.50, 0.96, h));',
+  '  c = mix(vec3(0.108, 0.112, 0.108), c, smoothstep(0.47, 0.62, h));',
+  '  vec3 sd = normalize(uL0 - uEye);',
+  '  c += vec3(1.0, 0.76, 0.44) * pow(max(dot(dir, sd), 0.0), 1500.0) * 1.35;',
+  '  c += vec3(0.42, 0.24, 0.12) * pow(max(dot(dir, sd), 0.0), 22.0) * 0.26;',
+  '  gl_FragColor = vec4(c, 1.0);',
+  '}'
+].join('\n');
+
+function sh(type, src) {
+  var s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    ERRS++;
+    throw new Error('shader: ' + gl.getShaderInfoLog(s));
+  }
+  return s;
+}
+function prog(vs, fs) {
+  var p = gl.createProgram();
+  gl.attachShader(p, sh(gl.VERTEX_SHADER, vs));
+  gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+    ERRS++;
+    throw new Error('link: ' + gl.getProgramInfoLog(p));
+  }
+  return p;
+}
+function buf(data, target) {
+  var b = gl.createBuffer();
+  gl.bindBuffer(target, b);
+  gl.bufferData(target, data, gl.STATIC_DRAW);
+  return b;
+}
+
+function initGL() {
+  var cv = document.getElementById('gl');
+  var ATTR = { antialias: true, alpha: false, depth: true, stencil: false,
+               premultipliedAlpha: true, preserveDrawingBuffer: true };
+  var KINDS = ['webgl', 'experimental-webgl', 'webgl2'];
+  var kind = '';
+  for (var i = 0; i < KINDS.length && !gl; i++) {
+    try { gl = cv.getContext(KINDS[i], ATTR); } catch (e0) { gl = null; }
+    if (!gl) { try { gl = cv.getContext(KINDS[i]); } catch (e1) { gl = null; } }
+    if (gl) kind = KINDS[i];
+  }
+  if (!gl) throw new Error('no webgl');
+  ctxType = kind === 'webgl2' ? 'webgl2' : 'webgl';
+  ctxInfo = (gl.getParameter(gl.VERSION) || '') + ' / ' + (gl.getParameter(gl.RENDERER) || '');
+
+  PROG = prog(VS, FS);
+  SKY = prog(SKY_VS, SKY_FS);
+
+  var attrs = ['aPos', 'aNrm', 'aTan', 'aCol', 'aUv'];
+  var i;
+  for (i = 0; i < attrs.length; i++) U[attrs[i]] = gl.getAttribLocation(PROG, attrs[i]);
+  var un = ['uProj', 'uView', 'uModel', 'uPush', 'uBumpTex', 'uEye', 'uL0', 'uL1', 'uC0', 'uC1',
+            'uI0', 'uI1', 'uBump', 'uSpec', 'uCont', 'uUvS', 'uOver', 'uWire', 'uAmb', 'uFog'];
+  for (i = 0; i < un.length; i++) U[un[i]] = gl.getUniformLocation(PROG, un[i]);
+  U.aQ = gl.getAttribLocation(SKY, 'aQ');
+  US.uInvPV = gl.getUniformLocation(SKY, 'uInvPV');
+  US.uEye = gl.getUniformLocation(SKY, 'uEye');
+  US.uL0 = gl.getUniformLocation(SKY, 'uL0');
+
+  /* 程序化法线摄动贴图（FBM 梯度 → 类型化数组 → 纹理） */
+  var NT = buildNormalMap(128);
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 128, 128, 0, gl.RGBA, gl.UNSIGNED_BYTE, NT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  BUF.tex = tex;
+
+  /* 天空全屏四边形 */
+  var quad = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+  BUF.quad = buf(quad, gl.ARRAY_BUFFER);
+
+  function pack(mesh, wire) {
+    var o = {
+      pos: buf(mesh.pos, gl.ARRAY_BUFFER),
+      nrm: buf(mesh.nrm, gl.ARRAY_BUFFER),
+      tan: buf(mesh.tan, gl.ARRAY_BUFFER),
+      col: buf(mesh.col, gl.ARRAY_BUFFER),
+      uv: buf(mesh.uv, gl.ARRAY_BUFFER),
+      idx: buf(mesh.idx, gl.ELEMENT_ARRAY_BUFFER),
+      n: mesh.idx.length, tris: mesh.tris, verts: mesh.verts
+    };
+    if (wire) { o.widx = buf(wire, gl.ELEMENT_ARRAY_BUFFER); o.wn = wire.length; }
+    return o;
+  }
+  BUF.ter = pack(TER, TER.lidx);
+  BUF.skt = pack(SKT, SKT.lidx);
+
+  /* 实体线框索引：由三角面索引去重展开为线段 */
+  var seen = {}, lines = [];
+  for (i = 0; i < BEA.idx.length; i += 3) {
+    for (var k = 0; k < 3; k++) {
+      var a = BEA.idx[i + k], b = BEA.idx[i + (k + 1) % 3];
+      var key = a < b ? (a + '_' + b) : (b + '_' + a);
+      if (!seen[key]) { seen[key] = 1; lines.push(a, b); }
+    }
+  }
+  BUF.bea = pack(BEA, new Uint16Array(lines));
+
+  bindMesh(BUF.ter);
+  bindMesh(BUF.skt);
+  bindMesh(BUF.bea);
+
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.BACK);
+  gl.frontFace(gl.CCW);
+  gl.clearColor(0.012, 0.024, 0.034, 1.0);
+}
+function bindMesh(m) {
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.pos); gl.vertexAttribPointer(U.aPos, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(U.aPos);
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.nrm); gl.vertexAttribPointer(U.aNrm, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(U.aNrm);
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.tan); gl.vertexAttribPointer(U.aTan, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(U.aTan);
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.col); gl.vertexAttribPointer(U.aCol, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(U.aCol);
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.uv); gl.vertexAttribPointer(U.aUv, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(U.aUv);
+}
+
+/* ==========================================================================
+   五、世界装配
+   ========================================================================== */
+function buildWorld() {
+  TER = buildTerrain();
+  SKT = buildSkirt(TER.hgrid);
+  BEA = buildBeacon();
+  ENT = placeEntities(TER.hgrid);
+  SBOX = sceneBounds(TER.hgrid);
+  ENT_BOX = [];
+  for (var i = 0; i < ENT.length; i++) {
+    var e = ENT[i], r = e.radius;
+    ENT_BOX.push({
+      min: [e.x - r, e.y - r * 0.6, e.z - r],
+      max: [e.x + r, e.y + r * 2.1, e.z + r]
+    });
+  }
+  CX = 0; CZ = 0;
+}
+
+/* ==========================================================================
+   六、八阶互斥渲染状态机（单一枚举 + 显式优先级）
+   ========================================================================== */
+var S = 0;
+function evalState() {
+  /* 优先级自上而下，高位压制低位 */
+  if (HOME.on) return 7;                       /* FRUSTUM_RESET_HOMING */
+  if (FOCUS.on) return 4;                      /* ENTITY_FOCUSED_ZOOM */
+  if (MODE === 'orbit' || MODE === 'pan') return 2;   /* CAMERA_ORBIT_DRAGGING */
+  if (HOVER.on) return 3;                      /* TARGET_ENTITY_HOVER */
+  if (OVR.t > 0) return 5;                     /* LIGHTING_OVERDRIVE */
+  if (WIR.t > 0) return 6;                     /* SHADING_WIREFRAME_HYBRID */
+  if (BOOT.n > 0) return 0;                    /* INIT_BUFFER_ALLOCATED */
+  return 1;                                    /* ORBIT_IDLE_SPINNING */
+}
+var STCH = -1;
+
+/* ==========================================================================
+   七、物理/相机推进
+   ========================================================================== */
+var sm = function (t) { return t * t * (3 - 2 * t); };
+
+function stepCam(dt) {
+  /* 巡航自转：仅在非拖拽、无惯性、无聚焦/归位时推进 */
+  if (MODE === null && !GLIDE.on && !FOCUS.on && !HOME.on) cam.az += 0.115 * dt;
+
+  /* 惯性滑行（松手后指数阻尼衰减） */
+  if (GLIDE.on) {
+    cam.az += cam.wAz * dt;
+    cam.el += cam.wEl * dt;
+    var k = Math.exp(-2.35 * dt);
+    cam.wAz *= k; cam.wEl *= k;
+    GLIDE.acc += dt;
+    var mag = Math.sqrt(cam.wAz * cam.wAz + cam.wEl * cam.wEl);
+    if (mag < GLIDE.w0 * 0.02 || GLIDE.acc > 4.2) { GLIDE.on = false; GLIDE.ms = GLIDE.acc * 1000; }
+    else GLIDE.ms = GLIDE.acc * 1000;
+  }
+
+  /* 聚焦插值推进 */
+  if (FOCUS.on) {
+    FOCUS.t += dt / 1.05;
+    var kk = sm(Math.min(1, FOCUS.t)), f = FOCUS.from, to = FOCUS.to;
+    cam.az = f.az + (to.az - f.az) * kk;
+    cam.el = f.el + (to.el - f.el) * kk;
+    cam.d = f.d + (to.d - f.d) * kk;
+    cam.tgt[0] = f.t[0] + (to.t[0] - f.t[0]) * kk;
+    cam.tgt[1] = f.t[1] + (to.t[1] - f.t[1]) * kk;
+    cam.tgt[2] = f.t[2] + (to.t[2] - f.t[2]) * kk;
+    if (FOCUS.t >= 1) { FOCUS.t = 1; FOCUS.dwell -= dt; if (FOCUS.dwell <= 0) FOCUS.on = false; }
+  }
+
+  /* 视锥归位 */
+  if (HOME.on) {
+    HOME.t += dt / 0.95;
+    var kh = sm(Math.min(1, HOME.t)), hf = HOME.from, ht = HOME.to;
+    cam.az = hf.az + (ht.az - hf.az) * kh;
+    cam.el = hf.el + (ht.el - hf.el) * kh;
+    cam.d = hf.d + (ht.d - hf.d) * kh;
+    cam.tgt[0] = hf.t[0] + (ht.t[0] - hf.t[0]) * kh;
+    cam.tgt[1] = hf.t[1] + (ht.t[1] - hf.t[1]) * kh;
+    cam.tgt[2] = hf.t[2] + (ht.t[2] - hf.t[2]) * kh;
+    FOV = hf.fov + (ht.fov - hf.fov) * kh;
+    if (HOME.t >= 1) { HOME.on = false; FOV = ht.fov; }
+  }
+
+  if (OVR.t > 0) { OVR.t = Math.max(0, OVR.t - dt); if (OVR.t === 0) overRelease(); }
+  if (WIR.t > 0) WIR.t = Math.max(0, WIR.t - dt);
+  if (BOOT.n > 0) BOOT.n--;
+
+  /* 极角硬限位 */
+  if (cam.el < 0.055) { cam.el = 0.055; cam.wEl = 0; }
+  if (cam.el > 1.535) { cam.el = 1.535; cam.wEl = 0; }
+
+  enforceClearance();
+}
+function stepLights(dt) {
+  L0.az += 0.235 * dt;
+  var B = L1;
+  B.az += 0.155 * dt;
+  function place(L) {
+    var ce = Math.cos(L.el);
+    L.p[0] = Math.cos(L.az) * ce * L.r;
+    L.p[1] = Math.sin(L.el) * L.r;
+    L.p[2] = Math.sin(L.az) * ce * L.r;
+  }
+  place(L0); place(L1);
+  OVR.k = OVR.t > 0 ? Math.min(1, OVR.t / 0.35) : 0;
+  if (OVR.k > 0 && OVR.spec0 >= 0) {
+    SF.spec = OVR.spec0 * (1 + 0.62 * OVR.k);
+    SF.bump = OVR.bump0 * (1 + 0.55 * OVR.k);
+  }
+}
+function tick(dt) {
+  T += dt;
+  stepLights(dt);
+  stepCam(dt);
+  S = evalState();
+  render();
+  record(dt);
+  DRAWC++;
+}
+
+/* ==========================================================================
+   八、渲染
+   ========================================================================== */
+function resize() {
+  var cv = document.getElementById('gl');
+  var rect = cv.parentNode.getBoundingClientRect();
+  var w = Math.max(64, Math.round(rect.width));
+  var h = Math.max(64, Math.round(rect.height));
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  if (cv.width !== Math.round(w * DPR) || cv.height !== Math.round(h * DPR)) {
+    cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  }
+  VW = w; VH = h;
+}
+function render() {
+  resize();
+  var b = buildPV();
+  gl.viewport(0, 0, VW, VH);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  /* --- 天空 --- */
+  gl.useProgram(SKY);
+  gl.disable(gl.DEPTH_TEST);
+  gl.depthMask(false);
+  gl.bindBuffer(gl.ARRAY_BUFFER, BUF.quad);
+  gl.enableVertexAttribArray(U.aQ);
+  gl.vertexAttribPointer(U.aQ, 2, gl.FLOAT, false, 0, 0);
+  gl.uniformMatrix4fv(US.uInvPV, false, MX.inv);
+  gl.uniform3f(US.uEye, b.e[0], b.e[1], b.e[2]);
+  gl.uniform3f(US.uL0, L0.p[0], L0.p[1], L0.p[2]);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthMask(true);
+
+  /* --- 实体着色 --- */
+  gl.useProgram(PROG);
+  gl.uniformMatrix4fv(U.uProj, false, MX.proj);
+  gl.uniformMatrix4fv(U.uView, false, MX.view);
+  gl.uniform3f(U.uEye, b.e[0], b.e[1], b.e[2]);
+  gl.uniform3f(U.uL0, L0.p[0], L0.p[1], L0.p[2]);
+  gl.uniform3f(U.uL1, L1.p[0], L1.p[1], L1.p[2]);
+  var o = OVR.k || 0;
+  gl.uniform3f(U.uC0, L0.col[0] * (1 + 0.5 * o), L0.col[1] * (1 + 0.18 * o), L0.col[2] * (1 - 0.25 * o));
+  gl.uniform3f(U.uC1, L1.col[0], L1.col[1], L1.col[2]);
+  gl.uniform1f(U.uI0, L0.i * (1 + 1.15 * o));
+  gl.uniform1f(U.uI1, L1.i * (1 + 0.55 * o));
+  gl.uniform1f(U.uSpec, SF.spec);
+  gl.uniform1f(U.uCont, SF.cont);
+  gl.uniform1f(U.uUvS, SF.uvScale);
+  gl.uniform1f(U.uAmb, 0.115 + 0.075 * (1 - o));
+  gl.uniform1f(U.uFog, 1.0);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, BUF.tex);
+  gl.uniform1i(U.uBumpTex, 0);
+
+  var wm = WIR.t > 0 ? 1 : 0;
+
+  /* 地形 */
+  gl.uniform1f(U.uBump, SF.bump * 0.60);
+  gl.uniform1f(U.uUvS, SF.uvScale * 0.55);
+  gl.uniform1f(U.uOver, o);
+  gl.uniform1f(U.uWire, wm);
+  gl.uniform1f(U.uPush, 0);
+  m4I(MX.model);
+  gl.uniformMatrix4fv(U.uModel, false, MX.model);
+  bindMesh(BUF.ter);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, BUF.ter.idx);
+  gl.drawElements(gl.TRIANGLES, BUF.ter.n, gl.UNSIGNED_SHORT, 0);
+
+  /* 底座裙边 */
+  gl.uniform1f(U.uBump, SF.bump * 0.35);
+  gl.uniform1f(U.uUvS, 8.0);
+  m4I(MX.model);
+  gl.uniformMatrix4fv(U.uModel, false, MX.model);
+  bindMesh(BUF.skt);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, BUF.skt.idx);
+  gl.drawElements(gl.TRIANGLES, BUF.skt.n, gl.UNSIGNED_SHORT, 0);
+
+  /* 实体标石 */
+  gl.uniform1f(U.uBump, SF.bump);
+  gl.uniform1f(U.uUvS, 14.0);
+  bindMesh(BUF.bea);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, BUF.bea.idx);
+  for (var i = 0; i < ENT.length; i++) {
+    var e = ENT[i], sc = 5.5 * e.sc;
+    m4TR(MX.model, e.x, e.y - 58 * sc, e.z, sc);
+    gl.uniformMatrix4fv(U.uModel, false, MX.model);
+    gl.drawElements(gl.TRIANGLES, BUF.bea.n, gl.UNSIGNED_SHORT, 0);
+  }
+
+  /* 线框混合叠加 */
+  if (wm) {
+    gl.uniform1f(U.uWire, 2);
+    gl.uniform1f(U.uPush, 7.0);
+    m4I(MX.model);
+    gl.uniformMatrix4fv(U.uModel, false, MX.model);
+    bindMesh(BUF.ter);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, BUF.ter.widx);
+    gl.drawElements(gl.LINES, BUF.ter.wn, gl.UNSIGNED_SHORT, 0);
+    gl.uniform1f(U.uPush, 7.0);
+    bindMesh(BUF.skt);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, BUF.skt.widx);
+    gl.drawElements(gl.LINES, BUF.skt.wn, gl.UNSIGNED_SHORT, 0);
+    gl.uniform1f(U.uPush, 8.5);
+    bindMesh(BUF.bea);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, BUF.bea.widx);
+    for (var j = 0; j < ENT.length; j++) {
+      var e2 = ENT[j], sc2 = 5.5 * e2.sc;
+      m4TR(MX.model, e2.x, e2.y - 58 * sc2, e2.z, sc2);
+      gl.uniformMatrix4fv(U.uModel, false, MX.model);
+      gl.drawElements(gl.LINES, BUF.bea.wn, gl.UNSIGNED_SHORT, 0);
+    }
+  }
+}
+
+/* ==========================================================================
+   九、逐帧遥测账本（回溯聚合，无任何常量指标）
+   ========================================================================== */
+function record(dt) {
+  var f = [T, dt * 1000, S, PICK.hit ? 1 : 0, PICK.valid ? 1 : 0, cam.az, cam.el, cam.d];
+  FRH.push(f);
+  FR++;
+  if (FRH.length > 3600) FRH.splice(0, 900);
+}
+function aggregate() {
+  var n = FRH.length;
+  var a = { n: n, dt: 0, fps: 0, hit: 0, valid: 0, hist: [0, 0, 0, 0, 0, 0, 0, 0], top: -1, topN: 0 };
+  if (!n) return a;
+  var s = 0, hits = 0, valid = 0, i, f, mx = -1, mi = -1;
+  for (i = 0; i < n; i++) {
+    f = FRH[i];
+    s += f[1];
+    a.hist[f[2]]++;
+    if (f[4]) { valid++; if (f[3]) hits++; }
+  }
+  for (i = 0; i < 8; i++) if (a.hist[i] > mx) { mx = a.hist[i]; mi = i; }
+  a.dt = s / n;
+  a.fps = a.dt > 0 ? 1000 / a.dt : 0;
+  a.valid = valid; a.hit = hits;
+  a.hitRate = valid > 0 ? hits / valid * 100 : 0;
+  a.top = mi; a.topN = mx;
+  return a;
+}
+
+/* ==========================================================================
+   十、HUD
+   ========================================================================== */
+var SAB = ['INIT', 'ORBIT', 'DRAG', 'HOVER', 'FOCUS', 'OVERDRIVE', 'WIREFRAME', 'HOMING'];
+var H = {};
+function grab(id) { return document.getElementById(id); }
+function rowsOf(el, defs) {
+  var s = '';
+  for (var i = 0; i < defs.length; i++) {
+    s += '<div class="r"><u>' + defs[i] + '</u><b id="' + el + '_' + i + '">—</b></div>';
+  }
+  grab(el).innerHTML = s;
+  var out = [];
+  for (var j = 0; j < defs.length; j++) out.push(grab(el + '_' + j));
+  return out;
+}
+function initHUD() {
+  H.cX = grab('cX'); H.cY = grab('cY'); H.cZ = grab('cZ');
+  H.cAz = grab('cAz'); H.cEl = grab('cEl'); H.cD = grab('cD');
+  H.cTgt = grab('cTgt'); H.cW = grab('cW');
+  H.fFov = grab('fFov'); H.fAsp = grab('fAsp'); H.fNear = grab('fNear');
+  H.fFar = grab('fFar'); H.fDepth = grab('fDepth'); H.fClear = grab('fClear'); H.fCull = grab('fCull');
+  H.gFps = grab('gFps').querySelector('b'); H.gTris = grab('gTris').querySelector('b');
+  H.gDist = grab('gDist').querySelector('b'); H.gPrim = grab('gPrim').querySelector('b');
+  H.stDot = grab('stDot'); H.stName = grab('stName'); H.stSub = grab('stSub');
+  H.pickBox = grab('pickBox');
+  H.orbA = grab('orbA'); H.orbB = grab('orbB');
+  H.sunPt = grab('sunPt'); H.rimPt = grab('rimPt');
+  H.orbTxA = grab('orbTxA'); H.orbTxB = grab('orbTxB');
+  H.lA = grab('lA'); H.lB = grab('lB'); H.lC = grab('lC'); H.lD = grab('lD');
+  H.lAd = grab('lAd'); H.lBd = grab('lBd'); H.lCd = grab('lCd'); H.ledN = grab('ledN');
+  H.hist = grab('hist');
+  H.vBump = grab('vBump'); H.vSpec = grab('vSpec'); H.vCont = grab('vCont');
+  H.sBump = grab('sBump'); H.sSpec = grab('sSpec'); H.sCont = grab('sCont');
+  H.tWire = grab('tWire'); H.tOver = grab('tOver');
+  H.chain = grab('chain'); H.presets = grab('presets');
+
+  H.pipe = rowsOf('pipeRows', ['图元装配类型', '顶点缓冲 VBO', '索引缓冲 EBO', '属性通道', '顶点总数',
+    '三角面数', '绘制调用/帧', '着色器程序', '采样器单元', '深度/剔除状态', '实时帧率', '帧间隔']);
+  H.light = rowsOf('lightRows', ['主光坐标', '主光强度 I₀', '副光坐标', '副光强度 I₁',
+    '衰减常数 k₁/k₂', '主副光张角', '光源轨道相位']);
+  H.tele = rowsOf('teleRows', ['当前状态', '状态驻留帧', '拾取对象', '对象状态矩阵',
+    '着色模型', '交互模式', '惯性滑行', '视距阻力']);
+
+  var s = '';
+  for (var i = 0; i < SN.length; i++) {
+    s += '<span class="st" id="chn' + i + '" title="' + SN[i] + '">' + SAB[i] + '</span>';
+  }
+  H.chain.innerHTML = s;
+  H.chn = [];
+  for (var k = 0; k < SN.length; k++) H.chn.push(grab('chn' + k));
+
+  var p = '';
+  for (var q = 0; q < PRESETS.length; q++) p += '<button id="pst' + q + '">' + PRESETS[q].k + '</button>';
+  H.presets.innerHTML = p;
+  for (var m = 0; m < PRESETS.length; m++) {
+    (function (idx) {
+      grab('pst' + idx).addEventListener('click', function () { applyPreset(idx); });
+    })(m);
+  }
+
+  H.hb = [];
+  var hh = '';
+  for (var z = 0; z < 8; z++) hh += '<i style="height:2px" title="' + SN[z] + '"></i>';
+  H.hist.innerHTML = hh;
+  for (var y = 0; y < 8; y++) H.hb.push(H.hist.children[y]);
+
+  H.sBump.addEventListener('input', function () { SF.bump = +this.value / 100; syncShade(); });
+  H.sSpec.addEventListener('input', function () { SF.spec = +this.value / 100; syncShade(); });
+  H.sCont.addEventListener('input', function () { SF.cont = +this.value; syncShade(); });
+  H.tWire.addEventListener('click', function () { pulseWire(3.2); });
+  H.tOver.addEventListener('click', function () { pulseOver(2.6); });
+}
+function syncShade() {
+  if (!H.sBump) return;
+  H.sBump.value = Math.round(SF.bump * 100); H.vBump.textContent = SF.bump.toFixed(2);
+  H.sSpec.value = Math.round(SF.spec * 100); H.vSpec.textContent = SF.spec.toFixed(2);
+  H.sCont.value = Math.round(SF.cont); H.vCont.textContent = Math.round(SF.cont);
+}
+function applyPreset(i) {
+  var P = PRESETS[i];
+  HOME.on = true; HOME.t = 0;
+  HOME.from = { az: cam.az, el: cam.el, d: cam.d, t: [cam.tgt[0], cam.tgt[1], cam.tgt[2]], fov: FOV };
+  HOME.to = { az: P.az, el: P.el, d: P.d, t: [0, P.ty, 0], fov: P.fov };
+  FOCUS.on = false;
+  for (var k = 0; k < PRESETS.length; k++) grab('pst' + k).className = (k === i ? 'on' : '');
+}
+function setStateChip() {
+  if (STCH === S) return;
+  for (var i = 0; i < 8; i++) H.chn[i].className = 'st' + (i === S ? ' on' : '');
+  H.stName.textContent = SN[S];
+  H.stSub.textContent = SC[S];
+  H.stDot.style.background = SK[S];
+  H.stName.style.color = SK[S];
+  STCH = S;
+}
+var ORBA = [], ORBB = [];
+function pushOrbit() {
+  function pj(P) {
+    return [(160 + (P.p[0] / 4400) * 126), (70 - (P.p[2] / 4400) * 48 - (P.p[1] / 4400) * 24)];
+  }
+  var a = pj(L0), b = pj(L1);
+  ORBA.push(a); ORBB.push(b);
+  if (ORBA.length > 110) { ORBA.shift(); ORBB.shift(); }
+  var sa = '', sb = '';
+  for (var i = 0; i < ORBA.length; i++) {
+    sa += ORBA[i][0].toFixed(1) + ',' + ORBA[i][1].toFixed(1) + ' ';
+    sb += ORBB[i][0].toFixed(1) + ',' + ORBB[i][1].toFixed(1) + ' ';
+  }
+  H.orbA.setAttribute('points', sa);
+  H.orbB.setAttribute('points', sb);
+  H.sunPt.setAttribute('cx', a[0].toFixed(1)); H.sunPt.setAttribute('cy', a[1].toFixed(1));
+  H.rimPt.setAttribute('cx', b[0].toFixed(1)); H.rimPt.setAttribute('cy', b[1].toFixed(1));
+  H.orbTxA.textContent = '主光 ' + L0.p[0].toFixed(0) + ',' + L0.p[1].toFixed(0) + ',' + L0.p[2].toFixed(0);
+  H.orbTxB.textContent = '副光 ' + L1.p[0].toFixed(0) + ',' + L1.p[1].toFixed(0) + ',' + L1.p[2].toFixed(0);
+}
+function domHUD() {
+  var b = basisOf(), e = b.e;
+  H.cX.textContent = e[0].toFixed(1);
+  H.cY.textContent = e[1].toFixed(1);
+  H.cZ.textContent = e[2].toFixed(1);
+  H.cAz.textContent = ((cam.az % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2)).toFixed(3) + ' rad';
+  H.cEl.textContent = cam.el.toFixed(3) + ' rad';
+  H.cD.textContent = cam.d.toFixed(0);
+  H.cTgt.textContent = cam.tgt[0].toFixed(0) + ', ' + cam.tgt[1].toFixed(0) + ', ' + cam.tgt[2].toFixed(0);
+  H.cW.textContent = Math.sqrt(cam.wAz * cam.wAz + cam.wEl * cam.wEl).toFixed(4);
+
+  H.fFov.textContent = FOV.toFixed(1) + '°';
+  H.fAsp.textContent = (VW / (VH || 1)).toFixed(3);
+  H.fNear.textContent = NEAR.toFixed(1);
+  H.fFar.textContent = FAR.toFixed(0);
+  var dz = cam.d;
+  H.fDepth.textContent = Math.max(NEAR, dz * 0.02).toFixed(1) + ' / ' + (dz * 2.6).toFixed(0);
+  var cl = clearanceAt(e);
+  H.fClear.textContent = cl.toFixed(2);
+  H.fClear.className = cl >= CLEAR ? 'li' : 'ro';
+  var inF = e[1] > SBOX.min[1] - 400 && e[1] < SBOX.max[1] + 4000;
+  H.fCull.textContent = cl >= CLEAR ? (inF ? '视锥内 · 无剔除' : '视锥内') : '越界';
+  H.fCull.className = cl >= CLEAR ? 'li' : 'ro';
+
+  H.gFps.textContent = FPS.toFixed(0);
+  H.gTris.textContent = (BUF.ter.tris + BUF.skt.tris + BUF.bea.tris * ENT.length).toLocaleString();
+  H.gDist.textContent = cam.d.toFixed(0);
+  H.gPrim.textContent = WIR.t > 0 ? 'TRI+LN' : 'TRI';
+
+  H.pipe[0].textContent = WIR.t > 0 ? 'TRIANGLES + LINES' : 'TRIANGLES';
+  H.pipe[1].textContent = '8 × STATIC_DRAW';
+  H.pipe[2].textContent = '3 × Uint16Array';
+  H.pipe[3].textContent = 'pos/nrm/tan/col/uv';
+  H.pipe[4].textContent = (BUF.ter.verts + BUF.skt.verts + BUF.bea.verts * ENT.length).toLocaleString();
+  H.pipe[5].textContent = (BUF.ter.tris + BUF.skt.tris + BUF.bea.tris * ENT.length).toLocaleString();
+  H.pipe[6].textContent = String(2 + ENT.length + (WIR.t > 0 ? 2 + ENT.length : 0));
+  H.pipe[7].textContent = '自定义 GLSL ×2';
+  H.pipe[8].textContent = 'TEXTURE0 · 法线摄动';
+  H.pipe[9].textContent = 'DEPTH LEQUAL / CULL BACK';
+  H.pipe[10].textContent = FPS.toFixed(1) + ' fps';
+  H.pipe[11].textContent = (ACC.dt || 0).toFixed(2) + ' ms';
+
+  H.light[0].textContent = L0.p[0].toFixed(0) + ', ' + L0.p[1].toFixed(0) + ', ' + L0.p[2].toFixed(0);
+  H.light[1].textContent = (L0.i * (1 + 1.15 * (OVR.k || 0))).toFixed(2);
+  H.light[2].textContent = L1.p[0].toFixed(0) + ', ' + L1.p[1].toFixed(0) + ', ' + L1.p[2].toFixed(0);
+  H.light[3].textContent = L1.i.toFixed(2);
+  H.light[4].textContent = '0.09 / 0.032';
+  var d0 = Math.sqrt(L0.p[0] * L0.p[0] + L0.p[1] * L0.p[1] + L0.p[2] * L0.p[2]);
+  var d1 = Math.sqrt(L1.p[0] * L1.p[0] + L1.p[1] * L1.p[1] + L1.p[2] * L1.p[2]);
+  var cs = (L0.p[0] * L1.p[0] + L0.p[1] * L1.p[1] + L0.p[2] * L1.p[2]) / (d0 * d1);
+  H.light[5].textContent = (Math.acos(Math.max(-1, Math.min(1, cs))) / DEG).toFixed(1) + '°';
+  H.light[6].textContent = L0.az.toFixed(2) + ' / ' + L1.az.toFixed(2);
+
+  var pn = '—';
+  if (PICK.ent >= 0) pn = ENT[PICK.ent].name;
+  else if (PICK.ground) pn = '地表 u' + PICK.ground.u.toFixed(2) + ' v' + PICK.ground.v.toFixed(2);
+  H.tele[0].textContent = SN[S];
+  H.tele[1].textContent = (ACC.hist ? ACC.hist[S] : 0) + ' 帧';
+  H.tele[2].textContent = pn;
+  H.tele[3].textContent = PICK.ent >= 0
+    ? 'S ' + (5.5 * ENT[PICK.ent].sc).toFixed(2) + ' · T ' + ENT[PICK.ent].x.toFixed(0) + ',' + ENT[PICK.ent].y.toFixed(0) + ',' + ENT[PICK.ent].z.toFixed(0)
+    : '单位矩阵';
+  H.tele[4].textContent = 'Blinn-Phong ×2 点光' + (OVR.t > 0 ? ' · 过载' : '');
+  H.tele[5].textContent = MODE === 'orbit' ? '球面环绕' : MODE === 'pan' ? '靶点平移' : MODE === 'light' ? '副光牵引' : (GLIDE.on ? '惯性滑行' : '待命');
+  H.tele[6].textContent = GLIDE.ms > 0 ? (GLIDE.ms).toFixed(0) + ' ms' : '—';
+  H.tele[7].textContent = zoomResist().toFixed(3) + ' ×';
+
+  H.pickBox.innerHTML = PICK.ent >= 0
+    ? '射线拾取 <b>' + ENT[PICK.ent].name + '</b><br>包围球 R ' + ENT[PICK.ent].radius.toFixed(0) + ' · t ' + (PICK.t || 0).toFixed(0)
+    : (PICK.ground
+      ? '射线拾取 地表<br>高程 <em>' + PICK.ground.p[1].toFixed(1) + '</em> · 半径比 ' + PICK.ground.r.toFixed(3)
+      : '射线拾取 —<br>地表落点 —');
+  syncShade();
+  setStateChip();
+}
+function domLedger() {
+  ACC = aggregate();
+  FPS = ACC.fps;
+  H.lA.innerHTML = ACC.n + '<small>帧</small>';
+  H.lAd.textContent = '逐帧遥测样本条数';
+  H.lB.innerHTML = ACC.dt.toFixed(2) + '<small>ms</small>';
+  H.lBd.textContent = '等价 ' + ACC.fps.toFixed(1) + ' 帧/秒';
+  H.lC.innerHTML = ACC.hitRate.toFixed(1) + '<small>%</small>';
+  H.lCd.textContent = '命中 ' + ACC.hit + ' / 有效 ' + ACC.valid + ' 帧';
+  H.lD.textContent = ACC.top >= 0 ? SN[ACC.top] + ' · ' + ACC.topN + ' 帧' : '—';
+  H.ledN.textContent = ACC.n;
+  var mx = 1;
+  for (var i = 0; i < 8; i++) if (ACC.hist[i] > mx) mx = ACC.hist[i];
+  for (var k = 0; k < 8; k++) {
+    H.hb[k].style.height = Math.max(2, Math.round(ACC.hist[k] / mx * 22)) + 'px';
+    H.hb[k].className = (k === S) ? 'on' : '';
+    H.hb[k].title = SN[k] + ' · ' + ACC.hist[k] + ' 帧';
+  }
+}
+
+/* ==========================================================================
+   十一、交互（五种复合手势）
+   ========================================================================== */
+function bindInput() {
+  var cv = document.getElementById('gl');
+  cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  cv.addEventListener('pointerdown', function (e) {
+    cv.setPointerCapture(e.pointerId);
+    PX = e.clientX; PY = e.clientY; PMX = e.clientX; PMY = e.clientY;
+    PMT = performance.now();
+    FOCUS.on = false; FOCUS.dwell = 0;
+    HOME.on = false;
+    if (e.shiftKey) MODE = 'light';
+    else if (e.button === 2) MODE = 'pan';
+    else MODE = 'orbit';
+    GLIDE.on = false; cam.wAz = 0; cam.wEl = 0;
+    if (MODE === 'orbit') { var b = basisOf(); HOVER.on = false; }
+  });
+
+  cv.addEventListener('pointermove', function (e) {
+    var rect = cv.getBoundingClientRect();
+    var lx = e.clientX - rect.left, ly = e.clientY - rect.top;
+    if (MODE === null) {
+      var now = performance.now();
+      if (now - LT > 24) {
+        LT = now;
+        pickAt(lx * (VW / rect.width), ly * (VH / rect.height));
+        HOVER.on = PICK.ent >= 0;
+      }
+      return;
+    }
+    var dx = e.clientX - PX, dy = e.clientY - PY;
+    PX = e.clientX; PY = e.clientY;
+    var now2 = performance.now(), dt = Math.max(4, now2 - PMT) / 1000;
+    PMT = now2;
+
+    if (MODE === 'orbit') {
+      var dAz = -dx * 0.0052, dEl = dy * 0.0040;
+      cam.az += dAz; cam.el += dEl;
+      var iw = 1 / dt;
+      cam.wAz = cam.wAz * 0.55 + (dAz * iw) * 0.45;
+      cam.wEl = cam.wEl * 0.55 + (dEl * iw) * 0.45;
+      var lim = 7.5;
+      if (cam.wAz > lim) cam.wAz = lim; if (cam.wAz < -lim) cam.wAz = -lim;
+      if (cam.wEl > lim) cam.wEl = lim; if (cam.wEl < -lim) cam.wEl = -lim;
+      GLIDE.ms = 0;
+    } else if (MODE === 'pan') {
+      var b2 = basisOf(), k = cam.d * 0.00175;
+      cam.tgt[0] += (-b2.r[0] * dx + b2.u[0] * -dy) * k;
+      cam.tgt[1] += (-b2.r[1] * dx + b2.u[1] * -dy) * k;
+      cam.tgt[2] += (-b2.r[2] * dx + b2.u[2] * -dy) * k;
+    } else if (MODE === 'light') {
+      L1.az -= dx * 0.0062;
+      L1.el += dy * 0.0044;
+      if (L1.el < -0.42) L1.el = -0.42;
+      if (L1.el > 1.30) L1.el = 1.30;
+    }
+  });
+
+  function up(e) {
+    if (MODE === 'orbit') {
+      var mag = Math.sqrt(cam.wAz * cam.wAz + cam.wEl * cam.wEl);
+      if (mag > 0.06) { GLIDE.on = true; GLIDE.w0 = mag; GLIDE.acc = 0; GLIDE.ms = 0; }
+      else { cam.wAz = 0; cam.wEl = 0; }
+    }
+    MODE = null;
+  }
+  cv.addEventListener('pointerup', up);
+  cv.addEventListener('pointercancel', up);
+
+  cv.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    if (dy > 240) dy = 240; if (dy < -240) dy = -240;
+    cam.d *= Math.exp(dy * 0.00105 * zoomResist());
+    GLIDE.on = false;
+    enforceClearance();
+  }, { passive: false });
+
+  cv.addEventListener('dblclick', function (e) {
+    var rect = cv.getBoundingClientRect();
+    var r = pickAt((e.clientX - rect.left) * (VW / rect.width), (e.clientY - rect.top) * (VH / rect.height));
+    if (r.ent >= 0) focusEntity(r.ent);
+  });
+
+  window.addEventListener('keydown', function (e) {
+    var k = e.key.toLowerCase();
+    if (k === 'l') pulseOver(2.6);
+    else if (k === 'w') pulseWire(3.2);
+    else if (k === 'r') applyPreset(0);
+  });
+
+  var ro = null;
+  if (window.ResizeObserver) {
+    ro = new ResizeObserver(function () { resize(); });
+    ro.observe(document.getElementById('gl').parentNode);
+  }
+  window.addEventListener('resize', function () { resize(); });
+}
+function focusEntity(i) {
+  var e = ENT[i], sc = 5.5 * e.sc;
+  var az = cam.az, el = Math.min(0.62, Math.max(0.18, 0.36));
+  FOCUS.on = true; FOCUS.t = 0; FOCUS.dwell = 2.4; FOCUS.ent = i;
+  FOCUS.from = { az: cam.az, el: cam.el, d: cam.d, t: [cam.tgt[0], cam.tgt[1], cam.tgt[2]] };
+  FOCUS.to = { az: az, el: el, d: Math.max(700, e.radius * 5.6),
+               t: [e.x, e.y + 96 * sc * 0.5, e.z] };
+  HOME.on = false;
+}
+function pulseOver(sec) {
+  if (OVR.t <= 0) { OVR.spec0 = SF.spec; OVR.bump0 = SF.bump; }
+  OVR.t = Math.max(OVR.t, sec);
+}
+function overRelease() {
+  if (OVR.spec0 >= 0) {
+    SF.spec = OVR.spec0; SF.bump = OVR.bump0;
+    OVR.spec0 = -1; syncShade();
+  }
+}
+function pulseWire(sec) { WIR.t = Math.max(WIR.t, sec); }
+
+/* ==========================================================================
+   十二、主循环
+   ========================================================================== */
+var LAST = 0;
+function loop(now) {
+  requestAnimationFrame(loop);
+  if (FROZEN) { LAST = now; return; }
+  if (!LAST) LAST = now;
+  var dt = (now - LAST) / 1000;
+  LAST = now;
+  if (dt > 0.05) dt = 0.05;
+  if (dt < 0.0005) dt = 0.0005;
+  tick(dt);
+  AGGT += dt;
+  if (AGGT > 0.26) { AGGT = 0; domLedger(); domHUD(); }
+  ORBT += dt;
+  if (ORBT > 0.05) { ORBT = 0; pushOrbit(); }
+}
+
+/* ==========================================================================
+   十三、启动
+   ========================================================================== */
+var READY = false, FATAL = 0, FAULT = '';
+function boot() {
+  try {
+    buildWorld();
+    initGL();
+    initHUD();
+    bindInput();
+    resize();
+    READY = true;
+    S = evalState();
+    render();
+    record(1 / 60);
+    requestAnimationFrame(loop);
+  } catch (err) {
+    FATAL = 1; ERRS++; FAULT = String(err && err.message || err);
+    ctxType = 'error';
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed;left:16px;top:16px;color:#ff5c76;font:13px monospace;z-index:9';
+    d.textContent = 'INIT FAULT ' + FAULT;
+    document.body.appendChild(d);
+  }
+}
+
+/* ==========================================================================
+   十四、自动化验收接口
+   ========================================================================== */
+window.YL = {
+  ready: function () { return READY; },
+  fatal: function () { return FATAL; },
+  fault: function () { return FAULT; },
+  ctx: function () { return ctxType; },
+  ctxInfo: function () { return ctxInfo; },
+  state: function () { return SN[S]; },
+  stateIdx: function () { return S; },
+  states: function () { return SN.slice(); },
+  subs: function () { return SC.slice(); },
+  colors: function () { return SK.slice(); },
+  desc: function () { return SD.slice(); },
+  gestures: function () { return GESTURES; },
+  traps: function () { return TRAPS; },
+  ledgerDef: function () { return LEDGER_DEF; },
+  world: function () { return WORLD; },
+  cam: function () { return { az: cam.az, el: cam.el, d: cam.d, tgt: cam.tgt.slice() }; },
+  setCam: function (az, el, d) {
+    if (az !== undefined) cam.az = az;
+    if (el !== undefined) cam.el = el;
+    if (d !== undefined) cam.d = d;
+    FOCUS.on = false; HOME.on = false; GLIDE.on = false;
+    enforceClearance(); S = evalState();
+  },
+  setTarget: function (x, y, z) { cam.tgt = [x, y, z]; enforceClearance(); },
+  eye: function () { return eyeOf(cam.d); },
+  basis: function () { return basisOf(); },
+  clearance: function () { return clearanceAt(eyeOf(cam.d)); },
+  clearanceAt: function (p) { return clearanceAt(p); },
+  bounds: function () { return SBOX; },
+  resist: function () { return zoomResist(); },
+  home: function () { applyPreset(0); },
+  glide: function () { return { on: GLIDE.on, ms: GLIDE.ms, w: Math.sqrt(cam.wAz * cam.wAz + cam.wEl * cam.wEl) }; },
+  omega: function () { return Math.sqrt(cam.wAz * cam.wAz + cam.wEl * cam.wEl); },
+  mode: function () { return MODE; },
+  entities: function () {
+    return ENT.map(function (e) { return { id: e.id, name: e.name, x: e.x, y: e.y, z: e.z, r: e.radius, sc: e.sc, u: e.u, v: e.v }; });
+  },
+  lights: function () {
+    return [{ p: L0.p.slice(), c: L0.col.slice(), i: L0.i, az: L0.az, el: L0.el, r: L0.r },
+            { p: L1.p.slice(), c: L1.col.slice(), i: L1.i, az: L1.az, el: L1.el, r: L1.r }];
+  },
+  setLight: function (i, az, el) {
+    var L = i === 0 ? L0 : L1;
+    if (az !== undefined) L.az = az;
+    if (el !== undefined) L.el = el;
+  },
+  screenOf: function (i) {
+    var rect = document.getElementById('gl').getBoundingClientRect();
+    var s = screenOf(i);
+    return { x: rect.left + s.x * (rect.width / VW), y: rect.top + s.y * (rect.height / VH), w: s.z };
+  },
+  pickAt: function (px, py) {
+    var r = pickAt(px, py);
+    return { ent: r.ent, name: r.ent >= 0 ? ENT[r.ent].name : null, t: r.t,
+             ground: r.ground && r.ground.hit ? { p: r.ground.p, u: r.ground.u, v: r.ground.v } : null };
+  },
+  pickScreen: function (i) { var s = screenOf(i); return pickAt(s.x, s.y); },
+  pickCount: function () {
+    var n = 0;
+    for (var i = 0; i < ENT.length; i++) {
+      var s = screenOf(i);
+      if (s.z < 1 && s.x > 4 && s.y > 4 && s.x < VW - 4 && s.y < VH - 4) n++;
+    }
+    return n;
+  },
+  focusEntity: function (i) { focusEntity(i); S = evalState(); },
+  hover: function (i) {
+    if (i < 0) { HOVER.on = false; PICK.ent = -1; }
+    else { HOVER.on = true; PICK.ent = i; PICK.valid = true; PICK.hit = true; }
+    S = evalState();
+  },
+  pulseOver: function (s) { pulseOver(s || 2.6); S = evalState(); },
+  pulseWire: function (s) { pulseWire(s || 3.2); S = evalState(); },
+  overT: function () { return OVR.t; },
+  wireT: function () { return WIR.t; },
+  bootState: function () { BOOT.n = 3; FOCUS.on = false; HOME.on = false; OVR.t = 0; overRelease(); WIR.t = 0; S = evalState(); },
+  shading: function () { return { bump: SF.bump, spec: SF.spec, cont: SF.cont, uvScale: SF.uvScale }; },
+  setShading: function (k, v) {
+    if (k === 'bump') SF.bump = v; else if (k === 'spec') SF.spec = v; else if (k === 'cont') SF.cont = v;
+    syncShade();
+    S = evalState();
+  },
+  freeze: function () { FROZEN = true; },
+  unfreeze: function () { FROZEN = false; LAST = 0; },
+  step: function (n) {
+    n = n || 1;
+    for (var i = 0; i < n; i++) tick(1 / 60);
+    domLedger(); domHUD(); pushOrbit();
+  },
+  stepOrbit: function () { pushOrbit(); },
+  verts: function () { return BUF.ter.verts + BUF.skt.verts + BUF.bea.verts * ENT.length; },
+  terrainVerts: function () { return BUF.ter.verts; },
+  tris: function () { return BUF.ter.tris + BUF.skt.tris + BUF.bea.tris * ENT.length; },
+  buffers: function () {
+    return { vbo: 8, vao: 0, ibo: 3, attribs: 5, prog: 2, textures: 1 };
+  },
+  drawCalls: function () { return 2 + ENT.length + (WIR.t > 0 ? 2 + ENT.length : 0); },
+  prim: function () { return WIR.t > 0 ? 'TRIANGLES+LINES' : 'TRIANGLES'; },
+  fps: function () { return FPS; },
+  agg: function () { return aggregate(); },
+  zeroLedger: function () { FRH.length = 0; FR = 0; ACC = aggregate(); },
+  framesN: function () { return FRH.length; },
+  frameAt: function (i) { return FRH[i] ? FRH[i].slice() : null; },
+  pixels: function () {
+    var w = VW, h = VH, n = w * h;
+    var px = new Uint8Array(n * 4);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    var cnt = 0, s = 0, s2 = 0, uniq = 0, seen = {}, mx = 0, mn = 255;
+    for (var i = 0; i < n; i += 7) {
+      var r = px[i * 4], g2 = px[i * 4 + 1], b = px[i * 4 + 2];
+      var v = r * 0.299 + g2 * 0.587 + b * 0.114;
+      s += v; s2 += v * v; cnt++;
+      if (v > mx) mx = v; if (v < mn) mn = v;
+      var k = ((r >> 3) << 10) | ((g2 >> 3) << 5) | (b >> 3);
+      if (!seen[k]) { seen[k] = 1; uniq++; }
+    }
+    var m = s / cnt;
+    return { w: w, h: h, mean: m, std: Math.sqrt(Math.max(0, s2 / cnt - m * m)),
+             uniq: uniq, min: mn, max: mx, samples: cnt };
+  },
+  canvas: function () {
+    var cv = document.getElementById('gl');
+    return { w: cv.width, h: cv.height, cssW: VW, cssH: VH, dpr: DPR };
+  },
+  probe: function () {
+    var cv = document.getElementById('gl');
+    var names = LIBPROBE();
+    var found = [];
+    for (var i = 0; i < names.length; i++) if (typeof window[names[i]] !== 'undefined') found.push(names[i]);
+    var scripts = document.querySelectorAll('script[src]');
+    var links = document.querySelectorAll('link[href]');
+    var imgs = document.querySelectorAll('img');
+    return {
+      globals: found,
+      externalScripts: scripts.length,
+      externalLinks: links.length,
+      imgTags: imgs.length,
+      canvasCount: document.querySelectorAll('canvas').length,
+      ctx: ctxType,
+      ctxInfo: ctxInfo,
+      fatal: FATAL,
+      errs: ERRS
+    };
+  },
+  m4: {
+    ident: function () { return m4I(new Float32Array(16)); },
+    persp: function (f, a, n, fa) { return m4P(new Float32Array(16), f, a, n, fa); },
+    look: function (e, c, u) { return m4L(new Float32Array(16), e[0], e[1], e[2], c[0], c[1], c[2], u[0], u[1], u[2]); },
+    mul: function (a, b) { return m4M(new Float32Array(16), a, b); },
+    inv: function (m) { return m4Inv(new Float32Array(16), m); },
+    rotY: function (a) { return m4RotY(new Float32Array(16), a); },
+    xf: function (m, v) { return Array.from(xf4(m, v[0], v[1], v[2], v[3] === undefined ? 1 : v[3], new Float32Array(4))); }
+  }
+};
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+
+})();
+
+</script>
+</body>
+</html>

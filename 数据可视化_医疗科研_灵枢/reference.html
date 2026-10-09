@@ -1,0 +1,1652 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>灵枢 LINGSHU · 临床试验多中心监查平台</title>
+<style>
+:root{
+  --bg:#f7f9fa; --card:#ffffff; --line:#e4eaec; --line2:#eef2f4;
+  --brand:#0e7c86; --brand-d:#0a5f67; --brand-l:#e6f2f3;
+  --arm-a:#0e7c86; --arm-b:#4fa8b0; --arm-p:#9db4bd;
+  --crit:#c2410c; --warn:#d97706; --info:#64748b; --ok:#15803d;
+  --grid:#eef2f4; --ink:#1f2d33; --ink2:#6b7f88; --ink3:#9aa9b0;
+  --r:8px; --sh:0 1px 2px rgba(16,42,48,.04);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink); font-size:13px; line-height:1.45;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{margin:0;font-weight:600}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+table{border-collapse:collapse;width:100%}
+.app{display:flex;min-height:100vh;align-items:stretch}
+
+/* ---------- rail ---------- */
+.rail{width:260px;flex:0 0 260px;background:var(--card);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;justify-content:space-between}
+.brand{padding:16px 16px 12px;border-bottom:1px solid var(--line2)}
+.brand-row{display:flex;gap:10px;align-items:center}
+.logo{width:34px;height:34px;border-radius:9px;background:var(--brand);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;flex:0 0 34px}
+.brand-name{font-size:15px;font-weight:600;letter-spacing:.2px}
+.brand-sub{font-size:11px;color:var(--ink2)}
+.brand-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-top:14px}
+.bm-k{font-size:10.5px;color:var(--ink3)}
+.bm-v{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.tree{padding:12px 10px;flex:1;min-height:0;overflow:auto}
+.tree-hd{font-size:10.5px;color:var(--ink3);letter-spacing:.6px;padding:6px 8px 4px}
+.tree-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:12.5px;
+  width:100%;text-align:left;color:var(--ink)}
+.tree-item:hover{background:var(--line2)}
+.tree-item.on{background:var(--brand-l);color:var(--brand-d);font-weight:600}
+.tree-item .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tree-item .v{font-variant-numeric:tabular-nums;color:var(--ink2);font-size:12px}
+.tree-item.on .v{color:var(--brand-d)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--arm-p);flex:0 0 6px}
+.rail-foot{border-top:1px solid var(--line2);padding:12px 16px}
+.who{display:flex;gap:9px;align-items:center}
+.who-av{width:30px;height:30px;border-radius:50%;background:var(--brand-l);color:var(--brand-d);
+  display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;flex:0 0 30px}
+.who-n{font-size:12.5px;font-weight:600}
+.who-r{font-size:10.5px;color:var(--ink3)}
+
+/* ---------- main ---------- */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{background:var(--card);border-bottom:1px solid var(--line);padding:12px 18px}
+.topbar-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.crumb{font-size:11px;color:var(--ink3);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.crumb b{color:var(--ink2);font-weight:600}
+.crumb-sep{color:var(--ink3)}
+.pg-h{font-size:19px;margin-top:2px}
+.pg-d{font-size:12px;color:var(--ink2);margin:3px 0 0}
+.pill-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:#fff;
+  border-radius:999px;padding:4px 10px;font-size:11.5px;color:var(--ink2);white-space:nowrap}
+.pill b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.pill.crit{border-color:#f0c9b6;background:#fdf3ee;color:var(--crit)}
+.pill.crit b{color:var(--crit)}
+.fsm{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:11px;
+  background:#0f2b30;color:#8fd6dc;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.3px}
+.fsm .led{width:6px;height:6px;border-radius:50%;background:#3fd0a0;box-shadow:0 0 6px #3fd0a0}
+
+/* ---------- control bar ---------- */
+.ctl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:9px 18px;background:var(--card);
+  border-bottom:1px solid var(--line)}
+.ctl-g{display:flex;align-items:center;gap:7px}
+.ctl-k{font-size:11px;color:var(--ink3);white-space:nowrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:#fff}
+.seg button{padding:5px 11px;font-size:12px;color:var(--ink2);border-right:1px solid var(--line);white-space:nowrap}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--line2)}
+.seg button.on{background:var(--brand);color:#fff;font-weight:600}
+.sw{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);cursor:pointer;
+  padding:4px 9px;border:1px solid var(--line);border-radius:7px;background:#fff}
+.sw .bx{width:11px;height:11px;border-radius:3px;border:1.5px solid var(--ink3)}
+.sw.on .bx{border-color:var(--brand);background:var(--brand)}
+.sw.on{color:var(--ink);border-color:#c9dfe1;background:var(--brand-l)}
+.btn{padding:5px 12px;border:1px solid var(--line);border-radius:7px;font-size:12px;background:#fff;color:var(--ink2)}
+.btn:hover{background:var(--line2);color:var(--ink)}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+.spacer{flex:1}
+
+/* ---------- body grid ---------- */
+.wrap{padding:14px 18px 22px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.kpi{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--brand);
+  border-radius:var(--r);padding:11px 13px;box-shadow:var(--sh);min-width:0}
+.kpi.w{border-left-color:var(--warn)} .kpi.c{border-left-color:var(--crit)}
+.kpi-k{font-size:11px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-v{font-size:23px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.5px;margin-top:2px}
+.kpi-v small{font-size:12px;font-weight:500;color:var(--ink2);margin-left:2px}
+.kpi-s{font-size:10.5px;color:var(--ink3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);
+  min-width:0;display:flex;flex-direction:column}
+.card-hd{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 13px 8px;flex-wrap:wrap}
+.card-t{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.card-t .tag{font-size:10px;font-weight:500;color:var(--ink3);border:1px solid var(--line);
+  border-radius:4px;padding:1px 5px}
+.card-s{font-size:10.5px;color:var(--ink3)}
+.card-bd{padding:0 13px 12px;min-width:0;flex:1}
+.c8{grid-column:span 8} .c4{grid-column:span 4}
+.c5{grid-column:span 5} .c7{grid-column:span 7}
+.c12{grid-column:span 12} .c6{grid-column:span 6}
+
+/* ---------- charts ---------- */
+.plot{display:block;overflow:visible;max-width:100%}
+.plot text{font-family:inherit}
+.ax{font-size:10px;fill:var(--ink3)}
+.ax-b{font-size:10px;fill:var(--ink2);font-weight:600}
+/* 铺在有色图元上的文字：必须用类而非 fill 属性——CSS 类会覆盖 SVG 表现属性，否则白字会被轴的灰色吃掉 */
+.tile-t{font-size:10.5px;font-weight:600;fill:#fff}
+.tile-s{font-size:9.5px;fill:#fff;fill-opacity:.88}
+.rose-v{font-size:11px;font-weight:700}
+.rose-n{font-size:10px;fill:var(--ink2)}
+.gl{stroke:var(--grid);stroke-width:1}
+.gl0{stroke:#dbe4e6;stroke-width:1}
+.bar{transition:opacity .12s}
+.dim{opacity:.22}
+.hit{fill:transparent;cursor:pointer}
+.brush-r{fill:var(--brand);fill-opacity:.10;stroke:var(--brand);stroke-width:1}
+.brush-h{fill:var(--brand);cursor:ew-resize}
+.cross{stroke:var(--ink3);stroke-width:1;stroke-dasharray:3 3}
+.thr{stroke:var(--crit);stroke-width:1.2;stroke-dasharray:5 4}
+.thr-a{fill:var(--crit);fill-opacity:.05}
+
+.legend{display:flex;gap:12px;flex-wrap:wrap;padding:2px 0 6px}
+.lg{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink2);cursor:pointer;
+  padding:2px 5px;border-radius:5px}
+.lg:hover{background:var(--line2)}
+.lg.off{opacity:.4;text-decoration:line-through}
+.lg.solo{background:var(--brand-l);color:var(--brand-d);font-weight:600}
+.lg i{width:9px;height:9px;border-radius:2px;display:block}
+
+.tip{position:fixed;z-index:60;pointer-events:none;background:#12313a;color:#eaf6f7;border-radius:7px;
+  padding:7px 10px;font-size:11.5px;line-height:1.5;box-shadow:0 6px 20px rgba(10,40,48,.25);opacity:0;
+  transition:opacity .1s;max-width:250px}
+.tip.on{opacity:1}
+.tip b{color:#fff}
+.tip .tr{display:flex;justify-content:space-between;gap:14px;font-variant-numeric:tabular-nums}
+.tip .tk{color:#9fc4c9}
+
+/* ---------- table ---------- */
+.tbl-wrap{overflow-x:auto;min-width:0}
+table.dt{font-size:11.5px;min-width:0}
+table.dt th{font-size:10.5px;color:var(--ink3);font-weight:600;text-align:left;padding:6px 8px;
+  border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+table.dt th:hover{color:var(--brand)}
+table.dt th .ar{color:var(--brand);font-size:9px}
+table.dt td{padding:5px 8px;border-bottom:1px solid var(--line2);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+table.dt tbody tr:hover{background:var(--line2)}
+table.dt tbody tr.sel{background:var(--brand-l)}
+table.dt tbody tr{cursor:pointer}
+.num{text-align:right}
+.chip{display:inline-block;font-size:10px;padding:1px 5px;border-radius:4px;background:var(--line2);color:var(--ink2)}
+.chip.r{background:#fdf3ee;color:var(--crit)} .chip.o{background:#fdf6e9;color:var(--warn)}
+.chip.g{background:#eef7f0;color:var(--ok)}
+.pager{display:flex;align-items:center;gap:8px;padding-top:8px;font-size:11.5px;color:var(--ink2);flex-wrap:wrap}
+.pager button{border:1px solid var(--line);border-radius:6px;padding:3px 9px;background:#fff}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager button:not(:disabled):hover{background:var(--line2)}
+
+/* ---------- alerts ---------- */
+.alerts{display:flex;flex-direction:column;gap:6px}
+.al{display:flex;gap:8px;padding:7px 9px;border-radius:6px;background:#fbfcfc;border:1px solid var(--line2);
+  border-left:3px solid var(--info);font-size:11.5px}
+.al.r{border-left-color:var(--crit);background:#fdf6f3}
+.al.o{border-left-color:var(--warn);background:#fdfaf3}
+.al.y{border-left-color:#ca8a04;background:#fdfcf3}
+.al-t{font-weight:600}
+.al-d{color:var(--ink2);font-size:10.5px;margin-top:1px}
+.al-s{margin-left:auto;color:var(--ink3);font-size:10.5px;white-space:nowrap}
+
+/* ---------- slider ---------- */
+.sld{padding:6px 2px 2px}
+.sld-tr{position:relative;height:22px}
+.sld-bg{position:absolute;left:0;right:0;top:9px;height:4px;background:var(--line);border-radius:2px}
+.sld-fill{position:absolute;top:9px;height:4px;background:var(--brand);border-radius:2px}
+.sld-h{position:absolute;top:4px;width:13px;height:13px;border-radius:50%;background:#fff;
+  border:2px solid var(--brand);cursor:grab;transform:translateX(-50%)}
+.sld-h:active{cursor:grabbing}
+.sld-lb{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink3)}
+.sld-note{font-size:10.5px;color:var(--ink2);padding:2px 0 8px;line-height:1.5}
+
+/* ---------- annotation layer ---------- */
+#annoRoot{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50}
+body{position:relative}
+
+/* ---------- rose / radar ---------- */
+.win2{display:grid;grid-template-columns:minmax(0,1fr);gap:2px}
+
+/* ---------- annotation overlay ---------- */
+.anno{position:absolute;inset:0;pointer-events:none;z-index:50}
+.anno text{font-family:"Segoe Script","Bradley Hand","Comic Sans MS",cursive;font-size:15px;fill:#c2410c;
+  font-weight:600}
+.anno .ln{stroke:#c2410c;stroke-width:2;fill:none;stroke-linecap:round}
+.rel{position:relative}
+
+/* ---------- responsive ---------- */
+@media (max-width:1180px){
+  .c8,.c4,.c5,.c7{grid-column:span 12}
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  .app{flex-direction:column}
+  .rail{width:auto;flex:none;border-right:0;border-bottom:1px solid var(--line)}
+  .tree{max-height:190px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:560px){
+  .wrap{padding:10px 10px 18px}
+  .topbar,.ctl{padding-left:10px;padding-right:10px}
+  .kpis{grid-template-columns:1fr}
+  .c8,.c4,.c5,.c7,.c6,.c12{grid-column:span 12}
+  .pg-h{font-size:16px}
+  .kpi-v{font-size:19px}
+  .ctl{gap:9px}
+  /* 窄屏：分段控件与切片器必须换行，禁止撑破视口 */
+  .seg{flex-wrap:wrap;max-width:100%}
+  .seg button{border-right:0;border-bottom:1px solid var(--line)}
+  .ctl-g{max-width:100%;flex-wrap:wrap}
+  .pill-row{max-width:100%}
+  .pill{max-width:100%}
+  /* 窄屏：中心列表由纵向长列表改为换行胶囊，保持功能且不溢宽 */
+  .tree{display:flex;flex-wrap:wrap;gap:5px;max-height:none;padding:8px 10px}
+  .tree-hd{width:100%;padding:2px 2px 3px}
+  .tree-item{width:auto;flex:0 0 auto;border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+  .tree-item .n{max-width:92px}
+  .rail-foot{padding:9px 12px}
+  .card-hd{padding:9px 11px 7px}
+  .card-bd{padding:0 11px 11px}
+  /* 窄屏：明细表由横向滚动改为键值对堆叠，任何一列都不得被裁切 */
+  .tbl-wrap{overflow-x:visible}
+  table.dt,table.dt tbody,table.dt tr,table.dt td{display:block;width:100%}
+  table.dt thead{display:none}
+  table.dt tr{border:1px solid var(--line);border-radius:8px;margin:0 0 8px;padding:6px 9px;background:var(--card)}
+  table.dt td{border:0;padding:2px 0;white-space:normal;display:flex;justify-content:space-between;gap:12px}
+  table.dt td::before{content:attr(data-label);color:var(--ink3);font-size:10.5px;flex:0 0 auto}
+  table.dt td.num{font-variant-numeric:tabular-nums}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+<div id="annoRoot"></div>
+<div id="audit" hidden></div>
+<script>
+(function(){
+'use strict';
+
+/* ============================================================ 基础工具 */
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+var esc = function(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+};
+function fmt(v, d){
+  d = (d === undefined) ? 0 : d;
+  var s = (Math.round(v * Math.pow(10,d)) / Math.pow(10,d)).toFixed(d);
+  var p = s.split('.');
+  p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return p.join('.');
+}
+var pct1 = function(v){ return (Math.round(v*1000)/10).toFixed(1) + '%'; };
+var pct2 = function(v){ return (v*100).toFixed(2) + '%'; };
+var clamp = function(v,a,b){ return v<a?a:(v>b?b:v); };
+function sum(a){ var s=0; for (var i=0;i<a.length;i++) s+=a[i]; return s; }
+/* 最大余数法：把 total 按 weights 拆成整数，和严格等于 total */
+function largestRemainder(weights, total){
+  var s = sum(weights), n = weights.length, out = new Array(n), i;
+  if (s <= 0){ for (i=0;i<n;i++) out[i]=0; out[0]=total; return out; }
+  var raw = weights.map(function(w){ return w/s*total; });
+  var base = raw.map(Math.floor);
+  var rest = total - sum(base);
+  var order = raw.map(function(v,i){ return { i:i, f:v-Math.floor(v) }; })
+    .sort(function(a,b){ return b.f - a.f || a.i - b.i; });
+  for (i=0;i<order.length && rest>0;i++){ base[order[i].i]++; rest--; }
+  return base;
+}
+/* 按剩余容量做比例分配，保证行和=need 且不超 cap */
+function allocCapped(weights, need, cap){
+  var n = weights.length, out = new Array(n), i, guard = 0;
+  for (i=0;i<n;i++) out[i]=0;
+  var left = need;
+  while (left > 0 && guard++ < 400){
+    var wsum = 0;
+    for (i=0;i<n;i++) if (cap[i]-out[i] > 0) wsum += weights[i];
+    if (wsum <= 0) break;
+    var room = 0;
+    for (i=0;i<n;i++) room += cap[i]-out[i];
+    var take = Math.min(left, room);
+    var want = weights.map(function(w,i2){ return (cap[i2]-out[i2] > 0) ? w : 0; });
+    var add = largestRemainder(want, take);
+    var moved = 0;
+    for (i=0;i<n;i++){
+      var a = Math.min(add[i], cap[i]-out[i]);
+      out[i] += a; moved += a;
+    }
+    if (moved === 0) break;
+    left -= moved;
+  }
+  return out;
+}
+
+/* ============================================================ 边际量（唯一给定的数据事实） */
+var TRIAL = {
+  code:'LS-CT-2026-014', title:'LS-301 注射液 II 期随机双盲对照研究',
+  phase:'II 期', sponsor:'灵枢生物医药',
+  start:'2026-03-09', dataCut:'2026-09-14', lock:'2026-10-30',
+  sites:12, arms:3, visits:7, weeks:27,
+  plan:930, enr:840, screen:903, screenFail:63, v1:834, v7:774,
+  ex:9, lf:5, aeN:573, aeSub:167, saeHi:46, saeN:40,
+  qRaised:548, qClosed:472, dev:338, auditFound:212, auditFixed:136
+};
+var SITE_N = [
+  '北京协和医院','上海瑞金医院','广州中山一院','成都华西医院','武汉同济医院','西安西京医院',
+  '杭州浙大一院','长沙湘雅医院','沈阳盛京医院','郑州郑大一附院','昆明云大医院','乌鲁木齐友谊医院'
+];
+var SITE_RAW = [
+  { plan:120,enr:118,sf:9,ex:2,lf:1,sae:7,q:4 },
+  { plan:110,enr:105,sf:8,ex:1,lf:0,sae:5,q:6 },
+  { plan:100,enr: 96,sf:7,ex:1,lf:1,sae:4,q:8 },
+  { plan:100,enr: 94,sf:6,ex:1,lf:0,sae:6,q:5 },
+  { plan: 90,enr: 84,sf:5,ex:1,lf:1,sae:3,q:7 },
+  { plan: 80,enr: 73,sf:6,ex:1,lf:0,sae:2,q:9 },
+  { plan: 80,enr: 71,sf:4,ex:1,lf:0,sae:4,q:3 },
+  { plan: 60,enr: 52,sf:5,ex:0,lf:1,sae:2,q:11},
+  { plan: 60,enr: 49,sf:4,ex:1,lf:0,sae:3,q:6 },
+  { plan: 50,enr: 41,sf:3,ex:0,lf:0,sae:1,q:8 },
+  { plan: 50,enr: 38,sf:4,ex:0,lf:1,sae:2,q:5 },
+  { plan: 30,enr: 19,sf:2,ex:0,lf:0,sae:1,q:4 }
+];
+/* 质疑口径：按入组量做最大余数法整数分配，保证 Σ提出=548、Σ未关闭=76、Σ关闭=472 三者同时精确成立。
+   若各中心直接按比例四舍五入，Σ 会漂移（548→549 / 472→471），导致关闭率 85.97% 与公布的 86.13% 打架。 */
+var Q_RAISED = largestRemainder(SITE_RAW.map(function(s){ return s.enr; }), TRIAL.qRaised);
+var Q_OPEN   = SITE_RAW.map(function(s){ return s.q; });
+var Q_CLOSED = Q_RAISED.map(function(v, i){ return v - Q_OPEN[i]; });
+var ARM_N = ['试验组 A · 20mg','试验组 B · 10mg','安慰剂组'];
+var ARM_RAW = [
+  { sub:286, ex:4, lf:2, vd:[284,282,277,274,271,269,268] },
+  { sub:281, ex:3, lf:2, vd:[279,276,271,267,264,261,260] },
+  { sub:273, ex:2, lf:1, vd:[271,267,261,256,252,248,246] }
+];
+var VISIT_N = ['V1 基线','V2 第 2 周','V3 第 4 周','V4 第 8 周','V5 第 12 周','V6 第 18 周','V7 结束访视'];
+var SOC_RAW = [
+  { n:'胃肠系统疾病',       c:132, sub:41, hi: 9, sae:4 },
+  { n:'各类检查异常',       c:118, sub:37, hi: 6, sae:3 },
+  { n:'感染及侵染类疾病',   c: 74, sub:22, hi:11, sae:16},
+  { n:'皮肤及皮下组织疾病', c: 61, sub:18, hi: 2, sae:0 },
+  { n:'神经系统疾病',       c: 57, sub:16, hi: 7, sae:4 },
+  { n:'呼吸系统疾病',       c: 44, sub:11, hi: 3, sae:3 },
+  { n:'心血管系统疾病',     c: 31, sub: 9, hi: 5, sae:7 },
+  { n:'代谢及营养类疾病',   c: 26, sub: 6, hi: 0, sae:0 },
+  { n:'肝胆系统疾病',       c: 18, sub: 4, hi: 3, sae:2 },
+  { n:'其他',               c: 12, sub: 3, hi: 0, sae:1 }
+];
+var ALERTS = [
+  { lv:'r', t:'严重不良事件未在 24 小时内上报', s:'乌鲁木齐友谊医院', d:'SAE-0142 · 逾期 9 小时' },
+  { lv:'r', t:'实验室质疑超 30 天未关闭',       s:'长沙湘雅医院',     d:'LB 页 11 条 · 最长 41 天' },
+  { lv:'o', t:'入组进度落后计划 30% 以上',      s:'昆明云大医院',     d:'实际 38 / 计划 50 · 76.00%' },
+  { lv:'o', t:'eCRF 填写延迟超过 7 天',         s:'西安西京医院',     d:'9 条疑似数据未录入' },
+  { lv:'y', t:'访视窗超窗比例接近阈值',         s:'郑州郑大一附院',   d:'超窗 12.5% · 阈值 15%' },
+  { lv:'y', t:'方案偏离中度例数上升',           s:'上海瑞金医院',     d:'本周新增 6 例 · 环比 +50%' }
+];
+
+/* ============================================================ 原子事实表合成 */
+/* 由上述边际量反向合成 840 条受试者级事实，使任意维度投影精确复现边际量 */
+var W_SHAPE = (function(){
+  var a = [];
+  for (var w=0; w<TRIAL.weeks; w++){
+    var t = w/(TRIAL.weeks-1);
+    a.push(Math.exp(-Math.pow((t-0.42)/0.30,2))*50 + 7);
+  }
+  return a;
+})();
+var WEEK_TOT = largestRemainder(W_SHAPE, TRIAL.enr);   /* 27 周，和 = 840 */
+
+function siteArmMatrix(){
+  var remArm = ARM_RAW.map(function(a){ return a.sub; });
+  var M = [];
+  for (var i=0;i<SITE_N.length;i++){
+    var n = SITE_RAW[i].enr;
+    var alloc = allocCapped(remArm.slice(), n, remArm.slice());
+    M.push(alloc);
+    for (var a=0;a<3;a++) remArm[a] -= alloc[a];
+  }
+  return M;
+}
+/* 二维边际分配：行和 = rowT，列和 = colT，且 cell <= capM */
+function bipart(rowT, colT, capM, weightM){
+  var R = rowT.length, C = colT.length;
+  var remC = colT.slice(), out = [];
+  for (var i=0;i<R;i++){
+    var w = [];
+    for (var j=0;j<C;j++) w.push(Math.max(0, weightM[i][j]) * (remC[j] > 0 ? 1 : 0));
+    var cap = [];
+    for (var j2=0;j2<C;j2++) cap.push(Math.min(capM[i][j2], remC[j2]));
+    var alloc = allocCapped(w, rowT[i], cap);
+    out.push(alloc);
+    for (var j3=0;j3<C;j3++) remC[j3] -= alloc[j3];
+  }
+  return out;
+}
+
+var FACT = (function(){
+  var rnd = mulberry32(20260914);
+  var i, a, v, k;
+  var M = siteArmMatrix();                                   /* 中心 × 分组 入组数 */
+
+  /* 分组内「最后完成访视」多重集：由 VISIT_DONE 唯一确定 */
+  var LSET = ARM_RAW.map(function(ar){
+    var L = [], prev = ar.sub;
+    for (v=1; v<=7; v++){ var cur = ar.vd[v-1]; L.push(prev-cur); prev = cur; }
+    L.push(prev);                                            /* L=7 的整块 */
+    var arr = [];
+    for (var lv=0; lv<L.length; lv++) for (k=0;k<L[lv];k++) arr.push(lv);
+    return arr;                                              /* 升序，长度 = sub */
+  });
+
+  /* 每组内先把「剔除+失访」指派到最低的 L 槽位，保证下落不明者不完成末次访视 */
+  var capEx = SITE_RAW.map(function(s){ return s.ex; });
+  var capLf = SITE_RAW.map(function(s){ return s.lf; });
+  var exM = bipart(capEx, ARM_RAW.map(function(x){return x.ex;}), M,
+                   M.map(function(r){ return r.map(function(c){ return c; }); }));
+  var lfM = bipart(capLf, ARM_RAW.map(function(x){return x.lf;}),
+                   M.map(function(r,a2){ return r.map(function(c,j){ return c - exM[a2][j]; }); }),
+                   M.map(function(r){ return r.map(function(c){ return c; }); }));
+
+  var LCELL = M.map(function(r){ return r.map(function(){ return []; }); });
+  for (a=0; a<3; a++){
+    var pool = LSET[a].slice();          /* 升序 */
+    /* 1) 先给该组内所有 (中心,组) 单元的脱落者分配最低 L */
+    var dropCells = [];
+    for (i=0;i<SITE_N.length;i++){
+      var dn = exM[i][a] + lfM[i][a];
+      for (k=0;k<dn;k++) dropCells.push(i);
+    }
+    for (k=0;k<dropCells.length && pool.length;k++){
+      LCELL[dropCells[k]][a].push(pool.shift());
+    }
+    /* 2) 剩余 L 槽位按各单元剩余容量比例发牌 */
+    var cap = [];
+    for (i=0;i<SITE_N.length;i++) cap.push(M[i][a] - LCELL[i][a].length);
+    var deal = allocCapped(cap.slice(), pool.length, cap.slice());
+    var p = 0;
+    for (i=0;i<SITE_N.length;i++){
+      for (k=0;k<deal[i];k++) LCELL[i][a].push(pool[p++]);
+    }
+    /* 3) 单元内打散，避免同组同 L 聚集 */
+    for (i=0;i<SITE_N.length;i++){
+      var arr = LCELL[i][a];
+      for (var z=arr.length-1; z>0; z--){
+        var j = Math.floor(rnd()*(z+1)), tmp = arr[z]; arr[z]=arr[j]; arr[j]=tmp;
+      }
+    }
+  }
+
+  /* 中心 × 周 分配：软启动门控，使时间笔刷产生真实差异 */
+  var gate = [];
+  for (i=0;i<SITE_N.length;i++){
+    var act = i * 0.85, row = [];
+    for (var w=0; w<TRIAL.weeks; w++){
+      row.push(W_SHAPE[w] * (0.12 + 0.88*clamp((w-act)/7, 0, 1)));
+    }
+    gate.push(row);
+  }
+  var WM = bipart(SITE_RAW.map(function(s){ return s.enr; }), WEEK_TOT,
+                  SITE_RAW.map(function(s){ return new Array(TRIAL.weeks).fill(s.enr); }),
+                  gate);
+
+  /* 展开成受试者级事实 */
+  var facts = [], sid = 0;
+  for (i=0;i<SITE_N.length;i++){
+    for (a=0;a<3;a++){
+      var Ls = LCELL[i][a].slice().sort(function(x,y){ return x-y; });
+      for (k=0;k<Ls.length;k++){
+        var L = Ls[k];
+        var isEx = k < exM[i][a];
+        var isLf = !isEx && k < exM[i][a] + lfM[i][a];
+        facts.push({
+          ix: facts.length,
+          id: 'S' + String(++sid).padStart(3,'0'),
+          site: i, arm: a, last: L,
+          ex: isEx ? 1 : 0, lf: isLf ? 1 : 0,
+          week: -1
+        });
+      }
+    }
+  }
+  /* 周分配：把 WM 展开到事实行 */
+  var cursor = [];
+  for (i=0;i<SITE_N.length;i++) cursor.push(0);
+  var byCell = {};
+  facts.forEach(function(f){
+    var key = f.site;
+    (byCell[key] = byCell[key] || []).push(f);
+  });
+  for (i=0;i<SITE_N.length;i++){
+    var idx = 0;
+    for (var w2=0; w2<TRIAL.weeks; w2++){
+      for (k=0;k<WM[i][w2];k++){
+        if (idx < byCell[i].length) byCell[i][idx++].week = w2;
+      }
+    }
+    while (idx < byCell[i].length) byCell[i][idx++].week = TRIAL.weeks-1;
+  }
+  return facts;
+})();
+
+/* ============================================================ 不良事件事实（挂到真实受试者上） */
+/* 各 SOC 的被涉及受试者互不相交，合计恰为 167 例（与边际量 19.88% 一致） */
+var AE_SUBJ = (function(){
+  var groups = [], cursor = 0;
+  SOC_RAW.forEach(function(s){
+    var g = [];
+    while (g.length < s.sub){ g.push((cursor * 5) % FACT.length); cursor++; }
+    groups.push(g);
+  });
+  return groups;
+})();
+var AE_FACT = (function(){
+  var out = [];
+  SOC_RAW.forEach(function(s, si){
+    var g = AE_SUBJ[si];
+    var counts = largestRemainder(g.map(function(){ return 1; }), s.c);
+    for (var i=0;i<g.length;i++){
+      var f = FACT[g[i]];
+      for (var k=0;k<counts[i];k++){
+        out.push({ soc:si, subj:g[i], site:f.site, arm:f.arm, week:f.week, hi:0, sae:0 });
+      }
+    }
+  });
+  SOC_RAW.forEach(function(s, si){
+    var rows = out.filter(function(r){ return r.soc === si; });
+    var i;
+    for (i=0;i<rows.length;i++) rows[i].hi = (i < s.hi) ? 1 : 0;
+    /* SAE 沿序列均匀取样，避免集中在同一受试者 */
+    if (s.sae > 0){
+      var step = rows.length / s.sae, next = 0, picked = 0;
+      for (i=0;i<rows.length && picked<s.sae;i++){
+        if (i >= next){ rows[i].sae = 1; picked++; next += step; }
+      }
+    }
+  });
+  return out;
+})();
+
+/* ============================================================ 守恒审计 */
+var AUDIT = (function(){
+  var errs = [], checks = [];
+  function chk(name, got, want){
+    var ok = (got === want);
+    checks.push({ name:name, got:got, want:want, ok:ok });
+    if (!ok) errs.push(name + ': got ' + got + ' want ' + want);
+  }
+  var bySite = {}, byArm = {}, byVisit = [0,0,0,0,0,0,0], byWeek = new Array(TRIAL.weeks).fill(0);
+  FACT.forEach(function(f){
+    bySite[f.site] = (bySite[f.site]||0)+1;
+    byArm[f.arm] = (byArm[f.arm]||0)+1;
+    for (var v=1; v<=7; v++) if (f.last >= v) byVisit[v-1]++;
+    byWeek[f.week]++;
+  });
+  chk('入组合计', FACT.length, TRIAL.enr);
+  SITE_RAW.forEach(function(s,i){ chk('中心·'+SITE_N[i], bySite[i]||0, s.enr); });
+  ARM_RAW.forEach(function(a,i){ chk('分组·'+ARM_N[i], byArm[i]||0, a.sub); });
+  ARM_RAW.forEach(function(a,i){
+    for (var v=1; v<=7; v++){
+      var got = FACT.filter(function(f){ return f.arm===i && f.last>=v; }).length;
+      chk('分组×'+VISIT_N[v-1]+'·'+ARM_N[i], got, a.vd[v-1]);
+    }
+  });
+  chk('V1 基线合计', byVisit[0], TRIAL.v1);
+  chk('V7 完成合计', byVisit[6], TRIAL.v7);
+  chk('剔除合计', FACT.filter(function(f){return f.ex;}).length, TRIAL.ex);
+  chk('失访合计', FACT.filter(function(f){return f.lf;}).length, TRIAL.lf);
+  chk('周度合计', sum(byWeek), TRIAL.enr);
+  chk('AE 例次', AE_FACT.length, TRIAL.aeN);
+  chk('AE 涉及受试者', (function(){ var s={}; AE_FACT.forEach(function(r){ s[r.subj]=1; }); return Object.keys(s).length; })(), TRIAL.aeSub);
+  chk('AE ≥3 级例次', AE_FACT.filter(function(r){return r.hi;}).length, TRIAL.saeHi);
+  chk('AE SAE 例次', AE_FACT.filter(function(r){return r.sae;}).length, TRIAL.saeN);
+  SOC_RAW.forEach(function(s,i){
+    chk('SOC 例次·'+s.n, AE_FACT.filter(function(r){return r.soc===i;}).length, s.c);
+    chk('SOC SAE·'+s.n, AE_FACT.filter(function(r){return r.soc===i && r.sae;}).length, s.sae);
+  });
+  /* 质疑口径守恒：Σ提出 / Σ未关闭 / Σ关闭 三者必须同时精确，关闭率才能等于 472/548 */
+  chk('质疑提出合计', sum(Q_RAISED), TRIAL.qRaised);
+  chk('质疑未关闭合计', sum(Q_OPEN), TRIAL.qRaised - TRIAL.qClosed);
+  chk('质疑关闭合计', sum(Q_CLOSED), TRIAL.qClosed);
+  chk('质疑中心非负', Q_CLOSED.filter(function(v){ return v < 0; }).length, 0);
+  return { ok: errs.length===0, errs: errs, checks: checks, n: checks.length };
+})();
+
+(function(){
+  var el = document.getElementById('audit');
+  if (el) el.textContent = JSON.stringify({
+    ok: AUDIT.ok, passed: AUDIT.checks.filter(function(c){return c.ok;}).length,
+    total: AUDIT.n, errs: AUDIT.errs
+  });
+})();
+
+/* ============================================================ 状态与八阶互斥状态机 */
+var S = {
+  fsm:'GLOBAL_OVERVIEW_CRUISE',
+  site:[], arm:[], visit:[], soc:[],
+  week:[0, TRIAL.weeks-1], brush:null,
+  thr:[0, 900],
+  scale:'linear',
+  hidden:{}, solo:null,
+  drill:null,
+  sort:{ k:'id', dir:1 }, page:0, pageSize:8,
+  hover:null
+};
+var GEO = {};                       /* 图元几何缓存，供探针与命中测试读取 */
+var lastFocus = null;
+
+function gotoFSM(next){
+  var order = {
+    INIT_DATA_INGESTED:0, GLOBAL_OVERVIEW_CRUISE:1, SERIES_BRUSH_STAGED:2,
+    DIMENSION_SLICED:3, HIERARCHY_DRILLDOWN:4, SCALE_LOG_TRANSFORMED:5,
+    ANOMALY_INSPECTION:6, FILTER_RESET_RECONVERGED:7
+  };
+  S.fsm = next;
+  var chip = document.getElementById('fsmName');
+  if (chip) chip.textContent = next;
+}
+
+/* ============================================================ 立方体：谓词过滤与聚合 */
+var SITE_ENR = (function(){
+  var a = new Array(SITE_N.length).fill(0);
+  FACT.forEach(function(f){ a[f.site]++; });
+  return a;
+})();
+
+function activePreds(){
+  var p = [];
+  if (S.drill !== null) p.push(function(f){ return f.site === S.drill; });
+  if (S.site.length) p.push(function(f){ return S.site.indexOf(f.site) >= 0; });
+  if (S.arm.length)  p.push(function(f){ return S.arm.indexOf(f.arm) >= 0; });
+  if (S.visit.length){
+    var mv = Math.min.apply(null, S.visit);
+    p.push(function(f){ return f.last >= mv; });
+  }
+  p.push(function(f){ return f.week >= S.week[0] && f.week <= S.week[1]; });
+  p.push(function(f){ return SITE_ENR[f.site] >= S.thr[0] && SITE_ENR[f.site] <= S.thr[1]; });
+  return p;
+}
+function filtered(){
+  var p = activePreds();
+  return FACT.filter(function(f){
+    for (var i=0;i<p.length;i++) if (!p[i](f)) return false;
+    return true;
+  });
+}
+/* 不良事件严格挂在「当前过滤后的受试者集合」下，再叠加 SOC 维度谓词 */
+function filteredAE(){
+  var F = filtered(), idx = {};
+  F.forEach(function(f){ idx[f.ix] = 1; });
+  return AE_FACT.filter(function(r){
+    if (!idx[r.subj]) return false;
+    if (S.soc.length && S.soc.indexOf(r.soc) < 0) return false;
+    return true;
+  });
+}
+function aeCountBySubj(){
+  var m = {};
+  filteredAE().forEach(function(r){ m[r.subj] = (m[r.subj]||0)+1; });
+  return m;
+}
+function aggBy(list, key){
+  var m = {};
+  list.forEach(function(x){
+    var k = (typeof key === 'function') ? key(x) : x[key];
+    m[k] = (m[k]||0) + 1;
+  });
+  return m;
+}
+
+/* ============================================================ 标尺 */
+function niceTicks(min, max, n){
+  n = n || 5;
+  if (!(max > min)) max = min + 1;
+  var span = max - min, step = Math.pow(10, Math.floor(Math.log10(span/n)));
+  var err = span / n / step;
+  if (err >= 7.5) step *= 10; else if (err >= 3.5) step *= 5; else if (err >= 1.5) step *= 2;
+  var t = [], v = Math.ceil(min/step)*step, g = 0;
+  while (v <= max + 1e-9 && g++ < 200){ t.push(Math.round(v*1e6)/1e6); v += step; }
+  return t;
+}
+function logTicks(max){
+  /* 只到量程内的最大 10 的幂：刻度序列 1/10/100…，相邻间距是几何级数而非等差，这正是对数标尺的可视证据 */
+  var t = [], p1 = Math.floor(Math.log10(Math.max(max, 10)));
+  for (var p=0; p<=p1; p++) t.push(Math.pow(10,p));
+  return t;
+}
+function mkScale(kind, d0, d1, r0, r1){
+  if (kind === 'log'){
+    var l0 = Math.log10(Math.max(d0,1)), l1 = Math.log10(Math.max(d1,10));
+    return function(v){ return r0 + (r1-r0)*((Math.log10(Math.max(v,1))-l0)/((l1-l0)||1)); };
+  }
+  if (kind === 'percent'){
+    return function(v){ return r0 + (r1-r0)*((d1>0 ? v/d1 : 0)); };
+  }
+  return function(v){ return r0 + (r1-r0)*((v-d0)/((d1-d0)||1)); };
+}
+function axisTicks(kind, min, max){
+  if (kind === 'log') return logTicks(max);
+  if (kind === 'percent') return [0,25,50,75,100];
+  return niceTicks(min, max, 5);
+}
+
+/* ============================================================ 矩形树图（二叉切分） */
+function treemapLayout(items, x, y, w, h, out){
+  out = out || [];
+  if (!items.length) return out;
+  if (items.length === 1){
+    out.push({ k:items[0].k, v:items[0].v, x:x, y:y, w:w, h:h, meta:items[0].meta });
+    return out;
+  }
+  var total = 0, i;
+  for (i=0;i<items.length;i++) total += items[i].v;
+  var acc = 0, k = 0;
+  while (k < items.length-1 && acc + items[k].v < total/2){ acc += items[k].v; k++; }
+  if (k === 0) k = 1;
+  var g1 = items.slice(0,k), g2 = items.slice(k);
+  var a1 = 0, a2 = 0;
+  for (i=0;i<g1.length;i++) a1 += g1[i].v;
+  for (i=0;i<g2.length;i++) a2 += g2[i].v;
+  var frac = (a1+a2) > 0 ? a1/(a1+a2) : .5;
+  if (w >= h){
+    var w1 = w*frac;
+    treemapLayout(g1, x, y, w1, h, out);
+    treemapLayout(g2, x+w1, y, w-w1, h, out);
+  } else {
+    var h1 = h*frac;
+    treemapLayout(g1, x, y, w, h1, out);
+    treemapLayout(g2, x, y+h1, w, h-h1, out);
+  }
+  return out;
+}
+
+/* ============================================================ 图表：双轴组合趋势主视窗 */
+function chCombo(w, h){
+  var F = filtered();
+  var wk = new Array(TRIAL.weeks).fill(0);
+  F.forEach(function(f){ wk[f.week]++; });
+  var cum = [], acc = 0;
+  wk.forEach(function(v){ acc += v; cum.push(acc); });
+  /* 计划口径必须与 KPI 卡一致：取当前过滤后所覆盖中心的计划数之和 */
+  var sitesSel = {};
+  F.forEach(function(f){ sitesSel[f.site] = 1; });
+  var planTotal = 0;
+  Object.keys(sitesSel).forEach(function(si){ planTotal += SITE_RAW[si].plan; });
+  var planPct = [], i;
+  for (i=0;i<TRIAL.weeks;i++) planPct.push((i+1)/TRIAL.weeks*100);
+  var ml=44, mr=42, mt=14, mb=34;
+  var pw = Math.max(10, w-ml-mr), ph = Math.max(10, h-mt-mb);
+  var maxBar = Math.max(4, Math.max.apply(null, wk));
+  var yb = mkScale(S.scale==='log'?'log':'linear', S.scale==='log'?1:0, maxBar, mt+ph, mt);
+  var yp = mkScale('linear', 0, 100, mt+ph, mt);
+  var xw = function(i){ return ml + (TRIAL.weeks<=1?0:(i/(TRIAL.weeks-1))*pw); };
+  var bw = Math.max(1.5, pw/TRIAL.weeks - 2);
+  var ybT = axisTicks(S.scale==='log'?'log':'linear', 0, maxBar);
+  var ypT = [0,25,50,75,100];
+  var s = [];
+  s.push('<svg class="plot" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="周入组例数与累计完成率双轴趋势">');
+  /* 阈值警戒线与网格 */
+  ypT.forEach(function(t){
+    var y = yp(t);
+    s.push('<line class="gl" x1="'+ml+'" y1="'+y.toFixed(1)+'" x2="'+(ml+pw)+'" y2="'+y.toFixed(1)+'"/>');
+    s.push('<text class="ax" x="'+(ml-6)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end">'+t+'%</text>');
+  });
+  ybT.forEach(function(t){
+    var y = yb(t);
+    if (y < mt-1 || y > mt+ph+1) return;
+    s.push('<text class="ax" x="'+(ml+pw+6)+'" y="'+(y+3).toFixed(1)+'">'+fmt(t)+'</text>');
+  });
+  /* 笔刷高亮区 */
+  var br = S.brush || (S.week[0]>0 || S.week[1]<TRIAL.weeks-1 ? S.week : null);
+  if (br){
+    var bx = xw(br[0]) - bw/2, bwid = xw(br[1]) - xw(br[0]) + bw;
+    s.push('<rect class="brush-r" x="'+Math.max(ml,bx).toFixed(1)+'" y="'+mt+'" width="'+Math.min(bwid, ml+pw-Math.max(ml,bx)).toFixed(1)+'" height="'+ph+'"/>');
+    s.push('<rect class="brush-h" data-br="0" x="'+(xw(br[0])-bw/2-2).toFixed(1)+'" y="'+mt+'" width="4" height="'+ph+'" rx="2"/>');
+    s.push('<rect class="brush-h" data-br="1" x="'+(xw(br[1])+bw/2-2).toFixed(1)+'" y="'+mt+'" width="4" height="'+ph+'" rx="2"/>');
+  }
+  /* 柱：周入组例数（主轴，例数） */
+  var bars = [];
+  for (i=0;i<TRIAL.weeks;i++){
+    var y0 = yb(0), y1 = yb(wk[i]);
+    if (!isFinite(y0)) y0 = mt+ph;
+    if (!isFinite(y1)) y1 = mt+ph;
+    var bh = Math.max(0, y0 - y1);
+    var inRange = (i >= S.week[0] && i <= S.week[1]);
+    bars.push({ w:i, v:wk[i], x:xw(i)-bw/2, y:y1, h:bh });
+    if (S.hidden.bar !== true)
+      s.push('<rect class="bar'+(inRange?'':' dim')+'" data-wk="'+i+'" x="'+(xw(i)-bw/2).toFixed(1)+'" y="'+y1.toFixed(1)+
+        '" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="1.5" fill="var(--arm-a)" fill-opacity=".82"/>');
+  }
+  /* 折线：累计完成率（副轴，百分比，量纲不同） */
+  var dLine = '', dPlan = '';
+  for (i=0;i<TRIAL.weeks;i++){
+    dLine += (i?' L':'M') + xw(i).toFixed(1) + ' ' + yp(planTotal>0 ? cum[i]/planTotal*100 : 0).toFixed(1);
+    dPlan += (i?' L':'M') + xw(i).toFixed(1) + ' ' + yp(planPct[i]).toFixed(1);
+  }
+  if (S.hidden.line !== true)
+    s.push('<path d="'+dLine+'" fill="none" stroke="var(--brand)" stroke-width="2.2" stroke-linejoin="round"/>');
+  if (S.hidden.base !== true)
+    s.push('<path d="'+dPlan+'" fill="none" stroke="var(--ink3)" stroke-width="1.6" stroke-dasharray="6 4"/>');
+  /* 缺口阴影 */
+  if (S.hidden.line !== true && S.hidden.base !== true){
+    var dGap = dLine + ' L' + xw(TRIAL.weeks-1).toFixed(1) + ' ' + yp(100).toFixed(1);
+    for (i=TRIAL.weeks-1;i>=0;i--) dGap += ' L' + xw(i).toFixed(1) + ' ' + yp(planPct[i]).toFixed(1);
+    dGap += ' Z';
+    s.push('<path d="'+dGap+'" fill="var(--warn)" fill-opacity=".10" stroke="none"/>');
+  }
+  /* 横轴刻度抽稀 */
+  var maxLabels = Math.max(2, Math.floor(pw/62));
+  var stride = Math.max(1, Math.ceil(TRIAL.weeks/maxLabels));
+  for (i=0;i<TRIAL.weeks;i+=stride)
+    s.push('<text class="ax" x="'+xw(i).toFixed(1)+'" y="'+(mt+ph+15)+'" text-anchor="middle">W'+(i+1)+'</text>');
+  s.push('<text class="ax" x="'+ml+'" y="'+(mt+ph+29)+'" text-anchor="start">周入组例数（右轴）· 累计完成率（左轴 %）</text>');
+  /* 十字准星 */
+  if (S.hover && S.hover.chart === 'combo'){
+    var hi = clamp(S.hover.i, 0, TRIAL.weeks-1);
+    s.push('<line class="cross" x1="'+xw(hi).toFixed(1)+'" y1="'+mt+'" x2="'+xw(hi).toFixed(1)+'" y2="'+(mt+ph)+'"/>');
+    s.push('<line class="cross" x1="'+ml+'" y1="'+yp(planTotal>0?cum[hi]/planTotal*100:0).toFixed(1)+
+      '" x2="'+(ml+pw)+'" y2="'+yp(planTotal>0?cum[hi]/planTotal*100:0).toFixed(1)+'"/>');
+  }
+  s.push('<rect class="hit" data-plot="combo" x="'+ml+'" y="'+mt+'" width="'+pw+'" height="'+ph+'"/>');
+  s.push('</svg>');
+  GEO.combo = { ml:ml, mt:mt, pw:pw, ph:ph, xw:xw, bw:bw, maxBar:maxBar, wk:wk, cum:cum, planTotal:planTotal, w:w, h:h };
+  return s.join('');
+}
+
+/* ============================================================ 图表：极坐标玫瑰 / 雷达 */
+function chPolar(w, h){
+  var cx = w/2, cy = h/2 + 4, R = Math.max(20, Math.min(w, h)/2 - 34);
+  var s = ['<svg class="plot" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="分组结构与中心画像极坐标视窗">'];
+  var i, ang;
+  if (S.drill !== null){
+    /* 五维中心画像雷达 */
+    var F = filtered();
+    var f = FACT.filter(function(x){ return x.site === S.drill; });
+    var enr = f.length, v7 = f.filter(function(x){ return x.last>=7; }).length;
+    var sr = SITE_RAW[S.drill];
+    var dims = [
+      { n:'入组速度', v: clamp(enr/120*100, 0, 100) },
+      { n:'筛选成功率', v: clamp(100 - sr.sf/(sr.sf+enr)*100, 0, 100) },
+      { n:'访视完成率', v: clamp(enr? v7/enr*100 : 0, 0, 100) },
+      { n:'安全性负荷', v: clamp(enr? 100 - sr.sae/Math.max(1,enr)*420 : 0, 0, 100) },
+      { n:'数据质量', v: clamp(100 - sr.q/Math.max(1,enr)*300, 0, 100) }
+    ];
+    [25,50,75,100].forEach(function(g){
+      var d = '';
+      for (i=0;i<5;i++){
+        ang = -Math.PI/2 + i*2*Math.PI/5;
+        d += (i?' L':'M') + (cx+Math.cos(ang)*R*g/100).toFixed(1) + ' ' + (cy+Math.sin(ang)*R*g/100).toFixed(1);
+      }
+      s.push('<path d="'+d+' Z" fill="none" stroke="var(--grid)"/>');
+    });
+    var dd = '';
+    for (i=0;i<5;i++){
+      ang = -Math.PI/2 + i*2*Math.PI/5;
+      s.push('<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+Math.cos(ang)*R).toFixed(1)+'" y2="'+(cy+Math.sin(ang)*R).toFixed(1)+'" stroke="var(--grid)"/>');
+      var lx = cx+Math.cos(ang)*(R+16), ly = cy+Math.sin(ang)*(R+16);
+      s.push('<text class="ax" x="'+lx.toFixed(1)+'" y="'+(ly+3).toFixed(1)+'" text-anchor="middle">'+esc(dims[i].n)+'</text>');
+      dd += (i?' L':'M') + (cx+Math.cos(ang)*R*dims[i].v/100).toFixed(1) + ' ' + (cy+Math.sin(ang)*R*dims[i].v/100).toFixed(1);
+    }
+    s.push('<path d="'+dd+' Z" fill="var(--brand)" fill-opacity=".20" stroke="var(--brand)" stroke-width="2"/>');
+    dims.forEach(function(dm,i2){
+      var a2 = -Math.PI/2 + i2*2*Math.PI/5;
+      s.push('<circle cx="'+(cx+Math.cos(a2)*R*dm.v/100).toFixed(1)+'" cy="'+(cy+Math.sin(a2)*R*dm.v/100).toFixed(1)+
+        '" r="3" fill="var(--brand)"/>');
+    });
+    GEO.polar = { mode:'radar', dims:dims };
+  } else {
+    /* 玫瑰图：分组 × 访视 完成结构 */
+    var byArm = [0,0,0], byArmV7 = [0,0,0];
+    filtered().forEach(function(x){ byArm[x.arm]++; if (x.last>=7) byArmV7[x.arm]++; });
+    var cols = ['var(--arm-a)','var(--arm-b)','var(--arm-p)'];
+    var SHORT = ['A·20mg','B·10mg','安慰剂'];
+    var maxV = Math.max(1, Math.max.apply(null, byArm));
+    /* 角域只在「非零」分组间等分：过滤到单一分组时必须铺满整圆，否则会退化成畸形扇形 */
+    var live = [];
+    for (i=0;i<3;i++) if (byArm[i] > 0) live.push(i);
+    var arc = live.length > 0 ? 2*Math.PI/live.length : 2*Math.PI/3;
+    for (var li=0; li<live.length; li++){
+      i = live[li];
+      var gap = live.length > 1 ? 0.12 : 0;
+      var a0 = -Math.PI/2 + li*arc + gap/2, a1 = a0 + arc - gap;
+      var rr = Math.max(16, R * Math.sqrt(byArm[i]/maxV));
+      var large = (a1-a0) > Math.PI ? 1 : 0;
+      var x0 = cx+Math.cos(a0)*rr, y0 = cy+Math.sin(a0)*rr;
+      var x1 = cx+Math.cos(a1)*rr, y1 = cy+Math.sin(a1)*rr;
+      var dim = (S.solo!==null && S.solo!==i) || S.hidden['arm'+i];
+      /* 整圆时圆弧起止点重合，A 命令会退化成空路径，必须改用 circle 图元 */
+      var shape = (live.length === 1)
+        ? '<circle cx="'+cx+'" cy="'+cy+'" r="'+rr.toFixed(1)+'"'
+        : '<path d="M'+cx+' '+cy+' L'+x0.toFixed(1)+' '+y0.toFixed(1)+' A'+rr.toFixed(1)+' '+rr.toFixed(1)+
+          ' 0 '+large+' 1 '+x1.toFixed(1)+' '+y1.toFixed(1)+' Z"';
+      s.push(shape+' fill="'+cols[i]+'" fill-opacity="'+(dim?'.13':'.80')+
+        '" stroke="#fff" stroke-width="1" data-arm="'+i+'" style="cursor:pointer"/>');
+      var am = (a0+a1)/2;
+      /* 数值置于扇区内部，名称置于外侧，二者不同半径以避免重叠；整圆时数值居中 */
+      var vx = live.length === 1 ? cx : cx+Math.cos(am)*rr*0.60;
+      var vy = live.length === 1 ? cy+4 : cy+Math.sin(am)*rr*0.60+4;
+      s.push('<text class="rose-v" x="'+vx.toFixed(1)+'" y="'+vy.toFixed(1)+
+        '" text-anchor="middle" style="fill:'+(i===2?'var(--ink)':'#fff')+'">'+byArm[i]+'</text>');
+      s.push('<text class="rose-n" x="'+(cx+Math.cos(am)*(rr+14)).toFixed(1)+'" y="'+(cy+Math.sin(am)*(rr+14)+3).toFixed(1)+
+        '" text-anchor="middle">'+esc(SHORT[i])+'</text>');
+    }
+    s.push('<circle cx="'+cx+'" cy="'+cy+'" r="2.5" fill="var(--ink3)"/>');
+    GEO.polar = { mode:'rose', byArm:byArm, byArmV7:byArmV7 };
+  }
+  s.push('</svg>');
+  return s.join('');
+}
+
+/* ============================================================ 图表：矩形树图 */
+function chTree(w, h){
+  var mode = S.drill === null ? 0 : (S.drill !== null && S.arm.length === 0 ? 1 : 2);
+  var F = filtered();
+  var items = [], i;
+  if (mode === 2 && S.arm.length === 1){
+    /* 第三层：分组 → 访视 */
+    var a = S.arm[0];
+    var byV = new Array(7).fill(0);
+    F.filter(function(f){ return f.arm===a; }).forEach(function(f){ for (var v=1;v<=7;v++) if (f.last>=v) byV[v-1]++; });
+    for (i=0;i<7;i++) items.push({ k:VISIT_N[i], v:Math.max(1,byV[i]), meta:{ lv:2, visit:i } });
+  } else if (mode === 1){
+    var byA = [0,0,0];
+    F.forEach(function(f){ byA[f.arm]++; });
+    for (i=0;i<3;i++) items.push({ k:ARM_N[i], v:Math.max(1,byA[i]), meta:{ lv:1, arm:i } });
+  } else {
+    for (i=0;i<SITE_N.length;i++){
+      var n = 0;
+      for (var j=0;j<F.length;j++) if (F[j].site===i) n++;
+      if (n > 0) items.push({ k:SITE_N[i], v:n, meta:{ lv:0, site:i } });
+    }
+  }
+  items.sort(function(a2,b2){ return b2.v - a2.v; });
+  var s = ['<svg class="plot" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="中心分组访视三层矩形树图">'];
+  var pad = 2;
+  var cells = treemapLayout(items, 0, 0, Math.max(10,w), Math.max(10,h));
+  var totalV = 0;
+  items.forEach(function(it){ totalV += it.v; });
+  cells.forEach(function(c){
+    var sel = false;
+    if (c.meta.lv===0) sel = (S.site.indexOf(c.meta.site)>=0 || S.drill===c.meta.site);
+    if (c.meta.lv===1) sel = (S.arm.indexOf(c.meta.arm)>=0);
+    /* 中心层：色相固定、明度随「完成率」线性映射，色阶本身承载一维量纲（明度单调 ⇒ 可读作序数标尺） */
+    var hue;
+    if (c.meta.lv === 0){
+      var sr0 = SITE_RAW[c.meta.site];
+      var rt = sr0.plan > 0 ? sr0.enr/sr0.plan : 0;
+      var L = 46 - 24*clamp((rt-0.5)/0.45, 0, 1);
+      hue = 'hsl(185,72%,'+L.toFixed(1)+'%)';
+    } else if (c.meta.lv === 1){
+      hue = 'var(--arm-b)';
+    } else {
+      hue = 'var(--arm-p)';
+    }
+    var op = sel ? '1' : '.72';
+    s.push('<rect x="'+(c.x+pad/2).toFixed(1)+'" y="'+(c.y+pad/2).toFixed(1)+'" width="'+Math.max(0,c.w-pad).toFixed(1)+
+      '" height="'+Math.max(0,c.h-pad).toFixed(1)+'" rx="2" fill="'+hue+'" fill-opacity="'+op+'" stroke="'+(sel?'var(--brand-d)':'#fff')+
+      '" stroke-width="'+(sel?2:1)+'" data-cell="'+c.meta.lv+'" data-key="'+
+      (c.meta.lv===0?c.meta.site:(c.meta.lv===1?c.meta.arm:c.meta.visit))+
+      '" data-site="'+(c.meta.site!==undefined?c.meta.site:'')+'" style="cursor:pointer"/>');
+    /* 文字避让：仅当格足够大才标注 */
+    var pct = totalV>0 ? c.v/totalV*100 : 0;
+    /* 文字避让：按格子实测宽度换算可容纳字数，超长截断加省略号，过窄则仅留数值 */
+    var CW = 10.6, NW = 6.3;
+    var maxCh = Math.floor((c.w - 10) / CW);
+    if (c.h >= 15 && maxCh >= 2){
+      var label = c.k.length > maxCh ? c.k.slice(0, Math.max(1, maxCh-1)) + '…' : c.k;
+      s.push('<text class="tile-t" x="'+(c.x+5).toFixed(1)+'" y="'+(c.y+13).toFixed(1)+'">'+esc(label)+'</text>');
+      var second = c.v + ' · ' + pct.toFixed(1) + '%';
+      if (c.h >= 28 && Math.floor((c.w-10)/NW) >= second.length)
+        s.push('<text class="tile-s" x="'+(c.x+5).toFixed(1)+'" y="'+(c.y+26).toFixed(1)+'">'+second+'</text>');
+    } else if (c.w >= 16 && c.h >= 9){
+      s.push('<text class="tile-s" x="'+(c.x+3).toFixed(1)+'" y="'+(c.y+10).toFixed(1)+'">'+c.v+'</text>');
+    }
+  });
+  s.push('</svg>');
+  GEO.tree = { cells:cells, mode:mode, total:totalV };
+  return s.join('');
+}
+
+/* ============================================================ 图表：SOC 不良事件（支持对数标尺） */
+function chSoc(w, h){
+  var rows = SOC_RAW.map(function(s, i){
+    var got = filteredAE().filter(function(r){ return r.soc === i; });
+    return { i:i, n:s.n, c:got.length, sae:got.filter(function(r){return r.sae;}).length,
+             hi:got.filter(function(r){return r.hi;}).length };
+  }).filter(function(r){ return r.c > 0 || S.soc.length === 0; });
+  rows.sort(function(a,b){ return b.c - a.c; });
+  var ml = 34, mr = 14, mt = 12, mb = 62;
+  var pw = Math.max(10, w-ml-mr), ph = Math.max(10, h-mt-mb);
+  var maxC = Math.max(4, Math.max.apply(null, rows.map(function(r){ return r.c; })));
+  var kind = S.scale === 'log' ? 'log' : (S.scale === 'percent' ? 'percent' : 'linear');
+  var d1 = kind === 'log' ? Math.max(10, maxC) : maxC;
+  var d0 = kind === 'log' ? 1 : 0;
+  var ys = mkScale(kind, d0, d1, mt+ph, mt);
+  var ticks = axisTicks(kind, d0, d1);
+  var s = ['<svg class="plot" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="不良事件 SOC 分布">'];
+  ticks.forEach(function(t){
+    var y = ys(t);
+    if (y < mt-1 || y > mt+ph+1) return;
+    s.push('<line class="gl" x1="'+ml+'" y1="'+y.toFixed(1)+'" x2="'+(ml+pw)+'" y2="'+y.toFixed(1)+'"/>');
+    s.push('<text class="ax" x="'+(ml-5)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end">'+(kind==='percent'? t+'%' : fmt(t))+'</text>');
+  });
+  var n = rows.length, slot = pw/Math.max(1,n), bw = Math.max(3, slot*0.56);
+  rows.forEach(function(r, idx){
+    var x = ml + slot*idx + (slot-bw)/2;
+    var y1 = ys(r.c), y0 = ys(d0);
+    if (!isFinite(y1)) y1 = mt+ph;
+    if (!isFinite(y0)) y0 = mt+ph;
+    var bh = Math.max(0, y0-y1);
+    var sel = S.soc.indexOf(r.i) >= 0;
+    s.push('<rect x="'+x.toFixed(1)+'" y="'+y1.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+
+      '" rx="1.5" fill="'+(sel?'var(--brand-d)':'var(--brand)')+'" fill-opacity="'+(sel?'1':'.78')+
+      '" data-soc="'+r.i+'" style="cursor:pointer"/>');
+    if (r.sae > 0 && bh > 6)
+      s.push('<rect x="'+x.toFixed(1)+'" y="'+y1.toFixed(1)+'" width="'+bw.toFixed(1)+
+        '" height="'+Math.min(bh, Math.max(2, bh*r.sae/Math.max(1,r.c))).toFixed(1)+'" fill="var(--crit)" fill-opacity=".85"/>');
+    if (bh > 12)
+      s.push('<text class="ax" x="'+(x+bw/2).toFixed(1)+'" y="'+(y1-3).toFixed(1)+'" text-anchor="middle">'+r.c+'</text>');
+    /* 标签：窄屏只显示编号，避免重叠 */
+    var lx = ml + slot*idx + slot/2;
+    var lbl = slot > 46 ? r.n.replace(/(系统疾病|类疾病|疾病)/g,'') : (slot > 26 ? r.n.slice(0,2) : '');
+    if (lbl){
+      var ly = mt+ph+12;
+      s.push('<text class="ax" x="'+lx.toFixed(1)+'" y="'+ly+'" text-anchor="end" transform="rotate(-38 '+lx.toFixed(1)+' '+ly+')">'+esc(lbl)+'</text>');
+    }
+  });
+  s.push('</svg>');
+  GEO.soc = { rows:rows, kind:kind, d0:d0, d1:d1, ticks:ticks };
+  return s.join('');
+}
+
+/* ============================================================ 明细表 */
+function tableRows(){
+  var F = filtered();
+  var aeBySubj = aeCountBySubj();
+  var rows = F.map(function(f){
+    return {
+      id:f.id, site:f.site, arm:f.arm, week:f.week, last:f.last,
+      ae: aeBySubj[f.ix] || 0,
+      st: f.ex ? '剔除' : (f.lf ? '失访' : (f.last>=7 ? '已完成' : '随访中'))
+    };
+  });
+  var k = S.sort.k, dir = S.sort.dir;
+  rows.sort(function(a,b){
+    var av = a[k], bv = b[k];
+    if (typeof av === 'string') return av.localeCompare(bv) * dir;
+    return (av - bv) * dir;
+  });
+  return rows;
+}
+
+/* ============================================================ KPI */
+function kpiData(){
+  var F = filtered(), AE = filteredAE();
+  var enr = F.length;
+  var v7 = F.filter(function(f){ return f.last>=7; }).length;
+  var ex = F.filter(function(f){ return f.ex; }).length;
+  var lf = F.filter(function(f){ return f.lf; }).length;
+  var sitesIn = {};
+  F.forEach(function(f){ sitesIn[f.site]=1; });
+  var sf = 0, plan = 0;
+  Object.keys(sitesIn).forEach(function(i){ sf += SITE_RAW[i].sf; plan += SITE_RAW[i].plan; });
+  var screen = sf + enr;
+  var aeSubj = {}, saeN = 0, hiN = 0;
+  AE.forEach(function(r){ aeSubj[r.subj]=1; if (r.sae) saeN++; if (r.hi) hiN++; });
+  var nAeSubj = Object.keys(aeSubj).length;
+  var qRaised = 0, qClosed = 0;
+  Object.keys(sitesIn).forEach(function(i){ qRaised += Q_RAISED[i]; qClosed += Q_CLOSED[i]; });
+  return {
+    enr:enr, plan:plan, v7:v7, ex:ex, lf:lf, sf:sf, screen:screen,
+    aeN:AE.length, aeSubj:nAeSubj, saeN:saeN, hiN:hiN,
+    qRaised:qRaised, qClosed:qClosed,
+    rate: plan>0 ? enr/plan : 0,
+    sfRate: screen>0 ? sf/screen : 0,
+    aeRate: enr>0 ? nAeSubj/enr : 0,
+    qRate: qRaised>0 ? qClosed/qRaised : 0,
+    v7Rate: enr>0 ? v7/enr : 0
+  };
+}
+
+/* ============================================================ 渲染：外壳 */
+function legRow(items, key){
+  return '<div class="legend">' + items.map(function(it){
+    var off = S.hidden[it.id] === true;
+    var solo = S.solo === it.v;
+    return '<span class="lg'+(off?' off':'')+(solo?' solo':'')+'" data-leg="'+key+'" data-v="'+it.v+'">' +
+      '<i style="background:'+it.c+'"></i>' + esc(it.n) + '</span>';
+  }).join('') + '</div>';
+}
+
+function render(){
+  var K = kpiData(), i;
+  var fsm = S.fsm;
+  var crumb = '<span>灵枢临床监查平台</span><span class="crumb-sep">/</span><b>'+esc(TRIAL.code)+'</b>' +
+    '<span class="crumb-sep">/</span><span>分析工作台</span>' +
+    (S.drill!==null ? '<span class="crumb-sep">/</span><span>'+esc(SITE_N[S.drill])+'</span>' : '');
+  var siteTree = SITE_N.map(function(n, idx){
+    var on = (S.site.indexOf(idx)>=0 || S.drill===idx);
+    return '<button class="tree-item'+(on?' on':'')+'" data-site="'+idx+'">' +
+      '<i class="dot" style="background:'+(on?'var(--brand)':'var(--arm-p)')+'"></i>' +
+      '<span class="n">'+esc(n)+'</span><span class="v">'+SITE_ENR[idx]+'</span></button>';
+  }).join('');
+
+  var h = '';
+  h += '<aside class="rail">';
+  h += '<div><div class="brand"><div class="brand-row">' +
+       '<div class="logo" aria-hidden="true">枢</div><div><div class="brand-name">灵枢 LINGSHU</div>' +
+       '<div class="brand-sub">临床试验多中心监查平台</div></div></div>' +
+       '<div class="brand-meta">' +
+       '<div><div class="bm-k">方案编号</div><div class="bm-v">'+esc(TRIAL.code)+'</div></div>' +
+       '<div><div class="bm-k">研究阶段</div><div class="bm-v">'+TRIAL.phase+'</div></div>' +
+       '<div><div class="bm-k">中心 / 访视</div><div class="bm-v">'+TRIAL.sites+' / '+TRIAL.visits+'</div></div>' +
+       '<div><div class="bm-k">数据截止</div><div class="bm-v">'+TRIAL.dataCut+'</div></div>' +
+       '</div></div>';
+  h += '<nav class="tree" aria-label="中心切片"><div class="tree-hd">中心切片 · 点击过滤</div>'+siteTree+'</nav></div>';
+  h += '<div class="rail-foot"><div class="who"><div class="who-av" aria-hidden="true">苏</div>' +
+       '<div><div class="who-n">苏文渊</div><div class="who-r">医学监查负责人 · 本试验</div></div></div></div>';
+  h += '</aside>';
+
+  h += '<div class="main"><header class="topbar"><div class="topbar-row"><div>' +
+       '<div class="crumb">'+crumb+'</div>' +
+       '<h1 class="pg-h">'+(S.drill!==null? esc(SITE_N[S.drill])+' · 中心画像' : '多维分析工作台')+'</h1>' +
+       '<p class="pg-d">入组进度 · 安全性负荷 · 数据质量的联合监查（全部视窗由同一内存立方体投影）</p></div>' +
+       '<div class="pill-row">' +
+       '<span class="fsm"><i class="led"></i><span id="fsmName">'+fsm+'</span></span>' +
+       '<span class="pill">入组 <b>'+K.enr+'</b> / 计划 '+K.plan+'</span>' +
+       '<span class="pill">完成率 <b>'+pct2(K.rate)+'</b></span>' +
+       '<span class="pill crit">待处置 <b>6</b></span>' +
+       '</div></div></header>';
+
+  /* 控制条：标尺 / 分组切片器 / 图例 / 重置 */
+  h += '<div class="ctl">';
+  h += '<div class="ctl-g"><span class="ctl-k">标尺</span><span class="seg">' +
+       ['linear:线性','log:对数','percent:百分比'].map(function(x){
+         var p = x.split(':');
+         return '<button data-scale="'+p[0]+'" class="'+(S.scale===p[0]?'on':'')+'">'+p[1]+'</button>';
+       }).join('') + '</span></div>';
+  h += '<div class="ctl-g"><span class="ctl-k">分组切片器</span><span class="seg">' +
+       ['全部'].concat(ARM_N).map(function(n, idx){
+         var on = (idx===0 && S.arm.length===0) || (idx>0 && S.arm.indexOf(idx-1)>=0);
+         return '<button data-arm="'+(idx-1)+'" class="'+(on?'on':'')+'">'+esc(n)+'</button>';
+       }).join('') + '</span>' +
+       '<button class="btn" data-act="invert">反选</button><button class="btn" data-act="clear">清除</button></div>';
+  h += '<div class="ctl-g"><span class="ctl-k">访视</span><span class="seg">' +
+       ['全部','V4 及以后','V6 及以后','仅 V7'].map(function(n, idx){
+         var v = [null,4,6,7][idx];
+         var on = (v===null && S.visit.length===0) || (v!==null && S.visit.length===1 && S.visit[0]===v);
+         return '<button data-visit="'+(v===null?'':v)+'" class="'+(on?'on':'')+'">'+n+'</button>';
+       }).join('') + '</span></div>';
+  h += '<div class="spacer"></div>';
+  h += '<button class="btn" data-act="reset">重置视图</button>';
+  h += '</div>';
+
+  h += '<div class="wrap">';
+
+  /* KPI 行 */
+  h += '<section class="kpis" aria-label="关键指标">';
+  h += '<div class="card kpi"><div class="kpi-k">累计入组 / 计划</div><div class="kpi-v" id="kpiEnr">'+K.enr+'<small>例</small></div>' +
+       '<div class="kpi-s">计划 '+K.plan+' 例 · 完成率 '+pct2(K.rate)+'</div></div>';
+  h += '<div class="card kpi w"><div class="kpi-k">筛选失败率</div><div class="kpi-v" id="kpiSf">'+(K.sfRate*100).toFixed(2)+'<small>%</small></div>' +
+       '<div class="kpi-s">筛选 '+K.screen+' 例 · 失败 '+K.sf+' 例</div></div>';
+  h += '<div class="card kpi"><div class="kpi-k">不良事件发生率</div><div class="kpi-v">'+pct2(K.aeRate)+'</div>' +
+       '<div class="kpi-s">'+K.aeSubj+' / '+K.enr+' 例 · 例次 '+K.aeN+'</div></div>';
+  h += '<div class="card kpi c"><div class="kpi-k">严重不良事件</div><div class="kpi-v">'+K.saeN+'<small>例次</small></div>' +
+       '<div class="kpi-s">≥3 级 '+K.hiN+' 例次 · 涉及受试者 '+K.aeSubj+' 例</div></div>';
+  h += '<div class="card kpi"><div class="kpi-k">数据质疑关闭率</div><div class="kpi-v">'+pct2(K.qRate)+'</div>' +
+       '<div class="kpi-s">提出 '+K.qRaised+' · 未关闭 '+Math.max(0,K.qRaised-K.qClosed)+' 条</div></div>';
+  h += '</section>';
+
+  /* 视窗 1 + 2 */
+  h += '<div class="grid">';
+  h += '<section class="card c8"><div class="card-hd"><div class="card-t">周入组例数与累计完成率 <span class="tag">双轴 · 动态零基线</span></div>' +
+       '<div class="card-s">拖拽框选时间窗 · 滚轮缩放</div></div><div class="card-bd">' +
+       legRow([{id:'bar',n:'周入组例数',v:0,c:'var(--arm-a)'},{id:'line',n:'累计完成率',v:1,c:'var(--brand)'},
+               {id:'base',n:'线性计划',v:2,c:'var(--ink3)'}], 'combo') +
+       '<div id="c-combo" class="rel"></div></div></section>';
+  h += '<section class="card c4"><div class="card-hd"><div class="card-t">'+(S.drill!==null?'中心五维画像':'分组结构玫瑰')+
+       ' <span class="tag">极坐标</span></div><div class="card-s">点击扇区交叉过滤</div></div>' +
+       '<div class="card-bd"><div id="c-polar" class="rel"></div></div></section>';
+  h += '</div>';
+
+  /* 视窗 3 + 4 */
+  h += '<div class="grid">';
+  h += '<section class="card c5"><div class="card-hd"><div class="card-t">入组层次矩形树图 <span class="tag">'+
+       (S.drill===null?'中心':(S.arm.length===1?'分组 › 访视':'分组'))+'</span></div>' +
+       '<div class="card-s">单击切片 · 双击下钻</div></div><div class="card-bd"><div id="c-tree" class="rel"></div></div></section>';
+  h += '<section class="card c7"><div class="card-hd"><div class="card-t">受试者明细 <span class="tag">列排序 · 分页</span></div>' +
+       '<div class="card-s" id="tblSum"></div></div><div class="card-bd"><div id="c-table"></div></div></section>';
+  h += '</div>';
+
+  /* 视窗 5 + 6 */
+  h += '<div class="grid">';
+  h += '<section class="card c7"><div class="card-hd"><div class="card-t">不良事件 SOC 分布 <span class="tag" id="socTag">'+
+       (S.scale==='log'?'对数标尺':(S.scale==='percent'?'百分比标尺':'线性标尺'))+'</span></div>' +
+       '<div class="card-s">深色段 = SAE · 点击过滤</div></div><div class="card-bd"><div id="c-soc" class="rel"></div></div></section>';
+  h += '<section class="card c5"><div class="card-hd"><div class="card-t">阈值过滤与预警 <span class="tag">双柄滑块</span></div>' +
+       '<div class="card-s">中心入组例数区间</div></div><div class="card-bd">' +
+       '<div class="sld" id="c-sld"><div class="sld-tr" id="sldTr"><div class="sld-bg"></div>' +
+       '<div class="sld-fill" id="sldFill"></div>' +
+       '<div class="sld-h" id="sldH0" data-h="0"></div><div class="sld-h" id="sldH1" data-h="1"></div></div>' +
+       '<div class="sld-lb"><span id="sldLb0">0 例</span><span id="sldLb1">900 例</span></div>' +
+       '<div class="sld-note" id="sldNote"></div></div>' +
+       '<div class="alerts" id="c-alerts"></div></div></section>';
+  h += '</div>';
+
+  h += '</div></div>';
+  document.getElementById('app').innerHTML = h;
+}
+
+/* ============================================================ 离群判定（黑盒，无硬编码名单） */
+function outlierSites(){
+  var g = TRIAL.plan > 0 ? TRIAL.enr/TRIAL.plan*100 : 0;
+  var arr = SITE_N.map(function(_, i){
+    var r = SITE_RAW[i].plan > 0 ? SITE_ENR[i]/SITE_RAW[i].plan*100 : 0;
+    return { i:i, r:r, dev:r-g };
+  });
+  arr.sort(function(a,b){ return a.dev - b.dev; });
+  return [arr[0].i, arr[1].i];
+}
+
+/* ============================================================ 表格 / 滑块 / 预警 */
+function conservation(){
+  var rows = tableRows();
+  var sumAe = 0;
+  rows.forEach(function(r){ sumAe += r.ae; });
+  var kpiAe = filteredAE().length;
+  var a = Math.round(sumAe*100)/100, b = Math.round(kpiAe*100)/100;
+  if (a !== b) console.warn('[账本] 守恒校验不一致 · 明细求和=' + a + ' 立方体汇总=' + b);
+  return { sumAe:a, kpiAe:b, ok:a===b, n:rows.length };
+}
+function drawTable(){
+  var el = document.getElementById('c-table');
+  if (!el) return;
+  var rows = tableRows();
+  var pages = Math.max(1, Math.ceil(rows.length / S.pageSize));
+  S.page = clamp(S.page, 0, pages-1);
+  var view = rows.slice(S.page*S.pageSize, S.page*S.pageSize + S.pageSize);
+  var cols = [
+    { k:'id',   n:'受试者' }, { k:'site', n:'中心' }, { k:'arm', n:'分组' },
+    { k:'week', n:'入组周' }, { k:'last', n:'末次访视' }, { k:'ae', n:'AE 例次' }, { k:'st', n:'状态' }
+  ];
+  var h = '<div class="tbl-wrap"><table class="dt"><thead><tr>';
+  cols.forEach(function(c){
+    h += '<th data-sort="'+c.k+'">'+c.n+((S.sort.k===c.k)?' <span class="ar">'+(S.sort.dir>0?'▲':'▼')+'</span>':'')+'</th>';
+  });
+  h += '</tr></thead><tbody>';
+  /* 窄屏堆叠：每个单元格携带列名，≤560px 时由 CSS 转为键值对行，避免横向 cut */
+  var mk = function(label, cls, inner){
+    return '<td'+(cls?' class="'+cls+'"':'')+' data-label="'+esc(label)+'">'+inner+'</td>';
+  };
+  view.forEach(function(r){
+    h += '<tr data-row="'+r.id+'" data-site="'+r.site+'">' +
+      mk('受试者编号','',esc(r.id)) +
+      mk('中心','',esc(SITE_N[r.site])) +
+      mk('分组','',esc(ARM_N[r.arm].replace('试验组 ',''))) +
+      mk('入组周','num','W'+(r.week+1)) +
+      mk('末次访视','num','V'+r.last) +
+      mk('AE 例次','num',r.ae) +
+      mk('状态','','<span class="chip '+(r.st==='剔除'||r.st==='失访'?'r':(r.st==='已完成'?'g':'o'))+'">'+r.st+'</span>') +
+      '</tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '<div class="pager"><button data-page="prev"'+(S.page<=0?' disabled':'')+'>上一页</button>' +
+       '<span>'+(S.page+1)+' / '+pages+' 页 · 共 '+rows.length+' 行</span>' +
+       '<button data-page="next"'+(S.page>=pages-1?' disabled':'')+'>下一页</button></div>';
+  el.innerHTML = h;
+  var sum = document.getElementById('tblSum');
+  if (sum){
+    var C = conservation();
+    sum.textContent = 'Σ 行 ' + rows.length + ' 例 · AE 求和 ' + C.sumAe + ' = 立方体 ' + C.kpiAe + (C.ok ? ' ✓' : ' ✗');
+  }
+}
+function drawSlider(){
+  var tr = document.getElementById('sldTr');
+  if (!tr) return;
+  var w = Math.max(40, tr.clientWidth || 200);
+  var lo = 0, hi = 900;
+  var p0 = clamp((S.thr[0]-lo)/(hi-lo), 0, 1), p1 = clamp((S.thr[1]-lo)/(hi-lo), 0, 1);
+  var h0 = document.getElementById('sldH0'), h1 = document.getElementById('sldH1');
+  if (h0) h0.style.left = (p0*w)+'px';
+  if (h1) h1.style.left = (p1*w)+'px';
+  var f = document.getElementById('sldFill');
+  if (f){ f.style.left = (p0*w)+'px'; f.style.width = Math.max(0,(p1-p0)*w)+'px'; }
+  var l0 = document.getElementById('sldLb0'), l1 = document.getElementById('sldLb1');
+  if (l0) l0.textContent = S.thr[0] + ' 例';
+  if (l1) l1.textContent = S.thr[1] + ' 例';
+  /* 警戒基准线标注在滑块轨道下方 */
+  var out = outlierSites();
+  var g = TRIAL.plan>0 ? TRIAL.enr/TRIAL.plan*100 : 0;
+  var names = out.map(function(i){ return SITE_N[i] + ' ' + (SITE_ENR[i]/SITE_RAW[i].plan*100).toFixed(2) + '%'; });
+  var lb = document.getElementById('sldNote');
+  if (lb) lb.textContent = '全局完成率 ' + g.toFixed(2) + '% · 偏离最大：' + names.join('、');
+}
+function drawAlerts(){
+  var el = document.getElementById('c-alerts');
+  if (!el) return;
+  var out = outlierSites();
+  el.innerHTML = ALERTS.map(function(a){
+    var hit = out.some(function(i){ return SITE_N[i] === a.s; });
+    return '<div class="al '+a.lv+'"'+(hit?' style="box-shadow:0 0 0 1px var(--crit) inset"':'')+'>' +
+      '<div><div class="al-t">'+esc(a.t)+'</div><div class="al-d">'+esc(a.d)+'</div></div>' +
+      '<div class="al-s">'+esc(a.s)+'</div></div>';
+  }).join('');
+}
+function drawAnno(f){
+  var root = document.getElementById('annoRoot');
+  if (!root) return;
+  var on = /[?&]anno=1/.test(location.search);
+  if (!on){ root.innerHTML = ''; return; }
+  /* 注记文字必须由当前真实量纲导出，不得写死数字（否则与图元打架） */
+  var wAll = new Array(TRIAL.weeks);
+  for (var q=0;q<TRIAL.weeks;q++) wAll[q] = 0;
+  FACT.forEach(function(f){ wAll[f.week]++; });
+  var maxAll = Math.max.apply(null, wAll);
+  var cg = GEO.combo;
+  var maxNow = cg ? cg.maxBar : maxAll;
+  /* 笔刷窗口内的占比由真实立方体投影导出 */
+  var winN = 0;
+  for (var q2=S.week[0]; q2<=S.week[1]; q2++) winN += wAll[q2];
+  var winPct = TRIAL.enr > 0 ? (winN/TRIAL.enr*100).toFixed(1) : '0.0';
+  /* 对数轴的刻度序列取自当前视窗真实刻度，避免注记写出并不存在的刻度 */
+  var socTk = (GEO.soc && GEO.soc.kind === 'log') ? GEO.soc.ticks : null;
+  var tkTxt = socTk ? socTk.join(' / ') : '';
+  var sldTxt = '阈值 ' + S.thr[0] + '–' + S.thr[1] + ' 例';
+  var A = {
+    1:[ {sel:'#c-combo', dx:0.62, dy:0.24, t:'缺口 ' + (TRIAL.plan-TRIAL.enr) + ' 例', d:'M0 0 C 22 -16, 52 -12, 64 8'} ],
+    2:[ {sel:'#c-combo', dx:0.18, dy:0.10, t:'W'+(S.week[0]+1)+'–W'+(S.week[1]+1)+' · 占总量 '+winPct+'%'},
+        {sel:'#c-combo', dx:0.72, dy:0.52, t:'基线已重算'} ],
+    3:[ {sel:'#c-soc', dx:0.02, dy:0.04, t:'Σ 行 = 卡值'},
+        {sel:'#c-combo', dx:0.06, dy:0.30, t:'右轴 max '+maxAll+'→'+maxNow+' 已重算'} ],
+    4:[ {sel:'#c-polar', dx:0.02, dy:0.97, t:'安全性负荷偏低的维度凹陷'} ],
+    5:[ {sel:'#c-soc', dx:0.30, dy:0.06, t:'间距非等距 · 比值恒定'},
+        {sel:'#c-soc', dx:0.03, dy:0.52, t:tkTxt || '1 / 10 / 100'} ],
+    6:[ {sel:'#c-sld', dx:0.42, dy:-0.23, t:sldTxt},
+        {sel:'#c-tree', dx:0.30, dy:0.80, t:'中心×访视 交叉核查'} ],
+    7:[ {sel:'#c-combo', dx:0.10, dy:0.04, t:'375 宽 · 无横向溢出'},
+        {sel:'#c-tree', dx:0.06, dy:0.78, t:'单列堆叠 · 无裁切'} ]
+  }[f] || [];
+  /* 注记层铺满整篇文档，坐标必须换算到文档坐标系，否则页面一旦滚动就会整体错位 */
+  var app = document.getElementById('app').getBoundingClientRect();
+  var ox = app.left + window.scrollX, oy = app.top + window.scrollY;
+  var s = ['<svg class="anno" width="'+(document.documentElement.scrollWidth)+'" height="'+(document.documentElement.scrollHeight)+'">'];
+  A.forEach(function(a){
+    var t = document.querySelector(a.sel);
+    if (!t) return;
+    var r = t.getBoundingClientRect();
+    var x = r.left + window.scrollX - ox + r.width*a.dx, y = r.top + window.scrollY - oy + r.height*a.dy;
+    if (y < 26) y = 26;
+    s.push('<text x="'+x.toFixed(0)+'" y="'+y.toFixed(0)+'">'+esc(a.t)+'</text>');
+    if (a.d)
+      s.push('<path class="ln" d="'+a.d+'" transform="translate('+x.toFixed(0)+','+(y+8).toFixed(0)+')"/>');
+  });
+  s.push('</svg>');
+  root.innerHTML = s.join('');
+}
+
+/* ============================================================ 绘制总入口 */
+var raf = null;
+function drawAll(){
+  var f = BOOT.frame;
+  var el, w;
+  el = document.getElementById('c-combo');
+  if (el){ w = Math.max(240, el.clientWidth || 560); el.innerHTML = chCombo(w, 236); }
+  el = document.getElementById('c-polar');
+  if (el){ w = Math.max(150, el.clientWidth || 250); el.innerHTML = chPolar(w, 252); }
+  el = document.getElementById('c-tree');
+  if (el){ w = Math.max(150, el.clientWidth || 360); el.innerHTML = chTree(w, 252); }
+  el = document.getElementById('c-soc');
+  if (el){ w = Math.max(220, el.clientWidth || 480); el.innerHTML = chSoc(w, 236); }
+  drawTable(); drawSlider(); drawAlerts();
+  var tag = document.getElementById('socTag');
+  if (tag) tag.textContent = S.scale==='log' ? '对数标尺' : (S.scale==='percent' ? '百分比标尺' : '线性标尺');
+  drawAnno(f);
+}
+function schedule(){
+  if (raf) return;
+  raf = requestAnimationFrame(function(){ raf = null; drawAll(); });
+}
+function refresh(){ render(); schedule(); }
+
+/* ============================================================ 交互 */
+function toggleIn(arr, v){ var i = arr.indexOf(v); if (i>=0) arr.splice(i,1); else arr.push(v); }
+function resetAll(){
+  S.site = []; S.arm = []; S.visit = []; S.soc = [];
+  S.week = [0, TRIAL.weeks-1]; S.brush = null;
+  S.thr = [0, 900]; S.scale = 'linear';
+  S.hidden = {}; S.solo = null; S.drill = null;
+  S.page = 0; S.hover = null;
+}
+
+var tipEl = document.getElementById('tip');
+function showTip(html, x, y){
+  if (!tipEl) return;
+  tipEl.innerHTML = html;
+  tipEl.classList.add('on');
+  var w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+  var vw = window.innerWidth, vh = window.innerHeight;
+  var left = x + 14, top = y + 14;
+  if (left + w > vw - 8) left = x - w - 14;
+  if (top + h > vh - 8) top = y - h - 14;
+  tipEl.style.left = Math.max(6, left) + 'px';
+  tipEl.style.top = Math.max(6, top) + 'px';
+}
+function hideTip(){ if (tipEl) tipEl.classList.remove('on'); }
+
+function weekFromX(clientX){
+  var g = GEO.combo; if (!g) return 0;
+  var svg = document.querySelector('#c-combo svg');
+  if (!svg) return 0;
+  var r = svg.getBoundingClientRect();
+  var ux = (clientX - r.left) * (g.w / Math.max(1, r.width));
+  return clamp(Math.round((ux - g.ml) / Math.max(1, g.pw) * (TRIAL.weeks-1)), 0, TRIAL.weeks-1);
+}
+var drag = null;
+document.addEventListener('mousedown', function(e){
+  var h = e.target.getAttribute && e.target.getAttribute('data-h');
+  if (h !== null && h !== undefined && e.target.classList.contains('sld-h')){
+    drag = { kind:'slider', h:parseInt(h,10) };
+    e.preventDefault(); return;
+  }
+  var plot = e.target.getAttribute && e.target.getAttribute('data-plot');
+  if (plot === 'combo'){
+    var wk = weekFromX(e.clientX);
+    drag = { kind:'brush', a:wk, b:wk };
+    S.brush = [wk, wk];
+    e.preventDefault();
+    schedule();
+  }
+});
+document.addEventListener('mousemove', function(e){
+  if (drag && drag.kind === 'brush'){
+    drag.b = weekFromX(e.clientX);
+    S.brush = [Math.min(drag.a,drag.b), Math.max(drag.a,drag.b)];
+    schedule(); return;
+  }
+  if (drag && drag.kind === 'slider'){
+    var tr = document.getElementById('sldTr');
+    if (!tr) return;
+    var r = tr.getBoundingClientRect();
+    var f = clamp((e.clientX - r.left) / Math.max(1, r.width), 0, 1);
+    var v = Math.round(f * 900);
+    if (drag.h === 0) S.thr[0] = Math.min(v, S.thr[1]); else S.thr[1] = Math.max(v, S.thr[0]);
+    schedule(); return;
+  }
+  /* 十字准星 */
+  var over = e.target.getAttribute && e.target.getAttribute('data-plot');
+  if (over === 'combo'){
+    var i = weekFromX(e.clientX);
+    S.hover = { chart:'combo', i:i };
+    var g = GEO.combo;
+    if (g){
+      var F = filtered(), wkArr = g.wk;
+      var inWin = (i >= S.week[0] && i <= S.week[1]);
+      showTip('<b>W' + (i+1) + '</b>' +
+        '<div class="tr"><span class="tk">周入组</span><span>' + wkArr[i] + ' 例</span></div>' +
+        '<div class="tr"><span class="tk">累计入组</span><span>' + g.cum[i] + ' 例</span></div>' +
+        '<div class="tr"><span class="tk">累计完成率</span><span>' +
+          (g.planTotal>0 ? (g.cum[i]/g.planTotal*100).toFixed(2) : '0.00') + '%</span></div>' +
+        '<div class="tr"><span class="tk">窗口内</span><span>' + (inWin?'是':'否') + '</span></div>', e.clientX, e.clientY);
+    }
+    schedule();
+  } else if (over !== 'combo') {
+    hideTip();
+    if (S.hover){ S.hover = null; schedule(); }
+  }
+  /* SOC 悬停 */
+  var sc = e.target.getAttribute && e.target.getAttribute('data-soc');
+  if (sc !== null && sc !== undefined){
+    var row = SOC_RAW[parseInt(sc,10)];
+    var got = filteredAE().filter(function(r){ return r.soc === parseInt(sc,10); });
+    showTip('<b>' + esc(row.n) + '</b>' +
+      '<div class="tr"><span class="tk">例次</span><span>' + got.length + '</span></div>' +
+      '<div class="tr"><span class="tk">SAE</span><span>' + got.filter(function(r){return r.sae;}).length + '</span></div>' +
+      '<div class="tr"><span class="tk">≥3 级</span><span>' + got.filter(function(r){return r.hi;}).length + '</span></div>', e.clientX, e.clientY);
+  }
+  var cell = e.target.getAttribute && e.target.getAttribute('data-cell');
+  if (cell !== null && cell !== undefined){
+    var key = parseInt(e.target.getAttribute('data-key'), 10);
+    if (cell === '0') showTip('<b>'+esc(SITE_N[key])+'</b><div class="tr"><span class="tk">入组</span><span>'+SITE_ENR[key]+' 例</span></div>' +
+      '<div class="tr"><span class="tk">完成率</span><span>'+(SITE_ENR[key]/SITE_RAW[key].plan*100).toFixed(2)+'%</span></div>' +
+      '<div class="tr"><span class="tk">筛选失败</span><span>'+SITE_RAW[key].sf+' 例</span></div>', e.clientX, e.clientY);
+  }
+});
+document.addEventListener('mouseup', function(){
+  if (drag && drag.kind === 'brush'){
+    var a = Math.min(drag.a, drag.b), b = Math.max(drag.a, drag.b);
+    if (b - a >= 1 && (a > 0 || b < TRIAL.weeks-1)){
+      S.week = [a, b]; S.brush = null; gotoFSM('SERIES_BRUSH_STAGED');
+    } else {
+      S.brush = null; S.week = [0, TRIAL.weeks-1];
+    }
+    drag = null; refresh(); return;
+  }
+  if (drag && drag.kind === 'slider'){ drag = null; gotoFSM('ANOMALY_INSPECTION'); refresh(); return; }
+  drag = null;
+});
+
+var clickTimer = null;
+document.addEventListener('click', function(e){
+  var t = e.target;
+  function attr(n){ return t.getAttribute ? t.getAttribute(n) : null; }
+  var v;
+
+  if ((v = attr('data-site')) !== null && v !== null && v !== undefined && t.classList.contains('tree-item')){
+    var si = parseInt(v, 10);
+    toggleIn(S.site, si); S.drill = null;
+    gotoFSM(S.site.length ? 'DIMENSION_SLICED' : 'GLOBAL_OVERVIEW_CRUISE');
+    refresh(); return;
+  }
+  if ((v = attr('data-arm')) !== null && v !== undefined){
+    if (v === '-1'){ S.arm = []; }
+    else { toggleIn(S.arm, parseInt(v,10)); }
+    gotoFSM(S.arm.length ? 'DIMENSION_SLICED' : 'GLOBAL_OVERVIEW_CRUISE');
+    refresh(); return;
+  }
+  if ((v = attr('data-visit')) !== null && v !== undefined){
+    S.visit = (v === '') ? [] : [parseInt(v,10)];
+    gotoFSM(S.visit.length ? 'DIMENSION_SLICED' : 'GLOBAL_OVERVIEW_CRUISE');
+    refresh(); return;
+  }
+  if ((v = attr('data-scale')) !== null && v !== undefined){
+    S.scale = v; gotoFSM('SCALE_LOG_TRANSFORMED'); refresh(); return;
+  }
+  if ((v = attr('data-soc')) !== null && v !== undefined && t.tagName === 'RECT'){
+    toggleIn(S.soc, parseInt(v,10));
+    gotoFSM(S.soc.length ? 'DIMENSION_SLICED' : 'GLOBAL_OVERVIEW_CRUISE');
+    refresh(); return;
+  }
+  if ((v = attr('data-leg')) !== null && v !== undefined){
+    var id = ['bar','line','base'][parseInt(v,10)];
+    if (e.altKey){ S.solo = (S.solo === parseInt(v,10)) ? null : parseInt(v,10); }
+    else { S.hidden[id] = !S.hidden[id]; }
+    refresh(); return;
+  }
+  if ((v = attr('data-sort')) !== null && v !== undefined){
+    if (S.sort.k === v) S.sort.dir = -S.sort.dir; else { S.sort.k = v; S.sort.dir = 1; }
+    refresh(); return;
+  }
+  if ((v = attr('data-page')) !== null && v !== undefined){
+    S.page += (v === 'next' ? 1 : -1); refresh(); return;
+  }
+  if ((v = attr('data-act')) !== null && v !== undefined){
+    if (v === 'reset'){ resetAll(); gotoFSM('FILTER_RESET_RECONVERGED'); }
+    if (v === 'clear'){ S.arm = []; S.soc = []; S.site = []; S.visit = []; gotoFSM('GLOBAL_OVERVIEW_CRUISE'); }
+    if (v === 'invert'){
+      var all = [0,1,2], nx = [];
+      all.forEach(function(i){ if (S.arm.indexOf(i) < 0) nx.push(i); });
+      S.arm = nx; gotoFSM(S.arm.length ? 'DIMENSION_SLICED' : 'GLOBAL_OVERVIEW_CRUISE');
+    }
+    refresh(); return;
+  }
+  /* 树图：单击切片，双击下钻 */
+  if ((v = attr('data-cell')) !== null && v !== undefined && t.tagName === 'RECT'){
+    var lv = parseInt(v,10), key = parseInt(attr('data-key'), 10);
+    if (clickTimer){ clearTimeout(clickTimer); clickTimer = null; }
+    clickTimer = setTimeout(function(){
+      clickTimer = null;
+      if (lv === 0){ toggleIn(S.site, key); S.drill = null; }
+      else if (lv === 1){ toggleIn(S.arm, key); }
+      else { toggleIn(S.visit, key+1); }
+      gotoFSM('DIMENSION_SLICED'); refresh();
+    }, 210);
+    return;
+  }
+  /* 明细表行 */
+  if (t.tagName === 'TD' || t.tagName === 'TR'){
+    var tr = t.tagName === 'TR' ? t : t.parentNode;
+    if (tr && tr.getAttribute && tr.getAttribute('data-row')){
+      var sidx = parseInt(tr.getAttribute('data-site'), 10);
+      S.drill = sidx; S.site = []; gotoFSM('HIERARCHY_DRILLDOWN'); refresh(); return;
+    }
+  }
+});
+document.addEventListener('dblclick', function(e){
+  var t = e.target;
+  if (t.getAttribute && t.getAttribute('data-cell') !== null &&
+      t.getAttribute('data-cell') !== undefined && t.tagName === 'RECT'){
+    if (clickTimer){ clearTimeout(clickTimer); clickTimer = null; }
+    var lv = parseInt(t.getAttribute('data-cell'), 10);
+    var key = parseInt(t.getAttribute('data-key'), 10);
+    if (lv === 0){ S.drill = key; S.site = []; S.arm = []; gotoFSM('HIERARCHY_DRILLDOWN'); }
+    else if (lv === 1){ S.arm = [key]; gotoFSM('DIMENSION_SLICED'); }
+    refresh(); e.preventDefault();
+  }
+});
+/* 面包屑回退 */
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ resetAll(); gotoFSM('FILTER_RESET_RECONVERGED'); refresh(); }
+});
+window.addEventListener('resize', function(){ schedule(); });
+if (window.ResizeObserver){
+  var ro = new ResizeObserver(function(){ schedule(); });
+  ro.observe(document.documentElement);
+}
+
+/* ============================================================ 帧引导（机审截图锚点） */
+var BOOT = { frame:1 };
+(function boot(){
+  var m = /[?&]f=(\d+)/.exec(location.search || '');
+  var f = m ? parseInt(m[1], 10) : 1;
+  BOOT.frame = f;
+  if (f === 2){ S.week = [7,13]; S.brush = [7,13]; gotoFSM('SERIES_BRUSH_STAGED'); }
+  else if (f === 3){ S.site = [1]; S.arm = [1]; gotoFSM('DIMENSION_SLICED'); }
+  else if (f === 4){ S.drill = 0; S.arm = []; gotoFSM('HIERARCHY_DRILLDOWN'); }
+  else if (f === 5){ S.scale = 'log'; gotoFSM('SCALE_LOG_TRANSFORMED'); }
+  else if (f === 6){ S.thr = [35,900]; gotoFSM('ANOMALY_INSPECTION'); }
+  else if (f === 7){ resetAll(); gotoFSM('FILTER_RESET_RECONVERGED'); }
+  else { gotoFSM('GLOBAL_OVERVIEW_CRUISE'); }
+  render();
+  schedule();
+  setTimeout(function(){ drawAll(); }, 60);
+})();
+
+window.__LS = { TRIAL:TRIAL, FACT:FACT, AE_FACT:AE_FACT, AUDIT:AUDIT, WEEK_TOT:WEEK_TOT,
+  SITE_N:SITE_N, ARM_N:ARM_N, VISIT_N:VISIT_N, SOC_RAW:SOC_RAW, SITE_RAW:SITE_RAW,
+  ARM_RAW:ARM_RAW, ALERTS:ALERTS, S:S, GEO:GEO, conservation:conservation,
+  outliers:outlierSites };
+})();
+</script>
+</body>
+</html>

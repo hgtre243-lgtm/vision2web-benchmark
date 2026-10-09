@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>擎臂 QINGBI · 六轴机械臂模型查看器</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; overflow:hidden; }
+  body {
+    background: linear-gradient(180deg, #0a0e13 0%, #10151c 40%, #171d26 72%, #1d242e 100%);
+    font-family: "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    color: #e7eef6; -webkit-font-smoothing: antialiased;
+  }
+  #gl { position:fixed; inset:0; display:block; width:100%; height:100%; }
+  .ui { position:fixed; z-index:10; }
+  .panel {
+    background: rgba(19,24,31,0.88);
+    border: 1px solid rgba(120,152,184,0.18);
+    border-radius: 10px;
+    backdrop-filter: blur(7px);
+    box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+  }
+  .ttl { font-size:11px; letter-spacing:.14em; color:#7b8fa4; font-weight:600; }
+  .row { display:flex; align-items:center; justify-content:space-between; }
+  .val { font-size:12.5px; color:#e8f2fb; font-variant-numeric: tabular-nums; font-weight:600; }
+
+  #top {
+    left:0; right:0; top:0; height:58px; display:flex; align-items:center;
+    gap:16px; padding:0 20px; border-bottom:1px solid rgba(120,152,184,0.12);
+    background: linear-gradient(180deg, rgba(8,12,18,0.92), rgba(8,12,18,0.42));
+  }
+  #brand { display:flex; align-items:center; gap:10px; }
+  #brand svg { flex:none; }
+  #brand .nm { font-size:15px; font-weight:700; letter-spacing:.06em; }
+  #brand .sub { font-size:11px; color:#8ea3b8; margin-left:2px; letter-spacing:.04em; }
+  #presets { display:flex; gap:6px; }
+  .pbtn {
+    font:inherit; font-size:12px; color:#b7c8d9; cursor:pointer;
+    background: rgba(38,50,64,0.72); border:1px solid rgba(120,152,184,0.22);
+    border-radius:7px; padding:6px 12px; transition:.16s;
+  }
+  .pbtn:hover { background: rgba(56,74,94,0.9); color:#eaf3fb; }
+  .pbtn[aria-pressed="true"] { background: rgba(224,121,26,0.24); border-color:#e8791a; color:#ffe3c2; }
+  #src { margin-left:auto; font-size:11.5px; color:#8ea3b8; display:flex; align-items:center;
+    gap:7px; background:rgba(20,26,34,0.7); border:1px solid rgba(120,152,184,0.16);
+    border-radius:7px; padding:6px 11px; }
+  #src .dot { width:6px; height:6px; border-radius:50%; background:#6f9f5a; }
+
+  #right { right:18px; top:72px; width:302px; padding:14px 15px 15px; }
+  .grp + .grp { margin-top:14px; padding-top:13px; border-top:1px solid rgba(120,152,184,0.13); }
+
+  #partList { margin-top:9px; }
+  .pitem { display:flex; align-items:center; gap:9px; padding:5px 4px; font-size:12.5px;
+           cursor:pointer; border-radius:6px; color:#c2d2e2; }
+  .pitem:hover { background:rgba(56,74,94,0.5); color:#eaf3fb; }
+  .pitem[data-on="1"] { background:rgba(224,121,26,0.16); color:#ffe3c2; }
+  .pitem .n { width:17px; height:17px; border-radius:4px; background:rgba(38,50,64,0.9);
+              border:1px solid rgba(120,152,184,0.28); font-size:10.5px; line-height:16px;
+              text-align:center; color:#9fb2c6; flex:none; }
+  .pitem .sw { width:13px; height:13px; border-radius:3px; flex:none; border:1px solid rgba(160,190,220,0.3); }
+  .pitem .pc { margin-left:auto; color:#93a8bd; font-size:11px; }
+
+  .seg { display:flex; margin-top:9px; border:1px solid rgba(120,152,184,0.22);
+         border-radius:7px; overflow:hidden; }
+  .sbtn { flex:1; font:inherit; font-size:12px; padding:7px 0; cursor:pointer; color:#adc0d2;
+          background:rgba(30,40,52,0.6); border:0; border-right:1px solid rgba(120,152,184,0.16); }
+  .sbtn:last-child { border-right:0; }
+  .sbtn[aria-pressed="true"] { background:rgba(224,121,26,0.28); color:#ffe3c2; font-weight:600; }
+
+  .poseRow { display:flex; gap:6px; margin-top:9px; flex-wrap:wrap; }
+  .pose { flex:1; min-width:52px; font:inherit; font-size:12px; padding:6px 4px; cursor:pointer;
+          color:#c2d2e2; background:rgba(30,40,52,0.6); border:1px solid rgba(120,152,184,0.2);
+          border-radius:7px; }
+  .pose:hover { background:rgba(56,74,94,0.85); }
+  .pose[aria-pressed="true"] { background:rgba(224,121,26,0.24); border-color:#e8791a; color:#ffe3c2; }
+
+  .jrow { display:grid; grid-template-columns:34px 1fr 40px; align-items:center; gap:8px; margin-top:7px; }
+  .jrow .k { font-size:11px; color:#93a8bd; }
+  .jrow .v { font-size:11.5px; text-align:right; font-variant-numeric: tabular-nums; color:#e8f2fb; }
+
+  input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:20px;
+    background:transparent; margin:0; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:4px; border-radius:2px;
+    background:#28333f; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px;
+    border-radius:50%; background:#ffe3c2; border:2px solid #e8791a; margin-top:-5px;
+    box-shadow:0 1px 5px rgba(0,0,0,0.5); }
+
+  .chk { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12.5px;
+         color:#c2d2e2; cursor:pointer; user-select:none; }
+  .chk input { accent-color:#e8791a; width:14px; height:14px; cursor:pointer; }
+  #right .half { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
+
+  #stats { left:18px; bottom:18px; width:300px; padding:14px 15px 13px; }
+  #statGrid { display:grid; grid-template-columns:1fr 1fr; gap:11px 12px; margin-top:11px; }
+  .st .k { font-size:11px; color:#8698ab; letter-spacing:.03em; }
+  .st .v { font-size:19px; font-weight:700; margin-top:2px; font-variant-numeric: tabular-nums; }
+  .st .u { font-size:11px; color:#93a8bd; font-weight:400; margin-left:2px; }
+  #statNote { margin-top:12px; padding-top:11px; border-top:1px solid rgba(120,152,184,0.13);
+              font-size:11.5px; color:#8ea3b8; line-height:1.6; }
+
+  #tip { display:none; width:244px; padding:11px 13px; pointer-events:none; z-index:30; }
+  #tip .th { font-size:12px; font-weight:700; color:#ffe3c2; letter-spacing:.04em; }
+  #tip .tr { display:flex; justify-content:space-between; font-size:12px; padding:3.5px 0;
+             border-bottom:1px dashed rgba(120,152,184,0.15); }
+  #tip .tr:last-child { border-bottom:0; }
+  #tip .tr span:first-child { color:#8ea3b8; }
+  #tip .tr span:last-child { font-variant-numeric: tabular-nums; font-weight:600; }
+
+  #hint { left:50%; transform:translateX(-50%); bottom:20px; font-size:11.5px; color:#7f93a8;
+          background:rgba(12,18,26,0.7); border:1px solid rgba(120,152,184,0.14);
+          border-radius:20px; padding:7px 16px; letter-spacing:.03em; }
+
+  #nowebgl { position:fixed; inset:0; display:none; place-items:center; z-index:99;
+             background:#0a1018; text-align:center; }
+  #nowebgl .box { max-width:460px; padding:28px 30px; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="nowebgl"><div class="box panel">
+  <div style="font-size:16px;font-weight:700;margin-bottom:10px">无法启动三维渲染</div>
+  <div style="font-size:13px;color:#9fb2c6;line-height:1.75">
+    当前浏览器未提供可用的 WebGL 上下文，机械臂模型无法显示。<br>
+    请改用较新版本的 Chrome / Edge / Firefox，并在设置中开启硬件加速后重新打开本页。
+  </div>
+</div></div>
+
+<div class="ui panel" id="top">
+  <div id="brand">
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+      <path d="M13 3 L9 8 L9 13 L13 16 L17 13 L17 8 Z" fill="none" stroke="#e8791a" stroke-width="1.6" stroke-linejoin="round"/>
+      <circle cx="13" cy="8" r="1.6" fill="#e8791a"/>
+      <circle cx="13" cy="13" r="1.6" fill="#e8791a"/>
+      <path d="M13 16 L13 22 M13 20 L8 24 M13 20 L18 24" fill="none" stroke="#6b727a" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    <span class="nm">擎臂 QINGBI</span>
+    <span class="sub">六轴工业机械臂 · 模型查看器</span>
+  </div>
+  <div id="presets"></div>
+  <div id="src"><span class="dot" id="srcDot"></span><span id="srcTxt">模型：正在初始化…</span></div>
+</div>
+
+<div class="ui panel" id="right">
+  <div class="grp">
+    <div class="row"><div class="ttl">部件清单 · PARTS</div><div class="val" id="partCount"></div></div>
+    <div id="partList"></div>
+  </div>
+  <div class="grp">
+    <div class="ttl">显示模式</div>
+    <div class="seg" id="segMode"></div>
+  </div>
+  <div class="grp">
+    <div class="row"><div class="ttl">爆炸视图 / EXPLODE</div><div class="val" id="expVal">0 %</div></div>
+    <input type="range" id="expRange" min="0" max="100" value="0" step="1" aria-label="爆炸视图">
+  </div>
+  <div class="grp">
+    <div class="ttl">关节姿态 · JOINT POSE</div>
+    <div class="poseRow" id="poseRow"></div>
+    <div id="joints" style="margin-top:8px"></div>
+  </div>
+  <div class="grp">
+    <div class="ttl">光照模式</div>
+    <div class="seg" id="segLight"></div>
+  </div>
+  <div class="grp">
+    <div class="ttl">图层</div>
+    <div class="half" id="layers" style="margin-top:8px"></div>
+  </div>
+  <div class="grp">
+    <div class="chk" style="padding:0"><input type="checkbox" id="turntable"><label for="turntable" style="cursor:pointer">自动旋转（时间推进）</label></div>
+  </div>
+</div>
+
+<div class="ui panel" id="stats">
+  <div class="row"><div class="ttl">模型信息 · MODEL</div><div class="val" id="statsScope">六轴工业机器人</div></div>
+  <div id="statGrid"></div>
+  <div id="statNote"></div>
+</div>
+
+<div class="ui panel" id="tip"></div>
+<div class="ui" id="hint">左键拖拽旋转 · 滚轮缩放 · 右键拖拽平移 · 悬停部件查看信息 · 点击部件列表聚焦</div>
+
+<script>
+(function () {
+'use strict';
+
+/* =========================================================
+   0. 基础工具
+   ========================================================= */
+var canvas = document.getElementById('gl');
+var gl = null;
+try {
+  gl = canvas.getContext('webgl', { alpha:true, antialias:true, preserveDrawingBuffer:true, depth:true })
+    || canvas.getContext('experimental-webgl', { alpha:true, antialias:true, preserveDrawingBuffer:true });
+} catch (e) { gl = null; }
+if (!gl) { document.getElementById('nowebgl').style.display = 'grid'; return; }
+
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function smooth(t){ return t*t*(3-2*t); }
+function easeInOut(t){ return t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+function hex2rgb(h){ return [parseInt(h.substr(1,2),16)/255, parseInt(h.substr(3,2),16)/255, parseInt(h.substr(5,2),16)/255]; }
+function D2R(d){ return d*Math.PI/180; }
+
+/* ---- 4x4 矩阵（列主序，与 WebGL 一致） ---- */
+function m4Perspective(out, fovy, aspect, near, far){
+  var f = 1/Math.tan(fovy/2), nf = 1/(near-far);
+  out[0]=f/aspect; out[1]=0; out[2]=0;  out[3]=0;
+  out[4]=0; out[5]=f; out[6]=0;  out[7]=0;
+  out[8]=0; out[9]=0; out[10]=(far+near)*nf; out[11]=-1;
+  out[12]=0; out[13]=0; out[14]=2*far*near*nf; out[15]=0;
+  return out;
+}
+function m4LookAt(out, ex,ey,ez, cx,cy,cz, ux,uy,uz){
+  var zx=ex-cx, zy=ey-cy, zz=ez-cz;
+  var zl=Math.sqrt(zx*zx+zy*zy+zz*zz)||1; zx/=zl; zy/=zl; zz/=zl;
+  var xx=uy*zz-uz*zy, xy=uz*zx-ux*zz, xz=ux*zy-uy*zx;
+  var xl=Math.sqrt(xx*xx+xy*xy+xz*xz)||1; xx/=xl; xy/=xl; xz/=xl;
+  var yx=zy*xz-zz*xy, yy=zz*xx-zx*xz, yz=zx*xy-zy*xx;
+  out[0]=xx; out[1]=yx; out[2]=zx; out[3]=0;
+  out[4]=xy; out[5]=yy; out[6]=zy; out[7]=0;
+  out[8]=xz; out[9]=yz; out[10]=zz; out[11]=0;
+  out[12]=-(xx*ex+xy*ey+xz*ez);
+  out[13]=-(yx*ex+yy*ey+yz*ez);
+  out[14]=-(zx*ex+zy*ey+zz*ez);
+  out[15]=1;
+  return out;
+}
+function m4Mul(out, a, b){
+  for (var c=0;c<4;c++){
+    var b0=b[c*4], b1=b[c*4+1], b2=b[c*4+2], b3=b[c*4+3];
+    out[c*4  ] = a[0]*b0 + a[4]*b1 + a[8 ]*b2 + a[12]*b3;
+    out[c*4+1] = a[1]*b0 + a[5]*b1 + a[9 ]*b2 + a[13]*b3;
+    out[c*4+2] = a[2]*b0 + a[6]*b1 + a[10]*b2 + a[14]*b3;
+    out[c*4+3] = a[3]*b0 + a[7]*b1 + a[11]*b2 + a[15]*b3;
+  }
+  return out;
+}
+function m4Ident(out){ out[0]=1;out[1]=0;out[2]=0;out[3]=0;out[4]=0;out[5]=1;out[6]=0;out[7]=0;
+  out[8]=0;out[9]=0;out[10]=1;out[11]=0;out[12]=0;out[13]=0;out[14]=0;out[15]=1; return out; }
+function m4T(out,x,y,z){ m4Ident(out); out[12]=x; out[13]=y; out[14]=z; return out; }
+function m4Rx(out,a){ var c=Math.cos(a),s=Math.sin(a); m4Ident(out);
+  out[5]=c; out[6]=s; out[9]=-s; out[10]=c; return out; }
+function m4Ry(out,a){ var c=Math.cos(a),s=Math.sin(a); m4Ident(out);
+  out[0]=c; out[2]=-s; out[8]=s; out[10]=c; return out; }
+function m4Rz(out,a){ var c=Math.cos(a),s=Math.sin(a); m4Ident(out);
+  out[0]=c; out[1]=s; out[4]=-s; out[5]=c; return out; }
+
+/* =========================================================
+   1. 调色板
+   ========================================================= */
+var ORANGE  = hex2rgb('#e8791a');
+var ORANGE_D= hex2rgb('#c2610f');
+var DARK    = hex2rgb('#3a4148');
+var GRAY    = hex2rgb('#6b727a');
+var SILVER  = hex2rgb('#c7cdd4');
+var GRIP    = hex2rgb('#262b31');
+var ACCENT  = hex2rgb('#6fcbd8');
+var GROUND  = hex2rgb('#24292f');
+var GRID    = hex2rgb('#313840');
+var PLINTH  = hex2rgb('#1a1f26');
+
+/* =========================================================
+   2. 着色器（与既有 3D 题一致的半球环境 + 平行光 + 边缘光 + 雾 + 高亮）
+   ========================================================= */
+var VS = [
+  'attribute vec3 aPos;',
+  'attribute vec3 aNormal;',
+  'attribute vec3 aColor;',
+  'uniform mat4 uVP;',
+  'uniform mat4 uModel;',
+  'uniform float uPointSize;',
+  'varying vec3 vN; varying vec3 vC; varying vec3 vW;',
+  'void main(){',
+  '  vec4 w = uModel * vec4(aPos, 1.0);',
+  '  vW = w.xyz;',
+  '  vN = mat3(uModel) * aNormal;',
+  '  vC = aColor;',
+  '  gl_PointSize = uPointSize;',
+  '  gl_Position = uVP * w;',
+  '}'
+].join('\n');
+var FS = [
+  'precision mediump float;',
+  'varying vec3 vN; varying vec3 vC; varying vec3 vW;',
+  'uniform vec3 uLightDir; uniform vec3 uLightColor;',
+  'uniform vec3 uAmbTop; uniform vec3 uAmbBot;',
+  'uniform vec3 uFogColor; uniform float uFogNear; uniform float uFogFar;',
+  'uniform vec3 uEye;',
+  'uniform float uAlpha; uniform float uEmissive; uniform float uUnlit;',
+  'uniform float uRim;',
+  'void main(){',
+  '  vec3 base = vC;',
+  '  vec3 N = normalize(vN);',
+  '  float d = length(uEye - vW);',
+  '  vec3 col;',
+  '  if (uUnlit > 0.5){',
+  '    col = base;',
+  '  } else {',
+  '    float lam = max(dot(N, uLightDir), 0.0);',
+  '    float hemi = 0.5 + 0.5 * N.y;',
+  '    vec3 amb = mix(uAmbBot, uAmbTop, hemi);',
+  '    col = base * (amb + uLightColor * lam);',
+  '    vec3 V = normalize(uEye - vW);',
+  '    float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0) * uRim;',
+  '    col += base * rim * 0.85 + vec3(rim * 0.05);',
+  '  }',
+  '  float f = clamp((d - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);',
+  '  f = f * f * (3.0 - 2.0 * f);',
+  '  col = mix(col, uFogColor, f);',
+  '  col = mix(col, vec3(1.0, 0.97, 0.88), uEmissive * 0.5);',
+  '  gl_FragColor = vec4(col, uAlpha);',
+  '}'
+].join('\n');
+
+function compile(type, src){
+  var s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+var prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+gl.bindAttribLocation(prog, 0, 'aPos');
+gl.bindAttribLocation(prog, 1, 'aNormal');
+gl.bindAttribLocation(prog, 2, 'aColor');
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+
+var U = {};
+['uVP','uModel','uPointSize','uLightDir','uLightColor','uAmbTop','uAmbBot','uFogColor','uFogNear','uFogFar',
+ 'uEye','uAlpha','uEmissive','uUnlit','uRim'].forEach(function(n){ U[n] = gl.getUniformLocation(prog, n); });
+
+var STRIDE = 9;
+function makeMesh(){ return { buf:gl.createBuffer(), n:0 }; }
+function uploadMesh(m, data, count){
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.buf);
+  gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+  m.n = count;
+}
+function bindMesh(m){
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.buf);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, STRIDE*4, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, STRIDE*4, 12);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, STRIDE*4, 24);
+}
+
+/* =========================================================
+   3. 几何构建器：长方体 / 圆柱（各同时产出三角面 + 线框）
+   ========================================================= */
+function boxGeo(hx,hy,hz, rgb){
+  var tris=[], lines=[];
+  var c=[[-hx,-hy,-hz],[ hx,-hy,-hz],[ hx, hy,-hz],[-hx, hy,-hz],
+         [-hx,-hy, hz],[ hx,-hy, hz],[ hx, hy, hz],[-hx, hy, hz]];
+  var faces=[
+    [0,1,2,2,3,0, 0,0,-1], [5,4,7,7,6,5, 0,0,1],
+    [4,0,3,3,7,4,-1,0,0], [1,5,6,6,2,1, 1,0,0],
+    [4,5,1,1,0,4, 0,-1,0], [3,2,6,6,7,3, 0,1,0]
+  ];
+  for (var f=0; f<6; f++){
+    var F=faces[f], nx=F[6], ny=F[7], nz=F[8];
+    for (var t=0;t<6;t++){
+      var v=c[F[t]];
+      tris.push(v[0],v[1],v[2], nx,ny,nz, rgb[0],rgb[1],rgb[2]);
+    }
+  }
+  var E=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+  for (var e=0;e<12;e++){
+    var a=c[E[e][0]], b=c[E[e][1]];
+    lines.push(a[0],a[1],a[2], 0,1,0, rgb[0],rgb[1],rgb[2]);
+    lines.push(b[0],b[1],b[2], 0,1,0, rgb[0],rgb[1],rgb[2]);
+  }
+  return { tris:tris, lines:lines };
+}
+function cylGeo(r1,r2,h,seg,rgb){
+  var tris=[], lines=[];
+  var hy=-h/2, ty=h/2, i;
+  for (i=0;i<seg;i++){
+    var a0=i/seg*Math.PI*2, a1=(i+1)/seg*Math.PI*2;
+    var x0=Math.cos(a0), z0=Math.sin(a0), x1=Math.cos(a1), z1=Math.sin(a1);
+    var bx0=x0*r1, bz0=z0*r1, bx1=x1*r1, bz1=z1*r1;
+    var tx0=x0*r2, tz0=z0*r2, tx1=x1*r2, tz1=z1*r2;
+    var nx=(x0+x1)/2, nz=(z0+z1)/2, nl=Math.sqrt(nx*nx+nz*nz)||1; nx/=nl; nz/=nl;
+    /* 侧面两个三角形 */
+    tris.push(bx0,hy,bz0, nx,0,nz, rgb[0],rgb[1],rgb[2]);
+    tris.push(tx0,ty,tz0, nx,0,nz, rgb[0],rgb[1],rgb[2]);
+    tris.push(tx1,ty,tz1, nx,0,nz, rgb[0],rgb[1],rgb[2]);
+    tris.push(bx0,hy,bz0, nx,0,nz, rgb[0],rgb[1],rgb[2]);
+    tris.push(tx1,ty,tz1, nx,0,nz, rgb[0],rgb[1],rgb[2]);
+    tris.push(bx1,hy,bz1, nx,0,nz, rgb[0],rgb[1],rgb[2]);
+    /* 竖直线 + 上下圆 */
+    lines.push(bx0,hy,bz0, 0,1,0, rgb[0],rgb[1],rgb[2]);
+    lines.push(tx0,ty,tz0, 0,1,0, rgb[0],rgb[1],rgb[2]);
+    lines.push(bx0,hy,bz0, 0,1,0, rgb[0],rgb[1],rgb[2]);
+    lines.push(bx1,hy,bz1, 0,1,0, rgb[0],rgb[1],rgb[2]);
+    lines.push(tx0,ty,tz0, 0,1,0, rgb[0],rgb[1],rgb[2]);
+    lines.push(tx1,ty,tz1, 0,1,0, rgb[0],rgb[1],rgb[2]);
+  }
+  /* 顶底圆盖 */
+  if (r2>0.0001){
+    for (i=0;i<seg;i++){
+      var a0c=i/seg*Math.PI*2, a1c=(i+1)/seg*Math.PI*2;
+      tris.push(0,ty,0, 0,1,0, rgb[0],rgb[1],rgb[2]);
+      tris.push(Math.cos(a0c)*r2,ty,Math.sin(a0c)*r2, 0,1,0, rgb[0],rgb[1],rgb[2]);
+      tris.push(Math.cos(a1c)*r2,ty,Math.sin(a1c)*r2, 0,1,0, rgb[0],rgb[1],rgb[2]);
+    }
+  }
+  if (r1>0.0001){
+    for (i=0;i<seg;i++){
+      var b0c=i/seg*Math.PI*2, b1c=(i+1)/seg*Math.PI*2;
+      tris.push(0,hy,0, 0,-1,0, rgb[0],rgb[1],rgb[2]);
+      tris.push(Math.cos(b1c)*r1,hy,Math.sin(b1c)*r1, 0,-1,0, rgb[0],rgb[1],rgb[2]);
+      tris.push(Math.cos(b0c)*r1,hy,Math.sin(b0c)*r1, 0,-1,0, rgb[0],rgb[1],rgb[2]);
+    }
+  }
+  return { tris:tris, lines:lines };
+}
+function discGeo(r, rgb, y){
+  var tris=[];
+  var seg=48, i;
+  for (i=0;i<seg;i++){
+    var a0=i/seg*Math.PI*2, a1=(i+1)/seg*Math.PI*2;
+    tris.push(0,y,0, 0,1,0, rgb[0],rgb[1],rgb[2]);
+    tris.push(Math.cos(a0)*r,y,Math.sin(a0)*r, 0,1,0, rgb[0],rgb[1],rgb[2]);
+    tris.push(Math.cos(a1)*r,y,Math.sin(a1)*r, 0,1,0, rgb[0],rgb[1],rgb[2]);
+  }
+  return { tris:tris, lines:[] };
+}
+
+function mergeGeo(parts){
+  var t=[], l=[];
+  for (var i=0;i<parts.length;i++){ t=t.concat(parts[i].tris); l=l.concat(parts[i].lines); }
+  return { tris:t, lines:l };
+}
+
+/* =========================================================
+   4. 机械臂部件定义（局部坐标，Y 向上）
+   ========================================================= */
+var SEG=28;
+var PARTS = [
+  { id:'base',    name:'底座',    hex:'#3a4148', rgb:DARK,   desc:'铸铁基座 · J1 支承' },
+  { id:'turntable',name:'转台',   hex:'#e8791a', rgb:ORANGE, desc:'J1 关节 · 铸铝转台' },
+  { id:'shoulder',name:'肩部',    hex:'#e8791a', rgb:ORANGE, desc:'J2 关节 · 肩部壳体' },
+  { id:'lowerarm',name:'大臂',    hex:'#e8791a', rgb:ORANGE, desc:'J2 臂段 · 铝合金' },
+  { id:'elbow',   name:'肘部',    hex:'#c2610f', rgb:ORANGE_D, desc:'J3 关节 · 肘部' },
+  { id:'forearm', name:'小臂',    hex:'#e8791a', rgb:ORANGE, desc:'J3 臂段 · 铝合金' },
+  { id:'wrist',   name:'腕部',    hex:'#c7cdd4', rgb:SILVER, desc:'J4/J5/J6 腕部组件' },
+  { id:'gripper', name:'夹具',    hex:'#262b31', rgb:GRIP,   desc:'末端执行器 · 气动夹爪' }
+];
+var PID = {};
+PARTS.forEach(function(p,i){ PID[p.id]=i; });
+
+/* 局部包围盒（min/max，与部件网格同一局部坐标系，用于拾取） */
+var AABB = {
+  base:     { min:[-0.34,0,-0.34], max:[0.34,0.48,0.34] },
+  turntable:{ min:[-0.20,0,-0.20], max:[0.20,0.30,0.20] },
+  shoulder: { min:[-0.15,0.30,-0.13], max:[0.15,0.64,0.13] },
+  lowerarm: { min:[-0.09,0,-0.09], max:[0.09,0.85,0.09] },
+  elbow:    { min:[-0.10,0.79,-0.10], max:[0.10,0.91,0.10] },
+  forearm:  { min:[-0.075,0,-0.075], max:[0.075,0.66,0.075] },
+  wrist:    { min:[-0.10,0.585,-0.10], max:[0.10,0.765,0.10] },
+  gripper:  { min:[-0.10,-0.19,-0.10], max:[0.10,0.005,0.10] }
+};
+
+function offGeo(g,x,y,z){
+  var t=g.tris.slice(), l=g.lines.slice(), i;
+  for (i=0;i<t.length;i+=STRIDE){ t[i]+=x; t[i+1]+=y; t[i+2]+=z; }
+  for (i=0;i<l.length;i+=STRIDE){ l[i]+=x; l[i+1]+=y; l[i+2]+=z; }
+  return { tris:t, lines:l };
+}
+
+function buildParts(){
+  var g, bt=[], bl=[], tt, tl, st, sl, lt, ll, et, el, ft, fl, wt=[], wl=[], gt=[], gl=[], k;
+  /* 底座：底圆盘(局部 y0.03) + 锥形立柱(局部 0.06..0.48) */
+  g=offGeo(cylGeo(0.30,0.34,0.06,SEG,DARK),0,0.03,0); bt=bt.concat(g.tris); bl=bl.concat(g.lines);
+  g=offGeo(cylGeo(0.20,0.17,0.42,SEG,DARK),0,0.27,0); bt=bt.concat(g.tris); bl=bl.concat(g.lines);
+  /* 转台（局部 0..0.30） */
+  g=offGeo(cylGeo(0.18,0.20,0.30,SEG,ORANGE),0,0.15,0); tt=g.tris; tl=g.lines;
+  /* 肩部（局部 0.30..0.64） */
+  g=offGeo(boxGeo(0.15,0.17,0.13,ORANGE),0,0.47,0); st=g.tris; sl=g.lines;
+  /* 大臂（局部 0..0.85，J2 枢轴在原点） */
+  g=offGeo(boxGeo(0.09,0.425,0.09,ORANGE),0,0.425,0); lt=g.tris; ll=g.lines;
+  /* 肘部（J2 局部 0.79..0.91，包住 J3 枢轴） */
+  g=offGeo(cylGeo(0.10,0.10,0.12,SEG,ORANGE_D),0,0.85,0); et=g.tris; el=g.lines;
+  /* 小臂（局部 0..0.66，J3 枢轴在原点） */
+  g=offGeo(boxGeo(0.075,0.33,0.075,ORANGE),0,0.33,0); ft=g.tris; fl=g.lines;
+  /* 腕部：三环(围绕 0.66) + 法兰(0.75) */
+  for (k=0;k<3;k++){ g=offGeo(cylGeo(0.085,0.085,0.045,SEG,SILVER),0,0.615+k*0.045,0); wt=wt.concat(g.tris); wl=wl.concat(g.lines); }
+  g=offGeo(cylGeo(0.10,0.10,0.03,SEG,SILVER),0,0.75,0); wt=wt.concat(g.tris); wl=wl.concat(g.lines);
+  /* 夹具（局部 −Y 延伸）：掌 + 两指 */
+  g=offGeo(boxGeo(0.055,0.025,0.055,ORANGE),0,-0.03,0); gt=gt.concat(g.tris); gl=gl.concat(g.lines);
+  g=offGeo(boxGeo(0.014,0.075,0.014,GRIP),-0.042,-0.11,0); gt=gt.concat(g.tris); gl=gl.concat(g.lines);
+  g=offGeo(boxGeo(0.014,0.075,0.014,GRIP), 0.042,-0.11,0); gt=gt.concat(g.tris); gl=gl.concat(g.lines);
+
+  PARTS[PID.base].geo=bt;      PARTS[PID.base].ln=bl;
+  PARTS[PID.turntable].geo=tt; PARTS[PID.turntable].ln=tl;
+  PARTS[PID.shoulder].geo=st;  PARTS[PID.shoulder].ln=sl;
+  PARTS[PID.lowerarm].geo=lt;  PARTS[PID.lowerarm].ln=ll;
+  PARTS[PID.elbow].geo=et;     PARTS[PID.elbow].ln=el;
+  PARTS[PID.forearm].geo=ft;   PARTS[PID.forearm].ln=fl;
+  PARTS[PID.wrist].geo=wt;     PARTS[PID.wrist].ln=wl;
+  PARTS[PID.gripper].geo=gt;   PARTS[PID.gripper].ln=gl;
+
+  /* 上传 */
+  PARTS.forEach(function(p){
+    p.mesh = makeMesh(); uploadMesh(p.mesh, new Float32Array(p.geo), p.geo.length/STRIDE);
+    p.lineMesh = makeMesh(); uploadMesh(p.lineMesh, new Float32Array(p.ln), p.ln.length/STRIDE);
+    p.world = new Float32Array(16);
+    p.wMin = [0,0,0]; p.wMax = [0,0,0]; p.center = [0,0,0];
+  });
+}
+
+/* 离线参考姿态（供 UI 与截图） */
+var POSES = {
+  home:   { name:'默认', j:[0,-10,90,0,-90,0] },
+  grab:   { name:'抓取', j:[30,-55,70,20,-50,-35] },
+  extend: { name:'伸展', j:[0,-25,-10,0,-85,0] },
+  fold:   { name:'收回', j:[0,-80,-110,0,-95,0] }
+};
+
+var S = {
+  mode: 'solid',        /* solid / wire / xray */
+  explode: 0,
+  light: 'studio',
+  pose: 'home',
+  j: POSES.home.j.slice(),
+  layers: { ground:true, plinth:true, axis:false, labels:false },
+  turntable: false,
+  hover: null,
+  fly: null
+};
+var dirty = false;
+function markDirty(){ dirty = true; }
+
+/* =========================================================
+   5. 前向运动学：逐帧计算每个部件的世界矩阵与包围盒
+   ========================================================= */
+var _a=new Float32Array(16), _b=new Float32Array(16), _c=new Float32Array(16), _d=new Float32Array(16), _e=new Float32Array(16);
+var mBase=new Float32Array(16), mJ1=new Float32Array(16), mJ2=new Float32Array(16), mJ3=new Float32Array(16), mJ6=new Float32Array(16);
+var mLow=new Float32Array(16), mElb=new Float32Array(16), mFor=new Float32Array(16), mWri=new Float32Array(16), mGri=new Float32Array(16);
+var chainPoints = [];
+var axisMesh = makeMesh();
+
+function transformCorners(w, min, max){
+  var mn=[1e9,1e9,1e9], mx=[-1e9,-1e9,-1e9];
+  for (var i=0;i<8;i++){
+    var x = (i&1)?max[0]:min[0], y = (i&2)?max[1]:min[1], z = (i&4)?max[2]:min[2];
+    var wx = w[0]*x + w[4]*y + w[8]*z + w[12];
+    var wy = w[1]*x + w[5]*y + w[9]*z + w[13];
+    var wz = w[2]*x + w[6]*y + w[10]*z + w[14];
+    if (wx<mn[0])mn[0]=wx; if (wx>mx[0])mx[0]=wx;
+    if (wy<mn[1])mn[1]=wy; if (wy>mx[1])mx[1]=wy;
+    if (wz<mn[2])mn[2]=wz; if (wz>mx[2])mx[2]=wz;
+  }
+  return [mn, mx, [(mn[0]+mx[0])/2,(mn[1]+mx[1])/2,(mn[2]+mx[2])/2]];
+}
+
+function computeFK(){
+  var j = S.j, e = S.explode;
+  var j1=D2R(j[0]), j2=D2R(j[1]), j3=D2R(j[2]), j4=D2R(j[3]), j5=D2R(j[4]), j6=D2R(j[5]);
+  var g1=e*0.12, g2=e*0.30, g3=e*0.34, g4=e*0.30;
+
+  m4Ident(mBase);
+  /* J1 = T(0,0.48+g1,0) * Ry(j1) */
+  m4T(_a,0,0.48+g1,0); m4Ry(_b,j1); m4Mul(mJ1,_a,_b);
+  /* J2 = mJ1 * T(0,0.64,0) * Rx(j2) */
+  m4T(_a,0,0.64,0); m4Mul(_c,mJ1,_a); m4Rx(_b,j2); m4Mul(mJ2,_c,_b);
+  /* J3 = mJ2 * T(0,0.85+g2,0) * Rx(j3) */
+  m4T(_a,0,0.85+g2,0); m4Mul(_c,mJ2,_a); m4Rx(_b,j3); m4Mul(mJ3,_c,_b);
+  /* J6 = mJ3 * T(0,0.66+g3,0) * Ry(j4) * Rx(j5) * Ry(j6) */
+  m4T(_a,0,0.66+g3,0); m4Mul(_c,mJ3,_a);
+  m4Ry(_b,j4); m4Mul(_d,_c,_b);
+  m4Rx(_b,j5); m4Mul(_e,_d,_b);
+  m4Ry(_b,j6); m4Mul(mJ6,_e,_b);
+
+  /* 各部件世界矩阵（网格已烘焙各自局部偏移） */
+  m4T(_a,0,g2,0);   m4Mul(mLow,mJ2,_a);    /* 大臂 */
+  m4T(_a,0,g2,0);   m4Mul(mElb,mJ2,_a);    /* 肘部（烘焙在 0.85） */
+  m4T(_a,0,g3,0);   m4Mul(mFor,mJ3,_a);    /* 小臂 */
+  m4T(_a,0,g3,0);   m4Mul(mWri,mJ3,_a);    /* 腕部环（烘焙在 ~0.66） */
+  m4T(_a,0,g4,0);   m4Mul(mGri,mJ6,_a);    /* 夹具 */
+
+  function aabb(id){ var p=PARTS[PID[id]], a=AABB[id]; var r=transformCorners(p.world,a.min,a.max);
+    p.wMin=r[0]; p.wMax=r[1]; p.center=r[2]; }
+
+  PARTS[PID.base].world.set(mBase);      aabb('base');
+  PARTS[PID.turntable].world.set(mJ1);   aabb('turntable');
+  PARTS[PID.shoulder].world.set(mJ1);    aabb('shoulder');
+  PARTS[PID.lowerarm].world.set(mLow);   aabb('lowerarm');
+  PARTS[PID.elbow].world.set(mElb);      aabb('elbow');
+  PARTS[PID.forearm].world.set(mFor);    aabb('forearm');
+  PARTS[PID.wrist].world.set(mWri);      aabb('wrist');
+  PARTS[PID.gripper].world.set(mGri);    aabb('gripper');
+
+  /* 装配链点（爆炸引导线用） */
+  function wp(M){ return [M[12],M[13],M[14]]; }
+  m4T(_a,0,0.64,0); m4Mul(_c,mJ1,_a); var p2=wp(_c);
+  m4T(_a,0,0.85+g2,0); m4Mul(_c,mJ2,_a); var p3=wp(_c);
+  m4T(_a,0,0.66+g3,0); m4Mul(_c,mJ3,_a); var p4=wp(_c);
+  m4T(_a,0,-0.19+g4,0); m4Mul(_c,mJ6,_a); var p5=wp(_c);
+  chainPoints = [[0,0,0], wp(mJ1), p2, p3, p4, p5];
+}
+
+function updateAxisMesh(){
+  if (S.explode < 0.001 && !S.layers.axis){ uploadMesh(axisMesh, new Float32Array(0), 0); return; }
+  var v=[];
+  for (var i=0;i<chainPoints.length-1;i++){
+    var a=chainPoints[i], b=chainPoints[i+1];
+    v.push(a[0],a[1],a[2], 0,1,0, ACCENT[0],ACCENT[1],ACCENT[2]);
+    v.push(b[0],b[1],b[2], 0,1,0, ACCENT[0],ACCENT[1],ACCENT[2]);
+  }
+  uploadMesh(axisMesh, new Float32Array(v), v.length/STRIDE);
+}
+
+/* =========================================================
+   6. 地面 / 展台 / 阴影
+   ========================================================= */
+var groundMesh = makeMesh(), plinthMesh = makeMesh(), shadowMesh = makeMesh();
+(function buildScene(){
+  /* 地面网格 */
+  var v=[], EXT=2.6, step=0.26, i;
+  function line(a,b,col){
+    v.push(a[0],a[1],a[2], 0,1,0, col[0],col[1],col[2]);
+    v.push(b[0],b[1],b[2], 0,1,0, col[0],col[1],col[2]);
+  }
+  for (i=-EXT;i<=EXT+0.0001;i+=step){ line([i,0,-EXT],[i,0,EXT],GRID); line([-EXT,0,i],[EXT,0,i],GRID); }
+  line([-EXT,0,-EXT],[EXT,0,-EXT],GROUND); line([-EXT,0,EXT],[EXT,0,EXT],GROUND);
+  line([-EXT,0,-EXT],[-EXT,0,EXT],GROUND); line([EXT,0,-EXT],[EXT,0,EXT],GROUND);
+  uploadMesh(groundMesh, new Float32Array(v), v.length/STRIDE);
+  /* 展台圆盘 */
+  var p=discGeo(0.44,PLINTH,0.005);
+  uploadMesh(plinthMesh, new Float32Array(p.tris), p.tris.length/STRIDE);
+  /* 接触阴影（半透明暗椭圆） */
+  var s=discGeo(0.9,[0,0,0],0.012);
+  uploadMesh(shadowMesh, new Float32Array(s.tris), s.tris.length/STRIDE);
+})();
+
+/* =========================================================
+   7. 相机
+   ========================================================= */
+var PRESETS = [
+  { key:'overview', name:'全景',   az:0.72, el:0.16, dist:4.5, ty:1.0 },
+  { key:'front',    name:'前视',   az:1.57, el:0.10, dist:4.3, ty:1.0 },
+  { key:'side',     name:'侧视',   az:0.02, el:0.12, dist:4.3, ty:1.0 },
+  { key:'top',      name:'俯视',   az:0.72, el:1.16, dist:4.7, ty:1.0 },
+  { key:'grip',     name:'夹具特写', az:0.72, el:-0.05, dist:1.0, ty:1.95 }
+];
+var cam = { az:PRESETS[0].az, el:PRESETS[0].el, dist:PRESETS[0].dist, tx:0, ty:PRESETS[0].ty, tz:0 };
+var view = new Float32Array(16), proj = new Float32Array(16), vp = new Float32Array(16);
+var EYE = [0,0,0];
+
+function camEye(){
+  var ce = Math.cos(cam.el), se = Math.sin(cam.el);
+  return [ cam.tx + cam.dist*ce*Math.sin(cam.az),
+           cam.ty + cam.dist*se,
+           cam.tz + cam.dist*ce*Math.cos(cam.az) ];
+}
+function startFly(p){
+  S.fly = { t:0, dur:0.8,
+    from:{az:cam.az, el:cam.el, dist:cam.dist, tx:cam.tx, ty:cam.ty, tz:cam.tz},
+    to:{az:p.az, el:p.el, dist:p.dist, tx:0, ty:p.ty, tz:0}, key:p.key };
+  setActivePreset(p.key);
+}
+function updateFly(dt){
+  if (!S.fly) return;
+  S.fly.t += dt/S.fly.dur;
+  var t = easeInOut(clamp(S.fly.t,0,1));
+  var a = S.fly.from, b = S.fly.to;
+  cam.az = a.az + (b.az-a.az)*t;
+  cam.el = a.el + (b.el-a.el)*t;
+  cam.dist = a.dist + (b.dist-a.dist)*t;
+  cam.tx = a.tx + (b.tx-a.tx)*t;
+  cam.ty = a.ty + (b.ty-a.ty)*t;
+  cam.tz = a.tz + (b.tz-a.tz)*t;
+  if (S.fly.t >= 1) S.fly = null;
+}
+
+/* =========================================================
+   8. 光照（三套）
+   ========================================================= */
+var LIGHT = {
+  studio:   { dir:[0.48,0.80,0.36], color:[0.66,0.62,0.55], ambTop:[0.55,0.60,0.68], ambBot:[0.30,0.34,0.42], rim:0.16 },
+  showcase: { dir:[-0.32,-0.50,0.60], color:[0.30,0.42,0.62], ambTop:[0.15,0.17,0.22], ambBot:[0.05,0.06,0.09], rim:0.60 },
+  cool:     { dir:[0.42,0.72,-0.28], color:[0.42,0.56,0.72], ambTop:[0.46,0.55,0.68], ambBot:[0.26,0.33,0.45], rim:0.30 }
+};
+var light = LIGHT.studio;
+
+function setLight(L){
+  light = L;
+  gl.uniform3fv(U.uLightDir, new Float32Array(L.dir));
+  gl.uniform3fv(U.uLightColor, new Float32Array(L.color));
+  gl.uniform3fv(U.uAmbTop, new Float32Array(L.ambTop));
+  gl.uniform3fv(U.uAmbBot, new Float32Array(L.ambBot));
+  gl.uniform1f(U.uRim, L.rim);
+}
+
+/* =========================================================
+   9. 渲染
+   ========================================================= */
+var W=1, H=1, DPR=1;
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W*DPR); canvas.height = Math.round(H*DPR);
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+window.addEventListener('resize', resize);
+resize();
+
+var FOG = [0.052,0.063,0.082];
+var FOG_NEAR = 9, FOG_FAR = 26;
+var IDENT = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+
+function drawMesh(m, mode, alpha, emissive, unlit, pointSize, model){
+  if (!m.n) return;
+  bindMesh(m);
+  gl.uniformMatrix4fv(U.uModel, false, model || IDENT);
+  gl.uniform1f(U.uAlpha, alpha === undefined ? 1 : alpha);
+  gl.uniform1f(U.uEmissive, emissive || 0);
+  gl.uniform1f(U.uUnlit, unlit || 0);
+  gl.uniform1f(U.uPointSize, pointSize || 1);
+  gl.drawArrays(mode, 0, m.n);
+}
+
+function render(){
+  setLight(light);
+  gl.uniform3fv(U.uFogColor, new Float32Array(FOG));
+  gl.uniform1f(U.uFogNear, FOG_NEAR);
+  gl.uniform1f(U.uFogFar, FOG_FAR);
+  var e = camEye();
+  EYE[0]=e[0]; EYE[1]=e[1]; EYE[2]=e[2];
+  gl.uniform3fv(U.uEye, new Float32Array(EYE));
+
+  m4Perspective(proj, 42*Math.PI/180, W/H, 0.1, 40);
+  m4LookAt(view, e[0],e[1],e[2], cam.tx,cam.ty,cam.tz, 0,1,0);
+  m4Mul(vp, proj, view);
+  gl.uniformMatrix4fv(U.uVP, false, vp);
+
+  gl.clearColor(0,0,0,0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.BACK);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  var xray = S.mode === 'xray';
+  var wire = S.mode === 'wire';
+
+  /* 地面网格 + 展台 + 阴影 */
+  if (S.layers.ground){
+    gl.disable(gl.CULL_FACE);
+    gl.lineWidth(1);
+    drawMesh(groundMesh, gl.LINES, 0.55, 0, 1);
+    gl.enable(gl.CULL_FACE);
+  }
+  if (S.layers.plinth) drawMesh(plinthMesh, gl.TRIANGLES, 1, 0, 0);
+  gl.depthMask(false);
+  drawMesh(shadowMesh, gl.TRIANGLES, 0.38, 0, 0);
+  gl.depthMask(true);
+
+  /* 装配引导线（爆炸时） */
+  if (S.explode > 0.001 || S.layers.axis){
+    gl.disable(gl.CULL_FACE);
+    gl.lineWidth(1);
+    drawMesh(axisMesh, gl.LINES, 0.8, 0, 1);
+    gl.enable(gl.CULL_FACE);
+  }
+
+  /* 部件 */
+  var hoverP = S.hover ? PARTS[PID[S.hover]] : null;
+  var i;
+  for (i=0;i<PARTS.length;i++){
+    var p = PARTS[i];
+    var isHover = hoverP && hoverP.id === p.id;
+    if (xray){
+      /* X 光：半透明实体 + 线框叠加 */
+      gl.depthMask(false);
+      drawMesh(p.mesh, gl.TRIANGLES, 0.34, 0.08, 0, 1, p.world);
+      gl.depthMask(true);
+      gl.disable(gl.CULL_FACE);
+      gl.lineWidth(1);
+      drawMesh(p.lineMesh, gl.LINES, 0.5, 0, 1, 1, p.world);
+      gl.enable(gl.CULL_FACE);
+    } else if (wire){
+      gl.disable(gl.CULL_FACE);
+      gl.lineWidth(1);
+      drawMesh(p.lineMesh, gl.LINES, isHover ? 1 : 0.9, 0, 1, 1, p.world);
+      gl.enable(gl.CULL_FACE);
+    } else {
+      drawMesh(p.mesh, gl.TRIANGLES, 1, isHover ? 0.9 : 0, 0, 1, p.world);
+    }
+    /* 悬停高亮描边 */
+    if (isHover){
+      gl.disable(gl.CULL_FACE);
+      gl.lineWidth(1);
+      var hl = p.lineMesh;
+      bindMesh(hl);
+      gl.uniformMatrix4fv(U.uModel, false, p.world);
+      gl.uniform1f(U.uAlpha, 1);
+      gl.uniform1f(U.uEmissive, 0);
+      gl.uniform1f(U.uUnlit, 1);
+      gl.uniform1f(U.uPointSize, 1);
+      gl.drawArrays(gl.LINES, 0, hl.n);
+      gl.enable(gl.CULL_FACE);
+    }
+  }
+
+  /* 爆炸时的部件编号点标记 */
+  if (S.explode > 0.001){
+    var pts=[];
+    for (i=0;i<PARTS.length;i++){
+      var c = PARTS[i].center;
+      pts.push(c[0],c[1],c[2], 0,1,0, ORANGE[0],ORANGE[1],ORANGE[2]);
+    }
+    var pm = makeMesh(); uploadMesh(pm, new Float32Array(pts), pts.length/STRIDE);
+    gl.disable(gl.CULL_FACE);
+    drawMesh(pm, gl.POINTS, 1, 0, 1, 11);
+    gl.enable(gl.CULL_FACE);
+    gl.deleteBuffer(pm.buf);
+  }
+}
+
+/* =========================================================
+   10. 拾取：射线 vs 部件世界包围盒
+   ========================================================= */
+function rayFromScreen(px, py){
+  var ndcX = (px/W)*2 - 1, ndcY = 1 - (py/H)*2;
+  var e = EYE;
+  var fx = cam.tx-e[0], fy = cam.ty-e[1], fz = cam.tz-e[2];
+  var fl = Math.sqrt(fx*fx+fy*fy+fz*fz)||1; fx/=fl; fy/=fl; fz/=fl;
+  var rxx = fy*0 - fz*1, ryy = fz*0 - fx*0, rzz = fx*1 - fy*0;
+  var rl = Math.sqrt(rxx*rxx+ryy*ryy+rzz*rzz)||1; rxx/=rl; ryy/=rl; rzz/=rl;
+  var upx = ryy*fz - rzz*fy, upy = rzz*fx - rxx*fz, upz = rxx*fy - ryy*fx;
+  var tanH = Math.tan(21*Math.PI/180), aspect = W/H;
+  var dx = fx + rxx*ndcX*tanH*aspect + upx*ndcY*tanH;
+  var dy = fy + ryy*ndcX*tanH*aspect + upy*ndcY*tanH;
+  var dz = fz + rzz*ndcX*tanH*aspect + upz*ndcY*tanH;
+  var dl = Math.sqrt(dx*dx+dy*dy+dz*dz)||1; dx/=dl; dy/=dl; dz/=dl;
+  return { o:[e[0],e[1],e[2]], d:[dx,dy,dz] };
+}
+function slabHit(o, d, mn, mx){
+  var tmin=-1e9, tmax=1e9;
+  for (var a=0;a<3;a++){
+    if (Math.abs(d[a]) < 1e-9){
+      if (o[a] < mn[a] || o[a] > mx[a]) return null;
+    } else {
+      var t1=(mn[a]-o[a])/d[a], t2=(mx[a]-o[a])/d[a];
+      if (t1>t2){ var tt=t1; t1=t2; t2=tt; }
+      if (t1>tmin) tmin=t1;
+      if (t2<tmax) tmax=t2;
+      if (tmin>tmax) return null;
+    }
+  }
+  return tmin > 0 ? tmin : (tmax > 0 ? tmax : null);
+}
+function updateHover(px, py){
+  var ray = rayFromScreen(px, py);
+  var best=null, bestT=1e9;
+  for (var i=0;i<PARTS.length;i++){
+    var p=PARTS[i];
+    var t=slabHit(ray.o, ray.d, p.wMin, p.wMax);
+    if (t!==null && t<bestT){ bestT=t; best=p.id; }
+  }
+  if (best !== S.hover){
+    S.hover = best;
+    if (best){ showTip(px, py, best); } else { $('tip').style.display='none'; }
+    syncPartList();
+  }
+  if (best) moveTip(px, py);
+}
+
+/* =========================================================
+   11. UI
+   ========================================================= */
+var $ = function(id){ return document.getElementById(id); };
+
+function refreshSource(){
+  $('srcTxt').textContent = '模型：内置程序化六轴机械臂';
+  $('srcDot').style.background = '#e8791a';
+  $('src').title = '未检测到同目录 arm.json，已使用内置参数化模型';
+}
+
+(function buildPresets(){
+  var box = $('presets');
+  PRESETS.forEach(function(p){
+    var b=document.createElement('button');
+    b.className='pbtn'; b.textContent=p.name; b.setAttribute('aria-pressed','false');
+    b.setAttribute('data-key',p.key);
+    b.addEventListener('click', function(){ startFly(p); });
+    box.appendChild(b);
+  });
+})();
+function setActivePreset(key){
+  var bs=document.querySelectorAll('#presets .pbtn');
+  for (var i=0;i<bs.length;i++) bs[i].setAttribute('aria-pressed', bs[i].getAttribute('data-key')===key?'true':'false');
+}
+
+/* 部件清单 */
+(function buildParts(){
+  var box=$('partList');
+  $('partCount').textContent = PARTS.length + ' 件';
+  PARTS.forEach(function(p,i){
+    var d=document.createElement('div');
+    d.className='pitem'; d.setAttribute('data-id',p.id);
+    d.innerHTML = '<span class="n">'+(i+1)+'</span>' +
+      '<span class="sw" style="background:'+p.hex+'"></span>' +
+      '<span>'+p.name+'</span><span class="pc">'+p.desc.split('·')[0].trim()+'</span>';
+    d.addEventListener('click', function(){ focusPart(p.id); });
+    box.appendChild(d);
+  });
+})();
+function syncPartList(){
+  var items=document.querySelectorAll('#partList .pitem');
+  for (var i=0;i<items.length;i++)
+    items[i].setAttribute('data-on', items[i].getAttribute('data-id')===S.hover?'1':'0');
+}
+function focusPart(id){
+  var p=PARTS[PID[id]];
+  var c=p.center;
+  startFly({ az:cam.az, el:cam.el, dist:clamp(p.wMax[1]*2.4, 0.8, 2.2), ty:c[1], key:null });
+  S.hover=id; syncPartList();
+}
+
+/* 显示模式 */
+(function buildMode(){
+  var box=$('segMode');
+  [['solid','实体'],['wire','线框'],['xray','X光']].forEach(function(m){
+    var b=document.createElement('button');
+    b.className='sbtn'; b.textContent=m[1]; b.setAttribute('data-mode',m[0]);
+    b.setAttribute('aria-pressed', m[0]===S.mode?'true':'false');
+    b.addEventListener('click', function(){
+      S.mode=m[0];
+      var all=box.querySelectorAll('.sbtn');
+      for (var i=0;i<all.length;i++) all[i].setAttribute('aria-pressed', all[i].getAttribute('data-mode')===S.mode?'true':'false');
+    });
+    box.appendChild(b);
+  });
+})();
+
+/* 爆炸 */
+$('expRange').addEventListener('input', function(){
+  S.explode = parseInt(this.value,10)/100;
+  $('expVal').textContent = Math.round(S.explode*100) + ' %';
+  updateAxisMesh();
+});
+
+/* 关节 */
+var JOINT_RANGES = [[-170,170],[-135,60],[-135,135],[-180,180],[-135,135],[-360,360]];
+var JOINT_NAMES = ['J1 回转','J2 肩部','J3 肘部','J4 腕转','J5 腕俯','J6 法兰'];
+(function buildJoints(){
+  var box=$('joints'), i;
+  for (i=0;i<6;i++){
+    (function(k){
+      var w=document.createElement('div');
+      w.className='jrow';
+      w.innerHTML='<span class="k">'+JOINT_NAMES[k]+'</span>' +
+        '<input type="range" min="'+JOINT_RANGES[k][0]+'" max="'+JOINT_RANGES[k][1]+'" value="'+S.j[k]+'" step="1" data-j="'+k+'">' +
+        '<span class="v">'+S.j[k]+'°</span>';
+      var r=w.querySelector('input'), vv=w.querySelector('.v');
+      r.addEventListener('input', function(){
+        S.j[k]=parseInt(this.value,10); vv.textContent=S.j[k]+'°';
+        setPoseActive(null);
+      });
+      box.appendChild(w);
+    })(i);
+  }
+})();
+function syncJointUI(){
+  var rs=document.querySelectorAll('#joints input');
+  for (var i=0;i<rs.length;i++){
+    rs[i].value=S.j[i];
+    rs[i].nextElementSibling.textContent=S.j[i]+'°';
+  }
+}
+(function buildPoses(){
+  var box=$('poseRow');
+  Object.keys(POSES).forEach(function(k){
+    var b=document.createElement('button');
+    b.className='pose'; b.textContent=POSES[k].name; b.setAttribute('data-pose',k);
+    b.setAttribute('aria-pressed', k===S.pose?'true':'false');
+    b.addEventListener('click', function(){ applyPose(k); });
+    box.appendChild(b);
+  });
+})();
+function applyPose(k){
+  S.pose=k; S.j=POSES[k].j.slice();
+  syncJointUI(); setPoseActive(k);
+}
+function setPoseActive(k){
+  S.pose = k || null;
+  var bs=document.querySelectorAll('#poseRow .pose');
+  for (var i=0;i<bs.length;i++) bs[i].setAttribute('aria-pressed', bs[i].getAttribute('data-pose')===k?'true':'false');
+}
+
+/* 光照 */
+(function buildLight(){
+  var box=$('segLight');
+  [['studio','工作室'],['showcase','展台'],['cool','冷调']].forEach(function(m){
+    var b=document.createElement('button');
+    b.className='sbtn'; b.textContent=m[1]; b.setAttribute('data-light',m[0]);
+    b.setAttribute('aria-pressed', m[0]===S.light?'true':'false');
+    b.addEventListener('click', function(){
+      S.light=m[0]; light=LIGHT[m[0]];
+      var all=box.querySelectorAll('.sbtn');
+      for (var i=0;i<all.length;i++) all[i].setAttribute('aria-pressed', all[i].getAttribute('data-light')===S.light?'true':'false');
+    });
+    box.appendChild(b);
+  });
+})();
+
+/* 图层 */
+(function buildLayers(){
+  var box=$('layers');
+  [['ground','地面网格'],['plinth','展示台'],['axis','装配轴线'],['labels','部件编号']].forEach(function(l){
+    var w=document.createElement('label');
+    w.className='chk';
+    w.innerHTML='<input type="checkbox" data-layer="'+l[0]+'"><span>'+l[1]+'</span>';
+    w.querySelector('input').checked = !!S.layers[l[0]];
+    w.querySelector('input').addEventListener('change', function(){
+      S.layers[l[0]]=this.checked; updateAxisMesh();
+    });
+    box.appendChild(w);
+  });
+})();
+
+$('turntable').addEventListener('change', function(){ S.turntable=this.checked; });
+
+/* 统计 */
+function updateStats(){
+  $('statGrid').innerHTML =
+    '<div class="st"><div class="k">轴数</div><div class="v">6<span class="u">自由度</span></div></div>' +
+    '<div class="st"><div class="k">工作半径</div><div class="v">0.85<span class="u">m</span></div></div>' +
+    '<div class="st"><div class="k">重复定位精度</div><div class="v">±0.02<span class="u">mm</span></div></div>' +
+    '<div class="st"><div class="k">部件数</div><div class="v">'+PARTS.length+'<span class="u">件</span></div></div>';
+  $('statNote').innerHTML = '额定负载 6 kg · 本体质量 58 kg · 防护等级 IP54<br>' +
+    '显示模式 ' + ({solid:'实体',wire:'线框',xray:'X光'}[S.mode]) + ' · 光照 ' + ({studio:'工作室',showcase:'展台',cool:'冷调'}[S.light]);
+}
+
+/* 悬停浮层 */
+function showTip(px, py, id){
+  var p=PARTS[PID[id]], i=PID[id];
+  var el=$('tip');
+  el.innerHTML =
+    '<div class="th">'+p.name+'（部件 '+(i+1)+'）</div>' +
+    '<div class="tr"><span>功能</span><span>'+p.desc+'</span></div>' +
+    '<div class="tr"><span>材质</span><span>'+p.hex+'</span></div>' +
+    '<div class="tr"><span>中心坐标</span><span>X '+Math.round(p.center[0]*1000)+' / Y '+Math.round(p.center[1]*1000)+' / Z '+Math.round(p.center[2]*1000)+' mm</span></div>';
+  el.style.display='block';
+  moveTip(px, py);
+}
+function moveTip(px, py){
+  var el=$('tip');
+  if (el.style.display==='none') return;
+  var w=el.offsetWidth||244, h=el.offsetHeight||140;
+  var x=px+18, y=py+14;
+  if (x+w>W-12) x=px-w-18;
+  if (y+h>H-12) y=py-h-14;
+  el.style.left=Math.max(8,x)+'px';
+  el.style.top=Math.max(64,y)+'px';
+}
+
+/* =========================================================
+   12. 主循环
+   ========================================================= */
+var last=0, started=0;
+function frame(ts){
+  if (!started) started=ts;
+  var dt=Math.min((ts-last)/1000 || 0, 0.05);
+  last=ts;
+
+  if (S.fly) updateFly(dt);
+  else if (S.turntable && !drag) cam.az += dt*0.35;
+
+  computeFK();
+  render();
+  requestAnimationFrame(frame);
+}
+
+/* =========================================================
+   13. 相机交互
+   ========================================================= */
+var drag=null;
+canvas.addEventListener('contextmenu', function(ev){ ev.preventDefault(); });
+canvas.addEventListener('mousedown', function(ev){
+  drag={ btn:ev.button, x:ev.clientX, y:ev.clientY };
+  S.fly=null;
+  canvas.style.cursor='grabbing';
+  ev.preventDefault();
+});
+window.addEventListener('mouseup', function(){ drag=null; canvas.style.cursor='grab'; });
+window.addEventListener('mousemove', function(ev){
+  if (drag){
+    var dx=ev.clientX-drag.x, dy=ev.clientY-drag.y;
+    drag.x=ev.clientX; drag.y=ev.clientY;
+    if (drag.btn===0){
+      cam.az -= dx*0.0065;
+      cam.el = clamp(cam.el + dy*0.0055, -0.2, 1.5);
+      setActivePreset(null);
+    } else {
+      var rx=Math.cos(cam.az), rz=-Math.sin(cam.az);
+      var f=cam.dist*0.0016;
+      cam.tx -= (rx*dx)*f; cam.tz -= (rz*dx)*f;
+      cam.ty += dy*f;
+      cam.ty = clamp(cam.ty, -0.4, 2.2);
+      setActivePreset(null);
+    }
+  }
+  if (ev.target===canvas) updateHover(ev.clientX, ev.clientY);
+});
+canvas.addEventListener('wheel', function(ev){
+  ev.preventDefault();
+  S.fly=null;
+  cam.dist = clamp(cam.dist*Math.exp(ev.deltaY*0.00095), 0.5, 12);
+}, { passive:false });
+
+/* =========================================================
+   14. 启动
+   ========================================================= */
+buildParts();
+refreshSource();
+updateStats();
+setActivePreset('overview');
+computeFK();
+updateAxisMesh();
+
+window.QINGBI = {
+  state: S, cam: cam, presets: PRESETS, poses: POSES,
+  set: function(o){
+    if (o.view){ var p=null; for (var i=0;i<PRESETS.length;i++) if (PRESETS[i].key===o.view) p=PRESETS[i];
+      if (p){ cam.az=p.az; cam.el=p.el; cam.dist=p.dist; cam.tx=0; cam.ty=p.ty; cam.tz=0; S.fly=null; setActivePreset(p.key); } }
+    if (o.mode){ S.mode=o.mode; }
+    if (o.explode !== undefined){ S.explode=o.explode; $('expRange').value=Math.round(o.explode*100); $('expVal').textContent=Math.round(o.explode*100)+' %'; updateAxisMesh(); }
+    if (o.light){ S.light=o.light; light=LIGHT[o.light]; }
+    if (o.pose){ applyPose(o.pose); }
+    if (o.joints){ S.j=o.joints.slice(); syncJointUI(); setPoseActive(null); }
+    if (o.layers) for (var k in o.layers){ S.layers[k]=o.layers[k]; }
+    if (o.turntable !== undefined){ S.turntable=o.turntable; $('turntable').checked=o.turntable; }
+    if (o.hover !== undefined){ S.hover=o.hover; syncPartList(); if (!o.hover) $('tip').style.display='none'; }
+    /* 同步界面分段按钮 */
+    var mb=document.querySelectorAll('#segMode .sbtn'); for (i=0;i<mb.length;i++) mb[i].setAttribute('aria-pressed', mb[i].getAttribute('data-mode')===S.mode?'true':'false');
+    var lb=document.querySelectorAll('#segLight .sbtn'); for (i=0;i<lb.length;i++) lb[i].setAttribute('aria-pressed', lb[i].getAttribute('data-light')===S.light?'true':'false');
+    var cb=document.querySelectorAll('#layers input'); for (i=0;i<cb.length;i++) cb[i].checked=!!S.layers[cb[i].getAttribute('data-layer')];
+    updateStats();
+  },
+  screenOf: function(id){
+    var p=PARTS[PID[id]];
+    var c=p.center;
+    var w = new Float32Array(4);
+    w[0]=vp[0]*c[0]+vp[4]*c[1]+vp[8]*c[2]+vp[12];
+    w[1]=vp[1]*c[0]+vp[5]*c[1]+vp[9]*c[2]+vp[13];
+    w[2]=vp[2]*c[0]+vp[6]*c[1]+vp[10]*c[2]+vp[14];
+    w[3]=vp[3]*c[0]+vp[7]*c[1]+vp[11]*c[2]+vp[15];
+    var nx = w[0]/w[3], ny = w[1]/w[3];
+    return { x: (nx*0.5+0.5)*W, y: (1 - (ny*0.5+0.5))*H };
+  },
+  hoverAt: function(px, py){ updateHover(px, py); },
+  parts: function(){
+    return PARTS.map(function(p){
+      return { id:p.id, name:p.name, center:p.center.map(function(v){return +v.toFixed(3);}),
+               min:p.wMin.map(function(v){return +v.toFixed(3);}), max:p.wMax.map(function(v){return +v.toFixed(3);}) };
+    });
+  },
+  info: function(){
+    return { mode:S.mode, explode:+S.explode.toFixed(2), light:S.light, pose:S.pose,
+             j:S.j.slice(), turntable:S.turntable, hover:S.hover,
+             cam:{ az:+cam.az.toFixed(3), el:+cam.el.toFixed(3), dist:Math.round(cam.dist*100)/100 } };
+  }
+};
+
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

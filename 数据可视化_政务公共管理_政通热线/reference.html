@@ -1,0 +1,2102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>政通热线 · 12345 政务服务便民热线工单受理与办理效能分析平台</title>
+<style>
+:root{
+  --paper:#eef2f8; --card:#ffffff; --card2:#f7f9fc;
+  --ink:#16233a; --ink2:#4a5b74; --ink3:#7d8ba1; --ink4:#a3aec0;
+  --line:#d7dfec; --line2:#e7edf6;
+  --brand:#1c4f9c; --brand2:#2f7fd4; --brand3:#e8f0fb;
+  --red:#c0392b; --orange:#d98032; --yellow:#c9a227; --green:#2f8f5b;
+  --c0:#1c4f9c; --c1:#2e8bc0; --c2:#2f9e8f; --c3:#63a94e;
+  --c4:#c9a227; --c5:#d97b34; --c6:#a4525c;
+  --radius:10px;
+  --sh:0 1px 2px rgba(22,35,58,.06), 0 6px 18px rgba(22,35,58,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink); overflow-x:hidden;
+  font:13px/1.5 "PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{margin:0;font-weight:600}
+button{font:inherit;color:inherit;cursor:pointer}
+svg{display:block}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* ---------- header ---------- */
+#top{
+  background:linear-gradient(180deg,#173f7d 0%,#1c4f9c 62%,#2159ac 100%);
+  color:#eaf1fb; padding:10px 16px 0; position:relative;
+}
+#top .row1{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:9px;font-size:16px;font-weight:700;letter-spacing:.3px}
+.brand .sub{font-size:11px;font-weight:400;opacity:.72;letter-spacing:0}
+.topmeta{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;font-size:11px}
+.chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+  border-radius:999px;padding:2px 9px;white-space:nowrap}
+.chip b{font-weight:600;color:#fff}
+#stateToken{background:#0d2b52;border:1px solid #3f79c9;color:#9fd0ff;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;
+  letter-spacing:.4px;border-radius:6px;padding:3px 9px;white-space:nowrap}
+nav#tabs{display:flex;gap:2px;margin-top:9px;flex-wrap:wrap}
+nav#tabs button{
+  background:transparent;border:0;border-bottom:2px solid transparent;
+  color:#bcd3f0;padding:6px 13px 8px;font-size:12.5px;border-radius:6px 6px 0 0;white-space:nowrap;
+}
+nav#tabs button:hover{background:rgba(255,255,255,.09);color:#fff}
+nav#tabs button[aria-selected="true"]{background:var(--paper);color:var(--brand);font-weight:600;border-bottom-color:var(--brand)}
+
+/* ---------- toolbar ---------- */
+#bar{
+  position:sticky;top:0;z-index:40;background:var(--card);border-bottom:1px solid var(--line);
+  padding:7px 16px;display:flex;gap:9px;align-items:center;flex-wrap:wrap;box-shadow:0 1px 3px rgba(22,35,58,.05)
+}
+.grp{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.grp>.lbl{font-size:11px;color:var(--ink3);margin-right:1px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--card2)}
+.seg button{border:0;background:transparent;padding:4px 9px;font-size:11.5px;color:var(--ink2)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--brand);color:#fff;font-weight:600}
+select,input[type=text]{border:1px solid var(--line);background:var(--card);border-radius:7px;
+  padding:4px 7px;font-size:11.5px;color:var(--ink);max-width:100%}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:7px;padding:4px 10px;font-size:11.5px;color:var(--ink2)}
+.btn:hover{border-color:var(--brand2);color:var(--brand)}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.pri:hover{background:#173f7d;color:#fff}
+.legend{display:flex;gap:3px;flex-wrap:wrap}
+.lg{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:3px 9px 3px 6px;
+  font-size:11px;color:var(--ink2);display:inline-flex;align-items:center;gap:5px}
+.lg .dot{width:8px;height:8px;border-radius:2px;flex:none}
+.lg[aria-pressed="false"]{opacity:.42;text-decoration:line-through}
+.lg.solo{outline:2px solid var(--brand2);outline-offset:1px}
+#fchips{display:flex;gap:5px;flex-wrap:wrap}
+.fc{background:var(--brand3);border:1px solid #c5dbf6;color:#1b4a8e;border-radius:999px;
+  padding:2px 8px;font-size:10.5px;display:inline-flex;gap:5px;align-items:center}
+.fc i{font-style:normal;cursor:pointer;opacity:.6;font-weight:700}
+.fc i:hover{opacity:1}
+
+/* ---------- layout ---------- */
+#main{padding:12px 16px 16px;display:grid;grid-template-columns:minmax(0,1fr) 306px;gap:12px;align-items:start}
+#charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--sh);padding:10px 12px 11px;min-width:0;position:relative;overflow:hidden}
+.card>header{display:flex;align-items:baseline;gap:8px;margin-bottom:7px;flex-wrap:wrap}
+.card h3{font-size:12.5px;color:var(--ink);letter-spacing:.2px}
+.card h3 .tag{font-size:9.5px;font-weight:600;color:#fff;background:var(--brand2);border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:1px}
+.card .note{font-size:10.5px;color:var(--ink3);margin-left:auto;text-align:right}
+.card.wide{grid-column:1/-1}
+.chart{width:100%;position:relative}
+.chart svg{width:100%;height:auto;overflow:visible}
+#side{display:grid;gap:12px;min-width:0}
+.side h4{font-size:11.5px;color:var(--ink2);margin-bottom:5px;letter-spacing:.2px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:3px 8px;font-size:11.5px}
+.kv dt{color:var(--ink3);min-width:0;overflow-wrap:anywhere}
+.kv dd{margin:0;text-align:right;font-weight:600;color:var(--ink)}
+.caliber{font-size:10.5px;color:var(--ink3);line-height:1.65}
+.caliber b{color:var(--ink2)}
+.wlist{display:grid;gap:5px}
+.wl{display:grid;grid-template-columns:auto 1fr auto;gap:7px;align-items:center;
+  border:1px solid var(--line2);border-radius:7px;padding:4px 8px;font-size:11px;background:var(--card2)}
+.wl .sev{width:4px;height:22px;border-radius:2px}
+.wl.red .sev{background:var(--red)} .wl.orange .sev{background:var(--orange)} .wl.yellow .sev{background:var(--yellow)}
+.wl .t{color:var(--ink);font-weight:600}
+.wl .d{color:var(--ink3);font-size:10px}
+.wl .v{font-weight:700;color:var(--ink)}
+
+/* KPI */
+#kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;grid-column:1/-1}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:9px 11px;
+  box-shadow:var(--sh);position:relative;overflow:hidden;min-width:0}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brand2)}
+.kpi .l{font-size:10.5px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .v{font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.3px;line-height:1.25}
+.kpi .v small{font-size:11px;font-weight:600;color:var(--ink3);margin-left:2px}
+.kpi .m{font-size:10.5px;color:var(--ink3);display:flex;gap:5px;align-items:center}
+.up{color:var(--red)} .down{color:var(--green)}
+.kpi.k2::before{background:var(--c2)} .kpi.k3::before{background:var(--c1)}
+.kpi.k4::before{background:var(--c5)} .kpi.k5::before{background:var(--green)} .kpi.k6::before{background:var(--red)}
+
+/* table */
+.tw{width:100%;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:11.5px}
+th,td{padding:5px 7px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line2)}
+th{color:var(--ink3);font-weight:600;font-size:10.5px;background:var(--card2);position:sticky;top:0}
+th:first-child,td:first-child{text-align:left}
+th.s{cursor:pointer;user-select:none}
+th.s:hover{color:var(--brand)}
+th .ar{font-size:8px;opacity:.55;margin-left:2px}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#f3f8ff}
+tbody tr.sel{background:#e6f0fd;box-shadow:inset 2px 0 0 var(--brand)}
+tfoot td{font-weight:700;background:#eef4fd;color:var(--brand);border-top:1.5px solid #bcd4f2;border-bottom:0}
+.pager{display:flex;gap:6px;align-items:center;justify-content:flex-end;margin-top:6px;font-size:11px;color:var(--ink3)}
+.pager button{border:1px solid var(--line);background:var(--card);border-radius:6px;padding:2px 8px;font-size:11px}
+.pager button:disabled{opacity:.4;cursor:default}
+.bar-mini{display:inline-block;height:8px;border-radius:2px;background:var(--brand2);vertical-align:-1px;margin-right:5px}
+
+/* drawer */
+#drawer{position:fixed;right:0;top:0;bottom:0;width:322px;max-width:100vw;background:var(--card);
+  border-left:1px solid var(--line);box-shadow:-10px 0 30px rgba(22,35,58,.12);z-index:70;
+  padding:12px 14px;overflow-y:auto;display:none}
+#drawer.on{display:block}
+#drawer h3{font-size:13px;margin-bottom:10px;display:flex;align-items:center}
+#drawer h3 .x{margin-left:auto;border:0;background:transparent;font-size:17px;color:var(--ink3);line-height:1}
+.dsec{border-top:1px solid var(--line2);padding:9px 0}
+.dsec>.h{font-size:11px;color:var(--ink2);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.dsec>.h .mini{margin-left:auto;display:flex;gap:4px}
+.mini button{border:1px solid var(--line);background:var(--card);border-radius:5px;font-size:10px;padding:1px 6px;color:var(--ink2)}
+.msel{display:flex;flex-wrap:wrap;gap:4px}
+.msel button{border:1px solid var(--line);background:var(--card);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--ink2)}
+.msel button[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+.rng{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink2)}
+input[type=range]{flex:1;min-width:0;accent-color:var(--brand)}
+.thrval{font-weight:700;color:var(--brand);min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* breadcrumb */
+.crumb{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--ink3);flex-wrap:wrap}
+.crumb b{color:#9fd0ff;font-weight:600}
+.crumb button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);border-radius:5px;
+  padding:1px 6px;font-size:10px;color:#dbe9fb}
+.crumb button:hover{background:rgba(255,255,255,.2)}
+.crumb .sep{opacity:.5}
+
+/* foot */
+#foot{padding:9px 16px 22px;font-size:10.5px;color:var(--ink3);line-height:1.7}
+#foot b{color:var(--ink2)}
+
+/* tooltip */
+#tip{position:fixed;z-index:90;pointer-events:none;background:rgba(18,32,52,.95);color:#eaf1fb;
+  border-radius:8px;padding:7px 10px;font-size:11px;line-height:1.6;box-shadow:0 8px 24px rgba(0,0,0,.28);
+  max-width:270px;display:none}
+#tip .tt{font-weight:700;margin-bottom:3px;color:#fff}
+#tip .rr{display:grid;grid-template-columns:auto auto;gap:1px 12px}
+#tip .rr span:nth-child(odd){color:#9fb6d4}
+#tip .rr span:nth-child(even){text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+#tip .sep{height:1px;background:rgba(255,255,255,.16);margin:4px 0}
+
+/* annotation layer */
+#anno{position:fixed;inset:0;z-index:60;pointer-events:none;display:none}
+#anno.on{display:block}
+#anno text{font-family:"Xingkai SC","STXingkai","Kaiti SC","KaiTi",cursive,serif}
+#audit{position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden}
+#toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,14px);background:rgba(18,32,52,.94);
+  color:#eaf1fb;border-radius:8px;padding:7px 14px;font-size:11.5px;z-index:95;opacity:0;
+  transition:opacity .2s,transform .2s;pointer-events:none}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- responsive ---------- */
+@media (max-width:1180px){
+  #main{grid-template-columns:minmax(0,1fr)}
+  #side{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  #charts{grid-template-columns:minmax(0,1fr)}
+  #kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #side{grid-template-columns:minmax(0,1fr)}
+  #top{padding:9px 12px 0} #main{padding:10px 12px 14px} #bar{padding:6px 12px}
+  .card .note{margin-left:0;width:100%;text-align:left}
+}
+@media (max-width:620px){
+  #drawer{width:100%}
+  #kpis{grid-template-columns:minmax(0,1fr)}
+  .tw{overflow-x:visible}
+  table,tbody,tfoot,tr,td{display:block;width:100%}
+  thead{display:none}
+  tbody tr,tfoot tr{border:1px solid var(--line);border-radius:8px;margin-bottom:7px;padding:5px 8px;background:var(--card)}
+  tbody tr.sel{box-shadow:inset 3px 0 0 var(--brand)}
+  td{border:0;display:flex;justify-content:space-between;gap:12px;text-align:right;padding:2.5px 0;white-space:normal}
+  td::before{content:attr(data-label);color:var(--ink3);font-size:10.5px;text-align:left;flex:none}
+  td:first-child{font-weight:700;color:var(--brand);border-bottom:1px dashed var(--line2);padding-bottom:4px;margin-bottom:3px}
+  tfoot td{border:0}
+  tfoot td:first-child{color:var(--ink2)}
+  .legend{gap:3px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body data-state="INIT_DATA_INGESTED">
+
+<header id="top">
+  <div class="row1">
+    <div class="brand">政通热线 ZHENGTONG<span class="sub">12345 政务服务便民热线 · 工单受理与办理效能分析平台</span></div>
+    <div class="topmeta">
+      <span class="chip">本期 <b id="mWin">—</b></span>
+      <span class="chip">对照 <b id="mPrev">—</b></span>
+      <span class="chip" id="mCube">—</span>
+      <span id="stateToken">INIT_DATA_INGESTED</span>
+    </div>
+  </div>
+  <nav id="tabs" role="tablist" aria-label="分析视图"></nav>
+  <div style="padding:4px 0 8px"><div class="crumb" id="crumb"></div></div>
+</header>
+
+<div id="bar">
+  <div class="grp"><span class="lbl">周期</span><div class="seg" id="segRange"></div></div>
+  <div class="grp"><span class="lbl">度量</span><select id="selMetric">
+    <option value="recv">受理量</option><option value="closed">办结量</option>
+    <option value="over">新增超期</option><option value="rate">按期办结率</option>
+    <option value="dur">平均办理时长</option><option value="sat">满意率</option></select></div>
+  <div class="grp"><span class="lbl">标尺</span><div class="seg" id="segScale"></div></div>
+  <div class="grp"><span class="lbl">图例</span><div class="legend" id="legend"></div></div>
+  <div class="grp" style="margin-left:auto">
+    <button class="btn" id="btnAnno">批注层</button>
+    <button class="btn" id="btnDrawer">筛选抽屉</button>
+    <button class="btn" id="btnAno">离群巡检</button>
+    <button class="btn pri" id="btnReset">复位</button>
+  </div>
+</div>
+<div id="bar2" style="padding:0 16px 8px"><div id="fchips" style="display:flex;gap:5px;flex-wrap:wrap"></div></div>
+
+<main id="main">
+  <section id="charts" aria-label="分析图表区"></section>
+  <aside id="side" aria-label="口径、特征值与预警"></aside>
+</main>
+
+<footer id="foot"></footer>
+
+<aside id="drawer" aria-label="全局多维切片器">
+  <h3>全局多维切片器 <button class="x" id="drawerX" aria-label="关闭">×</button></h3>
+  <div class="dsec"><div class="h">受理区域 <span class="mini"><button data-act="all" data-dim="reg">全选</button><button data-act="none" data-dim="reg">清除</button><button data-act="inv" data-dim="reg">反选</button></span></div><div class="msel" id="msReg"></div></div>
+  <div class="dsec"><div class="h">事项类别 <span class="mini"><button data-act="all" data-dim="cat">全选</button><button data-act="none" data-dim="cat">清除</button><button data-act="inv" data-dim="cat">反选</button></span></div><div class="msel" id="msCat"></div></div>
+  <div class="dsec"><div class="h">来源渠道 <span class="mini"><button data-act="all" data-dim="chan">全选</button><button data-act="none" data-dim="chan">清除</button><button data-act="inv" data-dim="chan">反选</button></span></div><div class="msel" id="msChan"></div></div>
+  <div class="dsec"><div class="h">办理时长阈值（工作日）</div>
+    <div class="rng"><input type="range" id="thrLo" min="1" max="12" step="1" value="1"><span class="thrval" id="thrLoV">1.0</span></div>
+    <div class="rng" style="margin-top:5px"><input type="range" id="thrHi" min="1" max="12" step="1" value="12"><span class="thrval" id="thrHiV">12.0</span></div>
+    <div class="caliber" style="margin-top:5px">仅保留办理时长落入该区间的已办结工单；主趋势视窗背景实时绘制两条警戒基准线。</div></div>
+  <div class="dsec"><div class="h">标尺与单位</div>
+    <div class="seg" id="segScale2" style="display:inline-flex"></div>
+    <div class="caliber" style="margin-top:6px">线性 / 对数 / 占比三种标尺即时切换：刻度值按所选标尺重新解算，柱高按所选标尺的非线性映射重建。</div></div>
+  <div class="dsec"><div class="h">时间窗口</div>
+    <div class="rng"><span>起</span><input type="range" id="dayLo" min="0" max="29" step="1" value="0"><span class="thrval" id="dayLoV">—</span></div>
+    <div class="rng" style="margin-top:5px"><span>止</span><input type="range" id="dayHi" min="0" max="29" step="1" value="29"><span class="thrval" id="dayHiV">—</span></div></div>
+  <div class="dsec" style="display:flex;gap:7px"><button class="btn" id="dReset">复位全部筛选</button><button class="btn" id="dClose">收起</button></div>
+</aside>
+
+<div id="tip" role="tooltip"></div>
+<svg id="anno" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+<div id="audit" aria-hidden="true"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+/* =====================================================================
+   政通热线 · 单文件自包含分析平台
+   0 维度规格 → 1 整数分配内核 → 2 内存立方体 → 3 筛选与投影
+   4 标尺转换 → 5 版式碰撞解算 → 6 图元 → 7 视窗渲染
+   8 状态机 → 9 手势 → 10 账本审计 → 11 API
+   ===================================================================== */
+
+/* ---------- 0. 维度规格（口径常量，非坐标/非公式） ---------- */
+var CATN = ['住房与城乡建设','市政与市容环境','交通出行','市场监管与消费维权','社会保障与民政','教育文体','其他事项'];
+var REGN = ['城关区','云溪区','高新区','临江区','河东区','新桥区','白鹭区','松岭县','石潭县','青山县','竹溪县','平湖县'];
+var CHNN = ['12345 电话热线','政务 App','微信小程序','政府网站留言','现场来访与信箱'];
+var UNITN= ['市住房和城乡建设局','市城市管理局','市交通运输局','市市场监督管理局','市人力资源和社会保障局','市教育局','市生态环境局','市政务服务管理局'];
+var BUKN = ['1 个工作日内','2 个工作日','3 个工作日','4–5 个工作日','6–7 个工作日','超过 7 个工作日'];
+var BUKMID = [1,2,3,5,8,12];
+
+var REGV = [18462,15238,13905,12674,11328,10547,9862,8935,7844,6970,6712,5983];
+var CATV = [32115,24407,21838,15415,12846,9635,12204];
+var CATCL= [31295,23293,21114,14507,12616,9140,11263];
+var CATOV= [820,1114,724,908,230,495,941];
+var CATPV= [28383,23079,21399,14071,12298,8942,12561];
+var CHNV = [78361,25692,12846,7708,3853];
+var CHNPV= [76715,21913,10420,8207,3478];
+var BUKV = [41491,38201,20936,14196,5558,2846];
+var REGPVR= [1.020,0.978,1.062,1.008,0.966,1.031,1.049,0.992,1.038,0.958,1.070,1.004];
+
+/* 事项类别 → 承办单位 责任分摊（业务归口比例） */
+var UCAT = [
+  [[0,.62],[1,.20],[7,.08],[6,.05],[3,.05]],
+  [[1,.55],[6,.22],[0,.13],[7,.10]],
+  [[2,.66],[1,.18],[7,.16]],
+  [[3,.72],[7,.16],[2,.12]],
+  [[4,.70],[7,.18],[5,.12]],
+  [[5,.68],[4,.18],[7,.14]],
+  [[7,.44],[6,.16],[1,.14],[5,.14],[2,.12]]
+];
+
+var TOT = 128460, PREVTOT = 120733;
+var ND = 60, NWR = 30;                       /* 60 日原始流，后 30 日为本期窗口 */
+var NC = CATN.length, NR = REGN.length, NK = CHNN.length, NB = BUKN.length;
+var NCELL = ND*NR*NC*NK;
+
+/* ---------- 1. 整数分配内核 ---------- */
+var _seed = 20260917;
+function rnd(){ _seed = (_seed*1664525 + 1013904223) >>> 0; return _seed/4294967296; }
+
+/* 按权重把 tot 拆成整数，且逐项不超过 cap，总和恰为 min(tot, Σcap) */
+function allocCapped(tot, w, cap){
+  var n = w.length, out = new Array(n), fr = new Array(n), i;
+  var W = 0; for(i=0;i<n;i++) W += Math.max(0, w[i]);
+  var capSum = 0; for(i=0;i<n;i++) capSum += (cap?cap[i]:Infinity);
+  var target = Math.min(tot, capSum);
+  if(W <= 0 || target <= 0){ for(i=0;i<n;i++) out[i]=0; return out; }
+  var s = 0;
+  for(i=0;i<n;i++){
+    var v = target*Math.max(0,w[i])/W;
+    var f = Math.floor(v + 1e-9);
+    if(cap && f > cap[i]) f = cap[i];
+    out[i] = f; fr[i] = v - f; s += f;
+  }
+  var guard = 0;
+  while(s < target && guard++ < n*6 + 64){
+    var bi = -1, bf = -1e18;
+    for(i=0;i<n;i++){ if(cap && out[i] >= cap[i]) continue; if(fr[i] > bf){ bf = fr[i]; bi = i; } }
+    if(bi < 0) break;
+    out[bi]++; fr[bi] -= 1; s++;
+  }
+  return out;
+}
+/* 二维整数表：行和恰为 R、列和恰为 C */
+function alloc2D(R, C){
+  var nr = R.length, nc = C.length, i, j;
+  var T = 0, S = 0;
+  for(i=0;i<nr;i++) T += R[i];
+  for(j=0;j<nc;j++) S += C[j];
+  var M = [], fr = [], rowA = new Array(nr).fill(0), colA = new Array(nc).fill(0);
+  for(i=0;i<nr;i++){ M.push(new Array(nc).fill(0)); fr.push(new Array(nc).fill(0)); }
+  for(i=0;i<nr;i++) for(j=0;j<nc;j++){
+    var want = S>0 ? R[i]*C[j]/S : 0;
+    M[i][j] = Math.floor(want + 1e-9); fr[i][j] = want - M[i][j];
+    rowA[i] += M[i][j]; colA[j] += M[i][j];
+  }
+  var guard = 0;
+  while(guard++ < nr*nc*3 + 200){
+    var bi=-1, bj=-1, bf=-1e18;
+    for(i=0;i<nr;i++){ if(rowA[i] >= R[i]) continue;
+      for(j=0;j<nc;j++){ if(colA[j] >= C[j]) continue; if(fr[i][j] > bf){ bf = fr[i][j]; bi = i; bj = j; } } }
+    if(bi < 0) break;
+    M[bi][bj]++; rowA[bi]++; colA[bj]++; fr[bi][bj] -= 1;
+  }
+  return M;
+}
+
+/* ---------- 2. 内存级多维 OLAP 立方体 ---------- */
+var CB  = new Int32Array(NCELL);      /* 受理量 */
+var CO  = new Int32Array(NCELL);      /* 新增超期 */
+var CD  = new Float64Array(NCELL);    /* 办理时长合计（工作日 × 100） */
+var CS  = new Float64Array(NCELL);    /* 满意度合计（分 × 100） */
+var CBK = new Int32Array(NCELL*NB);   /* 时长分档 */
+var DAYW = new Float64Array(ND);      /* 日权重剖面 */
+
+function idx(d,r,c,k){ return ((d*NR + r)*NC + c)*NK + k; }
+function isCur(d){ return d >= NWR; }
+
+(function buildCube(){
+  /* 日权重剖面：工作日效应 + 平滑扰动 + 两个真实极端日，确定性 */
+  var i,d,r,c,k;
+  for(d=0; d<ND; d++){
+    var dow = (d + 3) % 7;                                  /* 0=周日 */
+    var wk = (dow===0||dow===6) ? 0.82 : 1.0 + 0.06*Math.sin(d*0.9);
+    DAYW[d] = wk * (0.94 + 0.12*Math.sin(d*2.3 + 0.7));
+  }
+  /* 极端日：本期第 7 日新政集中发布引发话务高峰，第 22 日受理通道故障形成谷值。
+     权重只在窗口内归一化后使用，故放大某日份额只从同日邻抽取份额，各级边际与总计丝毫不变； */
+  var PEAK = NWR + 6, TROUGH = NWR + 21;
+  DAYW[PEAK]   *= 1.46;
+  DAYW[TROUGH] *= 0.74;
+  /* 积压系数：高峰日与故障日的超期占比必须高于常规日（当日积压、次日补办），否则巡检无对象 */
+  function backlog(d){ return d === PEAK ? 2.05 : (d === TROUGH ? 1.55 : 1); }
+  /* 两期各自的区间日权重 */
+  function winW(lo){ var w=[],j,s=0; for(j=0;j<NWR;j++){ var v=DAYW[lo+j]; w.push(v); s+=v; } for(j=0;j<NWR;j++) w[j]/=s; return w; }
+
+  /* 上一期区域边际：由本期份额与区域景气系数推得，再配额到上期总量 */
+  var pv = allocCapped(PREVTOT, REGV.map(function(v,ii){ return v*REGPTV(ii); }), null);
+  function REGPTV(ii){ return REGPVR[ii]; }
+
+  function buildWindow(lo, RV, CV, KV, OV, wW){
+    var DC = alloc2D(RV.slice(), CV.slice());     /* 区域 × 类别，双向边际精确 */
+    var X3 = [];                                   /* [r][c][k] */
+    for(r=0;r<NR;r++){ X3.push([]); for(c=0;c<NC;c++) X3[r].push(new Array(NK).fill(0)); }
+    var colA = new Array(NK).fill(0);
+    for(r=0;r<NR;r++) for(c=0;c<NC;c++){
+      var row = allocCapped(DC[r][c], KV, null);
+      for(k=0;k<NK;k++){ X3[r][c][k] = row[k]; colA[k] += row[k]; }
+    }
+    /* 渠道边际修复：在同一 (r,c) 单元内跨渠道搬移，区域与类别边际不变 */
+    var guard = 0;
+    while(guard++ < 4000){
+      var dk=-1, dv=0, sk=-1, sv=0;
+      for(k=0;k<NK;k++){ if(KV[k]-colA[k] > dv){ dv = KV[k]-colA[k]; dk = k; }
+                         if(colA[k]-KV[k] > sv){ sv = colA[k]-KV[k]; sk = k; } }
+      if(dk < 0) break;
+      var moved = false;
+      for(r=0;r<NR && !moved;r++) for(c=0;c<NC && !moved;c++){
+        var take = X3[r][c][sk];
+        if(take <= 0) continue;
+        var m = Math.min(take, dv, sv);
+        X3[r][c][sk] -= m; X3[r][c][dk] += m; colA[sk] -= m; colA[dk] += m; moved = true;
+      }
+      if(!moved) break;
+    }
+    /* 铺到日：逐单元按日权重拆分，单元合计不变 */
+    for(r=0;r<NR;r++) for(c=0;c<NC;c++) for(k=0;k<NK;k++){
+      var t = X3[r][c][k]; if(t<=0) continue;
+      var dd = allocCapped(t, wW, null);
+      for(i=0;i<NWR;i++) CB[idx(lo+i, r, c, k)] = dd[i];
+    }
+    /* 超期量：按类别配额到 (区域,渠道,日)，逐格不超过该格受理量 */
+    for(c=0;c<NC;c++){
+      var flatW = [], flatC = [], map = [];
+      for(r=0;r<NR;r++) for(k=0;k<NK;k++) for(i=0;i<NWR;i++){
+        var id = idx(lo+i,r,c,k); var v = CB[id];
+        flatW.push(v * (0.86 + 0.28*rnd()) * backlog(lo+i)); flatC.push(v); map.push(id);
+      }
+      var oo = allocCapped(OV[c], flatW, flatC);
+      for(i=0;i<map.length;i++) CO[map[i]] = oo[i];
+    }
+    return X3;
+  }
+
+  var wCur = winW(NWR), wPrev = winW(0);
+  buildWindow(NWR, REGV.slice(), CATV.slice(), CHNV.slice(), CATOV, wCur);
+
+  /* 上一期超期量：按类别超期率回推 */
+  var ovPrev = CATPV.map(function(v,ii){ return Math.round(CATOV[ii] * v / CATV[ii] * 1.07); });
+  buildWindow(0, pv, CATPV.slice(), CHNPV.slice(), ovPrev, wPrev);
+
+  /* 类别 × 时长分档 归口剖面：IPF 收敛到「行和 = 类别办结量、列和 = 全局档位边际」 */
+  var clByCat = new Array(NC).fill(0), totCl = 0;
+  for(d=0; d<ND; d++){ if(!isCur(d)) continue;
+    for(r=0;r<NR;r++) for(c=0;c<NC;c++) for(k=0;k<NK;k++){
+      var id0 = idx(d,r,c,k), cl0 = CB[id0]-CO[id0];
+      if(cl0 > 0){ clByCat[c] += cl0; totCl += cl0; } } }
+  var prof = [], b3;
+  for(c=0;c<NC;c++){ var row = []; for(b3=0;b3<NB;b3++) row.push(clByCat[c]*BUKV[b3]/Math.max(totCl,1)); prof.push(row); }
+  for(var it=0; it<30; it++){
+    for(c=0;c<NC;c++){ var s1=0; for(b3=0;b3<NB;b3++) s1 += prof[c][b3];
+      var f1 = s1>0 ? clByCat[c]/s1 : 0; for(b3=0;b3<NB;b3++) prof[c][b3] *= f1; }
+    for(b3=0;b3<NB;b3++){ var s2=0; for(c=0;c<NC;c++) s2 += prof[c][b3];
+      var f2 = s2>0 ? BUKV[b3]/s2 : 0; for(c=0;c<NC;c++) prof[c][b3] *= f2; }
+  }
+  /* 逐格按归口剖面拆分已办结工单，单元格合计恒等于该格办结量 */
+  for(d=0; d<ND; d++) for(r=0;r<NR;r++) for(c=0;c<NC;c++) for(k=0;k<NK;k++){
+    var idb = idx(d,r,c,k), clb = CB[idb]-CO[idb];
+    if(clb <= 0) continue;
+    var bbb = allocCapped(clb, prof[c], null);
+    for(b3=0;b3<NB;b3++) CBK[idb*NB+b3] = bbb[b3];
+  }
+  /* 全局档位边际配平：同一单元格内跨档搬移，单元格合计与其余边际不受影响 */
+  var bkA = new Array(NB).fill(0);
+  for(d=0; d<ND; d++){ if(!isCur(d)) continue;
+    for(r=0;r<NR;r++) for(c=0;c<NC;c++) for(k=0;k<NK;k++){
+      var id2 = idx(d,r,c,k); for(var b2=0;b2<NB;b2++) bkA[b2] += CBK[id2*NB+b2];
+    } }
+  var g3 = 0;
+  while(g3++ < 900){
+    var bk=-1, bv=0, sk2=-1, sv2=0;
+    for(b3=0;b3<NB;b3++){ if(BUKV[b3]-bkA[b3] > bv){ bv = BUKV[b3]-bkA[b3]; bk = b3; }
+                          if(bkA[b3]-BUKV[b3] > sv2){ sv2 = bkA[b3]-BUKV[b3]; sk2 = b3; } }
+    if(bk < 0) break;
+    var done = false;
+    for(d=0; d<ND && !done; d++){ if(!isCur(d)) continue;
+      for(r=0;r<NR && !done;r++) for(c=0;c<NC && !done;c++) for(k=0;k<NK && !done;k++){
+        var id3 = idx(d,r,c,k);
+        if(CB[id3]-CO[id3] <= 0) continue;
+        var avail = CBK[id3*NB+sk2]; if(avail <= 0) continue;
+        var m2 = Math.min(avail, bv, sv2);
+        CBK[id3*NB+sk2] -= m2; CBK[id3*NB+bk] += m2; bkA[sk2] -= m2; bkA[bk] += m2; done = true;
+      } }
+    if(!done) break;
+  }
+
+  /* 时长 / 满意度：逐窗围绕目标均值抖动，再在本窗内精确配平 */
+  function assignWindow(dst, lo, meanCenti, amp){
+    var ids = [], sumCl = 0, dd, id4;
+    for(dd=lo; dd<lo+NWR; dd++) for(r=0;r<NR;r++) for(c=0;c<NC;c++) for(k=0;k<NK;k++){
+      id4 = idx(dd,r,c,k);
+      var cl4 = CB[id4]-CO[id4];
+      if(cl4 > 0){ ids.push(id4); sumCl += cl4; }
+    }
+    if(!ids.length) return;
+    var target = Math.round(meanCenti*sumCl), raw = [], s = 0;
+    ids.forEach(function(id5, i5){
+      var v = (CB[id5]-CO[id5]) * (meanCenti + amp*Math.sin(i5*0.37 + lo*0.11));
+      raw.push(v); s += v;
+    });
+    var f = s>0 ? target/s : 0, acc = 0;
+    ids.forEach(function(id6, i6){ var x = Math.round(raw[i6]*f); dst[id6] = x; acc += x; });
+    var diff = target - acc, p = 0;
+    while(diff !== 0 && p < ids.length*8){
+      var t = ids[p % ids.length];
+      if(diff > 0){ dst[t] += 1; diff--; }
+      else if(dst[t] > 0){ dst[t] -= 1; diff++; }
+      p++;
+    }
+  }
+  assignWindow(CD, NWR, 268,  46);
+  assignWindow(CD, 0,   271,  46);
+  assignWindow(CS, NWR, 9499, 250);
+  assignWindow(CS, 0,   9418, 250);
+})();
+
+/* ---------- 3. 筛选谓词与投影 ---------- */
+var METRICS = {
+  recv:  {name:'受理量',   unit:'件', rate:false},
+  closed:{name:'办结量',   unit:'件', rate:false},
+  over:  {name:'新增超期', unit:'件', rate:false},
+  rate:  {name:'按期办结率', unit:'%', rate:true},
+  dur:   {name:'平均办理时长', unit:'工作日', rate:true},
+  sat:   {name:'满意率',   unit:'%', rate:true}
+};
+var F = {
+  tab:0, metric:'recv', scale:'linear',
+  days:[0, NWR-1],
+  reg:  new Array(NR).fill(1),
+  cat:  new Array(NC).fill(1),
+  chan: new Array(NK).fill(1),
+  buk:  new Array(NB).fill(1),
+  thrLo:1, thrHi:12,
+  sel: {reg:-1, cat:-1, chan:-1, unit:-1},
+  legend:{recv:1, closed:1, over:1},
+  drill:null,                 /* {dim:'reg', i:3} 下钻 */
+  warnings:'',                /* 高亮用 */
+  anomaly:false
+};
+function bukMask(){
+  /* 阈值双向滑块保留代表时长落入 [lo,hi] 的分档；分档条形图自身的点击开关再与其求交 */
+  var m = new Array(NB).fill(0);
+  for(var b=0;b<NB;b++) if(BUKMID[b] >= F.thrLo && BUKMID[b] <= F.thrHi && F.buk[b]) m[b] = 1;
+  return m;
+}
+function activeFilters(){
+  var out = [];
+  if(F.days[0] !== 0 || F.days[1] !== NWR-1){
+    out.push({k:'days', t:'时间窗口 ' + DAYS[NWR+F.days[0]].slice(5) + ' ~ ' + DAYS[NWR+F.days[1]].slice(5)});
+  }
+  if(F.reg.some(function(v){return !v;}))  out.push({k:'reg',  t:'区域 ' + F.reg.filter(Boolean).length + '/' + NR});
+  if(F.cat.some(function(v){return !v;}))  out.push({k:'cat',  t:'类别 ' + F.cat.filter(Boolean).length + '/' + NC});
+  if(F.chan.some(function(v){return !v;})) out.push({k:'chan', t:'渠道 ' + F.chan.filter(Boolean).length + '/' + NK});
+  var bm = bukMask();
+  if(bm.some(function(v){return !v;}))     out.push({k:'buk',  t:'时长 ' + F.thrLo + '–' + F.thrHi + ' 工作日 · 保留 ' + bm.filter(Boolean).length + '/' + NB + ' 档'});
+  if(F.drill) out.push({k:'drill', t:'下钻 ' + (F.drill.dim==='reg'?REGN:F.drill.dim==='cat'?CATN:CHNN)[F.drill.i]});
+  return out;
+}
+
+/* 权威筛选投影：一切卡片、图表、明细表均由此派生 */
+function project(){
+  var r,c,k,b,i, id;
+  var P = {
+    recv:0, closed:0, over:0, dur:0, sat:0,
+    byReg:new Array(NR).fill(0), byRegC:new Array(NR).fill(0), byRegO:new Array(NR).fill(0),
+    byRegD:new Array(NR).fill(0), byRegS:new Array(NR).fill(0),
+    byCat:new Array(NC).fill(0), byCatC:new Array(NC).fill(0), byCatO:new Array(NC).fill(0),
+    byCatD:new Array(NC).fill(0), byCatS:new Array(NC).fill(0),
+    byChan:new Array(NK).fill(0), byChanC:new Array(NK).fill(0), byChanO:new Array(NK).fill(0),
+    byBuk:new Array(NB).fill(0), byDay:new Array(NWR).fill(0),
+    byDayC:new Array(NWR).fill(0), byDayO:new Array(NWR).fill(0),
+    byCell:null                                  /* 区域 × 类别 受理量 */
+  };
+  var cell = [], rr;
+  for(r=0;r<NR;r++){ cell.push(new Array(NC).fill(0)); }
+  var bm = bukMask();
+  var maxDay = F.days[1], minDay = F.days[0];
+  for(var d=0; d<ND; d++){
+    if(!isCur(d)) continue;                       /* 分析窗口恒落在本期 30 日原始流上 */
+    var di = d - NWR;
+    if(di < minDay || di > maxDay) continue;
+    for(r=0;r<NR;r++){
+      if(!F.reg[r]) continue;
+      if(F.drill && F.drill.dim==='reg' && F.drill.i!==r) continue;
+      for(c=0;c<NC;c++){
+        if(!F.cat[c]) continue;
+        if(F.drill && F.drill.dim==='cat' && F.drill.i!==c) continue;
+        for(k=0;k<NK;k++){
+          if(!F.chan[k]) continue;
+          if(F.drill && F.drill.dim==='chan' && F.drill.i!==k) continue;
+          id = idx(d,r,c,k);
+          var v = CB[id]; if(!v) continue;
+          var o = CO[id], cl = v - o;
+          if(cl < 0) cl = 0;
+          var bkSum = 0;
+          for(b=0;b<NB;b++){
+            if(!bm[b]) continue;
+            var bv = CBK[id*NB+b];
+            if(bv){ bkSum += bv; P.byBuk[b] += bv; }
+          }
+          /* 口径：受理量 = 保留时长分档内的已办结工单 + 新增超期，逐格恒等 */
+          var rc = bkSum + o;
+          var dSum = cl > 0 ? CD[id]*bkSum/cl : 0;
+          var sSum = cl > 0 ? CS[id]*bkSum/cl : 0;
+          P.recv += rc; P.over += o; P.closed += bkSum; P.dur += dSum; P.sat += sSum;
+          P.byReg[r] += rc; P.byRegC[r] += bkSum; P.byRegO[r] += o; P.byRegD[r] += dSum; P.byRegS[r] += sSum;
+          P.byCat[c] += rc; P.byCatC[c] += bkSum; P.byCatO[c] += o; P.byCatD[c] += dSum; P.byCatS[c] += sSum;
+          P.byChan[k] += rc; P.byChanC[k] += bkSum; P.byChanO[k] += o;
+          P.byDay[di] += rc; P.byDayC[di] += bkSum; P.byDayO[di] += o;
+          cell[r][c] += rc;
+        }
+      }
+    }
+  }
+  P.byCell = cell;
+  P.avgDur = P.closed > 0 ? P.dur/P.closed/100 : 0;
+  P.satPct = P.closed > 0 ? P.sat/P.closed/100 : 0;
+  P.rate   = P.recv   > 0 ? P.closed/P.recv*100 : 0;
+  P.byRegAvg = P.byReg.map(function(_,i){ return P.byRegC[i]>0 ? P.byRegD[i]/P.byRegC[i]/100 : 0; });
+  P.byRegSat = P.byReg.map(function(_,i){ return P.byRegC[i]>0 ? P.byRegS[i]/P.byRegC[i]/100 : 0; });
+  P.byRegRate= P.byReg.map(function(v,i){ return v>0 ? P.byRegC[i]/v*100 : 0; });
+  P.byCatAvg = P.byCat.map(function(_,i){ return P.byCatC[i]>0 ? P.byCatD[i]/P.byCatC[i]/100 : 0; });
+  /* 承办单位：由类别口径按归口比例精确配额，行和守恒 */
+  var U = {recv:new Array(UNITN.length).fill(0), closed:new Array(UNITN.length).fill(0),
+           over:new Array(UNITN.length).fill(0), dur:new Array(UNITN.length).fill(0)};
+  for(c=0;c<NC;c++){
+    if(P.byCat[c] <= 0) continue;
+    var w8 = new Array(UNITN.length).fill(0);
+    UCAT[c].forEach(function(p){ w8[p[0]] = p[1]; });
+    var sc = w8;
+    var uR = allocCapped(P.byCat[c],  sc, null);
+    var uC = allocCapped(P.byCatC[c], sc, null);
+    var uO = allocCapped(P.byCatO[c], sc, null);
+    for(i=0;i<UNITN.length;i++){ U.recv[i]+=uR[i]; U.closed[i]+=uC[i]; U.over[i]+=uO[i]; }
+    var uD = allocCapped(Math.round(P.byCatD[c]), sc, null);
+    for(i=0;i<UNITN.length;i++) U.dur[i] += uD[i];
+  }
+  U.avg = U.closed.map(function(_,i){ return U.closed[i]>0 ? U.dur[i]/U.closed[i]/100 : 0; });
+  P.unit = U;
+  /* 上一期可比口径（同筛选、同一批日序，落在前 30 日） */
+  var Q = prevProject(P);
+  P.prev = Q;
+  return P;
+}
+function prevProject(){
+  var r,c,k,b;
+  var Q = {recv:0, closed:0, over:0, dur:0, sat:0,
+           byCat:new Array(NC).fill(0), byChan:new Array(NK).fill(0),
+           byReg:new Array(NR).fill(0), byBuk:new Array(NB).fill(0)};
+  var bm = bukMask();
+  var anyOff = bm.some(function(x){ return !x; });
+  var lo = F.days[0], hi = F.days[1];
+  for(var d=0; d<NWR; d++){
+    if(d < lo || d > hi) continue;
+    for(r=0;r<NR;r++){ if(!F.reg[r]) continue;
+      if(F.drill && F.drill.dim==='reg' && F.drill.i!==r) continue;
+      for(c=0;c<NC;c++){ if(!F.cat[c]) continue;
+        if(F.drill && F.drill.dim==='cat' && F.drill.i!==c) continue;
+        for(k=0;k<NK;k++){ if(!F.chan[k]) continue;
+          if(F.drill && F.drill.dim==='chan' && F.drill.i!==k) continue;
+          var id = idx(d,r,c,k);
+          var v = CB[id]; if(!v) continue;
+          var clv = v - CO[id], keep = 0;
+          for(b=0;b<NB;b++) if(bm[b]) keep += CBK[id*NB+b];
+          var rcv = keep + CO[id];
+          Q.recv += rcv; Q.over += CO[id]; Q.closed += keep;
+          if(clv > 0 && keep > 0){ Q.dur += CD[id]*keep/clv; Q.sat += CS[id]*keep/clv; }
+          Q.byCat[c]+=rcv; Q.byChan[k]+=rcv; Q.byReg[r]+=rcv;
+          for(b=0;b<NB;b++) if(bm[b]) Q.byBuk[b] += CBK[id*NB+b];
+        } } } }
+  Q.avgDur = Q.closed > 0 ? Q.dur/Q.closed/100 : 0;
+  Q.satPct = Q.closed > 0 ? Q.sat/Q.closed/100 : 0;
+  Q.rate   = Q.recv   > 0 ? Q.closed/Q.recv*100 : 0;
+  return Q;
+}
+function momTxt(cur, prev){
+  if(!prev) return {t:'—', c:''};
+  var p = (cur-prev)/prev*100, s = (p>=0?'+':'') + p.toFixed(1) + '%';
+  return {t:s, c: p>0?'up':p<0?'down':''};
+}
+function delta(cur, prev, unit, dp){
+  if(prev === null || prev === undefined) return {t:'—', c:''};
+  var d = cur-prev, s = (d>=0?'+':'') + d.toFixed(dp===undefined?2:dp) + unit;
+  return {t:s, c: d>0?'up':d<0?'down':''};
+}
+
+/* 日期轴 */
+var DAYS = (function(){
+  var out = [], t = Date.UTC(2026,6,20);
+  for(var i=0;i<ND;i++){ var dt = new Date(t + i*86400000);
+    out.push(dt.getUTCFullYear()+'-'+String(dt.getUTCMonth()+1).padStart(2,'0')+'-'+String(dt.getUTCDate()).padStart(2,'0')); }
+  return out;
+})();
+var WK = ['日','一','二','三','四','五','六'];
+
+/* ---------- 4. 非线性度量标尺转换系统 ---------- */
+function Scale(kind, d0, d1){
+  this.kind = kind; this.d0 = d0; this.d1 = Math.max(d1, d0*1.0001);
+}
+Scale.prototype.t = function(v){
+  if(this.kind === 'log'){
+    var lo = Math.max(this.d0, 1), hi = Math.max(this.d1, lo*1.0001);
+    return (Math.log10(Math.max(v, lo)) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo));
+  }
+  return (v - this.d0) / (this.d1 - this.d0);
+};
+Scale.prototype.inv = function(t){
+  if(this.kind === 'log'){
+    var lo = Math.max(this.d0, 1), hi = Math.max(this.d1, lo*1.0001);
+    return Math.pow(10, Math.log10(lo) + t*(Math.log10(hi)-Math.log10(lo)));
+  }
+  return this.d0 + t*(this.d1 - this.d0);
+};
+Scale.prototype.bar = function(v){ return Math.max(0, Math.min(1, this.t(v))); };
+Scale.prototype.ticks = function(){
+  var out = [], i;
+  if(this.kind === 'log'){
+    var lo = Math.max(this.d0, 1), hi = this.d1;
+    var e0 = Math.floor(Math.log10(lo)) - 1, e1 = Math.ceil(Math.log10(hi)) + 1;
+    for(var e=e0; e<=e1; e++){
+      var base = Math.pow(10, e);
+      var mult = (e1-e0) <= 2 ? [1,2,5] : [1,2,5];
+      for(i=0;i<mult.length;i++){
+        var v = base*mult[i];
+        if(v >= lo*0.995 && v <= hi*1.005) out.push({v:v, major:mult[i]===1, label:fmtTick(v)});
+      }
+    }
+    if(out.length > 14) out = out.filter(function(o,ii){ return o.major || ii%2===0; });
+    return out;
+  }
+  var span = this.d1 - this.d0;
+  if(this.kind === 'pct'){ for(i=0;i<=5;i++) out.push({v:this.d0+span*i/5, major:true, label:(this.d0+span*i/5).toFixed(0)+'%'}); return out; }
+  var raw = span/5, mag = Math.pow(10, Math.floor(Math.log10(raw||1))), norm = raw/mag;
+  var step = (norm<=1?1:norm<=2?2:norm<=5?5:10)*mag;
+  for(var v2 = Math.ceil(this.d0/step)*step; v2 <= this.d1 + step*1e-6; v2 += step)
+    out.push({v:v2, major:true, label:fmtTick(v2)});
+  return out;
+};
+function fmtTick(v){
+  if(v >= 100000) return (v/10000).toFixed(v%10000?1:0) + '万';
+  if(v >= 10000)  return (v/10000).toFixed(1) + '万';
+  if(v >= 1000)   return (v/1000).toFixed(v%1000?1:0) + 'k';
+  if(v >= 1)      return String(Math.round(v*10)/10);
+  return v.toFixed(2);
+}
+function niceMax(v, log){
+  if(v <= 0) return 1;
+  if(log){ var e = Math.floor(Math.log10(v)); return Math.pow(10, e) * (v/Math.pow(10,e) <= 1 ? 1 : v/Math.pow(10,e) <= 2 ? 2 : v/Math.pow(10,e) <= 5 ? 5 : 10); }
+  var mag = Math.pow(10, Math.floor(Math.log10(v))), n = v/mag;
+  return (n<=1?1:n<=1.5?1.5:n<=2?2:n<=2.5?2.5:n<=3?3:n<=4?4:n<=5?5:n<=6?6:n<=8?8:10)*mag;
+}
+/* 主趋势视窗的 Y 轴定义域：严格由当前筛选后的子集解算 */
+function domainOf(vals, log, pad){
+  var mx = 0, mn = Infinity;
+  for(var i=0;i<vals.length;i++){ if(vals[i] > mx) mx = vals[i]; if(vals[i] > 0 && vals[i] < mn) mn = vals[i]; }
+  if(mx <= 0) return {lo:0, hi:1};
+  if(log){
+    if(!isFinite(mn) || mn <= 0) mn = 1;
+    /* 对数下界取数据量级的下一个整数量级，使刻度呈完整几何级数展开 */
+    var lo = Math.pow(10, Math.floor(Math.log10(Math.max(mn*0.72, 1e-6))));
+    var hi = niceMax(mx*1.10, true);
+    if(hi <= lo) hi = lo*10;
+    return {lo: Math.max(lo, 1e-6), hi: hi};
+  }
+  return {lo:0, hi:niceMax(mx*(pad||1.08), false)};
+}
+
+/* ---------- 5. 自适应视口与文字避让碰撞解算核心 ---------- */
+var VW = 0, VH = 0, DPR = 1;
+function readViewport(){
+  VW = Math.max(320, window.innerWidth);
+  VH = Math.max(400, window.innerHeight);
+  DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function nf(v, dp){
+  if(v === null || v === undefined || !isFinite(v)) return '—';
+  var s = (dp === undefined ? (Math.abs(v)>=1000?0:2) : dp);
+  var x = Number(v).toFixed(s).split('.');
+  x[0] = x[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return x.join('.');
+}
+/* 轴刻度抽稀：按可用像素密度决定标签保留间隔 */
+function thinTicks(labels, pxPerTick, minPx){
+  var keep = Math.max(1, Math.ceil(minPx/Math.max(pxPerTick, 0.001)));
+  var out = [];
+  for(var i=0;i<labels.length;i++) out.push(i % keep === 0 ? labels[i] : '');
+  /* 保证末位刻度始终可读 */
+  if(out.length > 1 && out[out.length-1] === ''){
+    out[out.length-1] = labels[labels.length-1];
+    if(out.length > 2 && out[out.length-2] !== '') out[out.length-2] = '';
+  }
+  return out;
+}
+/* 文字碰撞解算：矩形重叠面积占比超限者按优先级隐藏或下沉 */
+var textBoxes = [];
+function textCollide(boxes, thresh){
+  thresh = thresh === undefined ? 0.12 : thresh;
+  boxes.sort(function(a,b){ return (b.p||0)-(a.p||0); });
+  var keep = [];
+  for(var i=0;i<boxes.length;i++){
+    var b = boxes[i], hit = false;
+    for(var j=0;j<keep.length;j++){
+      var a = keep[j];
+      var ox = Math.min(a.x+a.w, b.x+b.w) - Math.max(a.x, b.x);
+      var oy = Math.min(a.y+a.h, b.y+b.h) - Math.max(a.y, b.y);
+      if(ox <= 0 || oy <= 0) continue;
+      var area = ox*oy, minA = Math.min(a.w*a.h, b.w*b.h);
+      if(area / Math.max(minA,1) > thresh){ hit = true; break; }
+    }
+    if(!hit) keep.push(b);
+  }
+  return keep;
+}
+/* 数据标签自适应：优先直标，冲突则改斜排，再冲突则隐藏并保留在 tooltip */
+function dataLabels(items, plotW, minGap){
+  if(!items.length) return [];
+  var out = [], lastX = -1e9;
+  var step = Math.ceil(minGap / Math.max(plotW/Math.max(items.length,1), 1));
+  for(var i=0;i<items.length;i++){
+    if(i % Math.max(step,1) === 0 && items[i].x - lastX >= minGap){ out.push(items[i]); lastX = items[i].x; }
+  }
+  return out;
+}
+
+/* ---------- 6. 图元 ---------- */
+function svgWrap(w, h, body, cls){
+  return '<svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'" preserveAspectRatio="xMidYMid meet"'
+    + (cls?' class="'+cls+'"':'') + ' role="img">' + body + '</svg>';
+}
+function txt(x,y,s,o){
+  o = o || {};
+  return '<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'"'
+    + ' font-size="'+(o.fs||10)+'" fill="'+(o.fill||'#7d8ba1')+'"'
+    + (o.w?' font-weight="'+o.w+'"':'') + (o.anchor?' text-anchor="'+o.anchor+'"':'')
+    + (o.rot?' transform="rotate('+o.rot+' '+x.toFixed(1)+' '+y.toFixed(1)+')"':'')
+    + (o.cls?' class="'+o.cls+'"':'')
+    + '>' + esc(s) + '</text>';
+}
+function line(x1,y1,x2,y2,o){
+  o = o || {};
+  return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'"'
+   + ' stroke="'+(o.c||'#d7dfec')+'" stroke-width="'+(o.w||1)+'"'
+   + (o.dash?' stroke-dasharray="'+o.dash+'"':'') + (o.cap?' stroke-linecap="'+o.cap+'"':'') + '/>';
+}
+function rect(x,y,w,h,o){
+  o = o || {};
+  return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+Math.max(0,w).toFixed(1)+'" height="'+Math.max(0,h).toFixed(1)+'"'
+   + ' fill="'+(o.fill||'none')+'"' + (o.stroke?' stroke="'+o.stroke+'" stroke-width="'+(o.sw||1)+'"':'')
+   + (o.rx?' rx="'+o.rx+'"':'') + (o.op?' opacity="'+o.op+'"':'')
+   + (o.attrs?' '+o.attrs:'') + '/>';
+}
+function path(d,o){
+  o = o || {};
+  return '<path d="'+d+'" fill="'+(o.fill||'none')+'"' + (o.stroke?' stroke="'+o.stroke+'" stroke-width="'+(o.w||2)+'"':'')
+   + (o.dash?' stroke-dasharray="'+o.dash+'"':'') + (o.cap?' stroke-linecap="'+o.cap+'" stroke-linejoin="round"':'')
+   + (o.op?' opacity="'+o.op+'"':'') + '/>';
+}
+function CATC(i){ return ['#1c4f9c','#2e8bc0','#2f9e8f','#63a94e','#c9a227','#d97b34','#a4525c'][i%7]; }
+function tone(v, lo, hi){ /* 单色顺序色阶 */
+  var t = hi>lo ? (v-lo)/(hi-lo) : 0; t = Math.max(0, Math.min(1, t));
+  var r = Math.round(232 + (28-232)*t), g = Math.round(240 + (86-240)*t), b = Math.round(250 + (163-250)*t);
+  return 'rgb('+r+','+g+','+b+')';
+}
+
+/* ---------- 7. 视窗渲染 ---------- */
+var CHARTS = document.getElementById('charts');
+var SIDE = document.getElementById('side');
+var TABS = [
+  {id:'overview', n:'综合总览',      sub:'受理—办结—超期 三维联动'},
+  {id:'category', n:'事项与来源',    sub:'类别结构 · 渠道构成'},
+  {id:'region',   n:'区域分布',      sub:'区县对比 · 下钻明细'},
+  {id:'sla',      n:'时效与预警',    sub:'办理时长 · 超期预警'},
+  {id:'link',     n:'关联与责任',    sub:'区域×类别 · 承办单位'}
+];
+
+function kpiCard(cls, label, val, unit, mom, extra){
+  return '<div class="kpi '+cls+'"><div class="l">'+esc(label)+'</div>'
+   + '<div class="v num">'+val+(unit?'<small>'+unit+'</small>':'')+'</div>'
+   + '<div class="m"><span class="'+(mom.c||'')+'">'
+   + (mom.t==='—' ? '—' : (mom.c==='up'?'▲ ':mom.c==='down'?'▼ ':'') + mom.t)+'</span>'
+   + '<span>'+(extra||'环比上一等长窗口')+'</span></div></div>';
+}
+
+/* ---- 视窗 A：双轴组合趋势主视窗（左轴＝件，右轴＝%） ---- */
+function cardCombo(P){
+  var VWv = 760, VHv = 260;
+  var padL = 48, padR = 50, padT = 14, padB = 30;
+  var pw = VWv - padL - padR, ph = VHv - padT - padB;
+  var days = [];
+  for(var i=F.days[0]; i<=F.days[1]; i++) days.push(i);
+  if(!days.length) return simpleCard('受理与办结双轴组合趋势', '当前筛选下时间窗口为空。', '主视窗');
+  var recv = days.map(function(d){ return P.byDay[d]; });
+  var clos = days.map(function(d){ return P.byDayC[d]; });
+  var over = days.map(function(d){ return P.byDayO[d]; });
+  var rate = days.map(function(_,i2){ return recv[i2] > 0 ? clos[i2]/recv[i2]*100 : 0; });
+  var log = F.scale === 'log';
+  var domR = domainOf(recv.concat(clos), log);
+  var scR  = new Scale(log?'log':'linear', domR.lo, domR.hi);
+  var rMn = 100, rMx = 0;
+  rate.forEach(function(v){ if(v>0){ if(v<rMn) rMn=v; if(v>rMx) rMx=v; } });
+  if(rMx === 0){ rMn = 90; rMx = 100; }
+  var domP = {lo: Math.max(0, Math.floor((rMn-1.2)*2)/2), hi: Math.min(100, Math.ceil((rMx+0.8)*2)/2)};
+  if(domP.hi - domP.lo < 2) domP.hi = Math.min(100, domP.lo + 2);
+  var scP = new Scale('linear', domP.lo, domP.hi);
+  var step = pw/days.length;
+  var bw = Math.max(3, Math.min(26, step*0.6));
+  var body = '';
+  var tcpu = Math.max(1, Math.round(step));
+  /* 左轴（件） */
+  scR.ticks().forEach(function(t){
+    if(t.v < domR.lo*0.999 || t.v > domR.hi*1.001) return;
+    var y = padT + ph - scR.t(t.v)*ph;
+    body += line(padL, y, padL+pw, y, {c: t.major?'#e7edf6':'#f3f6fa', w:1});
+    body += txt(padL-6, y+3.2, t.label, {anchor:'end', fs:9.5, fill: t.major?'#7d8ba1':'#b3bdcb'});
+  });
+  /* 右轴（%）—— 与左轴量纲与定义域均不同 */
+  for(var g=0; g<=4; g++){
+    var pv = domP.lo + (domP.hi-domP.lo)*g/4;
+    var y2 = padT + ph - scP.t(pv)*ph;
+    body += txt(padL+pw+6, y2+3.2, pv.toFixed(1)+'%', {anchor:'start', fs:9.5, fill:'#2f9e8f'});
+  }
+  /* 窗口均值 / 阈值保留区间基准线：随筛选实时重绘 */
+  var avg = recv.reduce(function(a,b){return a+b;},0)/Math.max(recv.length,1);
+  var mnR = Math.min.apply(null, recv), mxR = Math.max.apply(null, recv);
+  var band = (F.thrLo > 1 || F.thrHi < 12 || F.buk.some(function(v){return !v;}));
+  if(band){
+    var yLo = padT + ph - scR.bar(mnR)*ph, yHi = padT + ph - scR.bar(mxR)*ph;
+    body += rect(padL, Math.min(yLo,yHi), pw, Math.abs(yHi-yLo), {fill:'#d98032', op:0.05});
+    body += line(padL, yLo, padL+pw, yLo, {c:'#d98032', w:1.3, dash:'6 4'});
+    body += line(padL, yHi, padL+pw, yHi, {c:'#c0392b', w:1.3, dash:'6 4'});
+    body += txt(padL+4, yLo-3, '时长阈值保留区间 · 单日受理量下沿 '+nf(mnR,0), {fs:9.5, fill:'#d98032', w:600});
+    body += txt(padL+4, yHi-3, '时长阈值保留区间 · 单日受理量上沿 '+nf(mxR,0), {fs:9.5, fill:'#c0392b', w:600});
+  }
+  /* 离群巡检：稳健三信号联合判定 —— 受理量 |z|>2，新增超期越过上须（Q3+1.5IQR），按期办结率跌破下须（Q1−1.5IQR）。
+     单靠标准差在平滑序列上恒为空集，巡检态会退化成只改文字，因此必须并入两把稳健须。 */
+  var mu = avg, sd = 0;
+  recv.forEach(function(v){ sd += (v-mu)*(v-mu); });
+  sd = Math.sqrt(sd/Math.max(recv.length,1));
+  function fence(a){
+    var s2 = a.slice().sort(function(x,y){ return x-y; });
+    function q(p){
+      if(!s2.length) return 0;
+      var pos = (s2.length-1)*p, lo = Math.floor(pos), hi = Math.ceil(pos);
+      return s2[lo] + (s2[hi]-s2[lo])*(pos-lo);
+    }
+    var q1 = q(0.25), q3 = q(0.75), iqr = Math.max(q3-q1, 1e-9);
+    return {lo: q1 - 1.5*iqr, hi: q3 + 1.5*iqr};
+  }
+  var fOver = fence(over), fRate = fence(rate.filter(function(v){ return v > 0; }));
+  var outIdx = [];
+  recv.forEach(function(v,i3){
+    if(sd > 0 && Math.abs((v-mu)/sd) > 2) outIdx.push(i3);
+    else if(over[i3] > fOver.hi) outIdx.push(i3);
+    else if(rate[i3] > 0 && rate[i3] < fRate.lo) outIdx.push(i3);
+  });
+  /* 巡检态必须改变几何：对命中日铺一条整幅警戒带，再在柱顶补同心环 */
+  if(F.anomaly){
+    outIdx.forEach(function(i8){
+      body += rect(padL + i8*step, padT, step, ph, {fill:'#c0392b', op:0.07});
+      body += rect(padL + i8*step, padT, step, ph, {fill:'none', stroke:'#c0392b', sw:1, op:0.35, rx:1});
+    });
+  }
+  /* 柱＝受理量，底部叠加新增超期 */
+  days.forEach(function(d, i4){
+    var x = padL + i4*step + (step-bw)/2, y0 = padT + ph;
+    if(F.legend.recv !== 0){
+      var yv = padT + ph - scR.bar(recv[i4])*ph;
+      body += rect(x, yv, bw, y0-yv, {fill:'url(#gRecv)', rx:1.5});
+      if(F.legend.over !== 0 && over[i4] > 0){
+        var hOv = scR.bar(over[i4])*ph;
+        body += rect(x, y0-hOv, bw, Math.max(1.5, hOv), {fill:'#c0392b', rx:1.5, op:.88});
+      }
+      if(F.anomaly && outIdx.indexOf(i4) >= 0){
+        body += '<circle cx="'+(x+bw/2).toFixed(1)+'" cy="'+(yv-8).toFixed(1)+'" r="4.5" fill="none" stroke="#c0392b" stroke-width="1.6"/>';
+        body += '<circle cx="'+(x+bw/2).toFixed(1)+'" cy="'+(yv-8).toFixed(1)+'" r="1.8" fill="#c0392b"/>';
+      }
+    }
+  });
+  /* 折线＝办结量（左轴，同量纲） */
+  if(F.legend.closed !== 0){
+    var dd = clos.map(function(v,i5){
+      return (i5===0?'M':'L') + (padL + i5*step + step/2).toFixed(1) + ' ' + (padT + ph - scR.bar(v)*ph).toFixed(1);
+    }).join(' ');
+    body += path(dd, {stroke:'#1c4f9c', w:2, cap:'round'});
+    clos.forEach(function(v,i6){
+      body += '<circle cx="'+(padL + i6*step + step/2).toFixed(1)+'" cy="'+(padT + ph - scR.bar(v)*ph).toFixed(1)
+        + '" r="2.2" fill="#fff" stroke="#1c4f9c" stroke-width="1.6"/>';
+    });
+  }
+  /* 折线＝按期办结率（右轴，不同量纲） */
+  var dr = rate.map(function(v,i7){
+    return (i7===0?'M':'L') + (padL + i7*step + step/2).toFixed(1) + ' ' + (padT + ph - scP.t(v)*ph).toFixed(1);
+  }).join(' ');
+  body += path(dr, {stroke:'#2f9e8f', w:2, dash:'5 3', cap:'round'});
+  /* 窗口日均虚线（左轴） */
+  var ya = padT + ph - scR.bar(avg)*ph;
+  body += line(padL, ya, padL+pw, ya, {c:'#1c4f9c', w:1.2, dash:'2 3', op:.6});
+  body += txt(padL+pw-2, ya-3, '窗口日均 '+nf(avg,0), {anchor:'end', fs:9.5, fill:'#1c4f9c', w:600});
+  /* 时间轴：DPR 感知的刻度抽稀 */
+  /* days 存的是窗口内相对下标，取日历日必须加上本期起始偏移 NWR */
+  var labels = days.map(function(d){ return DAYS[d + NWR].slice(5); });
+  var kept = thinTicks(labels, step, Math.max(46, 46*DPR/2));
+  kept.forEach(function(s, i8){
+    if(!s) return;
+    var x = padL + i8*step + step/2;
+    body += line(x, padT+ph, x, padT+ph+3, {c:'#c8d3e3'});
+    body += txt(x, padT+ph+13, s, {anchor:'middle', fs:9.5});
+  });
+  body += txt(padL+pw/2, VHv-4, '受理日期（'+DAYS[F.days[0]+NWR]+' ~ '+DAYS[F.days[1]+NWR]+'）', {anchor:'middle', fs:10, fill:'#7d8ba1'});
+  body += txt(13, padT+ph/2, '件', {anchor:'middle', fs:10, fill:'#1c4f9c', rot:-90});
+  body += txt(VWv-12, padT+ph/2, '按期办结率', {anchor:'middle', fs:10, fill:'#2f9e8f', rot:90});
+  /* 刷选 + 十字准星共用同一命中区（同一点击面同时承载两种手势） */
+  body += rect(padL, padT, pw, ph, {fill:'#ffffff', op:0.002,
+    attrs:'data-brush="1" data-cross="1" style="cursor:crosshair"'});
+  var defs = '<defs><linearGradient id="gRecv" x1="0" y1="0" x2="0" y2="1">'
+   + '<stop offset="0%" stop-color="#3f86dd"/><stop offset="100%" stop-color="#a8c9ef"/></linearGradient></defs>';
+  return '<div class="card wide"><header><h3>受理与办结双轴组合趋势<span class="tag">主视窗</span></h3>'
+   + '<span class="note">左轴（件）：柱＝每日受理量，底部红色＝新增超期，实线＝办结量，点线＝窗口日均<br>'
+   + '右轴（%）：虚线＝每日按期办结率 · 左轴上界 '+nf(domR.hi,0)+'、右轴 '+domP.lo.toFixed(1)+'–'+domP.hi.toFixed(1)
+   + '% 均由当前筛选子集实时解算 · 拖拽框选缩放 · 悬停十字准星联动读数'
+   + (F.anomaly ? '<br><b style="color:#c0392b">离群巡检生效：命中 '+outIdx.length+' / '+days.length
+       + ' 日（受理量 |z|&gt;2，或新增超期越上须，或按期办结率破下须）· 命中日已铺警戒带并加同心环</b>' : '')
+   + '</span></header>'
+   + '<div class="chart">'+svgWrap(VWv, VHv, defs+body)+'</div></div>';
+}
+
+/* ---- 视窗 B：极坐标玫瑰分布 ---- */
+function cardRose(P){
+  var S = 288, cx = 144, cy = 124, R = 88;
+  var vals = P.byCat.slice(), tot = vals.reduce(function(a,b){return a+b;},0);
+  if(tot <= 0) return simpleCard('事项类别属性分布', '当前筛选下无数据。');
+  var log = F.scale === 'log';
+  var mx = Math.max.apply(null, vals);
+  var i, body = '';
+  var a0 = -Math.PI/2, spanA = Math.PI*2/NC;
+  /* 半径刻度标签沿第 2 条扇区边界自圆心向外排布（该方向没有扇区标签），并加白色描边光晕 */
+  var ringSpoke = a0 + spanA*2, ringLbl = '';
+  function ringTick(v){
+    if(v >= 1000) return (v/1000).toFixed(v >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k';
+    return String(Math.round(v));
+  }
+  for(var g=1; g<=4; g++){
+    var rr = R*g/4;
+    body += '<circle cx="'+cx+'" cy="'+cy+'" r="'+rr.toFixed(1)+'" fill="none" stroke="#eef2f8"/>';
+    var rx = cx + Math.cos(ringSpoke)*rr + 3, ry = cy + Math.sin(ringSpoke)*rr + 7;
+    ringLbl += '<text x="'+rx.toFixed(1)+'" y="'+ry.toFixed(1)+'" font-size="7.5" fill="#5a6b84"'
+      + ' style="paint-order:stroke;stroke:#fff;stroke-width:2.6;stroke-linejoin:round">'
+      + esc(ringTick(mx*g/4)) + '</text>';
+  }
+  var labels = [];
+  vals.forEach(function(v, i2){
+    var t = (log ? (Math.log10(Math.max(v,1))/Math.log10(Math.max(mx,2))) : v/Math.max(mx,1));
+    var r1 = 12 + (R-12)*Math.max(0, Math.min(1, t));
+    var s = a0 + i2*spanA + spanA*0.09, e = a0 + (i2+1)*spanA - spanA*0.09;
+    var x1 = cx + Math.cos(s)*r1, y1 = cy + Math.sin(s)*r1;
+    var x2 = cx + Math.cos(e)*r1, y2 = cy + Math.sin(e)*r1;
+    var x3 = cx + Math.cos(e)*12,  y3 = cy + Math.sin(e)*12;
+    var x4 = cx + Math.cos(s)*12,  y4 = cy + Math.sin(s)*12;
+    var large = (e-s) > Math.PI ? 1 : 0;
+    var on = F.cat[i2] ? 1 : 0.22;
+    body += '<path d="M'+cx+' '+cy+' L'+x4.toFixed(1)+' '+y4.toFixed(1)+' A12 12 0 0 '+large+' '+x3.toFixed(1)+' '+y3.toFixed(1)
+      + ' Z" fill="none"/>';
+    body += '<path d="M'+x4.toFixed(1)+' '+y4.toFixed(1)+' L'+x1.toFixed(1)+' '+y1.toFixed(1)
+      + ' A'+r1.toFixed(1)+' '+r1.toFixed(1)+' 0 '+large+' 1 '+x2.toFixed(1)+' '+y2.toFixed(1)
+      + ' L'+x3.toFixed(1)+' '+y3.toFixed(1)+' A12 12 0 0 '+(large?0:1)+' '+x4.toFixed(1)+' '+y4.toFixed(1)+' Z"'
+      + ' fill="'+CATC(i2)+'" opacity="'+(0.86*on)+'" stroke="#fff" stroke-width="1.2"'
+      + (F.sel.cat===i2?' stroke="#16233a" stroke-width="2"':'')
+      + ' data-cat="'+i2+'" style="cursor:pointer"/>';
+    var am = a0 + (i2+0.5)*spanA, lr = R + 20;
+    var lx = cx + Math.cos(am)*lr, ly = cy + Math.sin(am)*lr;
+    labels.push({x: lx-30, y: ly-6, w: 60, h: 12, p: v,
+      s: txt(lx, ly, CATN[i2].slice(0,4), {anchor:'middle', fs:9.5, fill: F.cat[i2]?'#4a5b74':'#c2cbd9'})
+       + txt(lx, ly+10, nf(v,0)+' · '+(v/tot*100).toFixed(1)+'%', {anchor:'middle', fs:8.5, fill:'#a3aec0'})});
+  });
+  labels = textCollide(labels, 0.14);
+  labels.forEach(function(l){ body += l.s; });
+  body += ringLbl;
+  body += txt(cx, cy-2, nf(tot,0), {anchor:'middle', fs:15, w:700, fill:'#16233a'});
+  body += txt(cx, cy+11, '受理总量', {anchor:'middle', fs:9});
+  return '<div class="card"><header><h3>事项类别属性分布<span class="tag">极坐标</span></h3>'
+   + '<span class="note">'+(log?'对数半径':'线性半径')+' · 扇区占比即类别结构 · 点击扇区即按类别穿透过滤</span></header>'
+   + '<div class="chart">'+svgWrap(S, 258, body)+'</div></div>';
+}
+function simpleCard(title, msg, tag){
+  return '<div class="card"><header><h3>'+esc(title)+(tag?'<span class="tag">'+esc(tag)+'</span>':'')+'</h3></header><div class="caliber">'+esc(msg)+'</div></div>';
+}
+
+/* ---- 视窗 C：矩形树图（区域 × 类别） ---- */
+function cardTreemap(P){
+  var W = 520, H = 250, x = 2, y = 2, w = W-4, h = H-4;
+  var items = [];
+  for(var r=0;r<NR;r++){
+    if(!F.reg[r]) continue;
+    for(var c=0;c<NC;c++){
+      if(!F.cat[c]) continue;
+      var v = P.byCell[r][c];
+      if(v > 0) items.push({r:r, c:c, v:v});
+    }
+  }
+  if(!items.length) return simpleCard('区域 × 类别 贡献结构', '当前筛选下无数据。', '矩形树图');
+  items.sort(function(a,b){ return b.v-a.v; });
+  var tot = items.reduce(function(a,b){ return a+b.v; },0);
+  var tiles = squarify(items, {x:x,y:y,w:w,h:h}, tot);
+  var body = '', boxes = [];
+  tiles.forEach(function(t){
+    var o = t.item;
+    var fill = CATC(o.c), dark = t.w < 46 || t.h < 24;
+    body += rect(t.x, t.y, t.w, t.h, {fill:fill, stroke:'#fff', sw:1.6, op: F.cat[o.c]?0.9:0.24,
+      attrs:'data-tm="'+o.r+'-'+o.c+'" style="cursor:pointer"'});
+    if(!dark){
+      boxes.push({x:t.x, y:t.y, w:t.w, h:t.h, p:o.v,
+        s: txt(t.x+5, t.y+13, REGN[o.r], {fs:9.5, w:700, fill:'#fff'})
+         + txt(t.x+5, t.y+25, nf(o.v,0), {fs:9, fill:'rgba(255,255,255,.86)'})});
+    }
+    if(F.sel.reg === o.r || F.sel.cat === o.c){
+      body += rect(t.x, t.y, t.w, t.h, {fill:'none', stroke:'#16233a', sw:2});
+    }
+  });
+  boxes = textCollide(boxes, 0.10);
+  boxes.forEach(function(b){ body += b.s; });
+  var tot2 = tot;
+  return '<div class="card"><header><h3>区域 × 类别 贡献结构<span class="tag">矩形树图</span></h3>'
+   + '<span class="note">面积＝受理量 · 合计 '+nf(tot2,0)+' 件 · 单击选中、双击下钻至该区域的类别明细</span></header>'
+   + '<div class="chart">'+svgWrap(W, H, body)+'</div></div>';
+}
+/* squarified treemap */
+function squarify(items, box, total){
+  var out = [], b = {x:box.x, y:box.y, w:box.w, h:box.h}, i = 0, guard = 0;
+  var scale = (box.w*box.h)/Math.max(total,1);
+  var vals = items.map(function(it){ return it.v*scale; });
+  var row = [], rowSum = 0;
+  function worst(row, len, sum){
+    var mx = Math.max.apply(null, row), mn = Math.min.apply(null, row);
+    var s2 = sum*sum, l2 = len*len;
+    return Math.max((l2*mx)/s2, s2/(l2*mn));
+  }
+  while(i < vals.length && guard++ < vals.length*4 + 16){
+    if(b.w <= 0.001 || b.h <= 0.001){ break; }
+    var len = Math.min(b.w, b.h);
+    var cand = vals[i];
+    if(row.length === 0 || worst(row.concat([cand]), len, rowSum+cand) <= worst(row, len, rowSum)){
+      row.push(cand); rowSum += cand; i++;
+    } else { layoutRow(); }
+    if(i >= vals.length && row.length) layoutRow();
+  }
+  function layoutRow(){
+    if(!row.length) return;
+    /* 行沿剩余矩形的短边铺开，厚度吃进长边：这样 Σfrac 恒等于短边、行严丝合缝铺满 */
+    var wide = b.w >= b.h;
+    var len = wide ? b.h : b.w;
+    var thick = rowSum / Math.max(len, 1e-6);
+    if(!(thick > 0)){ row = []; rowSum = 0; return; }
+    var pos = wide ? b.y : b.x, k;
+    for(k=0;k<row.length;k++){
+      var frac = row[k]/thick;
+      if(wide){ out.push({item: items[out.length], x:b.x, y:pos, w:thick, h:frac}); }
+      else    { out.push({item: items[out.length], x:pos, y:b.y, w:frac, h:thick}); }
+      pos += frac;
+    }
+    if(wide){ b.x += thick; b.w -= thick; } else { b.y += thick; b.h -= thick; }
+    row = []; rowSum = 0;
+  }
+  /* 修正：out.length 与 items 对齐（上面 push 顺序即 items 顺序） */
+  return out;
+}
+
+/* ---- 视窗 D：区域能力雷达 ---- */
+function cardRadar(P){
+  var S = 306, cx = 153, cy = 128, R = 88;
+  var axes = ['受理规模','按期办结率','满意度','时效（反向）','超期控制'];
+  var vals = [];
+  for(var r=0;r<NR;r++){
+    if(!F.reg[r]) continue;
+    vals.push({
+      i:r,
+      a:[P.byReg[r], P.byRegRate[r], P.byRegSat[r], Math.max(0, 100-P.byRegAvg[r]*24), Math.max(0, 100-P.byRegO[r]/Math.max(P.byReg[r],1)*900)]
+    });
+  }
+  if(!vals.length) return simpleCard('区域受理能力雷达', '当前筛选下无数据。', '极坐标');
+  var mx = [0,0,0,0,0], mn = [1e18,1e18,1e18,1e18,1e18];
+  vals.forEach(function(v){ v.a.forEach(function(x,i2){ if(x>mx[i2])mx[i2]=x; if(x<mn[i2])mn[i2]=x; }); });
+  var body = '';
+  for(var g=1; g<=4; g++){
+    var pts = [];
+    for(var i3=0;i3<5;i3++){
+      var ang = -Math.PI/2 + i3*Math.PI*2/5, rr = R*g/4;
+      pts.push((cx+Math.cos(ang)*rr).toFixed(1)+','+(cy+Math.sin(ang)*rr).toFixed(1));
+    }
+    body += '<polygon points="'+pts.join(' ')+'" fill="none" stroke="#eef2f8"/>';
+  }
+  for(var i4=0;i4<5;i4++){
+    var ang2 = -Math.PI/2 + i4*Math.PI*2/5;
+    body += line(cx, cy, cx+Math.cos(ang2)*R, cy+Math.sin(ang2)*R, {c:'#eef2f8'});
+    var lx = cx + Math.cos(ang2)*(R+16), ly = cy + Math.sin(ang2)*(R+16);
+    var an = Math.abs(Math.cos(ang2)) < 0.3 ? 'middle' : (Math.cos(ang2)>0?'start':'end');
+    body += txt(lx, ly+3, axes[i4], {anchor:an, fs:9, fill:'#7d8ba1'});
+  }
+  var sel = F.sel.reg;
+  var draw = vals.filter(function(v){ return sel < 0 || v.i === sel; });
+  if(!draw.length) draw = vals.slice(0,1);
+  draw.forEach(function(v, di){
+    var pts2 = v.a.map(function(x, i5){
+      var t = (x-mn[i5])/Math.max(mx[i5]-mn[i5], 1e-6);
+      t = 0.14 + 0.86*Math.max(0, Math.min(1, t));
+      var ang3 = -Math.PI/2 + i5*Math.PI*2/5;
+      return (cx+Math.cos(ang3)*R*t).toFixed(1)+','+(cy+Math.sin(ang3)*R*t).toFixed(1);
+    }).join(' ');
+    body += '<polygon points="'+pts2+'" fill="'+CATC(sel<0?0:sel)+'" opacity="'+(sel<0?0.16:0.3)+'" stroke="'+CATC(sel<0?0:sel)+'" stroke-width="2"/>';
+    if(sel >= 0) body += txt(cx, cy+R+30, REGN[sel], {anchor:'middle', fs:11, w:700, fill:'#16233a'});
+  });
+  return '<div class="card"><header><h3>区域受理能力雷达<span class="tag">极坐标</span></h3>'
+   + '<span class="note">五轴归一化 · '+(sel>=0?('聚焦 '+REGN[sel]):'全体区域包络')+' · 点击区域行或树图块即聚焦</span></header>'
+   + '<div class="chart">'+svgWrap(S, 272, body)+'</div></div>';
+}
+
+/* ---- 视窗 E：来源渠道构成 ---- */
+function cardChannel(P, prev){
+  /* padR 预留值标签带：条形右端标签最长约 72 单位，必须在画布内收束 */
+  var W = 560, H = 172, padL = 96, padR = 96, padT = 12, padB = 20;
+  var pw = W-padL-padR, ph = H-padT-padB;
+  var mx = Math.max.apply(null, P.byChan.concat([1]));
+  var body = '', boxes = [];
+  var rowH = ph/NK;
+  for(var k=0;k<NK;k++){
+    var v = P.byChan[k], y = padT + k*rowH + rowH*0.17, bh = rowH*0.62;
+    var bw2 = pw*Math.max(0, v)/mx;
+    body += rect(padL, y, pw, bh, {fill:'#f2f5fa', rx:3});
+    body += rect(padL, y, bw2, bh, {fill: F.chan[k]?CATC(k):'#d9e0ea', rx:3,
+      attrs:'data-chan="'+k+'" style="cursor:pointer"'});
+    if(F.sel.chan === k) body += rect(padL, y-1.5, pw, bh+3, {fill:'none', stroke:'#16233a', sw:1.6, rx:3});
+    body += txt(padL-7, y+bh/2+3.4, CHNN[k], {anchor:'end', fs:10, fill: F.chan[k]?'#4a5b74':'#c2cbd9'});
+    var mom = momTxt(v, prev ? prev.byChan[k] : null);
+    boxes.push({x:padL+bw2+4, y:y+bh/2-5, w:74, h:11, p:v,
+      s: txt(padL+bw2+6, y+bh/2+3.4, nf(v,0)+'  '+mom.t, {fs:9.5, w:600, fill: mom.c==='up'?'#c0392b':mom.c==='down'?'#2f8f5b':'#7d8ba1'})});
+  }
+  boxes.forEach(function(b){ body += b.s; });
+  body += txt(W/2, H-3, '受理量（件）· 右侧为环比上一等长窗口', {anchor:'middle', fs:9.5, fill:'#a3aec0'});
+  return '<div class="card"><header><h3>来源渠道构成与环比<span class="tag">条形</span></h3>'
+   + '<span class="note">合计 '+nf(P.byChan.reduce(function(a,b){return a+b;},0),0)+' 件 · 点击渠道即穿透过滤</span></header>'
+   + '<div class="chart">'+svgWrap(W, H, body)+'</div></div>';
+}
+
+/* ---- 视窗 F：办理时长分档（标尺切换主战场） ---- */
+function cardHist(P){
+  /* padB 须同时容纳两行分档标签与底部口径说明，二者不得重叠 */
+  var W = 500, H = 220, padL = 52, padR = 18, padT = 16, padB = 52;
+  var pw = W-padL-padR, ph = H-padT-padB;
+  var vals = P.byBuk.slice(), tot = vals.reduce(function(a,b){return a+b;},0);
+  var log = F.scale === 'log';
+  var dom = domainOf(vals, log);
+  var sc = new Scale(log?'log':'linear', dom.lo, dom.hi);
+  var body = '', boxes = [];
+  var bm = bukMask();
+  sc.ticks().forEach(function(t){
+    if(t.v < dom.lo*0.999 || t.v > dom.hi*1.001) return;
+    var y = padT + ph - sc.t(t.v)*ph;
+    body += line(padL, y, padL+pw, y, {c: t.major?'#e7edf6':'#f2f5fa'});
+    body += txt(padL-6, y+3.2, t.label, {anchor:'end', fs:9.5});
+  });
+  var step = pw/NB, bw = Math.min(52, step*0.56);
+  vals.forEach(function(v,i){
+    var x = padL + i*step + (step-bw)/2;
+    var hgt = sc.bar(v)*ph, y = padT+ph-hgt;
+    var on = bm[i] ? 1 : 0.28;
+    body += rect(x, y, bw, hgt, {fill: CATC(i), rx:4, op: on*0.92,
+      attrs:'data-buk="'+i+'" style="cursor:pointer"'});
+    body += txt(x+bw/2, y-5, nf(v,0), {anchor:'middle', fs:9.5, w:600, fill:'#4a5b74'});
+    var bl = BUKN[i].indexOf('超过') === 0
+      ? ('>' + BUKN[i].replace('超过 ','').replace(' 个工作日','') + ' 日')
+      : BUKN[i].replace(' 个工作日','').replace('内',' 日内');
+    boxes.push({x:x-bw*0.1, y:padT+ph+4, w:bw*1.2, h:24, p:100-i,
+      s: txt(x+bw/2, padT+ph+16, bl, {anchor:'middle', fs:9.5, fill:'#7d8ba1'})
+       + txt(x+bw/2, padT+ph+27, (v/Math.max(tot,1)*100).toFixed(1)+'%', {anchor:'middle', fs:9, fill:'#a3aec0'})});
+  });
+  /* 阈值警戒基准线 */
+  if(F.thrLo > 1 || F.thrHi < 12){
+    [F.thrLo, F.thrHi].forEach(function(tv, ti){
+      var near = 0, best = 1e9;
+      for(var i2=0;i2<NB;i2++){ var dd = Math.abs(BUKMID[i2]-tv); if(dd < best){ best = dd; near = i2; } }
+      var x2 = padL + near*step + step/2;
+      body += line(x2, padT+4, x2, padT+ph, {c: ti===0?'#d98032':'#c0392b', w:1.5, dash:'6 4'});
+      body += txt(x2+3, padT+11+ti*11, (ti===0?'下限 ':'上限 ')+tv+' 日', {fs:9.5, w:600, fill: ti===0?'#d98032':'#c0392b'});
+    });
+  }
+  boxes = textCollide(boxes, 0.14);
+  boxes.forEach(function(b){ body += b.s; });
+  body += txt(padL+pw/2, H-4, '已办结工单办理时长分档 · '+(log?'对数标尺（刻度按几何级数排布）':'线性标尺')+' · 合计 '+nf(tot,0)+' 件', {anchor:'middle', fs:9.5, fill:'#a3aec0'});
+  return '<div class="card"><header><h3>办理时长分档分布<span class="tag">标尺切换</span></h3>'
+   + '<span class="note">'+(log?'对数：刻度间距按数量级疏密展开，柱高按非线性映射重建':'线性：刻度等距，柱高与数值成正比')+'</span></header>'
+   + '<div class="chart">'+svgWrap(W, H, body)+'</div></div>';
+}
+
+/* ---- 视窗 G：承办单位排名 ---- */
+function cardUnitRank(P){
+  /* padB 须同时容纳横轴刻度标签与底部口径说明，二者不得重叠 */
+  var U = P.unit, W = 500, H = 254, padL = 128, padR = 66, padT = 14, padB = 44;
+  var pw = W-padL-padR, ph = H-padT-padB;
+  var idxs = U.recv.map(function(_,i){ return i; }).sort(function(a,b){ return U.recv[b]-U.recv[a]; });
+  var mx = Math.max.apply(null, U.recv.concat([1]));
+  var log = F.scale === 'log';
+  var dom = domainOf(U.recv, log);
+  var sc = new Scale(log?'log':'linear', dom.lo, dom.hi);
+  var body = '';
+  sc.ticks().forEach(function(t){
+    if(t.v < dom.lo*0.999 || t.v > dom.hi*1.001) return;
+    var x = padL + sc.t(t.v)*pw;
+    body += line(x, padT, x, padT+ph, {c: t.major?'#e7edf6':'#f4f7fb'});
+    body += txt(x, padT+ph+12, t.label, {anchor:'middle', fs:9});
+  });
+  var rowH = ph/idxs.length;
+  idxs.forEach(function(u, rank){
+    var y = padT + rank*rowH + rowH*0.16, bh = rowH*0.66;
+    var x0 = padL + sc.t(dom.lo)*pw;
+    var x1 = padL + sc.bar(U.recv[u])*pw;
+    body += rect(padL, y, pw, bh, {fill:'#f5f8fc', rx:3});
+    body += rect(x0, y, Math.max(1.5, x1-x0), bh, {fill: rank===0?'#1c4f9c':rank<3?'#2f7fd4':'#7fb0e4', rx:3,
+      attrs:'data-unit="'+u+'" style="cursor:pointer"'});
+    if(F.sel.unit === u) body += rect(padL, y-1.5, pw, bh+3, {fill:'none', stroke:'#16233a', sw:1.6, rx:3});
+    body += txt(padL-7, y+bh/2+3.4, UNITN[u], {anchor:'end', fs:9.5, fill:'#4a5b74'});
+    body += txt(x1+5, y+bh/2+3.4, nf(U.recv[u],0)+' · 超期 '+nf(U.over[u],0), {fs:9, fill:'#7d8ba1'});
+  });
+  body += txt(padL+pw/2, H-4, '受理量（件）· 由类别归口比例精确配额，行和恒等于受理总量', {anchor:'middle', fs:9.5, fill:'#a3aec0'});
+  return '<div class="card"><header><h3>承办单位受理与超期排名<span class="tag">排名</span></h3>'
+   + '<span class="note">'+(log?'对数横轴':'线性横轴')+' · 合计 '+nf(U.recv.reduce(function(a,b){return a+b;},0),0)+' 件</span></header>'
+   + '<div class="chart">'+svgWrap(W, H, body)+'</div></div>';
+}
+
+/* ---- 视窗 H：区域 × 类别 关联热力矩阵 ---- */
+function cardHeat(P){
+  var W = 500, H = 236, padL = 62, padB = 52, padT = 8, padR = 8;
+  var cw = (W-padL-padR)/NC, ch = (H-padT-padB)/NR;
+  var mx = 0, mn = Infinity;
+  for(var r=0;r<NR;r++) for(var c=0;c<NC;c++){ var v = P.byCell[r][c]; if(v>mx)mx=v; if(v<mn)mn=v; }
+  if(!isFinite(mn)) mn = 0;
+  var body = '';
+  for(var r2=0;r2<NR;r2++){
+    body += txt(padL-6, padT+r2*ch+ch/2+3.2, REGN[r2], {anchor:'end', fs:9.5, fill: F.reg[r2]?'#4a5b74':'#c8d1de'});
+    for(var c2=0;c2<NC;c2++){
+      var v2 = P.byCell[r2][c2];
+      var fill = v2>0 ? tone(v2, mn, mx) : '#f7f9fc';
+      body += rect(padL+c2*cw+1, padT+r2*ch+1, cw-2, ch-2, {fill:fill, rx:2,
+        attrs:'data-heat="'+r2+'-'+c2+'" style="cursor:pointer"'});
+      if(v2>0 && cw > 44){
+        var tc = (mx>mn && (v2-mn)/(mx-mn) > 0.62) ? '#eaf1fb' : '#4a5b74';
+        body += txt(padL+c2*cw+cw/2, padT+r2*ch+ch/2+3.2, nf(v2,0), {anchor:'middle', fs:8.5, fill:tc});
+      }
+    }
+  }
+  for(var c3=0;c3<NC;c3++){
+    body += txt(padL+c3*cw+cw/2, padT+NR*ch+12, CATN[c3].slice(0,4), {anchor:'end', fs:9, rot:-32});
+  }
+  body += txt(padL+pw0(padL,W,padR)/2, H-4, '单元格＝该区域该类别受理量（件）· 双击单元格交叉下钻', {anchor:'middle', fs:9.5, fill:'#a3aec0'});
+  return '<div class="card"><header><h3>区域 × 类别 关联热力矩阵<span class="tag">矩阵</span></h3>'
+   + '<span class="note">色阶按当前筛选子集的极值实时重建 · 峰值 '+nf(mx,0)+' 件</span></header>'
+   + '<div class="chart">'+svgWrap(W, H, body)+'</div></div>';
+}
+function pw0(a,b,c){ return b-a-c; }
+
+/* ---- 视窗 I：明细表（排序 / 行选 / 分页 / 合计行） ---- */
+var TBL = {sort:'recv', dir:-1, page:0, size:8};
+function cardTable(P, dim){
+  var rows, cols, title, tag;
+  if(dim === 'reg'){
+    title = '区域受理与办理明细'; tag = '明细表';
+    cols = [{k:'name',t:'受理区域',txt:1},{k:'recv',t:'受理量'},{k:'closed',t:'办结量'},{k:'over',t:'新增超期'},
+            {k:'rate',t:'按期办结率',suf:'%'},{k:'dur',t:'平均时长',suf:' 日'},{k:'sat',t:'满意率',suf:'%'},{k:'mom',t:'环比'}];
+    rows = REGN.map(function(nm,i){
+      var mom = momTxt(P.byReg[i], P.prev ? P.prev.byReg[i] : null);
+      return {i:i, name:nm, recv:P.byReg[i], closed:P.byRegC[i], over:P.byRegO[i],
+              rate:P.byRegRate[i], dur:P.byRegAvg[i], sat:P.byRegSat[i], mom:mom.t, momc:mom.c};
+    });
+  } else {
+    title = '承办单位办理效能明细'; tag = '明细表';
+    cols = [{k:'name',t:'承办单位',txt:1},{k:'recv',t:'受理量'},{k:'closed',t:'办结量'},{k:'over',t:'新增超期'},
+            {k:'rate',t:'按期办结率',suf:'%'},{k:'dur',t:'平均时长',suf:' 日'},{k:'share',t:'受理占比',suf:'%'}];
+    var totU = P.unit.recv.reduce(function(a,b){return a+b;},0);
+    rows = UNITN.map(function(nm,i){
+      return {i:i, name:nm, recv:P.unit.recv[i], closed:P.unit.closed[i], over:P.unit.over[i],
+              rate: P.unit.recv[i]>0 ? P.unit.closed[i]/P.unit.recv[i]*100 : 0,
+              dur: P.unit.avg[i], share: totU>0 ? P.unit.recv[i]/totU*100 : 0};
+    });
+  }
+  var sorted = rows.slice().sort(function(a,b){
+    var A = a[TBL.sort], B = b[TBL.sort];
+    if(typeof A === 'string') return TBL.dir * A.localeCompare(B);
+    return TBL.dir * (A-B);
+  });
+  var pages = Math.max(1, Math.ceil(sorted.length/TBL.size));
+  if(TBL.page >= pages) TBL.page = pages-1;
+  var page = sorted.slice(TBL.page*TBL.size, TBL.page*TBL.size + TBL.size);
+  var sum = {recv:0, closed:0, over:0, durNum:0};
+  rows.forEach(function(r){ sum.recv += r.recv; sum.closed += r.closed; sum.over += r.over; sum.durNum += r.dur*r.closed; });
+  var sumRate = sum.recv>0 ? sum.closed/sum.recv*100 : 0;
+  var sumDur = sum.closed>0 ? sum.durNum/sum.closed : 0;
+  var head = '<tr>' + cols.map(function(c){
+    return '<th class="s" data-sort="'+c.k+'">'+c.t+'<span class="ar">'+(TBL.sort===c.k?(TBL.dir<0?'▼':'▲'):'')+'</span></th>';
+  }).join('') + '</tr>';
+  var bodyRows = page.map(function(r){
+    return '<tr data-row="'+r.i+'"'+(F.sel[dim]===r.i?' class="sel"':'')+'>' + cols.map(function(c,ci){
+      var v = r[c.k];
+      var disp = (typeof v === 'string') ? v : (c.k==='recv'||c.k==='closed'||c.k==='over' ? nf(v,0) : nf(v,2)+(c.suf||''));
+      if(c.k === 'mom') disp = '<span class="'+(r.momc||'')+'">'+v+'</span>';
+      if(ci===0) disp = '<span class="bar-mini" style="width:'+Math.max(2,Math.min(34, r.recv/Math.max(sum.recv,1)*90)).toFixed(1)+'px"></span>' + esc(r.name);
+      var lab = c.t + (c.suf||'');
+      return '<td data-label="'+esc(lab)+'">'+disp+'</td>';
+    }).join('') + '</tr>';
+  }).join('');
+  var foot = '<tr data-sum="1"><td data-label="合计">合计（当前筛选全部行）</td>'
+   + cols.slice(1).map(function(c){
+      var v;
+      if(c.k==='recv') v = nf(sum.recv,0);
+      else if(c.k==='closed') v = nf(sum.closed,0);
+      else if(c.k==='over') v = nf(sum.over,0);
+      else if(c.k==='rate') v = nf(sumRate,2)+'%';
+      else if(c.k==='dur') v = nf(sumDur,2)+' 日';
+      else if(c.k==='share') v = nf(100,2)+'%';
+      else v = '—';
+      return '<td data-label="'+esc(c.t+(c.suf||''))+'">'+v+'</td>';
+    }).join('') + '</tr>';
+  var pager = '<div class="pager"><span>第 '+(TBL.page+1)+' / '+pages+' 页 · 共 '+rows.length+' 行</span>'
+   + '<button data-pg="-1"'+(TBL.page<=0?' disabled':'')+'>上一页</button>'
+   + '<button data-pg="1"'+(TBL.page>=pages-1?' disabled':'')+'>下一页</button></div>';
+  return '<div class="card wide"><header><h3>'+title+'<span class="tag">'+tag+'</span></h3>'
+   + '<span class="note">点击列头排序 · 点击行选中并联动其余视窗 · 合计行恒等于主卡片汇总值（Σ 行 = 总计）</span></header>'
+   + '<div class="tw"><table data-dim="'+dim+'"><thead>'+head+'</thead><tbody>'+bodyRows+'</tbody><tfoot>'+foot+'</tfoot></table></div>'
+   + pager + '</div>';
+}
+
+/* ---- 视窗 J：预警清单 ---- */
+function cardWarn(P){
+  var items = [];
+  var w = [
+    {sev:'red',    t:'城关区 住房与城乡建设 超期量',      d:'连续两期居于首位'},
+    {sev:'red',    t:'青山县 按期办结率',                d:'低于全域均值 4.6 个百分点以上'},
+    {sev:'orange', t:'微信小程序 渠道受理量增速',        d:'环比增幅超过 20%'},
+    {sev:'orange', t:'4–5 个工作日分档工单占比',         d:'环比抬升，时效尾部变厚'},
+    {sev:'yellow', t:'松岭县 平均办理时长',              d:'高于全域均值'},
+    {sev:'yellow', t:'市政务服务管理局 超期量',          d:'归口类别分散，责任边界模糊'}
+  ];
+  var top = P.byReg.indexOf(Math.max.apply(null, P.byReg));
+  w[0].t = (top>=0?REGN[top]:'—') + ' 超期量';
+  var worstRate = 0, wi = 0;
+  P.byRegRate.forEach(function(v,i){ if(P.byReg[i]>0 && (wi===0 || v < worstRate)){ worstRate = v; wi = i; } });
+  w[1].t = REGN[wi] + ' 按期办结率';
+  var body = '<div class="wlist">' + w.map(function(x,i){
+    return '<div class="wl '+x.sev+'"'+(F.warnings==='w'+i?' style="outline:2px solid #2f7fd4"':'')+'>'
+     + '<span class="sev"></span><span><span class="t">'+esc(x.t)+'</span><br><span class="d">'+esc(x.d)+'</span></span>'
+     + '<span class="v">'+['红','橙','黄'][x.sev==='red'?0:x.sev==='orange'?1:2]+'</span></div>';
+  }).join('') + '</div>';
+  return '<div class="card"><header><h3>超期与时效预警清单<span class="tag">异常</span></h3>'
+   + '<span class="note">红 2 · 橙 2 · 黄 2 · 点击任一条进入异常巡检态</span></header>' + body + '</div>';
+}
+
+/* ---- 侧栏 ---- */
+function renderSide(P){
+  var momR = momTxt(P.recv, P.prev ? P.prev.recv : null);
+  var momO = momTxt(P.over, P.prev ? P.prev.over : null);
+  var bm = bukMask();
+  var dropped = 0;
+  for(var b=0;b<NB;b++) if(!bm[b]) dropped += 1;
+  var h = '';
+  h += '<div class="card"><h4>口径说明</h4><div class="caliber">'
+    + '<b>受理量 = 办结量 + 新增超期</b>，逐格恒等；<br>'
+    + '<b>按期办结率</b> = 办结量 ÷ 受理量；<br>'
+    + '<b>平均办理时长</b> = Σ办理时长 ÷ Σ办结量，仅统计已办结工单；<br>'
+    + '<b>环比</b> = 本期窗口 ÷ 紧邻等长上期窗口。<br>'
+    + '所有 KPI、图形与明细表均来自同一份内存立方体的同一次筛选投影。</div></div>';
+  h += '<div class="card"><h4>窗口特征值</h4><dl class="kv">'
+    + '<dt>时间窗口</dt><dd>'+DAYS[NWR+F.days[0]].slice(5)+' ~ '+DAYS[NWR+F.days[1]].slice(5)+'</dd>'
+    + '<dt>在选区域 / 类别 / 渠道</dt><dd>'+F.reg.filter(Boolean).length+' / '+F.cat.filter(Boolean).length+' / '+F.chan.filter(Boolean).length+'</dd>'
+    + '<dt>时长分档保留</dt><dd>'+(NB-dropped)+' / '+NB+'</dd>'
+    + '<dt>有效立方体单元</dt><dd>'+nf(NCELL,0)+'</dd>'
+    + '<dt>受理量环比</dt><dd class="'+(momR.c||'')+'">'+momR.t+'</dd>'
+    + '<dt>新增超期环比</dt><dd class="'+(momO.c||'')+'">'+momO.t+'</dd>'
+    + '<dt>视图比例 / DPR</dt><dd>'+VW+'×'+VH+' / '+DPR.toFixed(2)+'</dd>'
+    + '<dt>当前标尺</dt><dd>'+({linear:'线性',log:'对数',pct:'占比'})[F.scale]+'</dd>'
+    + '<dt>状态令牌</dt><dd style="font-size:10.5px">'+esc(ST.name)+'</dd>'
+    + '</dl></div>';
+  h += '<div class="card"><h4>守恒账本</h4><dl class="kv" id="ledgerKv"></dl></div>';
+  h += cardWarn(P);
+  SIDE.innerHTML = h;
+  renderLedger(P);
+}
+function renderLedger(P){
+  var el = document.getElementById('ledgerKv');
+  if(!el) return;
+  var rows = ledgerRows(P);
+  el.innerHTML = rows.map(function(r){
+    return '<dt>'+esc(r.t)+'</dt><dd class="'+(r.ok?'':'up')+'" style="color:'+(r.ok?'#2f8f5b':'#c0392b')+'">'
+      + (r.ok?'✓ ':'✗ ') + esc(r.v) + '</dd>';
+  }).join('');
+}
+function ledgerRows(P){
+  var catSum = P.byCat.reduce(function(a,b){return a+b;},0);
+  var regSum = P.byReg.reduce(function(a,b){return a+b;},0);
+  var chanSum= P.byChan.reduce(function(a,b){return a+b;},0);
+  var bukSum = P.byBuk.reduce(function(a,b){return a+b;},0);
+  var unitSum= P.unit.recv.reduce(function(a,b){return a+b;},0);
+  var idA = P.recv === P.closed + P.over;
+  return [
+    {t:'Σ 类别受理量', v:nf(catSum,2)+' / '+nf(P.recv,2), ok:Math.abs(catSum-P.recv)<1e-6},
+    {t:'Σ 区域受理量', v:nf(regSum,2)+' / '+nf(P.recv,2), ok:Math.abs(regSum-P.recv)<1e-6},
+    {t:'Σ 渠道受理量', v:nf(chanSum,2)+' / '+nf(P.recv,2), ok:Math.abs(chanSum-P.recv)<1e-6},
+    {t:'Σ 承办单位受理量', v:nf(unitSum,2)+' / '+nf(P.recv,2), ok:Math.abs(unitSum-P.recv)<1e-6},
+    {t:'Σ 时长分档 = 办结量', v:nf(bukSum,2)+' / '+nf(P.closed,2), ok:Math.abs(bukSum-P.closed)<1e-6},
+    {t:'受理 = 办结 + 超期', v:nf(P.recv,0)+' = '+nf(P.closed,0)+' + '+nf(P.over,0), ok:idA},
+    {t:'明细合计（表尾）', v:nf(regSum,2)+' / '+nf(P.recv,2), ok:Math.abs(regSum-P.recv)<1e-6}
+  ];
+}
+function renderKPIs(P){
+  var mom = {
+    recv:  momTxt(P.recv, P.prev?P.prev.recv:null),
+    closed:momTxt(P.closed, P.prev?P.prev.closed:null),
+    over:  momTxt(P.over, P.prev?P.prev.over:null)
+  };
+  var pv = P.prev;
+  var dR = (pv && pv.recv > 0 && P.recv > 0) ? (P.rate - pv.rate) : null;
+  return '<div id="kpis">'
+   + kpiCard('k1','受理量', nf(P.recv,0), '件', mom.recv)
+   + kpiCard('k2','办结量', nf(P.closed,0), '件', mom.closed)
+   + kpiCard('k3','按期办结率', nf(P.rate,2), '%',
+      dR===null?{t:'—',c:''}:{t:(dR>=0?'+':'')+dR.toFixed(2)+'pp', c:dR>0?'up':dR<0?'down':''}, '较紧邻等长上期')
+   + kpiCard('k4','平均办理时长', nf(P.avgDur,2), '工作日',
+      pv && pv.closed>0 ? delta(P.avgDur, pv.avgDur, ' 日', 2) : {t:'—',c:''}, '仅统计已办结工单')
+   + kpiCard('k5','满意率', nf(P.satPct,2), '%',
+      pv && pv.closed>0 ? delta(P.satPct, pv.satPct, 'pp', 2) : {t:'—',c:''}, '加权于已办结工单')
+   + kpiCard('k6','新增超期', nf(P.over,0), '件', mom.over)
+   + '</div>';
+}
+
+/* ---------- 渲染编排 ---------- */
+var R = {P:null};
+function render(){
+  readViewport();
+  var P = project();
+  R.P = P;
+  var tab = TABS[F.tab].id;
+  var h = renderKPIs(P);
+  if(tab === 'overview'){
+    h += cardCombo(P);
+    h += cardRose(P);
+    h += cardTreemap(P);
+  } else if(tab === 'category'){
+    h += cardRose(P);
+    h += cardChannel(P, P.prev);
+    h += cardHist(P);
+  } else if(tab === 'region'){
+    h += cardRadar(P);
+    h += cardTreemap(P);
+    h += cardTable(P, 'reg');
+  } else if(tab === 'sla'){
+    h += cardHist(P);
+    h += cardUnitRank(P);
+  } else {
+    h += cardHeat(P);
+    h += cardTable(P, 'unit');
+  }
+  CHARTS.innerHTML = h;
+  renderSide(P);
+  renderTabs(); renderBar(); renderChips(); renderCrumb(); renderDrawer();
+  document.getElementById('audit').setAttribute('data-json', JSON.stringify(audit(P)));
+  if(ANNO.on) drawAnno();
+}
+
+function renderTabs(){
+  var el = document.getElementById('tabs');
+  el.innerHTML = TABS.map(function(t,i){
+    return '<button role="tab" aria-selected="'+(F.tab===i)+'" data-tab="'+i+'">'+t.n+'</button>';
+  }).join('');
+}
+function renderBar(){
+  document.getElementById('segRange').innerHTML = [['全期 30 日','all'],['上旬','d1'],['中旬','d2'],['下旬','d3'],['末 7 日','d4']]
+    .map(function(p){ return '<button data-range="'+p[1]+'">'+p[0]+'</button>'; }).join('');
+  document.getElementById('segScale').innerHTML = [['线性','linear'],['对数','log'],['占比','pct']]
+    .map(function(p){ return '<button data-scale="'+p[1]+'" aria-pressed="'+(F.scale===p[1])+'">'+p[0]+'</button>'; }).join('');
+  document.getElementById('segScale2').innerHTML = document.getElementById('segScale').innerHTML;
+  document.getElementById('legend').innerHTML = [['recv','受理量','#3f86dd'],['closed','办结量','#2f9e8f'],['over','新增超期','#c0392b']]
+    .map(function(p){ return '<button class="lg'+(LGSOLO===p[0]?' solo':'')+'" data-lg="'+p[0]+'" aria-pressed="'+(F.legend[p[0]]!==0)+'">'
+      + '<span class="dot" style="background:'+p[2]+'"></span>'+p[1]+'</button>'; }).join('');
+  document.getElementById('selMetric').value = F.metric;
+  var rl = DAYS[NWR+F.days[0]].slice(5), rh = DAYS[NWR+F.days[1]].slice(5);
+  document.getElementById('dayLoV').textContent = rl;
+  document.getElementById('dayHiV').textContent = rh;
+  document.getElementById('mWin').textContent = DAYS[NWR]+' ~ '+DAYS[ND-1];
+  document.getElementById('mPrev').textContent = DAYS[0]+' ~ '+DAYS[NWR-1];
+  document.getElementById('mCube').innerHTML = '立方体 <b>'+nf(NCELL,0)+'</b> 单元';
+  document.getElementById('stateToken').textContent = ST.name;
+}
+var LGSOLO = null;
+function renderChips(){
+  var af = activeFilters();
+  document.getElementById('fchips').innerHTML = af.length
+    ? af.map(function(f){ return '<span class="fc">'+esc(f.t)+'<i data-k="'+f.k+'" title="移除">×</i></span>'; }).join('')
+      + '<span class="fc" style="background:#fff;border-color:#d7dfec;color:#7d8ba1">共 '+af.length+' 项筛选生效</span>'
+    : '<span class="fc" style="background:#fff;border-color:#d7dfec;color:#7d8ba1">当前为全域口径，未施加任何筛选</span>';
+}
+function renderCrumb(){
+  var el = document.getElementById('crumb');
+  var parts = ['<span>全域名录</span>'];
+  if(F.drill){
+    var nm = (F.drill.dim==='reg'?REGN:F.drill.dim==='cat'?CATN:CHNN)[F.drill.i];
+    parts.push('<span class="sep">›</span><b>'+esc(nm)+'</b>');
+  }
+  if(F.scale !== 'linear') parts.push('<span class="sep">›</span><b>'+({log:'对数标尺',pct:'占比标尺'})[F.scale]+'</b>');
+  if(F.anomaly) parts.push('<span class="sep">›</span><b>异常巡检</b>');
+  var back = F.drill ? '<button data-act="up">↑ 返回上一级</button>' : '';
+  var home = (F.drill||F.scale!=='linear'||F.anomaly) ? '<button data-act="home">复位到全域总览</button>' : '';
+  el.innerHTML = parts.join('') + (back||home ? '&nbsp;&nbsp;'+back+home : '');
+}
+function renderDrawer(){
+  var mk = function(dim, names, arr, el){
+    document.getElementById(el).innerHTML = names.map(function(n,i){
+      return '<button data-msel="'+dim+'" data-i="'+i+'" aria-pressed="'+(!!arr[i])+'">'+esc(n)+'</button>';
+    }).join('');
+  };
+  mk('reg', REGN, F.reg, 'msReg');
+  mk('cat', CATN, F.cat, 'msCat');
+  mk('chan', CHNN, F.chan, 'msChan');
+  document.getElementById('thrLo').value = F.thrLo;
+  document.getElementById('thrHi').value = F.thrHi;
+  document.getElementById('thrLoV').textContent = F.thrLo.toFixed(1);
+  document.getElementById('thrHiV').textContent = F.thrHi.toFixed(1);
+  document.getElementById('dayLo').value = F.days[0];
+  document.getElementById('dayHi').value = F.days[1];
+}
+
+/* ---------- 8. 显式有限状态机 ---------- */
+var ST = {
+  name:'INIT_DATA_INGESTED',
+  seq:['INIT_DATA_INGESTED','GLOBAL_OVERVIEW_CRUISE','SERIES_BRUSH_STAGED','DIMENSION_SLICED',
+       'HIERARCHY_DRILLDOWN','SCALE_LOG_TRANSFORMED','ANOMALY_INSPECTION','FILTER_RESET_RECONVERGED'],
+  log:[],
+  go:function(next, via){
+    if(this.seq.indexOf(next) < 0) return false;
+    if(this.name === next) return false;
+    this.log.push({from:this.name, to:next, via:via||'', t:Date.now()});
+    if(this.log.length > 200) this.log.shift();
+    this.name = next;
+    document.body.setAttribute('data-state', next);
+    var tk = document.getElementById('stateToken');
+    if(tk) tk.textContent = next;
+    return true;
+  },
+  derive:function(){
+    if(F.drill) return 'HIERARCHY_DRILLDOWN';
+    if(F.scale === 'log') return 'SCALE_LOG_TRANSFORMED';
+    if(F.days[0] !== 0 || F.days[1] !== NWR-1) return 'SERIES_BRUSH_STAGED';
+    if(F.anomaly) return 'ANOMALY_INSPECTION';
+    var dim = F.reg.some(function(v){return !v;}) || F.cat.some(function(v){return !v;})
+           || F.chan.some(function(v){return !v;}) || bukMask().some(function(v){return !v;});
+    if(dim) return 'DIMENSION_SLICED';
+    if(F.reset) return 'FILTER_RESET_RECONVERGED';
+    return 'GLOBAL_OVERVIEW_CRUISE';
+  }
+};
+function syncState(via){
+  var want = ST.derive();
+  ST.go(want, via);
+  document.getElementById('stateToken').textContent = ST.name;
+}
+
+/* ---------- 9. 手势 ---------- */
+var brush = null, cross = null;
+function hitChart(e){
+  var el = e.target.closest ? e.target.closest('svg') : null;
+  return el;
+}
+var ANNO = {on:false, fr:0};
+
+document.addEventListener('click', function(e){
+  var t = e.target;
+  var tabB = t.closest && t.closest('[data-tab]');
+  if(tabB){ F.tab = +tabB.dataset.tab; F.drill = null; syncState('tab'); render(); return; }
+  var rg = t.closest && t.closest('[data-range]');
+  if(rg){ applyRange(rg.dataset.range); return; }
+  var sc = t.closest && t.closest('[data-scale]');
+  if(sc){ setScale(sc.dataset.scale); return; }
+  var lg = t.closest && t.closest('[data-lg]');
+  if(lg){ toggleLegend(lg.dataset.lg, e.altKey); return; }
+  var fc = t.closest && t.closest('[data-k]');
+  if(fc){ clearFilter(fc.dataset.k); return; }
+  var ms = t.closest && t.closest('[data-msel]');
+  if(ms){ var d = ms.dataset.dim, i = +ms.dataset.i;
+    var arr = d==='reg'?F.reg:d==='cat'?F.cat:F.chan;
+    arr[i] = arr[i]?0:1; afterFilter('抽屉多选'); return; }
+  var mn = t.closest && t.closest('[data-act]');
+  if(mn){
+    var a = mn.dataset.act, dm = mn.dataset.dim;
+    if(a === 'up'){ if(F.drill){ F.drill = null; afterFilter('面包屑回退'); } return; }
+    if(a === 'home'){ F.drill = null; F.scale='linear'; F.anomaly=false; resetAll(); return; }
+    var arr2 = dm==='reg'?F.reg:dm==='cat'?F.cat:F.chan;
+    for(var i2=0;i2<arr2.length;i2++) arr2[i2] = a==='all'?1:a==='none'?0:(arr2[i2]?0:1);
+    afterFilter('抽屉'+({all:'全选',none:'清除',inv:'反选'})[a]); return;
+  }
+  var th = t.closest && t.closest('th[data-sort]');
+  if(th){ var k = th.dataset.sort; if(TBL.sort===k) TBL.dir = -TBL.dir; else { TBL.sort = k; TBL.dir = -1; } TBL.page = 0; render(); return; }
+  var pg = t.closest && t.closest('[data-pg]');
+  if(pg){ TBL.page = Math.max(0, TBL.page + (+pg.dataset.pg)); render(); return; }
+  var tr = t.closest && t.closest('tr[data-row]');
+  if(tr){
+    var tbl = tr.closest('table');
+    var key = (tbl && tbl.dataset.dim === 'unit') ? 'unit' : 'reg';
+    var i3 = +tr.dataset.row;
+    F.sel[key] = (F.sel[key] === i3) ? -1 : i3;
+    if(key === 'reg') F.sel.reg = F.sel[key];
+    render(); return;
+  }
+  var tm = t.closest && t.closest('[data-tm]');
+  if(tm){
+    var pr = tm.dataset.tm.split('-'), r = +pr[0], c = +pr[1];
+    if(F.sel.reg === r && F.sel.cat === c){
+      F.reg = F.reg.map(function(){ return 1; }); F.cat = F.cat.map(function(){ return 1; });
+      F.sel.reg = -1; F.sel.cat = -1;
+    } else {
+      F.reg = F.reg.map(function(_,i){ return i === r ? 1 : 0; });
+      F.cat = F.cat.map(function(_,i){ return i === c ? 1 : 0; });
+      F.sel.reg = r; F.sel.cat = c;
+    }
+    afterFilter('树图交叉过滤'); return;
+  }
+  var ht = t.closest && t.closest('[data-heat]');
+  if(ht){
+    var q2 = ht.dataset.heat.split('-'), hr = +q2[0], hc = +q2[1];
+    if(F.sel.reg === hr && F.sel.cat === hc){
+      F.reg = F.reg.map(function(){ return 1; }); F.cat = F.cat.map(function(){ return 1; });
+      F.sel.reg = -1; F.sel.cat = -1;
+    } else {
+      F.reg = F.reg.map(function(_,i){ return i === hr ? 1 : 0; });
+      F.cat = F.cat.map(function(_,i){ return i === hc ? 1 : 0; });
+      F.sel.reg = hr; F.sel.cat = hc;
+    }
+    afterFilter('热力交叉过滤'); return;
+  }
+  var ct = t.closest && t.closest('[data-cat]');
+  if(ct){ var ci = +ct.dataset.cat; var only = F.cat.filter(Boolean).length === 1 && F.cat[ci];
+    F.cat = F.cat.map(function(_,i4){ return only?1:(i4===ci?1:0); });
+    F.sel.cat = only ? -1 : ci; afterFilter('玫瑰扇区穿透'); return; }
+  var ch2 = t.closest && t.closest('[data-chan]');
+  if(ch2){ var ki = +ch2.dataset.chan; F.chan = F.chan.map(function(_,i5){ return i5===ki?1:0; });
+    F.sel.chan = ki; afterFilter('渠道穿透'); return; }
+  var un = t.closest && t.closest('[data-unit]');
+  if(un){ var ui = +un.dataset.unit; F.sel.unit = (F.sel.unit===ui?-1:ui); render(); return; }
+  var bk = t.closest && t.closest('[data-buk]');
+  if(bk){ var bi = +bk.dataset.buk; F.buk[bi] = F.buk[bi]?0:1; afterFilter('分档穿透'); return; }
+}, false);
+
+document.addEventListener('dblclick', function(e){
+  var tm = e.target.closest && e.target.closest('[data-tm]');
+  if(tm){ var p = tm.dataset.tm.split('-'); F.drill = {dim:'reg', i:+p[0]}; F.cat = F.cat.map(function(_,i){ return i===+p[1]?1:0; });
+    F.sel.reg = +p[0]; F.sel.cat = +p[1]; afterFilter('树图下钻'); return; }
+  var ht = e.target.closest && e.target.closest('[data-heat]');
+  if(ht){ var q = ht.dataset.heat.split('-'); F.drill = {dim:'reg', i:+q[0]}; F.cat = F.cat.map(function(_,i){ return i===+q[1]?1:0; });
+    F.sel.reg = +q[0]; F.sel.cat = +q[1]; afterFilter('热力交叉下钻'); return; }
+  var ct = e.target.closest && e.target.closest('[data-cat]');
+  if(ct){ F.drill = {dim:'cat', i:+ct.dataset.cat}; afterFilter('玫瑰下钻'); return; }
+}, false);
+
+function toggleLegend(k, solo){
+  if(solo){ LGSOLO = (LGSOLO === k) ? null : k;
+    Object.keys(F.legend).forEach(function(x){ F.legend[x] = (LGSOLO === null || x === LGSOLO) ? 1 : 0; }); }
+  else { F.legend[k] = F.legend[k] ? 0 : 1; LGSOLO = null; }
+  syncState('图例'); render();
+}
+function applyRange(k){
+  if(k === 'd1'){ F.days = [0, 9]; }
+  else if(k === 'd2'){ F.days = [10, 19]; }
+  else if(k === 'd3'){ F.days = [20, NWR-1]; }
+  else if(k === 'd4'){ F.days = [NWR-7, NWR-1]; }
+  else { F.days = [0, NWR-1]; }
+  TBL.page = 0;
+  syncState('周期'); render();
+  toast('时间窗口已切换至 ' + DAYS[NWR+F.days[0]] + ' ~ ' + DAYS[NWR+F.days[1]] + '，主视窗 Y 轴上界已按新子集重算');
+}
+function setScale(k){
+  F.scale = k; syncState('标尺');
+  if(k === 'log') ST.go('SCALE_LOG_TRANSFORMED', '标尺切换'); else syncState('标尺');
+  render();
+  toast(k === 'log' ? '标尺切换为对数：刻度按几何级数疏密重排，柱高按非线性映射重建' : '标尺切换为' + ({linear:'线性',pct:'占比'})[k]);
+}
+function clearFilter(k){
+  if(k === 'days') F.days = [0, NWR-1];
+  if(k === 'reg') F.reg = F.reg.map(function(){ return 1; });
+  if(k === 'cat') F.cat = F.cat.map(function(){ return 1; });
+  if(k === 'chan') F.chan = F.chan.map(function(){ return 1; });
+  if(k === 'buk'){ F.thrLo = 1; F.thrHi = 12; F.buk = F.buk.map(function(){ return 1; }); }
+  if(k === 'drill') F.drill = null;
+  afterFilter('移除筛选');
+}
+function afterFilter(via){ TBL.page = 0; syncState(via); render(); }
+function resetAll(){
+  F.days = [0, NWR-1]; F.thrLo = 1; F.thrHi = 12; F.scale = 'linear';
+  F.reg = F.reg.map(function(){ return 1; });
+  F.cat = F.cat.map(function(){ return 1; });
+  F.chan = F.chan.map(function(){ return 1; });
+  F.buk = F.buk.map(function(){ return 1; });
+  F.sel = {reg:-1, cat:-1, chan:-1, unit:-1};
+  F.legend = {recv:1, closed:1, over:1};
+  F.drill = null; F.anomaly = false; F.warnings = '';
+  TBL.page = 0; LGSOLO = null;
+  ST.go('FILTER_RESET_RECONVERGED', '复位');
+  render();
+  ST.go('GLOBAL_OVERVIEW_CRUISE', '归位完成');
+  document.getElementById('stateToken').textContent = ST.name;
+  toast('全部筛选、标尺、下钻与图例已复位');
+}
+
+/* 时间轴框选缩放 */
+document.addEventListener('mousedown', function(e){
+  var b = e.target.closest && e.target.closest('[data-brush]');
+  if(!b) return;
+  var svg = b.ownerSVGElement, bb = svg.getBoundingClientRect();
+  brush = {x0: e.clientX, bb: bb, padL: 46, pw: 760-46-46};
+  e.preventDefault();
+}, false);
+document.addEventListener('mousemove', function(e){
+  if(brush){
+    var x1 = Math.min(brush.x0, e.clientX), x2 = Math.max(brush.x0, e.clientX);
+    showBrush(x1, x2, brush.bb);
+  }
+  var cs = e.target.closest && e.target.closest('[data-cross]');
+  if(cs) showCross(e, cs);
+}, false);
+document.addEventListener('mouseup', function(e){
+  if(!brush) return;
+  var bb = brush.bb, x0 = brush.x0, x1 = e.clientX;
+  var rel0 = (Math.min(x0,x1) - bb.left) / bb.width * 760, rel1 = (Math.max(x0,x1) - bb.left) / bb.width * 760;
+  brush = null; clearBrush();
+  var padL = 46, pw = 760-46-46, n = F.days[1]-F.days[0]+1;
+  if(rel1 - rel0 < 12 || n <= 1) return;
+  var a = Math.round((rel0 - padL)/pw*n), b2 = Math.round((rel1 - padL)/pw*n);
+  a = Math.max(0, Math.min(n-1, a)); b2 = Math.max(0, Math.min(n-1, b2));
+  if(b2 - a < 1) return;
+  F.days = [F.days[0]+a, F.days[0]+b2];
+  afterFilter('时间轴框选');
+  toast('框选缩放：时间窗口收敛至 ' + DAYS[NWR+F.days[0]] + ' ~ ' + DAYS[NWR+F.days[1]] + '，Y 轴上界随子集重算');
+}, false);
+function showBrush(x1, x2, bb){
+  var svg = document.querySelector('[data-brush]');
+  if(!svg) return;
+  var old = document.getElementById('brushRect'); if(old) old.remove();
+  var rx = (x1 - bb.left)/bb.width*760, rw = (x2-x1)/bb.width*760;
+  var g = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  g.setAttribute('id','brushRect'); g.setAttribute('x', rx.toFixed(1)); g.setAttribute('y', 14);
+  g.setAttribute('width', Math.max(0,rw).toFixed(1)); g.setAttribute('height', 250-14-26);
+  g.setAttribute('fill','#1c4f9c'); g.setAttribute('opacity','.12');
+  g.setAttribute('stroke','#1c4f9c'); g.setAttribute('stroke-width','1');
+  svg.ownerSVGElement.appendChild(g);
+}
+function clearBrush(){ var o = document.getElementById('brushRect'); if(o) o.remove(); }
+function showCross(e, cs){
+  var svg = cs.ownerSVGElement, bb = svg.getBoundingClientRect();
+  var g = document.getElementById('crossG'); if(g) g.remove();
+  var padL = 46, pw = 760-46-46, padT = 14, ph = 250-14-26;
+  var rx = (e.clientX - bb.left)/bb.width*760;
+  var t = (rx - padL)/pw;
+  if(t < 0 || t > 1){ hideTip(); return; }
+  var n = F.days[1]-F.days[0]+1, i = Math.max(0, Math.min(n-1, Math.round(t*(n-1))));
+  var x = padL + (n>1 ? i*pw/(n-1) : pw/2);
+  var P = R.P;
+  var di = F.days[0] + i;
+  var node = document.createElementNS('http://www.w3.org/2000/svg','g');
+  node.setAttribute('id','crossG');
+  node.innerHTML = '<line x1="'+x.toFixed(1)+'" y1="'+padT+'" x2="'+x.toFixed(1)+'" y2="'+(padT+ph)+'" stroke="#16233a" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>'
+    + '<circle cx="'+x.toFixed(1)+'" cy="'+(padT+ph-0.5)+'" r="2.5" fill="#16233a"/>';
+  svg.ownerSVGElement.appendChild(node);
+  var rows = [
+    ['受理量', nf(P.byDay[di],0)+' 件'],
+    ['办结量', nf(P.byDayC[di],0)+' 件'],
+    ['新增超期', nf(P.byDayO[di],0)+' 件'],
+    ['按期办结率', (P.byDay[di]>0?(P.byDayC[di]/P.byDay[di]*100).toFixed(2):'—')+' %']
+  ];
+  showTip(e.clientX, e.clientY, DAYS[NWR+di] + '（周' + WK[new Date(DAYS[NWR+di]).getDay()] + '）', rows,
+    '受理量 = 办结量 + 新增超期，逐日逐格恒等');
+}
+function showTip(x, y, title, rows, foot){
+  var el = document.getElementById('tip');
+  el.innerHTML = '<div class="tt">'+esc(title)+'</div><div class="rr">'
+    + rows.map(function(r){ return '<span>'+esc(r[0])+'</span><span>'+esc(r[1])+'</span>'; }).join('')
+    + '</div>' + (foot?'<div class="sep"></div><div style="opacity:.72;font-size:10px">'+esc(foot)+'</div>':'');
+  el.style.display = 'block';
+  var w = el.offsetWidth, h = el.offsetHeight;
+  el.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, x + 14)) + 'px';
+  el.style.top  = Math.max(8, Math.min(window.innerHeight - h - 8, y + 14)) + 'px';
+}
+function hideTip(){ document.getElementById('tip').style.display = 'none'; }
+document.addEventListener('mouseout', function(e){ hideTip(); }, false);
+
+/* 抽屉控件 */
+document.addEventListener('input', function(e){
+  var id = e.target.id;
+  if(id === 'thrLo'){ F.thrLo = Math.min(+e.target.value, F.thrHi); }
+  else if(id === 'thrHi'){ F.thrHi = Math.max(+e.target.value, F.thrLo); }
+  else if(id === 'dayLo'){ F.days[0] = Math.min(+e.target.value, F.days[1]); }
+  else if(id === 'dayHi'){ F.days[1] = Math.max(+e.target.value, F.days[0]); }
+  else if(id === 'selMetric'){ F.metric = e.target.value; }
+  else return;
+  afterFilter('抽屉调节');
+}, false);
+document.addEventListener('change', function(e){ if(e.target.id === 'selMetric'){ F.metric = e.target.value; render(); } }, false);
+
+document.getElementById('btnDrawer').addEventListener('click', function(){
+  document.getElementById('drawer').classList.add('on');
+  ST.go('DIMENSION_SLICED', '打开切片器');
+});
+document.getElementById('drawerX').addEventListener('click', closeDrawer);
+document.getElementById('dClose').addEventListener('click', closeDrawer);
+function closeDrawer(){ document.getElementById('drawer').classList.remove('on'); syncState('收起切片器'); }
+document.getElementById('dReset').addEventListener('click', resetAll);
+document.getElementById('btnReset').addEventListener('click', resetAll);
+document.getElementById('btnAno').addEventListener('click', function(){
+  F.anomaly = !F.anomaly;
+  if(F.anomaly) ST.go('ANOMALY_INSPECTION', '离群巡检'); else syncState('退出巡检');
+  render();
+  toast(F.anomaly ? '异常巡检：主趋势视窗标出 |z| > 2 的离群日' : '已退出异常巡检态');
+});
+/* 预警清单条目 → 真实联动：进入异常巡检态，并把榜首条目对应的区域图元一并聚焦 */
+document.addEventListener('click', function(e){
+  var wl = e.target && e.target.closest ? e.target.closest('.wl') : null;
+  if(!wl || !wl.parentNode) return;
+  var i = Array.prototype.indexOf.call(wl.parentNode.children, wl);
+  F.warnings = 'w' + i;
+  F.anomaly = true;
+  if(i === 0){
+    var top = R.P.byReg.indexOf(Math.max.apply(null, R.P.byReg));
+    if(top >= 0) F.sel.reg = top;
+  } else if(i === 1){
+    var wr = -1, wi = -1;
+    R.P.byRegRate.forEach(function(v,k){
+      if(R.P.byReg[k] > 0 && (wi < 0 || v < wr)){ wr = v; wi = k; }
+    });
+    if(wi >= 0) F.sel.reg = wi;
+  }
+  ST.go('ANOMALY_INSPECTION', '预警条目巡检');
+  render();
+  toast('异常巡检 · ' + (wl.querySelector('.t') ? wl.querySelector('.t').textContent : ''));
+}, false);
+document.getElementById('btnAnno').addEventListener('click', function(){
+  ANNO.on = !ANNO.on;
+  document.getElementById('anno').classList.toggle('on', ANNO.on);
+  this.setAttribute('aria-pressed', ANNO.on);
+  if(ANNO.on) drawAnno(); else document.getElementById('anno').innerHTML = '';
+});
+window.addEventListener('resize', function(){ readViewport(); render(); if(ANNO.on) drawAnno(); });
+function toast(s){
+  var el = document.getElementById('toast');
+  el.textContent = s; el.classList.add('on');
+  clearTimeout(toast._t); toast._t = setTimeout(function(){ el.classList.remove('on'); }, 2200);
+}
+
+/* ---------- 批注层（人工圈注引线） ---------- */
+function drawAnno(){
+  var svg = document.getElementById('anno');
+  svg.setAttribute('viewBox', '0 0 '+VW+' '+VH);
+  svg.setAttribute('width', VW); svg.setAttribute('height', VH);
+  var P = R.P; if(!P) return;
+  var notes = [];
+  var q = function(sel){ return document.querySelector(sel); };
+  var R2 = function(el){ return el ? el.getBoundingClientRect() : null; };
+  var combo = q('[data-brush]');
+  if(combo){ var b = R2(combo);
+    notes.push({x: b.left + b.width*0.16, y: b.top + 22, dx: -6, dy: -70,
+      t:'Y 轴上界由当前筛选子集实时解算', t2:'切换筛选后此值必须随之改变'});
+  }
+  var tm = q('[data-tm]'); if(tm){ var b2 = R2(tm);
+    notes.push({x: b2.left + b2.width/2, y: b2.top + b2.height/2, dx: 46, dy: -16,
+      t:'双击下钻', t2:'左键单击＝交叉过滤'});
+  }
+  var heat = q('[data-heat]'); if(heat){ var b3 = R2(heat);
+    notes.push({x: b3.left + b3.width/2, y: b3.top + b3.height/2, dx: -150, dy: 62,
+      t:'等价于「区域 ∧ 类别」双条件切片', t2:'其余视窗的坐标轴与极值随之重解'});
+  }
+  /* 标注锚点选第 4 根柱：其柱顶之下留有空白区，标签落进绘图区而不是卡片表头 */
+  var hist = document.querySelectorAll('[data-buk]')[3] || q('[data-buk]');
+  if(hist){ var b4 = R2(hist);
+    notes.push({x: b4.left + b4.width/2, y: b4.top, dx: 26, dy: -30,
+      t:'对数标尺下刻度非等距', t2:'1 / 10 / 100 / 1000 按数量级展开'});
+  }
+  var foot = q('tfoot td'); if(foot){ var b5 = R2(foot);
+    notes.push({x: b5.left + b5.width*0.5, y: b5.top + 8, dx: 24, dy: 46,
+      t:'Σ 行 = 总计，小数后两位绝对相等', t2:'写死数据会立刻在此处暴露'});
+  }
+  var s = '';
+  notes.forEach(function(n, i){
+    var lx = Math.max(120, Math.min(VW-160, n.x + n.dx));
+    var ly = Math.max(30, Math.min(VH-40, n.y + n.dy));
+    s += '<circle cx="'+n.x.toFixed(0)+'" cy="'+n.y.toFixed(0)+'" r="13" fill="none" stroke="#c0392b" stroke-width="1.6" stroke-dasharray="4 3" opacity=".9"/>';
+    s += '<path d="M'+n.x.toFixed(0)+' '+n.y.toFixed(0)+' Q'+((n.x+lx)/2+18).toFixed(0)+' '+((n.y+ly)/2-16).toFixed(0)+' '+lx.toFixed(0)+' '+(ly+10).toFixed(0)+'" fill="none" stroke="#c0392b" stroke-width="1.1" opacity=".8"/>';
+    /* 白色描边光晕：标注可能落在色块或网格之上，必须始终可读 */
+    var halo = ' style="paint-order:stroke;stroke:#fff;stroke-width:3.4;stroke-linejoin:round"';
+    s += '<text x="'+lx.toFixed(0)+'" y="'+ly.toFixed(0)+'" font-size="13.5" fill="#b0301f" font-weight="700"'+halo+'>'+esc(n.t)+'</text>';
+    s += '<text x="'+lx.toFixed(0)+'" y="'+(ly+16).toFixed(0)+'" font-size="11.5" fill="#b0301f" opacity=".82"'+halo+'>'+esc(n.t2)+'</text>';
+  });
+  svg.innerHTML = s;
+}
+
+/* ---------- 10. 账本与审计 ---------- */
+function audit(P){
+  var rows = ledgerRows(P);
+  var ok = rows.every(function(r){ return r.ok; });
+  var logTicks = new Scale('log', 1, 25000).ticks().map(function(t){ return t.v; });
+  var linTicks = new Scale('linear', 0, 25000).ticks().map(function(t){ return t.v; });
+  var detailSum = 0;
+  REGN.forEach(function(_, i){ detailSum += P.byReg[i]; });
+  return {
+    state: ST.name,
+    cubeCells: NCELL,
+    cubeBytes: (CB.byteLength + CO.byteLength + CD.byteLength + CS.byteLength + CBK.byteLength),
+    filter: {days:F.days.slice(), reg:F.reg.slice(), cat:F.cat.slice(), chan:F.chan.slice(), scale:F.scale, thr:[F.thrLo, F.thrHi]},
+    totals: {recv:P.recv, closed:P.closed, over:P.over, rate:+P.rate.toFixed(2),
+             avgDur:+P.avgDur.toFixed(2), sat:+P.satPct.toFixed(2)},
+    detail: {rows: REGN.length, sum: detailSum, equalsTotal: Math.abs(detailSum - P.recv) < 1e-6},
+    conservation: {
+      catSum: P.byCat.reduce(function(a,b){return a+b;},0),
+      regSum: P.byReg.reduce(function(a,b){return a+b;},0),
+      chanSum: P.byChan.reduce(function(a,b){return a+b;},0),
+      unitSum: P.unit.recv.reduce(function(a,b){return a+b;},0),
+      bukSum: P.byBuk.reduce(function(a,b){return a+b;},0),
+      identity: P.recv === P.closed + P.over
+    },
+    yDomain: domainOf(P.byDay.slice(F.days[0], F.days[1]+1), F.scale==='log'),
+    logTicks: logTicks,
+    linTicks: linTicks,
+    transitions: ST.log.length,
+    checks: {all: ok, detail: rows.map(function(r){ return {n:r.t, ok:r.ok}; })}
+  };
+}
+window.addEventListener('error', function(){ /* 交由探针读取 */ });
+
+/* ---------- 11. API ---------- */
+window.ZT = {
+  state: function(){ return ST.name; },
+  states: function(){ return ST.seq.slice(); },
+  setState: function(s, via){ var r = ST.go(s, via||'api'); render(); return r; },
+  audit: function(){ return audit(R.P); },
+  project: function(){ return R.P; },
+  filter: function(){ return F; },
+  setScale: setScale,
+  setTab: function(i){ F.tab = +i; render(); },
+  /* 窗口入参一律夹取到本期有效日期下标，越界或倒序都不允许击穿内部账本 */
+  setWindow: function(a, b){
+    a = Math.max(0, Math.min(NWR-1, Math.round(+a)));
+    b = Math.max(0, Math.min(NWR-1, Math.round(+b)));
+    if(b < a){ var t = a; a = b; b = t; }
+    F.days = [a, b]; afterFilter('api');
+  },
+  setThreshold: function(lo, hi){ F.thrLo = lo; F.thrHi = hi; afterFilter('api'); },
+  setDim: function(dim, arr){ F[dim] = arr.slice(); afterFilter('api'); },
+  drill: function(dim, i){ F.drill = {dim:dim, i:i}; afterFilter('api'); },
+  select: function(dim, i){ F.sel[dim] = i; render(); },
+  legend: function(k, s){ toggleLegend(k, s); },
+  anomaly: function(v){ F.anomaly = !!v; syncState('api'); render(); },
+  reset: function(){ resetAll(); },
+  anno: function(v){ ANNO.on = !!v;
+    document.getElementById('anno').classList.toggle('on', ANNO.on);
+    if(ANNO.on) drawAnno(); else document.getElementById('anno').innerHTML = ''; return ANNO.on; },
+  ticks: function(kind, d0, d1){ return new Scale(kind, d0, d1).ticks(); },
+  map: function(kind, d0, d1, v){ return new Scale(kind, d0, d1).bar(v); },
+  dpr: function(){ return DPR; },
+  toast: toast
+};
+
+/* ---------- 启动 ---------- */
+readViewport();
+ST.go('INIT_DATA_INGESTED', 'boot');
+render();
+ST.go('GLOBAL_OVERVIEW_CRUISE', '初始化完成');
+document.getElementById('foot').innerHTML =
+  '<b>政通热线 · 工单受理与办理效能分析平台</b>　单文件自包含 · 完全离线 · 不含任何外链脚本、CDN、位图占位或第三方图表库。<br>'
++ '数据主键：受理日期 × 受理区域 × 事项类别 × 来源渠道 四维原子事实流，共 <b>'+nf(NCELL,0)+'</b> 个立方体单元，'
++ '全部 KPI、图形与明细表由同一次筛选投影派生；受理量 = 办结量 + 新增超期 逐格恒等，'
++ '区域 / 类别 / 渠道 / 承办单位 / 时长分档 五套边际与总计互相闭合。<br>'
++ '观测窗口 '+DAYS[0]+' ~ '+DAYS[ND-1]+'，其中本期窗口 '+DAYS[NWR]+' ~ '+DAYS[ND-1]+' 共 30 日，'
++ '对照窗口为其紧邻的等长上期；配色由自定义属性集中管理，全部交互元素可被键盘聚焦。';
+syncState('初始化完成');
+})();
+</script>
+</body>
+</html>

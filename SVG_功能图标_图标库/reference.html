@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>功能图标库 · ICON SET</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+:root{
+  --bg:#eef1f8;--bg2:#e4e9f6;--panel:#ffffff;--line:#e2e7f3;
+  --ink:#232a44;--ink2:#8b94b8;--ic:#4f6df5;--ic2:#b6c3ff;--onIc:#ffffff;
+  --bp:#5a76c8;
+}
+body.theme-b{
+  --bg:#fbf1e4;--bg2:#f3e7d2;--panel:#fffaf1;--line:#f0e0c8;
+  --ink:#33240f;--ink2:#a68b6a;--ic:#e8791a;--ic2:#ffc07a;--onIc:#2a1806;
+  --bp:#c07a3a;
+}
+body{display:flex;flex-direction:column;background:linear-gradient(180deg,var(--bg2),var(--bg));font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 22px;background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:12px}
+.brand h1{font-size:20px;letter-spacing:2px;font-weight:600;color:var(--ic)}
+.brand .zh{font-size:13px;color:var(--ink2);letter-spacing:3px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs button{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 16px;border-radius:20px;font-size:14px;letter-spacing:1px;cursor:pointer;transition:all .18s ease}
+.tabs button:hover{border-color:var(--ic);color:var(--ic)}
+.tabs button.active{background:var(--ic);color:var(--onIc);border-color:var(--ic);font-weight:600}
+.stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+#iconSvg{width:100%;height:100%;display:block;overflow:hidden}
+/* 图标绘制 */
+.tile{fill:var(--panel);stroke:var(--line);stroke-width:2}
+.ic{fill:var(--ic)}
+.ac{fill:var(--ic2)}
+.ics{fill:none;stroke:var(--ic);stroke-width:8;stroke-linecap:round;stroke-linejoin:round}
+.acs{fill:none;stroke:var(--ic2);stroke-width:8;stroke-linecap:round;stroke-linejoin:round}
+.ilabel{fill:var(--ink2);font-size:17px;letter-spacing:2px}
+.watermark{fill:var(--ink);opacity:.5;font-size:34px;letter-spacing:14px}
+.watermark-sub{fill:var(--ink2);opacity:.55;font-size:16px;letter-spacing:10px}
+.ro{fill:var(--ink2);font-size:14px;letter-spacing:2px;font-family:Consolas,Menlo,monospace;opacity:.8}
+/* 悬停微交互 */
+#iconSvg .part{transition:filter .15s ease;cursor:pointer}
+#iconSvg .part:hover{filter:drop-shadow(0 10px 22px rgba(50,70,140,.28))}
+#iconSvg .part:hover .tile{stroke:var(--ic)}
+/* 线稿蓝图 */
+#bpGrid{display:none}
+#annotations{display:none}
+#legend{display:none}
+#iconSvg.bp #backdrop{display:none}
+#iconSvg.bp #bpGrid{display:block}
+.bpbg{fill:#fbfcfe}.bpg{stroke:#dce5f2;stroke-width:1}.bpg-c{stroke:#c0d0ea;stroke-width:1.6}.bpg-d{stroke:#c0d0ea;stroke-width:1.4;stroke-dasharray:6 8}.bpt{fill:#5a76c8;font-size:20px;letter-spacing:3px;opacity:.85}
+#iconSvg.bp #grid .part{filter:none}
+#iconSvg.bp #grid .tile{fill:#ffffff!important;stroke:#c9d6ec!important}
+#iconSvg.bp #grid .ic,#iconSvg.bp #grid .ac{fill:none!important;stroke:var(--bp)!important;stroke-width:2.4!important}
+#iconSvg.bp #grid .ics,#iconSvg.bp #grid .acs{stroke:var(--bp)!important}
+#iconSvg.bp #grid .ilabel{display:none}
+/* 标注视图 */
+#iconSvg.ann #annotations{display:block}
+#iconSvg.ann #legend{display:block}
+.badge{fill:var(--ic)}
+.badge-num{fill:var(--onIc);font-size:15px;font-weight:700;font-family:Georgia,serif}
+.ann-dot{fill:var(--ic)}
+.ann-num{fill:var(--onIc);font-size:14px;font-weight:700;font-family:Georgia,serif}
+.ann-name{fill:var(--ink);font-size:14px;letter-spacing:1px}
+.legend-panel{fill:var(--panel);stroke:var(--line);stroke-width:1;opacity:.98}
+/* 选中态 */
+#iconSvg.sel #grid .part{opacity:.42}
+#iconSvg.sel #grid .part:hover{filter:none}
+#iconSvg.sel #grid .part.selected{opacity:1}
+#iconSvg.sel #grid .part.selected .tile{fill:var(--ic);stroke:var(--ic)}
+#iconSvg.sel #grid .part.selected .ic{fill:#ffffff}
+#iconSvg.sel #grid .part.selected .ac{fill:rgba(255,255,255,.72)}
+#iconSvg.sel #grid .part.selected .ics{stroke:#ffffff}
+#iconSvg.sel #grid .part.selected .ilabel{fill:#ffffff}</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>ICON SET</h1>
+    <span class="zh">功能图标 · 矢量图标库</span>
+  </div>
+  <nav class="tabs" aria-label="视图切换">
+    <button data-view="overview" class="active">整体</button>
+    <button data-view="theme">配色</button>
+    <button data-view="closeup">特写</button>
+    <button data-view="blueprint">线稿</button>
+    <button data-view="annotate">标注</button>
+    <button data-view="select">选中</button>
+  </nav>
+</header>
+<main class="stage"><svg id="iconSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 864" role="img" aria-label="功能图标库矢量插画">
+  <g id="backdrop">
+    <rect class="tile" x="0" y="0" width="1536" height="864" fill="var(--bg)" stroke="none"/>
+    <text class="watermark" x="768" y="64" text-anchor="middle">ICON SET</text>
+    <text class="watermark-sub" x="768" y="88" text-anchor="middle">功能图标 · 矢量图标库</text>
+    <text class="ro" x="52" y="808">COUNT 12</text>
+    <text class="ro" x="52" y="832">STROKE 2.0</text>
+    <text class="ro" x="1364" y="808" text-anchor="end">GRID 4×3</text>
+    <text class="ro" x="1364" y="832" text-anchor="end">SIZE 24×24</text>
+  </g>
+  <g id="bpGrid">
+    <rect class="bpbg" x="0" y="0" width="1536" height="864"/>
+    <line class="bpg" x1="0" y1="0" x2="0" y2="864"/><line class="bpg" x1="96" y1="0" x2="96" y2="864"/><line class="bpg" x1="192" y1="0" x2="192" y2="864"/><line class="bpg" x1="288" y1="0" x2="288" y2="864"/><line class="bpg" x1="384" y1="0" x2="384" y2="864"/><line class="bpg" x1="480" y1="0" x2="480" y2="864"/><line class="bpg" x1="576" y1="0" x2="576" y2="864"/><line class="bpg" x1="672" y1="0" x2="672" y2="864"/><line class="bpg" x1="768" y1="0" x2="768" y2="864"/><line class="bpg" x1="864" y1="0" x2="864" y2="864"/><line class="bpg" x1="960" y1="0" x2="960" y2="864"/><line class="bpg" x1="1056" y1="0" x2="1056" y2="864"/><line class="bpg" x1="1152" y1="0" x2="1152" y2="864"/><line class="bpg" x1="1248" y1="0" x2="1248" y2="864"/><line class="bpg" x1="1344" y1="0" x2="1344" y2="864"/><line class="bpg" x1="1440" y1="0" x2="1440" y2="864"/><line class="bpg" x1="1536" y1="0" x2="1536" y2="864"/><line class="bpg" x1="0" y1="0" x2="1536" y2="0"/><line class="bpg" x1="0" y1="96" x2="1536" y2="96"/><line class="bpg" x1="0" y1="192" x2="1536" y2="192"/><line class="bpg" x1="0" y1="288" x2="1536" y2="288"/><line class="bpg" x1="0" y1="384" x2="1536" y2="384"/><line class="bpg" x1="0" y1="480" x2="1536" y2="480"/><line class="bpg" x1="0" y1="576" x2="1536" y2="576"/><line class="bpg" x1="0" y1="672" x2="1536" y2="672"/><line class="bpg" x1="0" y1="768" x2="1536" y2="768"/><line class="bpg" x1="0" y1="864" x2="1536" y2="864"/><line class="bpg-c" x1="0" y1="432" x2="1536" y2="432"/>
+    <line class="bpg-c" x1="768" y1="0" x2="768" y2="864"/><circle class="bpg-d" cx="768" cy="432" r="180" fill="none"/><circle class="bpg-d" cx="768" cy="432" r="340" fill="none"/><circle class="bpg-d" cx="768" cy="432" r="500" fill="none"/>
+    <text class="bpt" x="60" y="52">ICON SET — BLUEPRINT · 结构线稿</text>
+    <text class="bpt" x="60" y="820">SCALE 1:1 · UNITS PX · 功能图标结构线稿</text>
+  </g>
+  <g id="stage" transform="translate(168,32)">
+    <g id="cam"><g id="grid">
+  <g class="part selected" id="part-home" data-name="首页" transform="translate(64,70)">
+    <title>首页</title>
+    <rect class="tile" x="0" y="0" width="250" height="200" rx="18"/>
+    <g transform="translate(125,78)">
+      <path class="ic" d="M-38,2 L0,-34 L38,2 Z"/>
+      <path class="ic" d="M-27,0 L-27,34 L27,34 L27,0 Z"/>
+      <rect class="ac" x="-9" y="15" width="18" height="19" rx="2"/>
+    </g>
+    <text class="ilabel" x="125" y="168" text-anchor="middle">首页</text>
+  </g>
+  <g class="part" id="part-search" data-name="搜索" transform="translate(338,70)">
+    <title>搜索</title>
+    <rect class="tile" x="0" y="0" width="250" height="200" rx="18"/>
+    <g transform="translate(125,78)">
+      <circle class="ics" cx="-3" cy="-5" r="18"/>
+      <path class="ics" d="M11,11 L31,31"/>
+    </g>
+    <text class="ilabel" x="125" y="168" text-anchor="middle">搜索</text>
+  </g>
+  <g class="part" id="part-settings" data-name="设置" transform="translate(612,70)">
+    <title>设置</title>
+    <rect class="tile" x="0" y="0" width="250" height="200" rx="18"/>
+    <g transform="translate(125,78)">
+      <rect class="ic" x="-5" y="-37" width="10" height="17" rx="3" transform="rotate(0)"/>
+      <rect class="ic" x="-5" y="-37" width="10" height="17" rx="3" transform="rotate(45)"/>
+      <rect class="ic" x="-5" y="-37" width="10" height="17" rx="3" transform="rotate(90)"/>
+      <rect class="ic" x="-5" y="-37" width="10" height="17" rx="3" transform="rotate(135)"/>
+      <rect class="ic" x="-5" y="-37" width="10" height="17" rx="3" transform="rotate(180)"/>
+      <rect class="ic" x="-5" y="-37" width="10" height="17" rx="3" transform="rotate(225)"/>
+      <rect class="ic" x="-5" y="-37" width="10" height="17" rx="3" transform="rotate(270)"/>
+      <rect class="ic" x="-5" y="-37" width="10" height="17" rx="3" transform="rotate(315)"/>
+      <circle class="ics" cx="0" cy="0" r="15"/>
+      <circle class="ac" cx="0" cy="0" r="5.5"/>
+    </g>
+    <text class="ilabel" x="125" y="168" text-anchor="middle">设置</text>
+  </g>
+  <g class="part" id="part-user" data-name="用户" transform="translate(886,70)">
+    <title>用户</title>
+    <rect class="tile" x="0" y="0" width="250" height="200" rx="18"/>
+    <g transform="translate(125,78)">
+      <circle class="ic" cx="0" cy="-13" r="15"/>
+      <path class="ic" d="M-31,34 C-31,12 -17,0 0,0 C17,0 31,12 31,34 Z"/>
+    </g>
+    <text class="ilabel" x="125" y="168" text-anchor="middle">用户</text>
+  </g>
+  <g class="part" id="part-message" data-name="消息" transform="translate(64,300)">
+    <title>消息</title>
+    <rect class="tile" x="0" y="0" width="250" height="200" rx="18"/>
+    <g transform="translate(125,78)">
+      <rect class="ic" x="-30" y="-28" width="60" height="42" rx="13"/>
+      <path class="ic" d="M-14,10 L-21,32 L1,12 Z"/>
+      <circle class="ac" cx="-12" cy="-8" r="4"/>
+      <circle class="ac" cx="0" cy="-8" r="4"/>
+      <circle class="ac" cx="12" cy="-8" r="4"/>
+    </g>
+    <text class="ilabel" x="125" y="168" text-anchor="middle">消息</text>
+  </g>
+  <g class="part" id="part-heart" data-name="喜欢" transform="translate(338,300)">
+    <title>喜欢</title>
+    <rect class="tile" x="0" y="0" width="250" height="200" rx="18"/>
+    <g transform="translate(125,78)">
+      <path class="ic" d="M0,33 C0,33 -33,10 -33,-5 C-33,-19 -20,-27 -8,-16 L0,-7 L8,-16 C20,-27 33,-19 33,-5 C33,10 0,33 0,33 Z"/>
+    </g>
+    <text class="ilabel" x="125" y="168" text-anchor="middle">喜欢</text>
+  </g>
+  <g class="part" id="part-cart" data-name="购物车" transform="translate(612,300)">
+    <title>购物车</title>
+    <rect class="tile" x="0" y="0" width="250" height="200" rx="18"/>
+    <g transform="translate(125,78)">
+      <path class="ic" d="M-31,-6 L-21,20 L21,20 L31,-6 Z"/>
+      <path class="ics" d="M-24,-6 L-8,-30 L16,-30 L28,-8"/>
+      <circle class="ac" cx="-13" cy="27" r="6"/>
+      <circle class="ac" cx="13" cy="27" r="6"/>
+    </g>
+    <text class="ilabel" x="125" y="168" text-anchor="middle">购物车</text>
+  </g>
+  <g class="part" id="part-calendar" data-name="日历" transform="translate(886,300)">
+    <title>日历</title>
+    <rect class="tile" x="0" y="0" width="250" height="200" rx="18"/>
+    <g transform="translate(125,78)">
+      <rect class="ic" x="-30" y="-20" width="60" height="48" rx="8"/>
+      <rect class="ac" x="-30" y="-20" width="60" height="13" rx="8"/>
+      <rect class="ics" x="-16" y="-30" width="6" height="9" rx="3"/>
+      <rect class="ics" x="10" y="-30" width="6" height="9" rx="3"/>
+      <circle class="ac" cx="-11" cy="2" r="2.6"/>
+      <circle class="ac" cx="0" cy="2" r="2.6"/>
+      <circle class="ac" cx="11" cy="2" r="2.6"/>
+      <circle class="ac" cx="-11" cy="14" r="2.6"/>
+      <circle class="ac" cx="0" cy="14" r="2.6"/>
+      <circle class="ac" cx="11" cy="14" r="2.6"/>
+    </g>
+    <text class="ilabel" x="125" y="168" text-anchor="middle">日历</text>
+  </g>
+  <g class="part" id="part-camera" data-name="相机" transform="translate(64,530)">
+    <title>相机</title>
+    <rect class="tile" x="0" y="0" width="250" height="200" rx="18"/>
+    <g transform="translate(125,78)">
+      <rect class="ic" x="-30" y="-16" width="60" height="40" rx="8"/>
+      <rect class="ic" x="-13" y="-26" width="22" height="11" rx="3"/>
+      <circle class="ics" cx="0" cy="4" r="13"/>
+      <circle class="ac" cx="0" cy="4" r="5.5"/>
+      <circle class="ac" cx="22" cy="-10" r="3"/>
+    </g>
+    <text class="ilabel" x="125" y="168" text-anchor="middle">相机</text>
+  </g>
+  <g class="part" id="part-location" data-name="定位" transform="translate(338,530)">
+    <title>定位</title>
+    <rect class="tile" x="0" y="0" width="250" height="200" rx="18"/>
+    <g transform="translate(125,78)">
+      <circle class="ic" cx="0" cy="-9" r="20"/>
+      <path class="ic" d="M-14,2 L0,34 L14,2 Z"/>
+      <circle class="ac" cx="0" cy="-9" r="7.5"/>
+    </g>
+    <text class="ilabel" x="125" y="168" text-anchor="middle">定位</text>
+  </g>
+  <g class="part" id="part-star" data-name="星标" transform="translate(612,530)">
+    <title>星标</title>
+    <rect class="tile" x="0" y="0" width="250" height="200" rx="18"/>
+    <g transform="translate(125,78)">
+      <path class="ic" d="M0,-34 L7.9,-10.9 L32.3,-10.5 L12.8,4.2 L19.8,28.6 L0,14.5 L-19.8,28.6 L-12.8,4.2 L-32.3,-10.5 L-7.9,-10.9 Z"/>
+    </g>
+    <text class="ilabel" x="125" y="168" text-anchor="middle">星标</text>
+  </g>
+  <g class="part" id="part-download" data-name="下载" transform="translate(886,530)">
+    <title>下载</title>
+    <rect class="tile" x="0" y="0" width="250" height="200" rx="18"/>
+    <g transform="translate(125,78)">
+      <rect class="ic" x="-5" y="-26" width="10" height="26" rx="3"/>
+      <path class="ic" d="M-19,2 L0,22 L19,2 Z"/>
+      <rect class="ac" x="-28" y="28" width="56" height="7" rx="3.5"/>
+    </g>
+    <text class="ilabel" x="125" y="168" text-anchor="middle">下载</text>
+  </g>
+</g></g>
+    <g id="annotations"><g class="ann" data-n="1"><circle class="badge" cx="86" cy="92" r="14"/><text class="badge-num" x="86" y="97" text-anchor="middle">1</text></g><g class="ann" data-n="2"><circle class="badge" cx="360" cy="92" r="14"/><text class="badge-num" x="360" y="97" text-anchor="middle">2</text></g><g class="ann" data-n="3"><circle class="badge" cx="634" cy="92" r="14"/><text class="badge-num" x="634" y="97" text-anchor="middle">3</text></g><g class="ann" data-n="4"><circle class="badge" cx="908" cy="92" r="14"/><text class="badge-num" x="908" y="97" text-anchor="middle">4</text></g><g class="ann" data-n="5"><circle class="badge" cx="86" cy="322" r="14"/><text class="badge-num" x="86" y="327" text-anchor="middle">5</text></g><g class="ann" data-n="6"><circle class="badge" cx="360" cy="322" r="14"/><text class="badge-num" x="360" y="327" text-anchor="middle">6</text></g><g class="ann" data-n="7"><circle class="badge" cx="634" cy="322" r="14"/><text class="badge-num" x="634" y="327" text-anchor="middle">7</text></g><g class="ann" data-n="8"><circle class="badge" cx="908" cy="322" r="14"/><text class="badge-num" x="908" y="327" text-anchor="middle">8</text></g><g class="ann" data-n="9"><circle class="badge" cx="86" cy="552" r="14"/><text class="badge-num" x="86" y="557" text-anchor="middle">9</text></g><g class="ann" data-n="10"><circle class="badge" cx="360" cy="552" r="14"/><text class="badge-num" x="360" y="557" text-anchor="middle">10</text></g><g class="ann" data-n="11"><circle class="badge" cx="634" cy="552" r="14"/><text class="badge-num" x="634" y="557" text-anchor="middle">11</text></g><g class="ann" data-n="12"><circle class="badge" cx="908" cy="552" r="14"/><text class="badge-num" x="908" y="557" text-anchor="middle">12</text></g></g>
+  </g>
+  <g id="legend">
+    <rect class="legend-panel" x="40" y="800" width="1456" height="52" rx="10"/>
+    <g class="ann">
+      <circle class="ann-dot" cx="92" cy="836" r="13"/>
+      <text class="ann-num" x="92" y="841" text-anchor="middle">1</text>
+      <text class="ann-name" x="112" y="841">首页</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="210" cy="836" r="13"/>
+      <text class="ann-num" x="210" y="841" text-anchor="middle">2</text>
+      <text class="ann-name" x="230" y="841">搜索</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="328" cy="836" r="13"/>
+      <text class="ann-num" x="328" y="841" text-anchor="middle">3</text>
+      <text class="ann-name" x="348" y="841">设置</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="446" cy="836" r="13"/>
+      <text class="ann-num" x="446" y="841" text-anchor="middle">4</text>
+      <text class="ann-name" x="466" y="841">用户</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="564" cy="836" r="13"/>
+      <text class="ann-num" x="564" y="841" text-anchor="middle">5</text>
+      <text class="ann-name" x="584" y="841">消息</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="682" cy="836" r="13"/>
+      <text class="ann-num" x="682" y="841" text-anchor="middle">6</text>
+      <text class="ann-name" x="702" y="841">喜欢</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="800" cy="836" r="13"/>
+      <text class="ann-num" x="800" y="841" text-anchor="middle">7</text>
+      <text class="ann-name" x="820" y="841">购物车</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="918" cy="836" r="13"/>
+      <text class="ann-num" x="918" y="841" text-anchor="middle">8</text>
+      <text class="ann-name" x="938" y="841">日历</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="1036" cy="836" r="13"/>
+      <text class="ann-num" x="1036" y="841" text-anchor="middle">9</text>
+      <text class="ann-name" x="1056" y="841">相机</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="1154" cy="836" r="13"/>
+      <text class="ann-num" x="1154" y="841" text-anchor="middle">10</text>
+      <text class="ann-name" x="1174" y="841">定位</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="1272" cy="836" r="13"/>
+      <text class="ann-num" x="1272" y="841" text-anchor="middle">11</text>
+      <text class="ann-name" x="1292" y="841">星标</text>
+    </g><g class="ann">
+      <circle class="ann-dot" cx="1390" cy="836" r="13"/>
+      <text class="ann-num" x="1390" y="841" text-anchor="middle">12</text>
+      <text class="ann-name" x="1410" y="841">下载</text>
+    </g>
+  </g>
+</svg></main>
+<script>
+(function(){
+  var state={view:'overview'};
+  var svg=document.getElementById('iconSvg');
+  var cam=document.getElementById('cam');
+  var tabs=document.querySelectorAll('.tabs button');
+  var ZOOM={ closeup:{x:338,y:70,w:524,h:430} };
+  function zoomTo(box){
+    var W=1200,H=800,pad=52;
+    var s=Math.max(W/(box.w+pad*2), H/(box.h+pad*2));
+    var tx=W/2-(box.x+box.w/2)*s, ty=H/2-(box.y+box.h/2)*s;
+    cam.setAttribute('transform','translate('+tx.toFixed(1)+' '+ty.toFixed(1)+') scale('+s.toFixed(3)+')');
+  }
+  function setView(v){
+    state.view=v;
+    svg.classList.remove('bp','ann','sel');
+    document.body.classList.remove('theme-b');
+    cam.removeAttribute('transform');
+    if(v==='theme') document.body.classList.add('theme-b');
+    else if(v==='blueprint') svg.classList.add('bp');
+    else if(v==='annotate') svg.classList.add('ann');
+    else if(v==='select') svg.classList.add('sel');
+    else if(v==='closeup') zoomTo(ZOOM.closeup);
+    tabs.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view')===v); });
+  }
+  tabs.forEach(function(b){ b.addEventListener('click', function(){ setView(b.getAttribute('data-view')); }); });
+  window.ICONSET={ setView:setView, info:function(){
+    return { view:state.view, parts:document.querySelectorAll('#grid .part').length,
+      svgEls:document.querySelectorAll('#iconSvg *').length };
+  }};
+})();</script>
+</body>
+</html>

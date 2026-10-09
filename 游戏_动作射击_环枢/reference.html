@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>环枢 GYROSPAN · 离心环带防卫战</title>
+<style>
+:root{
+  /* ---- 基础色板 ---- */
+  --bg-0:#05080f; --bg-1:#080d17; --bg-2:#0c1421; --bg-3:#111c2c; --bg-4:#16243a;
+  --line-0:#1b2c44; --line-1:#24405f; --line-2:#33557c;
+  --ink-0:#eaf3ff; --ink-1:#b9cbe4; --ink-2:#7f97b5; --ink-3:#5a74a0;
+  --cy:#38e0d8; --cy-dim:#1d7f7c; --in:#6f8cff; --am:#ffb545; --dg:#ff5a6a;
+  --vi:#b06cff; --gr:#57e08a; --ow:#ff8a3d;
+  --rail:264px; --rail2:296px;
+  --r-1:3px; --r-2:6px; --r-3:10px;
+  --f-xxs:9px; --f-xs:10px; --f-sm:11px; --f-md:12px; --f-lg:14px; --f-xl:17px; --f-2xl:26px; --f-3xl:40px;
+  --lh-t:1.25; --lh-n:1.5;
+  --sp-1:3px; --sp-2:6px; --sp-3:9px; --sp-4:12px; --sp-5:16px;
+  --sh-1:0 1px 0 rgba(255,255,255,.04) inset;
+  --sh-2:0 6px 18px rgba(0,0,0,.55);
+  --sh-3:0 0 16px rgba(56,224,216,.22);
+  --sh-4:0 0 22px rgba(255,90,106,.35);
+  --grad-1:linear-gradient(180deg,#0d1727,#0a1220);
+  --grad-2:linear-gradient(90deg,rgba(56,224,216,.18),rgba(56,224,216,0) 62%);
+  --grad-3:linear-gradient(180deg,rgba(111,140,255,.16),rgba(111,140,255,0));
+  --grad-4:linear-gradient(90deg,rgba(255,90,106,.22),rgba(255,90,106,0));
+  --grad-5:linear-gradient(180deg,rgba(176,108,255,.20),rgba(176,108,255,0));
+  --grad-6:radial-gradient(circle at 50% 30%,rgba(56,224,216,.16),rgba(5,8,15,0) 68%);
+  --grad-7:linear-gradient(135deg,rgba(255,181,69,.20),rgba(255,181,69,0));
+  --grad-8:linear-gradient(0deg,rgba(87,224,138,.16),rgba(87,224,138,0));
+  --grad-9:repeating-linear-gradient(90deg,rgba(56,224,216,.10) 0 1px,rgba(0,0,0,0) 1px 12px);
+  --ease-1:cubic-bezier(.22,.8,.36,1); --ease-2:cubic-bezier(.5,0,.2,1);
+  --t-fast:120ms; --t-mid:220ms; --t-slow:420ms;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg-0);color:var(--ink-0);
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:var(--f-md);line-height:var(--lh-n);overflow:hidden}
+body{width:100vw;height:100vh}
+.app{display:flex;flex-direction:column;width:100%;height:100%;
+  background:var(--grad-1),var(--bg-0)}
+
+/* ---------- 顶栏 ---------- */
+.topbar{flex:0 0 auto;height:46px;display:flex;align-items:stretch;gap:0;
+  border-bottom:1px solid var(--line-1);background:var(--bg-2);box-shadow:var(--sh-1)}
+.brand{display:flex;align-items:center;gap:9px;flex:0 0 auto;padding:0 14px;overflow:visible}
+.brand .mk{width:22px;height:22px;flex:0 0 auto;border:1.5px solid var(--cy);border-radius:50%;
+  box-shadow:var(--sh-3);position:relative}
+.brand .mk::after{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--cy);opacity:.7}
+.brand h1{margin:0;font-size:var(--f-lg);letter-spacing:2.5px;font-weight:700;white-space:nowrap}
+.brand .sub{font-size:var(--f-xxs);color:var(--ink-2);letter-spacing:.9px;white-space:nowrap}
+.tb-mid{display:flex;align-items:center;gap:var(--sp-3);flex:1 1 auto;padding:0 8px;
+  border-left:1px solid var(--line-0);overflow:hidden}
+.tok{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--line-1);
+  border-radius:var(--r-2);background:var(--bg-3);font-size:var(--f-xs);letter-spacing:.6px;white-space:nowrap}
+.tok b{color:var(--cy);font-weight:700;letter-spacing:1px}
+.tok.warn b{color:var(--am)} .tok.bad b{color:var(--dg)} .tok.ok b{color:var(--gr)}
+.tb-right{display:flex;align-items:center;gap:var(--sp-2);padding:0 12px;flex:0 0 auto}
+button{font-family:inherit;font-size:var(--f-sm);color:var(--ink-1);background:var(--bg-3);
+  border:1px solid var(--line-1);border-radius:var(--r-2);padding:5px 11px;cursor:pointer;
+  letter-spacing:.4px;transition:background var(--t-fast) var(--ease-1),color var(--t-fast) var(--ease-1),
+  border-color var(--t-fast) var(--ease-1)}
+button:hover{background:var(--bg-4);color:var(--ink-0);border-color:var(--line-2)}
+button:focus-visible{outline:2px solid var(--cy);outline-offset:1px}
+button[aria-pressed="true"]{background:var(--cy-dim);color:#eafcff;border-color:var(--cy)}
+button:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---------- 主区 ---------- */
+.main{flex:1 1 auto;display:grid;grid-template-columns:var(--rail) minmax(0,1fr) var(--rail2);
+  gap:var(--sp-2);padding:var(--sp-2);min-height:0}
+.rail{display:flex;flex-direction:column;gap:var(--sp-2);min-height:0;overflow:hidden}
+.stage{position:relative;min-width:0;min-height:0;border:1px solid var(--line-1);border-radius:var(--r-2);
+  background:var(--bg-1);overflow:hidden;box-shadow:var(--sh-2),var(--sh-1)}
+.stage canvas{display:block;width:100%;height:100%}
+.pane canvas{display:block;width:100%;height:auto}
+.pane{border:1px solid var(--line-0);border-radius:var(--r-2);background:var(--bg-2);
+  box-shadow:var(--sh-1);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.pane>.hd{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
+  padding:4px 9px;border-bottom:1px solid var(--line-0);background:var(--grad-2)}
+.pane>.hd h2{margin:0;font-size:var(--f-xs);font-weight:600;letter-spacing:1.4px;color:var(--ink-1)}
+.pane>.hd .hint{font-size:var(--f-xxs);color:var(--ink-2);letter-spacing:.4px;white-space:nowrap}
+.pane>.bd{padding:6px 9px;overflow:hidden;min-height:0}
+.pane.grow{flex:1 1 auto}
+.pane.grow>.bd{flex:1 1 auto;display:flex;flex-direction:column;overflow:hidden}
+.pane.grow>.bd>canvas{flex:0 0 auto}
+
+.kv{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:2px 0;
+  border-bottom:1px dashed rgba(36,64,95,.55);font-size:var(--f-sm)}
+.kv:last-child{border-bottom:0}
+.kv span{color:var(--ink-2);font-size:var(--f-xs);white-space:nowrap}
+.kv b{font-weight:600;color:var(--ink-0);letter-spacing:.3px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.kv b.c{color:var(--cy)} .kv b.a{color:var(--am)} .kv b.v{color:var(--vi)}
+.kv b.o{color:var(--ow)} .kv b.g{color:var(--gr)} .kv b.d{color:var(--dg)} .kv b.i{color:var(--in)}
+
+/* ---------- 出力三路滑轨 ---------- */
+.alloc{display:flex;flex-direction:column;gap:5px}
+.alrow{display:grid;grid-template-columns:56px 1fr 38px;align-items:center;gap:7px}
+.alrow label{font-size:var(--f-xxs);color:var(--ink-2);letter-spacing:.5px}
+.alrow output{font-size:var(--f-sm);font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:14px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:3px;background:var(--bg-4);
+  border:1px solid var(--line-1)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;margin-top:-4px;
+  border-radius:50%;background:var(--cy);border:1px solid #0a1a1a;box-shadow:var(--sh-3)}
+input[type=range].w::-webkit-slider-thumb{background:var(--am)}
+input[type=range].s::-webkit-slider-thumb{background:var(--in)}
+input[type=range]:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
+.alsum{display:flex;justify-content:space-between;font-size:var(--f-xxs);color:var(--ink-2);letter-spacing:.5px}
+
+/* ---------- 账本 / 名单 ---------- */
+.led{display:flex;flex-direction:column;gap:2px;font-size:var(--f-sm)}
+.ledrow{display:grid;grid-template-columns:1fr 58px;gap:6px;align-items:baseline}
+.ledrow span{color:var(--ink-2);font-size:var(--f-xs);white-space:nowrap;overflow:hidden}
+.ledrow b{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ledrow b.p{color:var(--gr)} .ledrow b.n{color:var(--dg)}
+.evrow span.p{color:var(--gr)} .evrow span.n{color:var(--dg)} .evrow span.evst{color:var(--cy)}
+.evrow b{color:var(--ink-3);font-size:var(--f-xs);font-weight:500}
+.flist{max-height:132px;overflow-y:auto;scrollbar-width:thin}
+.flist::-webkit-scrollbar{width:5px}
+.flist::-webkit-scrollbar-thumb{background:var(--line-1);border-radius:3px}
+/* 账本列表随面板撑满，14 行计分项不得被裁切 */
+.ledlist{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.ledlist::-webkit-scrollbar{width:5px}
+.ledlist::-webkit-scrollbar-thumb{background:var(--line-1);border-radius:3px}
+.ledlist .ledrow span{font-size:var(--f-xxs)}
+
+/* ---------- 仪表带 / 状态栏 ---------- */
+.band{flex:0 0 auto;height:136px;margin:0 var(--sp-2) var(--sp-2);position:relative;
+  border:1px solid var(--line-1);border-radius:var(--r-2);background:var(--bg-1);
+  overflow:hidden;box-shadow:var(--sh-2)}
+.band canvas{display:block;width:100%;height:100%}
+.statusbar{flex:0 0 auto;min-height:26px;display:flex;align-items:center;gap:var(--sp-3);
+  padding:3px 12px;border-top:1px solid var(--line-1);background:var(--bg-2);
+  font-size:var(--f-xs);color:var(--ink-1);letter-spacing:.3px;white-space:nowrap;overflow:hidden}
+.statusbar b{color:var(--cy);font-weight:600}
+.statusbar .sep{color:var(--line-2)}
+.statusbar .grow{flex:1 1 auto}
+
+/* ---------- 窄视口降级 ---------- */
+@media (max-width:1420px){
+  :root{--rail:236px;--rail2:262px}
+  .brand .sub{display:none}
+}
+@media (max-width:1180px){
+  :root{--rail:206px;--rail2:228px;--f-sm:10px;--f-xs:9.5px;--f-xxs:8.5px}
+  .band{height:112px}
+  .brand h1{font-size:var(--f-md)}
+}
+@media (max-width:980px){
+  html,body{overflow:auto}
+  body{height:auto;min-height:100vh}
+  .app{height:auto;min-height:100vh}
+  .main{grid-template-columns:minmax(0,1fr)}
+  .rail{overflow:visible}
+  .stage{min-height:360px}
+  .statusbar{white-space:normal;flex-wrap:wrap;row-gap:2px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="mk" aria-hidden="true"></div>
+      <div>
+        <h1>环枢 GYROSPAN</h1>
+        <div class="sub">离心环带防卫战 · CENTRIFUGAL RING DEFENSE</div>
+      </div>
+    </div>
+    <div class="tb-mid">
+      <span class="tok" id="tokState">状态 <b>—</b></span>
+      <span class="tok" id="tokSeed">种子 <b>20261001</b></span>
+      <span class="tok" id="tokOm">环速 <b>0.00</b></span>
+      <span class="tok" id="tokG">离心重力 <b>0</b></span>
+      <span class="tok" id="tokWave">波次 <b>0 / 8</b></span>
+      <span class="tok" id="tokClock">环带时钟 <b>0.000s</b></span>
+    </div>
+    <div class="tb-right">
+      <button id="btnEnter" type="button">进入环带</button>
+      <button id="btnPause" type="button" aria-pressed="false">暂停</button>
+      <button id="btnReset" type="button">复位</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- ============ 左仪表栏 ============ -->
+    <aside class="rail" aria-label="左仪表栏">
+      <section class="pane">
+        <div class="hd"><h2>自转矢量罗盘</h2><span class="hint">SPIN VECTOR</span></div>
+        <div class="bd"><canvas id="cvCompass" width="240" height="152" aria-label="自转矢量罗盘"></canvas></div>
+      </section>
+
+      <section class="pane">
+        <div class="hd"><h2>出力三路分配</h2><span class="hint">∑ ≡ 100%</span></div>
+        <div class="bd">
+          <div class="alloc">
+            <div class="alrow">
+              <label for="alR">环速</label>
+              <input id="alR" class="r" type="range" min="0" max="100" step="1" value="50" aria-label="环速出力">
+              <output id="alRv" for="alR">50%</output>
+            </div>
+            <div class="alrow">
+              <label for="alW">武器</label>
+              <input id="alW" class="w" type="range" min="0" max="100" step="1" value="30" aria-label="武器出力">
+              <output id="alWv" for="alW">30%</output>
+            </div>
+            <div class="alrow">
+              <label for="alS">伺服</label>
+              <input id="alS" class="s" type="range" min="0" max="100" step="1" value="20" aria-label="伺服出力">
+              <output id="alSv" for="alS">20%</output>
+            </div>
+            <div class="alsum"><span>反应堆出力 <b id="alP">100</b> / 100</span><span id="alNote">三路占比恒等于 100%</span></div>
+          </div>
+          <div class="kv"><span>目标环速 ω*</span><b class="c" id="stOmTar">1.100</b></div>
+          <div class="kv"><span>实测环速 ω</span><b class="c" id="stOmNow">1.100</b></div>
+          <div class="kv"><span>转动惯量滞后</span><b id="stLag">0.000</b></div>
+        </div>
+      </section>
+
+      <section class="pane">
+        <div class="hd"><h2>实时损耗率监视器</h2><span class="hint">LOSS RATE</span></div>
+        <div class="bd">
+          <div class="kv"><span>桁架结构损耗率</span><b class="o" id="stTrussLoss">0.00 /s</b></div>
+          <div class="kv"><span>离线驻留扣减率</span><b class="o" id="stEdgeLoss">0.00 /s</b></div>
+          <div class="kv"><span>能量转换状态</span><b id="stEconv">待机</b></div>
+          <div class="kv"><span>超转压力速率</span><b class="a" id="stOverRate">0.00 /s</b></div>
+        </div>
+      </section>
+
+      <section class="pane grow">
+        <div class="hd"><h2>环带事件流</h2><span class="hint">EVENT TRACE</span></div>
+        <div class="bd flist" id="evBox"><div class="led" id="evList"></div></div>
+      </section>
+    </aside>
+
+    <!-- ============ 主视窗 ============ -->
+    <section class="stage" aria-label="环带主视窗">
+      <canvas id="cvWorld" width="960" height="640" aria-label="环带主视窗画布"></canvas>
+    </section>
+
+    <!-- ============ 右仪表栏 ============ -->
+    <aside class="rail" aria-label="右仪表栏">
+      <section class="pane">
+        <div class="hd"><h2>桁架疲劳寿命环</h2><span class="hint">FATIGUE RING</span></div>
+        <div class="bd"><canvas id="cvFatigue" width="272" height="112" aria-label="桁架疲劳寿命环"></canvas></div>
+      </section>
+
+      <section class="pane grow">
+        <div class="hd"><h2>环带阵图 · 军情</h2><span class="hint">RING SITREP</span></div>
+        <div class="bd">
+          <canvas id="cvRadar" width="272" height="104" aria-label="环带阵图"></canvas>
+          <div class="kv"><span>本体航向</span><b class="i" id="stFacing">顺环 +</b></div>
+          <div class="kv"><span>涌入孔门禁</span><b class="v" id="stGate">—</b></div>
+          <div class="kv"><span>场中敌实体</span><b id="stAlive">0 · 歼 0 · 漏 0</b></div>
+          <div class="kv"><span>配电枢纽余量</span><b class="g" id="stHub">20 / 20</b></div>
+          <div class="kv"><span>装甲 / 弹匣</span><b id="stArmMag">100 / 100 · 36 / 36</b></div>
+        </div>
+      </section>
+
+      <section class="pane grow">
+        <div class="hd"><h2>历史收益倍率账本</h2><span class="hint">LIVE LEDGER</span></div>
+        <div class="bd"><div class="led ledlist" id="ledList"></div></div>
+      </section>
+    </aside>
+  </div>
+
+  <div class="band"><canvas id="cvHud" width="1536" height="136" aria-label="底部仪表带"></canvas></div>
+
+  <footer class="statusbar" id="statusbar"></footer>
+</div>
+
+<script>/* 环枢 GYROSPAN · 世界事实层
+   固定种子确定性生成；环带横向闭合，坐标 x ∈ [0, W) 环绕。 */
+var GYDATA = (function () {
+  'use strict';
+
+  var SEED = 20261001;
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* ---- 环带几何 ---- */
+  var W = 3200;              /* 环带周长（世界单位） */
+  var H = 540;               /* 内壁到外壁的可行动纵深 */
+  var FLOOR_Y = 540;         /* 外壁：离心重力指向 +y，故外壁画在下方 */
+  var CEIL_Y = 0;            /* 内壁 */
+  var G0 = 240;              /* 离心重力系数：g = G0 * ω² */
+  var KC = 0.22;              /* 科里奥利耦合系数：a_y = -KC * 2ω * v_x */
+  var W0 = 0.20, W1 = 2.00;  /* 环速出力 0→100 映射到的角速度区间 */
+  var BULLET_BASE = 620, BULLET_GAIN = 4.2;
+  var SERVO_BASE = 260, SERVO_GAIN = 4.4;
+  var RUN_BASE = 150, RUN_GAIN = 4.0;
+  var MAG = 36;              /* 弹匣容量 */
+  var RELOAD_S = 1.6;        /* 装填时长 */
+  var ANCHOR_MS = 350;       /* 环带同调阈值 */
+  var ANCHOR_V = 0.05;       /* 相对静止阈值 */
+  var OVERSPIN_CAP = 100;    /* 超转压力上限 */
+  var ARMOR_MAX = 100;
+  var HUB_HP = 20;
+  var WAVES_N = 8;
+
+  /* ---- 敌对实体四型：自旋谐次门禁 ---- */
+  var ETYPE = [
+    { k: 'SYNC', n: '同步体', hp: 100, spd: 34, dmg: 8,  cd: 1.6, r: [2, 12],
+      gate: 'sync', om: 1.00, band: 0.18, tag: '谐次 1.00 · 同步免疫', col: '#5ad1ff' },
+    { k: 'ANTI', n: '反旋体', hp: 70,  spd: 52, dmg: 6,  cd: 2.1, r: [7, 1.7],
+      gate: 'anti', om: 0, band: 0, tag: '反旋 · 恒定 ×2 易伤', col: '#ff8a3d' },
+    { k: 'PARK', n: '驻旋体', hp: 110, spd: 30, dmg: 10, cd: 1.9, r: [8, 11],
+      gate: 'none', om: 0, band: 0, tag: '驻旋 · 无门禁', col: '#c9d6e2' },
+    { k: 'RESO', n: '共振体', hp: 150, spd: 26, dmg: 12, cd: 2.4, r: [14, 19],
+      gate: 'reso', om: 1.85, band: 0.22, tag: '共振窗 1.85 ±0.22', col: '#c07bff' }
+  ];
+
+  /* ---- 八波增生节律：每波主型不同，波内掺异号 ---- */
+  var WAVES = [
+    { n: 1, lead: 'PARK', mix: ['PARK', 'SYNC'],        cnt: [3, 2],      gap: 14.0 },
+    { n: 2, lead: 'SYNC', mix: ['SYNC', 'PARK'],        cnt: [4, 3],      gap: 14.0 },
+    { n: 3, lead: 'ANTI', mix: ['ANTI', 'PARK'],        cnt: [5, 3],      gap: 13.0 },
+    { n: 4, lead: 'SYNC', mix: ['SYNC', 'ANTI'],        cnt: [5, 4],      gap: 13.0 },
+    { n: 5, lead: 'RESO', mix: ['RESO', 'SYNC'],        cnt: [3, 5],      gap: 12.5 },
+    { n: 6, lead: 'PARK', mix: ['PARK', 'RESO'],        cnt: [6, 3],      gap: 12.5 },
+    { n: 7, lead: 'ANTI', mix: ['ANTI', 'RESO'],        cnt: [6, 4],      gap: 12.0 },
+    { n: 8, lead: 'RESO', mix: ['RESO', 'SYNC', 'ANTI'], cnt: [4, 4, 3],  gap: 12.0 }
+  ];
+
+  /* ---- 确定性布场 ---- */
+  var rg = mulberry32(SEED);
+
+  var HUB = { id: 'HUB', x: 1600, w: 180, y: FLOOR_Y - 132, h: 132, hp: HUB_HP, name: '配电枢纽' };
+
+  var PORTS = [
+    { id: 'P-01', x: 320,  n: '涌入孔 · 甲' },
+    { id: 'P-02', x: 1180, n: '涌入孔 · 乙' },
+    { id: 'P-03', x: 2740, n: '涌入孔 · 丙' }
+  ];
+
+  /* 泄压缝：外壁缺口，坠入即致命 */
+  var VENTS = [
+    { id: 'V-01', x: 640,  w: 96 },
+    { id: 'V-02', x: 1240, w: 96 },
+    { id: 'V-03', x: 2200, w: 96 },
+    { id: 'V-04', x: 2900, w: 96 }
+  ];
+
+  /* 桁架：恒为 14 段。按等分槽位逐一落位，槽内取位保证相邻净距，故无需剔除重试；
+     桁架整体悬在内侧、台面高度全部高于配电枢纽顶部，故与枢纽、泄压缝均无重叠。 */
+  var TRUSS_SLOTS = 14, TRUSS_GAP = 56;
+  var TRUSSES = [];
+  (function () {
+    var slot = W / TRUSS_SLOTS;
+    for (var i = 0; i < TRUSS_SLOTS; i++) {
+      var sLo = i * slot, sHi = sLo + slot;
+      var w = Math.round(88 + rg() * 62);        /* 88 ~ 150，槽宽 228.6，留足净距 */
+      var top = Math.round(292 + rg() * 56);     /* 292 ~ 348，桁架腿底最高 403 < 枢纽顶 408 */
+      var jit = rg();
+      var aLo = sLo + w / 2 + TRUSS_GAP / 2, aHi = sHi - w / 2 - TRUSS_GAP / 2;
+      if (aHi < aLo) { aLo = aHi = (sLo + sHi) / 2; }
+      var x = Math.round(((aLo + jit * (aHi - aLo)) % W + W) % W);
+      TRUSSES.push({ id: 'T-' + (i + 1 < 10 ? '0' : '') + (i + 1),
+                     x: x, w: w, top: top, fat: 0, life: 1, dead: false, x0: x });
+    }
+  })();
+
+  /* 环带里程刻度：每 400 世界单位一道 */
+  var MARKS = [];
+  for (var m = 0; m < W; m += 400) MARKS.push(m);
+
+  function wrap(d) { d = d % W; if (d < 0) d += W; return d; }
+  function ringDelta(a, b) { var d = wrap(b - a); if (d > W / 2) d -= W; return d; }
+  function ringDist(a, b) { return Math.abs(ringDelta(a, b)); }
+
+  /* 世界几何描述（供渲染与判定共用） */
+  function floorSolid(x) {
+    var cx = wrap(x);
+    for (var v = 0; v < VENTS.length; v++) {
+      var d = Math.abs(ringDelta(cx, VENTS[v].x));
+      if (d < VENTS[v].w / 2) return false;
+    }
+    return true;
+  }
+  function trussAt(x, y) {
+    for (var t = 0; t < TRUSSES.length; t++) {
+      var T = TRUSSES[t];
+      if (T.dead) continue;
+      var d = Math.abs(ringDelta(wrap(x), T.x));
+      if (d <= T.w / 2 && y >= T.top - 8 && y <= T.top + 26) return T;
+    }
+    return null;
+  }
+
+  return {
+    SEED: SEED, W: W, H: H, FLOOR_Y: FLOOR_Y, CEIL_Y: CEIL_Y,
+    G0: G0, KC: KC, W0: W0, W1: W1,
+    BULLET_BASE: BULLET_BASE, BULLET_GAIN: BULLET_GAIN,
+    SERVO_BASE: SERVO_BASE, SERVO_GAIN: SERVO_GAIN,
+    RUN_BASE: RUN_BASE, RUN_GAIN: RUN_GAIN,
+    MAG: MAG, RELOAD_S: RELOAD_S, ANCHOR_MS: ANCHOR_MS, ANCHOR_V: ANCHOR_V,
+    OVERSPIN_CAP: OVERSPIN_CAP, ARMOR_MAX: ARMOR_MAX, HUB_HP: HUB_HP, WAVES_N: WAVES_N,
+    ETYPE: ETYPE, WAVES: WAVES, HUB: HUB, PORTS: PORTS, VENTS: VENTS,
+    TRUSSES: TRUSSES, MARKS: MARKS,
+    mulberry32: mulberry32, wrap: wrap, ringDelta: ringDelta, ringDist: ringDist,
+    floorSolid: floorSolid, trussAt: trussAt
+  };
+})();
+if (typeof module !== 'undefined') module.exports = GYDATA;
+</script>
+<script>/* 环枢 GYROSPAN · 应用层
+   固定步长确定性循环；三画布独立驱动；全部读数由事件账本纯函数归约。 */
+(function () {
+  'use strict';
+  var D = GYDATA;
+
+  function q(id) { return document.getElementById(id); }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function f2(v) { return (Math.round(v * 100) / 100).toFixed(2); }
+  function f3(v) { return (Math.round(v * 1000) / 1000).toFixed(3); }
+  function f1(v) { return (Math.round(v * 10) / 10).toFixed(1); }
+
+  /* ================= 画布 ================= */
+  var cvW = q('cvWorld'), cvH = q('cvHud'), cvR = q('cvRadar'), cvC = q('cvCompass'), cvF = q('cvFatigue');
+  var ctxW = cvW.getContext('2d'), ctxH = cvH.getContext('2d'), ctxR = cvR.getContext('2d'),
+      ctxC = cvC.getContext('2d'), ctxF = cvF.getContext('2d');
+
+  /* 虚拟设计空间：各画布按等比缩放贴合实际尺寸，绘制代码一律使用虚拟单位 */
+  var VW = 960, VH = 648, WORLD_DY = 88;
+  var HVW = 1536, HVH = 136;
+  var RVW = 272, RVH = 104;
+  var CVW = 240, CVH = 152;
+  var FVW = 272, FVH = 112;
+
+  function prepFit(cv, vw, vh, cover) {
+    var r = cv.getBoundingClientRect();
+    var dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    var cw = Math.max(1, Math.round((r.width || vw) * dpr));
+    var ch = Math.max(1, Math.round((r.height || vh) * dpr));
+    if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+    var c = cv.getContext('2d');
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.clearRect(0, 0, cw, ch);
+    var sx0 = cw / (vw * dpr), sy0 = ch / (vh * dpr);
+    var S = cover ? Math.max(sx0, sy0) : Math.min(sx0, sy0);
+    c.setTransform(dpr * S, 0, 0, dpr * S, (cw - vw * dpr * S) / 2, (ch - vh * dpr * S) / 2);
+    return c;
+  }
+
+  /* ================= 状态 ================= */
+  var ST_TITLE = 'TITLE_LOBBY', ST_SPINUP = 'SPINUP_CALIBRATING', ST_ACTIVE = 'ACTIVE_ENGAGED',
+      ST_ANCHOR = 'ANCHOR_DWELL', ST_SURGE = 'SURGE_INTRUSION', ST_OVER = 'OVERSPIN_LOCKOUT',
+      ST_BREACH = 'HULL_BREACH_ROLLBACK', ST_SETTLE = 'RUN_SETTLED_LEDGER';
+  var ORDER = [ST_TITLE, ST_SPINUP, ST_ACTIVE, ST_ANCHOR, ST_SURGE, ST_OVER, ST_BREACH, ST_SETTLE];
+  var STN = {};
+  STN[ST_TITLE] = '待机大厅'; STN[ST_SPINUP] = '自转标定'; STN[ST_ACTIVE] = '巡环交战';
+  STN[ST_ANCHOR] = '锚定驻留'; STN[ST_SURGE] = '涌流侵入'; STN[ST_OVER] = '超转锁死';
+  STN[ST_BREACH] = '破舱回溯'; STN[ST_SETTLE] = '账本结算';
+
+  var G = null;
+
+  function newRun(seed) {
+    return {
+      seed: seed || D.SEED,
+      st: ST_TITLE,
+      t: 0,
+      paused: false, frozen: false,
+      om: D.W0, omTar: D.W0, lag: 0,
+      overspin: 0, lockT: 0, overCount: 0,
+      P: 100,
+      alloc: { r: 50, w: 30, s: 20 },
+      build: 0,               /* 自转标定进度 0..1 */
+      wave: 0, waveT: 6.0, surgeT: 0, surgeCount: 0,
+      hub: D.HUB_HP, armor: D.ARMOR_MAX, mag: D.MAG, reload: 0,
+      jump: 0, anchorT: 0, anchorOK: false, anchorTotal: 0, anchorCount: 0, anchorLagSum: 0, reso: 0,
+      histOver: [], histArm: [], sampleN: 0,
+      px: D.HUB.x + 260, py: 300, pvx: 0, pvy: 0, gr: false, face: 1,
+      charge: 0, charging: false, fireCd: 0, shootCd: 0,
+      ents: [], bullets: [], ebullets: [],
+      ledger: [], killed: 0, leaked: 0, fired: 0, hits: 0, coreHits: 0, gateBlocks: 0,
+      strays: 0, hurt: 0, rollback: 0, rollbackMax: 2, trussBroken: 0, dash: 0,
+      reverse: 0, burst: 0, bulletTrav: 0, maxCombo: 0, combo: 0, graceT: 0,
+      inv: 0, banner: '', bannerT: 0, breachT: 0, settleT: 0, hubHitT: 0,
+      edgeLoss: 0, trussLoss: 0, mx: 0, my: 0, breachWhy: '',
+      lastSafe: { x: D.HUB.x + 260, y: 300 },
+      surgeTag: '', surgeDrain: 0, leakMark: 0, focusEnt: null, tip: null, tipT: 0
+    };
+  }
+
+  function log(kind, data) {
+    G.ledger.push({ t: G.t, k: kind, d: data || null });
+    if (G.ledger.length > 20000) G.ledger.shift();
+  }
+
+  /* ================= 派生量 ================= */
+  function gNow() { return D.G0 * G.om * G.om; }
+  function bulletSpeed() { return D.BULLET_BASE + D.BULLET_GAIN * (G.P * G.alloc.w / 100) * 0.01 * 100 / 100 * 1; }
+  function runSpeed() { return D.RUN_BASE + D.RUN_GAIN * (G.P * G.alloc.s / 100); }
+  function jumpV() { return D.SERVO_BASE + D.SERVO_GAIN * (G.P * G.alloc.s / 100); }
+  function omTarget() { return D.W0 + (D.W1 - D.W0) * (G.P * G.alloc.r / 100) / 100 * 1 * 1 + 0 * 0; }
+
+  function omTargetCalc() {
+    var r = G.P * G.alloc.r / 100;            /* 实际环速出力 0..100 */
+    return D.W0 + (D.W1 - D.W0) * (r / 100);
+  }
+  function fireInterval() { return 0.175 - 0.00085 * (G.P * G.alloc.w / 100); }
+  function bulletSpeedCalc() { return D.BULLET_BASE + D.BULLET_GAIN * (G.P * G.alloc.w / 100); }
+  function runSpeedCalc() { return D.RUN_BASE + D.RUN_GAIN * (G.P * G.alloc.s / 100); }
+  function jumpVCalc() { return D.SERVO_BASE + D.SERVO_GAIN * (G.P * G.alloc.s / 100); }
+  function coriolis() { return D.KC * 2 * G.om; }
+
+  /* 涌流侵入期间：谐次窗整体倒相（中心频率被推向低频侧），门禁开闭关系随之反转 */
+  var SURGE_OM_SHIFT = -0.38;
+  function gateOf(typeKey) {
+    var e = null;
+    for (var i = 0; i < D.ETYPE.length; i++) if (D.ETYPE[i].k === typeKey) e = D.ETYPE[i];
+    if (!e) return { open: true, mult: 1 };
+    var shift = (G.surgeTag && e.gate !== 'none') ? SURGE_OM_SHIFT : 0;
+    if (e.gate === 'sync') return { open: Math.abs(G.om - (e.om + shift)) >= e.band, mult: 1 };
+    if (e.gate === 'reso') return { open: Math.abs(G.om - (e.om + shift)) < e.band, mult: 1 };
+    if (e.gate === 'anti') return { open: true, mult: 2 };
+    return { open: true, mult: 1 };
+  }
+  function gateWindowOf(typeKey) {
+    var e = typeDef(typeKey), shift = (G.surgeTag && e.gate !== 'none') ? SURGE_OM_SHIFT : 0;
+    return { om: e.om + shift, band: e.band, gate: e.gate };
+  }
+  function typeDef(k) { for (var i = 0; i < D.ETYPE.length; i++) if (D.ETYPE[i].k === k) return D.ETYPE[i]; return D.ETYPE[2]; }
+
+  /* ================= 状态机 ================= */
+  var FSM_CAUSE = '待机';
+  function setFsm(s, cause) {
+    if (G.st === s) return;
+    G.st = s; FSM_CAUSE = cause || STN[s];
+    log('state', s);
+  }
+
+  /* ================= 输入 ================= */
+  var keys = {};
+  function bindInput() {
+    window.addEventListener('keydown', function (ev) {
+      var k = ev.key.toLowerCase();
+      keys[k] = true;
+      if (k === 'enter' || k === ' ') {
+        if (G.st === ST_TITLE) enterRing();
+        ev.preventDefault();
+      }
+      if (k === 'p' && (G.st === ST_ACTIVE || G.st === ST_ANCHOR || G.st === ST_SURGE)) togglePause();
+      if (k === 'j') tryJump();
+      if (k === 'k') dash();
+      if (k === 'l') reverseSpin();
+      if (k === 'r') startReload();
+      if (k === 'a' || k === 'd') { G.face = (k === 'a') ? -1 : 1; }
+      if (k === 'x') G.charging = true;
+    });
+    window.addEventListener('keyup', function (ev) {
+      var k = ev.key.toLowerCase();
+      keys[k] = false;
+      if (k === 'x') releaseShot();
+    });
+    cvW.addEventListener('mousemove', function (ev) {
+      var r = cvW.getBoundingClientRect();
+      G.mx = ev.clientX - r.left; G.my = ev.clientY - r.top;
+    });
+    cvW.addEventListener('mousedown', function (ev) {
+      ev.preventDefault();
+      if (G.st === ST_TITLE) { enterRing(); return; }
+      if (G.st === ST_ACTIVE || G.st === ST_SURGE || G.st === ST_ANCHOR) { G.charging = true; }
+      if (G.st === ST_SETTLE) { /* 结算面板按钮由命中区域决定 */ }
+    });
+    window.addEventListener('mouseup', function () { if (G.charging) releaseShot(); });
+    ['alR', 'alW', 'alS'].forEach(function (id) {
+      var el = q(id);
+      el.addEventListener('input', function () { onAlloc(id, parseFloat(el.value)); });
+    });
+    q('btnEnter').addEventListener('click', function () {
+      if (G.st === ST_TITLE) enterRing();
+      else if (G.st === ST_SETTLE) { resetRun(); }
+    });
+    q('btnPause').addEventListener('click', togglePause);
+    q('btnReset').addEventListener('click', function () { resetRun(); });
+  }
+
+  function onAlloc(id, v) {
+    var o = { alR: 'r', alW: 'w', alS: 's' }[id];
+    var rest = 100 - v;
+    var others = ['r', 'w', 's'].filter(function (k) { return k !== o; });
+    var cur = others.map(function (k) { return G.alloc[k]; });
+    var sum = cur[0] + cur[1];
+    if (sum <= 0) { G.alloc[others[0]] = Math.round(rest / 2); G.alloc[others[1]] = rest - G.alloc[others[0]]; }
+    else {
+      var a = Math.round(rest * cur[0] / sum);
+      G.alloc[others[0]] = a; G.alloc[others[1]] = rest - a;
+    }
+    G.alloc[o] = Math.round(v);
+    log('alloc', { r: G.alloc.r, w: G.alloc.w, s: G.alloc.s });
+  }
+
+  function enterRing() {
+    G.build = 0;
+    setFsm(ST_SPINUP, '按固定种子重建环带结构');
+    G.t = 0;
+  }
+  function togglePause() {
+    if (G.st === ST_SETTLE || G.st === ST_TITLE) return;
+    G.paused = !G.paused;
+    q('btnPause').setAttribute('aria-pressed', G.paused ? 'true' : 'false');
+    q('btnPause').textContent = G.paused ? '继续' : '暂停';
+  }
+  function tryJump() {
+    if (G.st !== ST_ACTIVE && G.st !== ST_SURGE && G.st !== ST_ANCHOR) return;
+    if (!G.anchorOK || G.jump <= 0) return;
+    G.pvy = -jumpVCalc(); G.jump--; G.anchorOK = false; G.anchorT = 0; G.gr = false;
+    var T = D.trussAt(G.px, G.py + 10);
+    if (T) { T.fat += 3.2; }
+    G.py -= 1;
+    log('jump', null);
+  }
+  function dash() {
+    if (G.st !== ST_ACTIVE && G.st !== ST_SURGE) return;
+    if (G.P < 2) return;
+    G.P -= 2; G.dash++;
+    G.pvx = G.face * runSpeedCalc() * 2.1;
+    log('dash', { facing: G.face });
+  }
+  function reverseSpin() {
+    if (G.st !== ST_ACTIVE && G.st !== ST_SURGE) return;
+    if (G.P < 6) return;
+    G.P -= 6; G.reverse++;
+    G.alloc.r = 100 - G.alloc.r;
+    onAlloc('alR', G.alloc.r);
+    log('reverse', { om: G.om });
+  }
+  function startReload() {
+    if (G.reload > 0 || G.mag >= D.MAG) return;
+    if (G.st !== ST_ACTIVE && G.st !== ST_SURGE && G.st !== ST_ANCHOR) return;
+    G.reload = D.RELOAD_S;
+    log('reload_start', { mag: G.mag });
+  }
+  function releaseShot() {
+    G.charging = false;
+    if (G.charge > 0) { fire(true); G.charge = 0; }
+  }
+  function fire(charged) {
+    if (G.reload > 0) return false;
+    if (G.mag <= 0) { startReload(); return false; }
+    if (G.st !== ST_ACTIVE && G.st !== ST_SURGE && G.st !== ST_ANCHOR) return false;
+    var cost = charged ? 1.5 : 0;
+    if (charged && G.P < 1.5) return false;
+    G.P -= cost;
+    G.mag--; G.fired++;
+    var sp = bulletSpeedCalc() * (charged ? 1.18 : 1);
+    G.bullets.push({
+      x: D.wrap(G.px + G.face * 16), y: G.py - 12,
+      vx: G.face * sp, vy: -18, life: D.W / sp * 1.05, trav: 0,
+      dmg: 22 * (charged ? 2.4 : 1), charged: !!charged, trail: []
+    });
+    log('fire', { charged: !!charged, mag: G.mag });
+    if (G.mag <= 0) startReload();
+    return true;
+  }
+
+  /* ================= 波次 ================= */
+  function spawnWave() {
+    if (G.wave >= D.WAVES_N) return;
+    var w = D.WAVES[G.wave];
+    var pi = 0, idx = 0;
+    for (var m = 0; m < w.mix.length; m++) {
+      for (var c = 0; c < w.cnt[m]; c++) {
+        var ty = w.mix[m], td = typeDef(ty);
+        var port = D.PORTS[(pi + idx) % 3];
+        spawnEnt(ty, D.wrap(port.x + (idx % 5) * 26 - 52), -30 - (idx % 3) * 34);
+        idx++;
+      }
+      pi++;
+    }
+    G.surgeCount++; G.leakMark = G.leaked;
+    log('wave', { n: G.wave + 1, lead: w.lead, total: idx });
+  }
+  function spawnEnt(k, x, y) {
+    var d = typeDef(k);
+    G.ents.push({
+      k: k, x: D.wrap(x), y: y, vx: 0, vy: 0,
+      hp: d.hp, hpMax: d.hp, cd: d.cd * (0.4 + 0.6 * (x % 7) / 7), t: 0, hurtT: 0, immuneT: 0
+    });
+  }
+
+  /* 涌流侵入：环带谐次被外源拖拽倒相，同调窗整体偏移，并在三孔加投一批混型 */
+  function enterSurge(sec) {
+    if (G.st === ST_SETTLE || G.st === ST_BREACH) return;
+    sec = sec || 4.5;
+    G.surgeT = sec; G.surgeTag = '涌流暴涌'; G.surgeDrain = 0;
+    var mix = ['SYNC', 'ANTI', 'PARK', 'RESO'];
+    for (var i = 0; i < 8; i++) {
+      var port = D.PORTS[i % 3];
+      spawnEnt(mix[(i + Math.floor(G.t * 7)) % 4], D.wrap(port.x + (i % 3) * 30 - 30), -30 - (i % 4) * 28);
+    }
+    setFsm(ST_SURGE, '漏防累积越限 · 涌流侵入');
+    log('surge', { sec: sec });
+  }
+  function endSurge() {
+    if (G.st !== ST_SURGE) return;
+    G.surgeT = 0; G.surgeTag = '';
+    setFsm(ST_ACTIVE, '涌流暴涌结束 · 谐次窗复位');
+    log('surge_end', { drained: Math.round(G.surgeDrain) });
+  }
+
+  /* ================= 步进 ================= */
+  var STEP = 1 / 60;
+  function step() {
+    G.t += STEP;
+    /* 示波采样与步进同源：每 6 步一帧，冻结不复现时也保持确定性 */
+    G.sampleN++;
+    if (G.sampleN % 6 === 0) {
+      G.histOver.push(G.overspin); if (G.histOver.length > 344) G.histOver.shift();
+      G.histArm.push(G.armor); if (G.histArm.length > 344) G.histArm.shift();
+    }
+    if (G.st === ST_TITLE) { G.t -= STEP; return; }
+
+    if (G.st === ST_SPINUP) {
+      G.build = Math.min(1, G.build + STEP / 2.6);
+      if (G.build >= 1) {
+        setFsm(ST_ACTIVE, '环带结构落位完成，接管操作权');
+        G.waveT = 6.0;
+        log('ready', null);
+      }
+      G.om = omTargetCalc();
+      return;
+    }
+    if (G.st === ST_SETTLE) { G.settleT += STEP; return; }
+
+    /* 环速惯性：ω 向 ω* 指数逼近，转动惯量随环速出力下降而增大 */
+    G.omTar = omTargetCalc();
+    /* 转动惯量随实测环速增大而增大：越转越难改 */
+    var inertia = 0.50 + 0.90 * (G.om / D.W1);
+    var k = STEP / Math.max(0.25, inertia);
+    var dOm = G.omTar - G.om;
+    G.om += dOm * Math.min(1, k * 2.4);
+    G.lag = dOm;
+
+    /* 超转压力：越限判定先于泄压衰减，阈值不可被单帧衰减抹掉 */
+    /* 仅在可操控状态下才可能越限：破舱回溯与结算期不再叠加超转锁死 */
+    var canSpin = (G.st === ST_ACTIVE || G.st === ST_ANCHOR || G.st === ST_SURGE);
+    if (G.overspin >= D.OVERSPIN_CAP && canSpin) {
+      G.overCount++; G.lockT = 1.2; G.overspin = D.OVERSPIN_CAP;
+      /* 操作权被收走的同时同调链被切断：同调环熄灭、谐振增益归零 */
+      G.anchorT = 0; G.anchorOK = false; G.reso = 0;
+      setFsm(ST_OVER, '超转压力越限 · 供能整定');
+      log('overspin', { n: G.overCount });
+      return;
+    }
+    if (G.om > 1.55) {
+      G.overspin = Math.min(D.OVERSPIN_CAP, G.overspin + (G.om - 1.55) * 62 * STEP);
+    } else {
+      G.overspin = Math.max(0, G.overspin - 9 * STEP);
+    }
+    if (G.st === ST_OVER) {
+      G.lockT -= STEP;
+      if (G.lockT <= 0) { G.overspin = 38; setFsm(ST_ACTIVE, '超转锁死解除'); }
+      stepEntities(); stepBullets(); stepEnemyBullets();
+      return;
+    }
+    if (G.st === ST_BREACH) {
+      /* 复位已在触发帧完成；此处只推进暗红覆层读秒与残余弹丸 */
+      G.breachT -= STEP;
+      if (G.breachT <= 0) {
+        if (settleSoon) { settle(); return; }
+        setFsm(ST_ACTIVE, '回溯读秒结束 · 账本保留，实体阵列重新投送');
+      }
+      stepBullets();
+      return;
+    }
+
+    if (G.st === ST_SURGE) {
+      G.surgeT -= STEP;
+      /* 涌流持续期：环速被外源强行拖拽，供能账本被抽税，敌实体移速抬升 */
+      G.om += (0.35 - G.om) * Math.min(1, STEP * 1.1);
+      G.overspin = Math.min(D.OVERSPIN_CAP, G.overspin + 6 * STEP);
+      G.surgeDrain += STEP;
+      if (G.surgeT <= 0) endSurge();
+    }
+
+    /* 波次投放 */
+    if (G.wave < D.WAVES_N) {
+      G.waveT -= STEP;
+      if (G.waveT <= 0) {
+        spawnWave(); G.wave++;
+        G.waveT = D.WAVES[Math.min(G.wave, D.WAVES_N - 1)].gap;
+      }
+    } else if (G.ents.length === 0 && G.hub > 0) {
+      settle(); return;
+    }
+
+    /* 玩家 */
+    var g = gNow();
+    var runMax = runSpeedCalc();
+    var ax = 0;
+    if (keys['a'] || keys['arrowleft']) ax -= 1;
+    if (keys['d'] || keys['arrowright']) ax += 1;
+    if (ax !== 0) G.face = ax;
+    G.pvx += ax * runMax * 5.0 * STEP;
+    var fr = G.gr ? 0.86 : 0.985;
+    G.pvx *= Math.pow(fr, STEP * 60);
+    G.pvx = clamp(G.pvx, -runMax * 1.6, runMax * 1.6);
+    G.pvy += g * STEP;
+    if (G.pvy > 1400) G.pvy = 1400;
+    G.px = D.wrap(G.px + G.pvx * STEP);
+    G.py += G.pvy * STEP;
+
+    /* 落地判定 */
+    var wasGr = G.gr;
+    G.gr = false;
+    if (G.py >= D.FLOOR_Y - 16 && G.pvy >= 0) {
+      if (D.floorSolid(G.px)) { G.py = D.FLOOR_Y - 16; G.pvy = 0; G.gr = true; }
+      else {
+        /* 泄压缝：坠出环带 */
+        G.pvy += 260 * STEP;
+        if (G.py > D.FLOOR_Y + 60) { hullBreach('坠入泄压缝'); return; }
+      }
+    }
+    var TT = D.trussAt(G.px, G.py + 16);
+    if (TT && G.pvy >= 0 && G.py + 16 >= TT.top - 10 && G.py <= TT.top + 6) {
+      if (G.pvy > 120) { TT.fat += Math.min(9, G.pvy / 90); log('impact', { id: TT.id, v: G.pvy }); }
+      G.py = TT.top - 12; G.pvy = 0; G.gr = true;
+      G.lastSafe = { x: G.px, y: G.py };
+    }
+    if (G.gr && !wasGr) { G.anchorT = 0; G.anchorOK = false; G.grT = 0; }
+
+    /* 锚定同调：接地且相对静止持续阈值 —— 静止期自成互斥状态，一动即退出 */
+    var stillNow = G.gr && Math.abs(G.pvx) < D.ANCHOR_V * 60 && Math.abs(G.pvy) < D.ANCHOR_V * 60;
+    if (stillNow && G.st === ST_ACTIVE) {
+      setFsm(ST_ANCHOR, '接地并进入相对静止');
+    } else if (!stillNow && G.st === ST_ANCHOR) {
+      setFsm(ST_ACTIVE, '离位 · 同调中断');
+      G.anchorOK = false; G.reso = 0;
+    }
+    if (G.st === ST_ANCHOR) {
+      /* 驻留计时只在锚定驻留状态内累加：迟滞读数恒等于同调阈值，不被跨状态滞留污染 */
+      G.anchorT += STEP;
+      /* 驻留期谐振增益爬升；同调达标后额外解锁跳跃与重弹权限 */
+      G.reso = Math.min(1, G.reso + STEP / 1.2);
+      if (!G.anchorOK && G.anchorT >= D.ANCHOR_MS / 1000) {
+        G.anchorOK = true; G.jump = 1;
+        G.anchorCount++; G.anchorTotal++; G.anchorLagSum += G.anchorT * 1000;
+        log('anchor', { ms: Math.round(G.anchorT * 1000) });
+      }
+    } else {
+      /* 非驻留态：驻留计时清零，谐振增益单向衰减，绝不自行回充 */
+      G.anchorT = 0;
+      G.reso = Math.max(0, G.reso - STEP / 0.9);
+    }
+    /* 离线驻留扣减：站在桁架边缘 12px 内持续扣减储备 */
+    var edgeDrain = 0;
+    if (G.gr && TT) {
+      var dd = Math.abs(D.ringDelta(G.px, TT.x));
+      if (dd > TT.w / 2 - 14) edgeDrain = 5;
+    }
+    if (edgeDrain > 0) { G.P = Math.max(0, G.P - edgeDrain * STEP); G.edgeLoss = edgeDrain; }
+    else G.edgeLoss = 0;
+
+    /* 射击 */
+    G.fireCd -= STEP; G.shootCd -= STEP;
+    if (G.charging) G.charge = Math.min(1, G.charge + STEP / 0.55);
+    if (keys['f'] && G.fireCd <= 0) { if (fire(false)) G.fireCd = fireInterval(); }
+    if (G.reload > 0) {
+      G.reload -= STEP;
+      if (G.reload <= 0) { G.reload = 0; G.mag = D.MAG; log('reload_done', { mag: G.mag }); }
+    }
+
+    if (G.inv > 0) G.inv -= STEP;
+    if (G.bannerT > 0) G.bannerT -= STEP;
+    if (G.tipT > 0) { G.tipT -= STEP; if (G.tipT <= 0) G.tip = null; }
+
+    stepEntities();
+    stepBullets();
+    stepEnemyBullets();
+
+    /* 桁架疲劳结算与脱开 */
+    for (var i = 0; i < D.TRUSSES.length; i++) {
+      var T = D.TRUSSES[i];
+      if (T.dead) continue;
+      T.fat = Math.max(0, T.fat - 0.55 * STEP);
+      T.life = 1 - T.fat / 24;
+      if (T.life <= 0) { T.dead = true; G.trussBroken++; log('truss_broken', { id: T.id }); }
+    }
+    G.trussLoss = D.TRUSSES.filter(function (t) { return t.dead; }).length;
+  }
+
+  function stepEntities() {
+    for (var i = G.ents.length - 1; i >= 0; i--) {
+      var e = G.ents[i], d = typeDef(e.k);
+      e.t += STEP;
+      e.vy += gNow() * STEP;
+      e.x = D.wrap(e.x + e.vx * STEP);
+      e.y += e.vy * STEP;
+      if (e.y >= D.FLOOR_Y - 14 && D.floorSolid(e.x)) { e.y = D.FLOOR_Y - 14; e.vy = 0; }
+      if (e.y > D.FLOOR_Y + 40) { /* 掉进泄压缝：不计漏防，直接移除 */
+        G.ents.splice(i, 1); continue;
+      }
+      if (e.y >= D.FLOOR_Y - 15) {
+        var dir = D.ringDelta(e.x, D.HUB.x);
+        e.vx = (dir >= 0 ? 1 : -1) * d.spd;
+        if (Math.abs(dir) < 96) {
+          /* 抵达配电枢纽：漏防 */
+          G.hub--; G.leaked++;
+          log('leak', { k: e.k, hub: G.hub });
+          G.ents.splice(i, 1);
+          G.banner = '漏防 · 配电枢纽余量 ' + G.hub; G.bannerT = 1.6;
+          if (G.hub <= 0) { hullBreach('配电枢纽被击穿'); }
+          /* 守卫：同一波内累计 3 次漏防 → 涌流侵入 */
+          else if ((G.leaked - G.leakMark) >= 3 && G.st === ST_ACTIVE) enterSurge(5.0);
+          continue;
+        }
+      }
+      if (e.hurtT > 0) e.hurtT -= STEP;
+      if (G.st === ST_BREACH || G.st === ST_SETTLE) return;
+      /* 接触伤害 */
+      var dx = D.ringDelta(G.px, e.x), dy = G.py - e.y;
+      if (Math.abs(dx) < 20 && Math.abs(dy) < 26 && G.inv <= 0) {
+        G.armor -= d.dmg; G.inv = 0.9; G.hurt++;
+        log('hurt', { dmg: d.dmg, armor: G.armor });
+        /* 受击即破坏相对静止：同调增益清零，必须重新累积 */
+        if (G.st === ST_ANCHOR) { G.anchorT = 0; G.anchorOK = false; G.reso = 0; setFsm(ST_ACTIVE, '受击打断锚定'); }
+        if (G.armor <= 0) { hullBreach('装甲熔穿'); return; }
+      }
+      /* 敌弹幕 */
+      e.cd -= STEP;
+      if (e.cd <= 0 && e.y >= D.FLOOR_Y - 16 && Math.abs(dx) < 520) {
+        e.cd = d.cd;
+        var ang = Math.atan2((G.py - 12) - e.y, dx);
+        G.ebullets.push({ x: e.x, y: e.y - 10, vx: Math.cos(ang) * 240, vy: Math.sin(ang) * 240, life: 1.8, dmg: 4 });
+      }
+    }
+  }
+  function stepBullets() {
+    for (var i = G.bullets.length - 1; i >= 0; i--) {
+      var b = G.bullets[i];
+      var ox = b.x, oy = b.y;
+      b.vy += -coriolis() * b.vx * STEP;
+      b.x = D.wrap(b.x + b.vx * STEP); b.y += b.vy * STEP;
+      var mv = Math.hypot(b.vx * STEP, b.y - oy);
+      b.trav += mv; G.bulletTrav += mv;
+      b.life -= STEP;
+      b.trail.push([b.x, b.y]); if (b.trail.length > 14) b.trail.shift();
+      if (b.y < D.CEIL_Y + 6 || b.y > D.FLOOR_Y - 4 || b.life <= 0 || b.trav > D.W * 1.02) {
+        /* 打在桁架上：误伤自身掩体 */
+        var T = D.trussAt(b.x, b.y);
+        if (T && !T.dead) { T.fat += 0.9; G.strays++; log('stray', { id: T.id }); }
+        G.bullets.splice(i, 1); continue;
+      }
+      var hit = false;
+      for (var j = 0; j < G.ents.length; j++) {
+        var e = G.ents[j];
+        if (Math.abs(D.ringDelta(b.x, e.x)) < 16 && Math.abs(b.y - (e.y - 12)) < 22) {
+          var gt = gateOf(e.k);
+          if (!gt.open) {
+            G.gateBlocks++; G.combo = 0;
+            log('gate_block', { k: e.k, om: G.om });
+            e.immuneT = 0.35;
+          } else {
+            var dmg = b.dmg * gt.mult * (1 + 0.85 * G.reso);
+            e.hp -= dmg; e.hurtT = 0.18; G.hits++;
+            var coreHit = Math.abs(b.y - (e.y - 12)) < 5;
+            if (coreHit) { G.coreHits++; G.P = Math.min(100, G.P + 1.6); G.armor = Math.min(D.ARMOR_MAX, G.armor + 1.1); }
+            log('hit', { k: e.k, dmg: Math.round(dmg), core: coreHit });
+            G.combo++; if (G.combo > G.maxCombo) G.maxCombo = G.combo;
+            if (e.hp <= 0) {
+              var nearPort = D.PORTS.some(function (p) { return D.ringDist(e.x, p.x) < 70; });
+              if (nearPort) { G.gateBlocks++; G.P = Math.min(100, G.P + 2.4); log('gate_block', { k: e.k, near: 1 }); }
+              G.ents.splice(j, 1); G.killed++;
+              log('kill', { k: e.k, charged: b.charged });
+            }
+          }
+          hit = true; break;
+        }
+      }
+      if (hit) G.bullets.splice(i, 1);
+    }
+  }
+  function stepEnemyBullets() {
+    for (var i = G.ebullets.length - 1; i >= 0; i--) {
+      var b = G.ebullets[i];
+      b.x = D.wrap(b.x + b.vx * STEP); b.y += b.vy * STEP; b.life -= STEP;
+      if (b.life <= 0 || b.y > D.FLOOR_Y) { G.ebullets.splice(i, 1); continue; }
+      if (Math.abs(D.ringDelta(b.x, G.px)) < 14 && Math.abs(b.y - G.py) < 22) {
+        if (G.inv <= 0) {
+          G.armor -= b.dmg; G.inv = 0.9; G.hurt++;
+          log('hurt', { dmg: b.dmg, armor: G.armor });
+          if (G.armor <= 0) hullBreach('装甲熔穿');
+        }
+        G.ebullets.splice(i, 1);
+      }
+    }
+  }
+
+  function hullBreach(why) {
+    if (G.st === ST_BREACH) return;
+    G.rollback++;
+    log('rollback', { why: why, n: G.rollback });
+    /* 复位在回溯触发当帧立即完成：清空实体阵列、送回最后安全落点、装甲与弹匣补满；
+       账本、漏防计数、超转次数与桁架脱开数一律不回滚。breachT 仅作暗红覆层与输入封锁的读秒。 */
+    G.ents = []; G.bullets = []; G.ebullets = [];
+    G.px = G.lastSafe.x; G.py = G.lastSafe.y; G.pvx = 0; G.pvy = 0;
+    G.armor = D.ARMOR_MAX; G.mag = D.MAG; G.reload = 0;
+    G.charging = false; G.charge = 0; G.anchorT = 0; G.anchorOK = false; G.reso = 0;
+    G.overspin = Math.min(G.overspin, 40);
+    G.breachWhy = why;
+    if (G.rollback >= G.rollbackMax) { G.breachT = 1.1; setFsm(ST_BREACH, why); settleSoon = true; return; }
+    G.breachT = 1.5;
+    setFsm(ST_BREACH, why);
+  }
+  var settleSoon = false;
+  function resetRun() { settleSoon = false; G = newRun(D.SEED); syncAll(); }
+
+  function settle() {
+    G.settleRows = reduceLedger();
+    setFsm(ST_SETTLE, '波次打满且敌实体清空');
+    log('settle', null);
+  }
+
+  /* ================= 账本纯函数归约 ================= */
+  function reduceLedger() {
+    var L = G.ledger;
+    var c = {};
+    function has(k) { var n = 0; for (var i = 0; i < L.length; i++) if (L[i].k === k) n++; return n; }
+    var anchors = has('anchor'), hits = has('hit'), kills = has('kill'), leaks = has('leak'),
+        fires = has('fire'), gates = has('gate_block'), strays = has('stray'), hurts = has('hurt'),
+        rolls = has('rollback'), broken = has('truss_broken'), dashes = has('dash'),
+        revs = has('reverse'), overs = has('overspin'), waves = has('wave');
+    var core = 0, chargedKills = 0;
+    for (var i = 0; i < L.length; i++) {
+      if (L[i].k === 'hit' && L[i].d.core) core++;
+      if (L[i].k === 'kill' && L[i].d && L[i].d.charged) chargedKills++;
+    }
+    var hubLeft = G.hub;
+    var rows = [
+      ['锚定同调完成', anchors, anchors * 46, 1],
+      ['同调平均迟滞', (G.anchorTotal ? Math.round(G.anchorLagSum / G.anchorTotal) : 0) + ' ms', 0, 1],
+      ['核心区命中', core, core * 22, 1],
+      ['命中弹数', hits, hits * 9, 1],
+      ['歼灭敌实体', kills, kills * 34, 1],
+      ['蓄能重弹歼敌', chargedKills, chargedKills * 18, 1],
+      ['门禁封堵', gates, gates * 26, 1],
+      ['环向冲刺', dashes, dashes * 12, 1],
+      ['紧急反转环向', revs, -revs * 14, 1],
+      ['超转锁死', overs, -overs * 40, 1],
+      ['破舱回溯', rolls, -rolls * 90, 1],
+      ['桁架脱开', broken, -broken * 55, 1],
+      ['弹丸误伤桁架', strays, -strays * 4, 1],
+      ['受击次数', hurts, -hurts * 7, 1],
+      ['漏防惩戒', leaks, -leaks * 60, 1],
+      ['配电枢纽余量', hubLeft + ' / ' + D.HUB_HP, hubLeft * 12, 1],
+      ['波次推进', waves, waves * 30, 1],
+      ['综合收益倍率', '×' + f2(multiplier()), 0, 0]
+    ];
+    var total = 0;
+    for (var r = 0; r < rows.length; r++) if (rows[r][3] === 1) total += rows[r][2];
+    return { rows: rows, total: total, star: total >= 3200 ? 3 : (total >= 1800 ? 2 : 1) };
+  }
+  function multiplier() {
+    var a = 1 + G.anchorTotal * 0.004 + G.coreHits * 0.0016 + G.gateBlocks * 0.004;
+    var b = 1 + G.hurt * 0.0035 + G.rollback * 0.05 + G.strays * 0.0009;
+    return a / b;
+  }
+
+  /* ================= 渲染 · 主视窗 ================= */
+  function sx(x) { var d = D.ringDelta(camX, x); return VW / 2 + d; }
+  var camX = 0;
+
+  function drawWorld() {
+    var c = prepFit(cvW, VW, VH, false), w = VW, h = VH;
+    /* 环带外结构背景 */
+    var bg = c.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#050a13'); bg.addColorStop(0.45, '#08111d'); bg.addColorStop(1, '#04070d');
+    c.fillStyle = bg; c.fillRect(0, 0, w, h);
+    /* 星空 */
+    for (var s = 0; s < 90; s++) {
+      var sxx = (s * 137.5 + 40) % w, syy = ((s * 71.3) % (WORLD_DY - 6)) + 4;
+      c.fillStyle = 'rgba(' + (s % 3 === 0 ? '120,200,255' : '200,220,255') + ',' + (0.12 + (s % 5) * 0.07) + ')';
+      c.fillRect(sxx, syy, 1.4, 1.4);
+    }
+    camX = G.px;
+
+    /* 环带纵深：筋板与配重暗影（细窄，作为纵深参照而非主体） */
+    for (var rb = 0; rb < 14; rb++) {
+      var rxx = ((rb * 238 - camX * 1.0) % w + w * 2) % w;
+      var rgd = c.createLinearGradient(0, WORLD_DY, 0, WORLD_DY + D.FLOOR_Y);
+      rgd.addColorStop(0, 'rgba(22,40,64,.30)');
+      rgd.addColorStop(1, 'rgba(22,40,64,.07)');
+      c.fillStyle = rgd; c.fillRect(rxx, WORLD_DY, 9, D.FLOOR_Y);
+      c.fillStyle = 'rgba(10,20,34,.42)'; c.fillRect(rxx + 9, WORLD_DY, 2, D.FLOOR_Y);
+    }
+    /* 环带对侧（闭合环的另一边）：远景薄雾中隐约可见，视差按半环偏移取反 */
+    (function () {
+      var fy = WORLD_DY + 138;
+      var fg = c.createLinearGradient(0, WORLD_DY, 0, fy + 40);
+      fg.addColorStop(0, 'rgba(16,32,52,0)');
+      fg.addColorStop(0.72, 'rgba(18,38,62,.38)');
+      fg.addColorStop(1, 'rgba(24,48,78,.62)');
+      c.fillStyle = fg; c.fillRect(0, WORLD_DY, w, fy + 40 - WORLD_DY);
+      /* 对侧里程刻度 */
+      for (var fm = 0; fm < 26; fm++) {
+        var fx = ((fm * 400 - camX + w / 2) % w + w * 2) % w;
+        c.strokeStyle = 'rgba(90,140,190,.22)'; c.lineWidth = 1;
+        c.beginPath(); c.moveTo(fx, fy + 26); c.lineTo(fx, fy + 40); c.stroke();
+      }
+      /* 对侧桁架剪影 */
+      for (var ft = 0; ft < D.TRUSSES.length; ft++) {
+        var TT = D.TRUSSES[ft];
+        var tx = ((D.wrap(TT.x0) - camX + w / 2) % w + w * 2) % w;
+        if (TT.dead) continue;
+        c.fillStyle = 'rgba(58,96,140,.30)';
+        c.fillRect(tx - TT.w / 2, fy + 24, TT.w, 5);
+        c.fillStyle = 'rgba(58,96,140,.16)';
+        c.fillRect(tx - TT.w / 2, fy + 29, 2, 26);
+        c.fillRect(tx + TT.w / 2 - 2, fy + 29, 2, 26);
+      }
+      /* 对侧泄压缝的冷光溢出 */
+      for (var fv = 0; fv < D.VENTS.length; fv++) {
+        var vx = ((D.VENTS[fv].x - camX + w / 2) % w + w * 2) % w;
+        var vg = c.createRadialGradient(vx, fy + 40, 0, vx, fy + 40, 46);
+        vg.addColorStop(0, 'rgba(255,138,61,.26)'); vg.addColorStop(1, 'rgba(255,138,61,0)');
+        c.fillStyle = vg; c.fillRect(vx - 46, fy - 6, 92, 52);
+      }
+      c.strokeStyle = 'rgba(120,180,230,.30)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(0, fy + 40); c.lineTo(w, fy + 40); c.stroke();
+    })();
+
+    /* 离心重力矢量场 */
+    for (var ga = 0; ga < 16; ga++) {
+      var gax = ((ga * 214 + 90 - camX) % w + w * 2) % w;
+      var gal = 26 + 10 * Math.sin((camX + ga * 214) / 240);
+      c.strokeStyle = 'rgba(255,181,69,.13)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(gax, WORLD_DY + 120); c.lineTo(gax, WORLD_DY + 120 + gal); c.stroke();
+      c.beginPath(); c.moveTo(gax, WORLD_DY + 120 + gal);
+      c.lineTo(gax - 3, WORLD_DY + 116 + gal); c.lineTo(gax + 3, WORLD_DY + 116 + gal);
+      c.closePath(); c.fillStyle = 'rgba(255,181,69,.16)'; c.fill();
+    }
+
+    /* 内壁（环带内侧结构，y=0 上方）*/
+    c.fillStyle = '#0b1523'; c.fillRect(0, WORLD_DY - 46, w, 46);
+    c.strokeStyle = 'rgba(56,224,216,.28)'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(0, WORLD_DY); c.lineTo(w, WORLD_DY); c.stroke();
+    for (var gx = -(((camX - 480) % 64) + 64) % 64; gx < w; gx += 64) {
+      c.strokeStyle = 'rgba(56,224,216,.10)';
+      c.beginPath(); c.moveTo(gx, WORLD_DY - 46); c.lineTo(gx, WORLD_DY); c.stroke();
+    }
+    c.fillStyle = 'rgba(56,224,216,.05)'; c.fillRect(0, WORLD_DY - 46, w, 10);
+    /* 涌入孔 */
+    for (var p = 0; p < D.PORTS.length; p++) {
+      var P = D.PORTS[p], px = sx(P.x);
+      if (px < -140 || px > w + 140) continue;
+      var gd = c.createRadialGradient(px, WORLD_DY, 2, px, WORLD_DY, 68);
+      gd.addColorStop(0, 'rgba(176,108,255,.55)'); gd.addColorStop(1, 'rgba(176,108,255,0)');
+      c.fillStyle = gd; c.beginPath(); c.arc(px, WORLD_DY, 68, 0, 6.2832); c.fill();
+      c.fillStyle = '#1a1030'; c.fillRect(px - 34, WORLD_DY - 18, 68, 18);
+      c.strokeStyle = '#b06cff'; c.lineWidth = 1.4; c.strokeRect(px - 34, WORLD_DY - 18, 68, 18);
+      c.fillStyle = '#b06cff'; c.font = '600 10px sans-serif'; c.textAlign = 'center';
+      c.fillText(P.id + ' 涌入孔', px, WORLD_DY - 26);
+      c.textAlign = 'left';
+    }
+
+    /* 外壁（离心重力指向 +y）*/
+    var fy = WORLD_DY + D.FLOOR_Y;
+    c.fillStyle = '#0a1119'; c.fillRect(0, fy, w, h - fy);
+    var fg = c.createLinearGradient(0, fy, 0, fy + 40);
+    fg.addColorStop(0, 'rgba(111,140,255,.22)'); fg.addColorStop(1, 'rgba(111,140,255,0)');
+    c.fillStyle = fg; c.fillRect(0, fy, w, 40);
+    for (var fp = -(((camX - 480) % 48) + 48) % 48; fp < w; fp += 48) {
+      c.strokeStyle = 'rgba(58,86,120,.55)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(fp, fy + 4); c.lineTo(fp, fy + 34); c.stroke();
+    }
+    c.strokeStyle = 'rgba(111,140,255,.55)'; c.lineWidth = 1.6;
+    c.beginPath(); c.moveTo(0, fy); c.lineTo(w, fy); c.stroke();
+    c.strokeStyle = 'rgba(56,224,216,.35)'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(0, fy + 3); c.lineTo(w, fy + 3); c.stroke();
+    /* 危险区斜纹（泄压缝两侧） */
+    for (var vs = 0; vs < D.VENTS.length; vs++) {
+      var vxx = sx(D.VENTS[vs].x);
+      if (vxx < -200 || vxx > w + 200) continue;
+      c.save();
+      c.beginPath(); c.rect(vxx - 74, fy - 8, 148, 10); c.clip();
+      for (var hs = -160; hs < 160; hs += 12) {
+        c.strokeStyle = 'rgba(255,181,69,.55)'; c.lineWidth = 3;
+        c.beginPath(); c.moveTo(vxx + hs, fy); c.lineTo(vxx + hs + 12, fy - 10); c.stroke();
+      }
+      c.restore();
+    }
+    for (var v = 0; v < D.VENTS.length; v++) {
+      var V = D.VENTS[v], vx = sx(V.x);
+      if (vx < -160 || vx > w + 160) continue;
+      c.fillStyle = '#02040a'; c.fillRect(vx - V.w / 2, fy, V.w, 42);
+      c.strokeStyle = '#ff5a6a'; c.lineWidth = 1.3;
+      c.beginPath(); c.moveTo(vx - V.w / 2, fy); c.lineTo(vx - V.w / 2, fy + 42);
+      c.moveTo(vx + V.w / 2, fy); c.lineTo(vx + V.w / 2, fy + 42); c.stroke();
+      c.fillStyle = 'rgba(255,90,106,.85)'; c.font = '600 9px sans-serif'; c.textAlign = 'center';
+      c.fillText(V.id + ' 泄压缝', vx, fy + 56);
+      c.textAlign = 'left';
+    }
+    /* 里程刻度 */
+    for (var m = 0; m < D.MARKS.length; m++) {
+      var mxs = sx(D.MARKS[m]);
+      if (mxs < -40 || mxs > w + 40) continue;
+      c.strokeStyle = 'rgba(88,120,160,.35)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(mxs, fy - 10); c.lineTo(mxs, fy); c.stroke();
+      c.fillStyle = 'rgba(127,151,181,.75)'; c.font = '9px sans-serif'; c.textAlign = 'center';
+      c.fillText(String(D.MARKS[m]), mxs, fy - 14); c.textAlign = 'left';
+    }
+
+    /* 配电枢纽 */
+    var hx = sx(D.HUB.x);
+    if (hx > -260 && hx < w + 260) {
+      c.fillStyle = '#0f2130'; c.fillRect(hx - D.HUB.w / 2, fy - 132, D.HUB.w, 132);
+      c.strokeStyle = '#57e08a'; c.lineWidth = 1.5;
+      c.strokeRect(hx - D.HUB.w / 2, fy - 132, D.HUB.w, 132);
+      c.fillStyle = 'rgba(87,224,138,.16)'; c.fillRect(hx - D.HUB.w / 2 + 8, fy - 124, D.HUB.w - 16, 12);
+      c.fillStyle = '#57e08a'; c.font = '700 12px sans-serif'; c.textAlign = 'center';
+      c.fillText('配电枢纽', hx, fy - 98);
+      c.font = '10px sans-serif'; c.fillStyle = 'rgba(185,203,228,.85)';
+      c.fillText('余量 ' + G.hub + ' / ' + D.HUB_HP, hx, fy - 82);
+      var hbar = (G.hub / D.HUB_HP);
+      c.fillStyle = 'rgba(87,224,138,.25)'; c.fillRect(hx - 62, fy - 72, 124, 7);
+      c.fillStyle = hbar > 0.4 ? '#57e08a' : '#ff5a6a'; c.fillRect(hx - 62, fy - 72, 124 * hbar, 7);
+      c.textAlign = 'left';
+    }
+
+    /* 桁架 */
+    for (var t = 0; t < D.TRUSSES.length; t++) {
+      var T = D.TRUSSES[t], tx = sx(T.x);
+      if (tx < -220 || tx > w + 220) continue;
+      var top = WORLD_DY + T.top;
+      var alpha = T.dead ? 0.22 : 1;
+      c.globalAlpha = alpha;
+      if (T.dead) {
+        c.setLineDash([5, 5]); c.strokeStyle = 'rgba(120,140,170,.6)'; c.lineWidth = 1;
+        c.strokeRect(tx - T.w / 2, top, T.w, 22); c.setLineDash([]);
+        c.fillStyle = 'rgba(160,180,205,.7)'; c.font = '9px sans-serif'; c.textAlign = 'center';
+        c.fillText(T.id + ' 已脱开', tx, top - 6); c.textAlign = 'left';
+        c.globalAlpha = 1; continue;
+      }
+      c.fillStyle = '#16273d'; c.fillRect(tx - T.w / 2, top, T.w, 20);
+      c.strokeStyle = '#3f6c96'; c.lineWidth = 1.2; c.strokeRect(tx - T.w / 2, top, T.w, 20);
+      c.strokeStyle = 'rgba(88,140,190,.75)'; c.lineWidth = 1;
+      for (var bz = 0; bz < T.w - 16; bz += 16) {
+        c.beginPath(); c.moveTo(tx - T.w / 2 + bz, top + 20);
+        c.lineTo(tx - T.w / 2 + bz + 16, top + 20);
+        c.lineTo(tx - T.w / 2 + bz + 8, top); c.closePath(); c.stroke();
+      }
+      var life = clamp(T.life, 0, 1);
+      c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(tx - T.w / 2, top - 7, T.w, 4);
+      c.fillStyle = life > 0.5 ? '#57e08a' : (life > 0.25 ? '#ffb545' : '#ff5a6a');
+      c.fillRect(tx - T.w / 2, top - 7, T.w * life, 4);
+      c.fillStyle = 'rgba(185,203,228,.8)'; c.font = '9px sans-serif'; c.textAlign = 'center';
+      c.fillText(T.id + ' · 疲劳 ' + f1(T.fat), tx, top - 11); c.textAlign = 'left';
+      c.globalAlpha = 1;
+    }
+
+    /* 弹丸（含环绕返航） */
+    for (var bi = 0; bi < G.bullets.length; bi++) {
+      var B = G.bullets[bi], bx = sx(B.x), by = WORLD_DY + B.y;
+      for (var k2 = 0; k2 < B.trail.length; k2++) {
+        var tp = B.trail[k2], tpx = sx(tp[0]), tpy = WORLD_DY + tp[1];
+        c.fillStyle = 'rgba(56,224,216,' + (0.05 + 0.3 * (k2 / B.trail.length)) + ')';
+        c.fillRect(tpx - 1.5, tpy - 1.5, 3, 3);
+      }
+      c.fillStyle = B.charged ? '#ffb545' : '#aef4ff';
+      c.beginPath(); c.arc(bx, by, B.charged ? 3.4 : 2.2, 0, 6.2832); c.fill();
+      c.strokeStyle = 'rgba(56,224,216,.55)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(bx, by); c.lineTo(bx - B.vx * 0.012, by); c.stroke();
+    }
+    /* 敌弹幕 */
+    for (var eb = 0; eb < G.ebullets.length; eb++) {
+      var E = G.ebullets[eb], ex = sx(E.x), ey = WORLD_DY + E.y;
+      c.fillStyle = '#ff8a3d'; c.beginPath(); c.arc(ex, ey, 2.6, 0, 6.2832); c.fill();
+    }
+
+    /* 敌实体 */
+    for (var ei = 0; ei < G.ents.length; ei++) {
+      var E2 = G.ents[ei], ex2 = sx(E2.x), ey2 = WORLD_DY + E2.y;
+      if (ex2 < -80 || ex2 > w + 80) continue;
+      var td = typeDef(E2.k), gt2 = gateOf(E2.k);
+      c.save(); c.translate(ex2, ey2);
+      c.globalAlpha = E2.hurtT > 0 ? 0.55 : 1;
+      c.fillStyle = td.col; c.strokeStyle = td.col; c.lineWidth = 1.4;
+      if (E2.k === 'SYNC') { c.beginPath(); c.arc(0, -13, 11, 0, 6.2832); c.fill();
+        c.beginPath(); c.arc(0, -13, 16, 0, 6.2832); c.stroke(); }
+      else if (E2.k === 'ANTI') { c.beginPath(); c.moveTo(0, -25); c.lineTo(11, -6); c.lineTo(-11, -6);
+        c.closePath(); c.fill(); }
+      else if (E2.k === 'PARK') { c.fillRect(-10, -24, 20, 20); }
+      else { c.beginPath(); for (var a6 = 0; a6 < 6; a6++) { var aa = a6 * 1.0472 - 1.5708;
+          var rr = 13; if (a6 === 0) c.moveTo(Math.cos(aa) * rr, -13 + Math.sin(aa) * rr);
+          else c.lineTo(Math.cos(aa) * rr, -13 + Math.sin(aa) * rr); } c.closePath(); c.fill(); }
+      c.fillRect(-5, -6, 4, 6); c.fillRect(2, -6, 4, 6);
+      c.globalAlpha = 1;
+      /* 血条 */
+      c.fillStyle = 'rgba(0,0,0,.55)'; c.fillRect(-16, -34, 32, 4);
+      c.fillStyle = E2.hp / E2.hpMax > 0.4 ? '#57e08a' : '#ff5a6a';
+      c.fillRect(-16, -34, 32 * clamp(E2.hp / E2.hpMax, 0, 1), 4);
+      /* 门禁态 */
+      c.font = '9px sans-serif'; c.textAlign = 'center';
+      c.fillStyle = gt2.open ? 'rgba(87,224,138,.95)' : 'rgba(255,90,106,.95)';
+      c.fillText(gt2.open ? td.n + (gt2.mult > 1 ? ' ×2' : '') : td.n + ' · 门禁免疫', 0, -39);
+      if (E2.immuneT > 0) { c.strokeStyle = '#ff5a6a'; c.lineWidth = 1.6;
+        c.beginPath(); c.arc(0, -13, 20, 0, 6.2832); c.stroke(); }
+      c.textAlign = 'left';
+      c.restore();
+    }
+
+    /* 玩家 */
+    drawPlayer(c);
+
+    /* 前景提示与横幅 */
+    drawOverlays(c, w, h);
+  }
+
+  function drawPlayer(c) {
+    var px = sx(G.px), py = WORLD_DY + G.py;
+    c.save(); c.translate(px, py);
+    if (G.st === ST_BREACH) c.globalAlpha = 0.35;
+    /* 锚靴 */
+    c.fillStyle = '#1b3b52'; c.fillRect(-9, -8, 7, 8); c.fillRect(2, -8, 7, 8);
+    c.strokeStyle = '#38e0d8'; c.lineWidth = 1; c.strokeRect(-9, -8, 7, 8); c.strokeRect(2, -8, 7, 8);
+    /* 躯干 */
+    c.fillStyle = '#123044'; c.fillRect(-8, -30, 16, 22);
+    c.strokeStyle = '#38e0d8'; c.lineWidth = 1.3; c.strokeRect(-8, -30, 16, 22);
+    /* 头盔 */
+    c.fillStyle = '#0e2434'; c.beginPath(); c.arc(0, -36, 8, 0, 6.2832); c.fill(); c.stroke();
+    c.fillStyle = '#38e0d8'; c.fillRect(-6 + (G.face > 0 ? 2 : -4), -38, 7, 4);
+    /* 步枪 */
+    c.strokeStyle = '#9fb6cc'; c.lineWidth = 2.4;
+    c.beginPath(); c.moveTo(G.face * 2, -22); c.lineTo(G.face * 24, -22); c.stroke();
+    c.lineWidth = 1; c.strokeStyle = 'rgba(56,224,216,.8)';
+    c.beginPath(); c.moveTo(G.face * 2, -20); c.lineTo(G.face * 26, -20); c.stroke();
+    /* 蓄能 */
+    if (G.charge > 0.02) {
+      c.strokeStyle = 'rgba(255,181,69,' + (0.35 + 0.6 * G.charge) + ')'; c.lineWidth = 2;
+      c.beginPath(); c.arc(G.face * 24, -22, 5 + 9 * G.charge, -1.2, 1.2); c.stroke();
+    }
+    /* 锚定同调环 */
+    if (G.gr && G.anchorT > 0.01) {
+      var pr = clamp(G.anchorT / (D.ANCHOR_MS / 1000), 0, 1);
+      c.strokeStyle = 'rgba(87,224,138,.9)'; c.lineWidth = 2.2;
+      c.beginPath(); c.arc(0, 0, 20, -1.5708, -1.5708 + 6.2832 * pr); c.stroke();
+      c.strokeStyle = 'rgba(87,224,138,.25)'; c.lineWidth = 1;
+      c.beginPath(); c.arc(0, 0, 26, 0, 6.2832); c.stroke();
+      c.fillStyle = 'rgba(87,224,138,.95)'; c.font = '600 10px sans-serif'; c.textAlign = 'center';
+      c.fillText('同调 ' + Math.round(pr * 100) + '%', 0, -52); c.textAlign = 'left';
+    }
+    if (G.inv > 0) {
+      c.strokeStyle = 'rgba(255,90,106,.85)'; c.lineWidth = 1.6;
+      c.beginPath(); c.arc(0, -20, 24, 0, 6.2832); c.stroke();
+    }
+    c.restore();
+  }
+
+  function drawOverlays(c, w, h) {
+    /* 超转红色渐晕 */
+    if (G.st === ST_OVER) {
+      var vg = c.createRadialGradient(w / 2, h / 2, 80, w / 2, h / 2, w * 0.62);
+      vg.addColorStop(0, 'rgba(255,90,106,0)'); vg.addColorStop(1, 'rgba(255,90,106,.42)');
+      c.fillStyle = vg; c.fillRect(0, 0, w, h);
+    }
+    if (G.st === ST_BREACH) {
+      var vg2 = c.createLinearGradient(0, 0, 0, h);
+      vg2.addColorStop(0, 'rgba(255,90,106,.30)'); vg2.addColorStop(1, 'rgba(0,0,0,.72)');
+      c.fillStyle = vg2; c.fillRect(0, 0, w, h);
+    }
+    /* 待机大厅 */
+    if (G.st === ST_TITLE) {
+      c.fillStyle = 'rgba(4,8,15,.86)'; c.fillRect(0, 0, w, h);
+      var cg = c.createRadialGradient(w / 2, 210, 20, w / 2, 210, 330);
+      cg.addColorStop(0, 'rgba(56,224,216,.20)'); cg.addColorStop(1, 'rgba(56,224,216,0)');
+      c.fillStyle = cg; c.fillRect(0, 0, w, h);
+      c.textAlign = 'center';
+      c.fillStyle = '#eaf3ff'; c.font = '700 44px sans-serif';
+      c.fillText('环 枢', w / 2, 196);
+      c.fillStyle = '#38e0d8'; c.font = '600 15px sans-serif';
+      c.fillText('环枢 GYROSPAN · 离心环带防卫战', w / 2, 226);
+      c.fillStyle = 'rgba(185,203,228,.9)'; c.font = '12px sans-serif';
+      var lines = [
+        '① 三路出力（环速 / 武器 / 伺服）恒等于 100%，环速平方决定离心重力',
+        '② 弹丸在旋转参考系中承受科里奥利侧偏，顺环与逆环射击弯曲方向相反',
+        '③ 敌对实体按自旋谐次门禁，须把环速推到对应谐次窗口才可击穿',
+        '④ 落点压回相对静止持续 350 ms 完成环带同调，之后跳跃与蓄能重弹才解锁',
+        '⑤ 反应堆出力与装甲无任何被动回复，只由核心区命中与门禁封堵回充'
+      ];
+      for (var i = 0; i < lines.length; i++) c.fillText(lines[i], w / 2, 268 + i * 21);
+      c.fillStyle = 'rgba(127,151,181,.95)'; c.font = '12px sans-serif';
+      c.fillText('关卡种子 ' + D.SEED + '　环带桁架 ' + D.TRUSSES.length + ' 段　涌入孔 ' + D.PORTS.length +
+        ' 处　增生波次 ' + D.WAVES_N + ' 波　同调阈值 ' + D.ANCHOR_MS + ' ms', w / 2, 402);
+      c.fillText('环带周长 ' + D.W + ' · 泄压缝 ' + D.VENTS.length + ' 处 · 配电枢纽余量 ' + D.HUB_HP, w / 2, 422);
+      c.fillStyle = 'rgba(56,224,216,.20)'; c.fillRect(w / 2 - 130, 452, 260, 38);
+      c.strokeStyle = '#38e0d8'; c.lineWidth = 1.4; c.strokeRect(w / 2 - 130, 452, 260, 38);
+      c.fillStyle = '#aef4ff'; c.font = '600 15px sans-serif';
+      c.fillText('进入环带 · 防卫', w / 2, 477);
+      c.fillStyle = 'rgba(127,151,181,.9)'; c.font = '11px sans-serif';
+      c.fillText('按 Enter / 空格 / 点击画面开始', w / 2, 516);
+      c.textAlign = 'left';
+      return;
+    }
+    /* 自转标定 */
+    if (G.st === ST_SPINUP) {
+      c.fillStyle = 'rgba(4,8,15,.55)'; c.fillRect(0, 0, w, h);
+      c.textAlign = 'center';
+      c.fillStyle = '#eaf3ff'; c.font = '600 17px sans-serif';
+      c.fillText('环带随机种子与结构重构', w / 2, 150);
+      c.fillStyle = '#38e0d8'; c.font = '12px sans-serif';
+      c.fillText('mulberry32(' + D.SEED + ')　桁架 ' + D.TRUSSES.length + ' 段　涌入孔 ' + D.PORTS.length + ' 处', w / 2, 174);
+      c.fillStyle = 'rgba(185,203,228,.9)'; c.font = '12px sans-serif';
+      c.fillText('画面 ' + Math.round(G.build * 100) + '% · 实体 ' + Math.round(G.build * 17) + ' / 17', w / 2, 196);
+      c.fillStyle = 'rgba(56,224,216,.2)'; c.fillRect(w / 2 - 180, 212, 360, 10);
+      c.fillStyle = '#38e0d8'; c.fillRect(w / 2 - 180, 212, 360 * G.build, 10);
+      c.fillStyle = 'rgba(127,151,181,.9)'; c.font = '11px sans-serif';
+      c.fillText('正在按固定种子重建环带桁架阵列与涌入孔…', w / 2, 244);
+      c.textAlign = 'left';
+    }
+    /* 局内提示 */
+    if (G.st === ST_ACTIVE || G.st === ST_SURGE || G.st === ST_ANCHOR) {
+      if (G.wave === 0) {
+        c.fillStyle = 'rgba(4,10,18,.8)'; c.fillRect(0, WORLD_DY + 6, w, 26);
+        c.fillStyle = 'rgba(56,224,216,.95)'; c.font = '600 12px sans-serif'; c.textAlign = 'center';
+        c.fillText('部署窗口 ' + f1(Math.max(0, G.waveT)) + 's · 按 A / D 走位，F 连射，按住 X 蓄能，J 跳跃，K 冲刺，L 反转环向', w / 2, WORLD_DY + 24);
+        c.textAlign = 'left';
+      }
+      if (G.anchorOK && G.gr && G.anchorT > 0.01) {
+        c.fillStyle = 'rgba(4,10,18,.8)'; c.fillRect(0, WORLD_DY + D.FLOOR_Y - 94, w, 24);
+        c.fillStyle = 'rgba(87,224,138,.95)'; c.font = '600 12px sans-serif'; c.textAlign = 'center';
+        c.fillText('环带同调完成 · 跳跃与蓄能重弹已解锁（重置前不可用）', w / 2, WORLD_DY + D.FLOOR_Y - 77);
+        c.textAlign = 'left';
+      }
+    }
+    if (G.st === ST_OVER) {
+      c.textAlign = 'center';
+      c.fillStyle = '#ff5a6a'; c.font = '700 26px sans-serif';
+      c.fillText('超转失稳 · 操作硬直 ' + f2(Math.max(0, G.lockT)) + 's', w / 2, 168);
+      c.fillStyle = 'rgba(255,181,69,.95)'; c.font = '600 12px sans-serif';
+      c.fillText('超转压力 100% · 全部输入被拒绝，环带内敌实体仍在推进', w / 2, 194);
+      c.textAlign = 'left';
+    }
+    if (G.st === ST_BREACH) {
+      c.textAlign = 'center';
+      c.fillStyle = '#ff5a6a'; c.font = '700 38px sans-serif';
+      c.fillText('破舱回溯  HULL BREACH', w / 2, 200);
+      c.fillStyle = 'rgba(234,243,255,.92)'; c.font = '600 14px sans-serif';
+      c.fillText('回溯预算 ' + G.rollback + ' / ' + G.rollbackMax + ' · ' + (G.breachWhy || '') + ' · 账本保留，实体阵列复位', w / 2, 232);
+      c.textAlign = 'left';
+    }
+    if (G.st === ST_SETTLE) {
+      drawSettle(c, w, h);
+    }
+    /* 场上提示条：结算期不叠加，避免与结算面板文字互串 */
+    if (G.st !== ST_SETTLE && G.bannerT > 0 && G.banner) {
+      c.fillStyle = 'rgba(255,90,106,.92)'; c.font = '600 13px sans-serif'; c.textAlign = 'center';
+      c.fillText(G.banner, w / 2, WORLD_DY + 52); c.textAlign = 'left';
+    }
+  }
+
+  function drawSettle(c, w, h) {
+    c.fillStyle = '#04080f'; c.fillRect(0, 0, w, h);
+    var R = G.settleRows || { rows: [], total: 0, star: 1 };
+    c.textAlign = 'center';
+    c.fillStyle = '#eaf3ff'; c.font = '700 26px sans-serif';
+    c.fillText('本局审计结算', w / 2, 62);
+    c.fillStyle = '#38e0d8'; c.font = '12px sans-serif';
+    c.fillText('RUN_SETTLED_LEDGER · 全部读数由 ' + G.ledger.length + ' 条事件账本纯函数归约得出', w / 2, 84);
+    c.fillStyle = '#ffb545'; c.font = '700 30px sans-serif';
+    c.fillText(String(R.total), w - 140, 66);
+    c.font = '12px sans-serif';
+    c.fillText('★★★'.slice(0, R.star) + '☆☆☆'.slice(0, 3 - R.star), w - 140, 88);
+    /* 左列归约项 */
+    var x0 = 40, y0 = 112, rh = 18;
+    c.textAlign = 'left';
+    c.font = '11px sans-serif';
+    for (var i = 0; i < R.rows.length; i++) {
+      var r = R.rows[i], yy = y0 + i * rh;
+      if (yy > h - 52) break;
+      c.fillStyle = 'rgba(185,203,228,.95)'; c.fillText(r[0], x0, yy);
+      c.fillStyle = 'rgba(127,151,181,.95)'; c.fillText(String(r[1]), x0 + 176, yy);
+      c.fillStyle = r[2] > 0 ? '#57e08a' : (r[2] < 0 ? '#ff5a6a' : 'rgba(127,151,181,.8)');
+      c.textAlign = 'right'; c.fillText(String(r[2]), x0 + 300, yy); c.textAlign = 'left';
+    }
+    /* 右列实时读数 */
+    var x1 = w / 2 + 40;
+    var live = liveReadout();
+    for (var j = 0; j < live.length; j++) {
+      var yy2 = y0 + j * rh;
+      if (yy2 > h - 52) break;
+      c.fillStyle = 'rgba(185,203,228,.95)'; c.fillText(live[j][0], x1, yy2);
+      c.fillStyle = '#38e0d8'; c.textAlign = 'right'; c.fillText(live[j][1], x1 + 320, yy2); c.textAlign = 'left';
+    }
+    c.textAlign = 'center';
+    c.fillStyle = 'rgba(56,224,216,.2)'; c.fillRect(w / 2 - 250, h - 42, 220, 28);
+    c.strokeStyle = '#38e0d8'; c.strokeRect(w / 2 - 250, h - 42, 220, 28);
+    c.fillStyle = '#aef4ff'; c.font = '12px sans-serif'; c.fillText('再来一局（同种子）', w / 2 - 140, h - 24);
+    c.fillStyle = 'rgba(111,140,255,.2)'; c.fillRect(w / 2 + 30, h - 42, 220, 28);
+    c.strokeStyle = '#6f8cff'; c.strokeRect(w / 2 + 30, h - 42, 220, 28);
+    c.fillStyle = '#c4d2ff'; c.fillText('返回待机就绪', w / 2 + 140, h - 24);
+    c.textAlign = 'left';
+  }
+
+  function liveReadout() {
+    return [
+      ['命中弹数', String(G.hits)],
+      ['核心区命中', String(G.coreHits)],
+      ['最长连击段位', String(G.maxCombo)],
+      ['锚定同调完成', String(G.anchorTotal)],
+      ['同调平均迟滞', (G.anchorTotal ? Math.round(G.anchorLagSum / G.anchorTotal) : 0) + ' ms'],
+      ['门禁封堵', String(G.gateBlocks)],
+      ['环向冲刺', String(G.dash)],
+      ['紧急反转环向', String(G.reverse)],
+      ['超转锁死', String(G.overCount)],
+      ['破舱回溯', G.rollback + ' / ' + G.rollbackMax],
+      ['桁架脱开', G.trussBroken + ' 段'],
+      ['弹丸误伤桁架', String(G.strays)],
+      ['受击次数', String(G.hurt)],
+      ['漏防敌实体', String(G.leaked)],
+      ['配电枢纽余量', G.hub + ' / ' + D.HUB_HP],
+      ['发射弹数', String(G.fired)],
+      ['能量转换率', (G.fired ? (G.killed / Math.max(1, G.fired)).toFixed(2) : '0.00')],
+      ['综合收益倍率', '×' + f2(multiplier())]
+    ];
+  }
+
+  /* ================= 渲染 · 底部仪表带 ================= */
+  function drawHud() {
+    var c = prepFit(cvH, HVW, HVH, false), w = HVW, h = HVH;
+    c.fillStyle = '#080d17'; c.fillRect(0, 0, w, h);
+    /* 分区 */
+    var zones = [['速度矢量仪', 0, 330], ['动能示波雷达', 330, 700], ['超转压力标尺', 700, 980], ['八阶状态流转带', 980, 1536]];
+    for (var z = 0; z < zones.length; z++) {
+      var Z = zones[z];
+      c.strokeStyle = 'rgba(27,44,68,.9)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(Z[2], 6); c.lineTo(Z[2], h - 6); c.stroke();
+      c.fillStyle = '#7f97b5'; c.font = '600 10px sans-serif';
+      c.fillText(Z[0], Z[1] + 12, 18);
+    }
+    c.font = '11px sans-serif';
+    /* 速度矢量仪 */
+    var items = [
+      ['实测环速 ω', f3(G.om) + ' rad/s'],
+      ['离心重力 g', Math.round(gNow()) + ' px/s²'],
+      ['科里奥利系数', f3(coriolis())],
+      ['弹速', Math.round(bulletSpeedCalc()) + ' px/s'],
+      ['伺服跑速', Math.round(runSpeedCalc()) + ' px/s'],
+      ['跳跃初速', Math.round(jumpVCalc()) + ' px/s'],
+      ['航向夹角', (G.face > 0 ? '顺环 +0°' : '逆环 180°')]
+    ];
+    for (var i = 0; i < items.length; i++) {
+      var yy = 34 + i * 14;
+      c.fillStyle = '#7f97b5'; c.fillText(items[i][0], 14, yy);
+      c.fillStyle = '#eaf3ff'; c.textAlign = 'right'; c.fillText(items[i][1], 320, yy); c.textAlign = 'left';
+    }
+    /* 动能示波雷达：超转压力 + 装甲历史 */
+    var gx = 344, gy = 34, gw = 344, gh = 86;
+    c.fillStyle = 'rgba(11,21,35,.9)'; c.fillRect(gx, gy, gw, gh);
+    c.strokeStyle = 'rgba(36,64,95,.9)'; c.strokeRect(gx, gy, gw, gh);
+    c.strokeStyle = 'rgba(36,64,95,.5)';
+    for (var lg = 1; lg < 4; lg++) { c.beginPath(); c.moveTo(gx, gy + gh * lg / 4); c.lineTo(gx + gw, gy + gh * lg / 4); c.stroke(); }
+    c.strokeStyle = '#ffb545'; c.lineWidth = 1.4; c.beginPath();
+    for (var p1 = 0; p1 < G.histOver.length; p1++) {
+      var yy1 = gy + gh - (G.histOver[p1] / 100) * gh;
+      if (p1 === 0) c.moveTo(gx + p1, yy1); else c.lineTo(gx + p1, yy1);
+    }
+    c.stroke();
+    c.strokeStyle = '#38e0d8'; c.lineWidth = 1.2; c.beginPath();
+    for (var p2 = 0; p2 < G.histArm.length; p2++) {
+      var yy2 = gy + gh - (G.histArm[p2] / 100) * gh;
+      if (p2 === 0) c.moveTo(gx + p2, yy2); else c.lineTo(gx + p2, yy2);
+    }
+    c.stroke();
+    c.fillStyle = 'rgba(255,181,69,.9)'; c.fillText('超转压力', gx + 6, gy + 13);
+    c.fillStyle = 'rgba(56,224,216,.9)'; c.fillText('装甲完整度', gx + 72, gy + 13);
+    /* 超转压力标尺 */
+    var bx = 714, by = 40, bw = 250, bh = 14;
+    c.fillStyle = 'rgba(11,21,35,.9)'; c.fillRect(bx, by, bw, bh);
+    c.fillStyle = G.overspin > 70 ? '#ff5a6a' : (G.overspin > 40 ? '#ffb545' : '#38e0d8');
+    c.fillRect(bx, by, bw * clamp(G.overspin / 100, 0, 1), bh);
+    c.strokeStyle = 'rgba(36,64,95,.9)'; c.strokeRect(bx, by, bw, bh);
+    c.fillStyle = '#eaf3ff'; c.textAlign = 'right';
+    c.fillText('超转压力 ' + Math.round(G.overspin) + '%', bx + bw, by + bh + 16);
+    c.textAlign = 'left';
+    c.fillStyle = '#7f97b5';
+    c.fillText('硬直剩余 ' + f2(Math.max(0, G.lockT)) + 's', bx, by + bh + 34);
+    c.fillText('过载次数 ' + G.overCount, bx, by + bh + 50);
+    c.fillText('蓄能张力 ' + Math.round(G.charge * 100) + '%', bx, by + bh + 66);
+    c.fillText('反应堆出力 ' + Math.round(G.P) + ' / 100', bx, by + bh + 82);
+    /* 八阶状态流转带 */
+    var sx0 = 992, sy0 = 30, sw = 532, seg = sw / 8;
+    for (var s2 = 0; s2 < 8; s2++) {
+      var on = (ORDER[s2] === G.st);
+      c.fillStyle = on ? 'rgba(56,224,216,.20)' : 'rgba(17,28,44,.9)';
+      c.fillRect(sx0 + s2 * seg + 2, sy0, seg - 4, 34);
+      c.strokeStyle = on ? '#38e0d8' : 'rgba(36,64,95,.95)'; c.lineWidth = on ? 1.6 : 1;
+      c.strokeRect(sx0 + s2 * seg + 2, sy0, seg - 4, 34);
+      c.fillStyle = on ? '#aef4ff' : '#5a74a0'; c.font = (on ? '600 ' : '') + '9px sans-serif';
+      c.textAlign = 'center';
+      c.fillText(ORDER[s2].split('_')[0], sx0 + s2 * seg + seg / 2, sy0 + 21);
+      c.textAlign = 'left'; c.font = '11px sans-serif';
+    }
+    c.fillStyle = '#7f97b5'; c.font = '11px sans-serif';
+    c.fillText('当前状态 ' + G.st + ' · ' + STN[G.st] + ' · ' + FSM_CAUSE, sx0, sy0 + 58);
+    c.fillText('环带时钟 ' + f3(G.t) + 's · 账本事件 ' + G.ledger.length + ' · 回溯 ' + G.rollback + ' / ' + G.rollbackMax +
+      ' · 距下次涌流 ' + f1(Math.max(0, G.waveT)) + 's', sx0, sy0 + 76);
+    c.fillText('世界坐标 ' + Math.round(G.px) + ' , ' + Math.round(G.py) + ' · 环带周长 ' + D.W +
+      ' · 敌实体 ' + G.ents.length + ' · 弹丸 ' + G.bullets.length, sx0, sy0 + 94);
+  }
+
+  /* ================= 渲染 · 环带阵图 ================= */
+  function drawRadar() {
+    var c = prepFit(cvR, RVW, RVH, false), w = RVW, h = RVH;
+    c.fillStyle = '#0a111c'; c.fillRect(0, 0, w, h);
+    var cx = w / 2, cy = 46, rx = 112, ry = 32;
+    c.strokeStyle = 'rgba(36,64,95,.95)'; c.lineWidth = 1;
+    c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, 6.2832); c.stroke();
+    c.beginPath(); c.ellipse(cx, cy, rx * 0.62, ry * 0.62, 0, 0, 6.2832); c.stroke();
+    function pt(x, k) {
+      var a = (x / D.W) * 6.2832 - 1.5708;
+      return [cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k];
+    }
+    for (var t = 0; t < D.TRUSSES.length; t++) {
+      var T = D.TRUSSES[t], p = pt(T.x, 1.0);
+      c.fillStyle = T.dead ? 'rgba(120,140,170,.5)' : '#3f6c96';
+      c.fillRect(p[0] - 2.5, p[1] - 2.5, 5, 5);
+    }
+    for (var v = 0; v < D.VENTS.length; v++) {
+      var V = D.VENTS[v], pv = pt(V.x, 1.0);
+      c.strokeStyle = '#ff5a6a'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(pv[0] - 4, pv[1] - 4); c.lineTo(pv[0] + 4, pv[1] + 4); c.stroke();
+    }
+    for (var p2 = 0; p2 < D.PORTS.length; p2++) {
+      var P2 = D.PORTS[p2], pp = pt(P2.x, 0.62);
+      c.fillStyle = '#b06cff'; c.beginPath();
+      c.moveTo(pp[0], pp[1] - 5); c.lineTo(pp[0] + 4.5, pp[1] + 3); c.lineTo(pp[0] - 4.5, pp[1] + 3);
+      c.closePath(); c.fill();
+    }
+    var ph = pt(D.HUB.x, 1.0);
+    c.fillStyle = '#57e08a'; c.fillRect(ph[0] - 4, ph[1] - 4, 8, 8);
+    for (var e = 0; e < G.ents.length; e++) {
+      var pe = pt(G.ents[e].x, 1.0);
+      c.fillStyle = typeDef(G.ents[e].k).col;
+      c.beginPath(); c.arc(pe[0], pe[1], 2.2, 0, 6.2832); c.fill();
+    }
+    var pp2 = pt(G.px, 1.0);
+    c.fillStyle = '#38e0d8'; c.beginPath(); c.arc(pp2[0], pp2[1], 3.6, 0, 6.2832); c.fill();
+    c.strokeStyle = 'rgba(56,224,216,.6)'; c.lineWidth = 1;
+    c.beginPath(); c.arc(pp2[0], pp2[1], 7.5, 0, 6.2832); c.stroke();
+    c.fillStyle = '#7f97b5'; c.font = '9px sans-serif';
+    c.fillText('环带展开 · 周长 ' + D.W, 6, 12);
+    c.textAlign = 'right';
+    c.fillText('桁架 ' + (D.TRUSSES.length - G.trussBroken) + ' / ' + D.TRUSSES.length + ' · 敌 ' + G.ents.length, w - 6, 12);
+    c.textAlign = 'left';
+    c.fillStyle = 'rgba(176,108,255,.9)'; c.fillText('▲ 涌入孔 · 门禁 ' + gateSummary(), 6, h - 5);
+  }
+  function gateSummary() {
+    var s = gateWindowOf('SYNC'), r = gateWindowOf('RESO');
+    var syncOpen = Math.abs(G.om - s.om) >= s.band, resoOpen = Math.abs(G.om - r.om) < r.band;
+    var tag = G.surgeTag ? '⟲倒相 ' : '';
+    return tag + (syncOpen ? '同步开放' : '同步封锁') + ' / ' + (resoOpen ? '共振开放' : '共振封锁');
+  }
+
+  /* ================= 渲染 · 罗盘 ================= */
+  function drawCompass() {
+    var c = prepFit(cvC, CVW, CVH, false), w = CVW, h = CVH;
+    c.fillStyle = '#0a111c'; c.fillRect(0, 0, w, h);
+    var cx = 78, cy = 74, r = 52;
+    c.strokeStyle = 'rgba(36,64,95,.95)'; c.lineWidth = 1;
+    c.beginPath(); c.arc(cx, cy, r, 0, 6.2832); c.stroke();
+    c.beginPath(); c.arc(cx, cy, r * 0.55, 0, 6.2832); c.stroke();
+    for (var a = 0; a < 12; a++) {
+      var ang = a * 0.5236;
+      c.strokeStyle = a % 3 === 0 ? 'rgba(56,224,216,.8)' : 'rgba(36,64,95,.9)';
+      c.beginPath();
+      c.moveTo(cx + Math.cos(ang) * r * 0.86, cy + Math.sin(ang) * r * 0.86);
+      c.lineTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r); c.stroke();
+    }
+    /* 环向矢量针 */
+    var omAng = clamp(G.om / D.W1, 0, 1) * 6.2832 * 0.98;
+    c.strokeStyle = '#38e0d8'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(cx, cy);
+    c.lineTo(cx + Math.cos(omAng) * r * 0.9, cy + Math.sin(omAng) * r * 0.9); c.stroke();
+    c.fillStyle = '#38e0d8'; c.beginPath(); c.arc(cx, cy, 3, 0, 6.2832); c.fill();
+    /* 离心重力矢量 */
+    c.strokeStyle = '#ffb545'; c.lineWidth = 2;
+    var gl = clamp(gNow() / 980, 0, 1) * 30 + 6;
+    c.beginPath(); c.moveTo(cx + 42, cy - 30); c.lineTo(cx + 42, cy - 30 + gl); c.stroke();
+    c.beginPath(); c.moveTo(cx + 42, cy - 30 + gl); c.lineTo(cx + 38, cy - 26 + gl);
+    c.lineTo(cx + 46, cy - 26 + gl); c.closePath(); c.fill();
+    c.fillStyle = '#7f97b5'; c.font = '9px sans-serif';
+    c.fillText('g', cx + 34, cy - 34);
+    c.fillStyle = '#eaf3ff'; c.font = '11px sans-serif';
+    c.fillText('ω ' + f3(G.om), 152, 30);
+    c.fillStyle = '#7f97b5'; c.font = '10px sans-serif';
+    c.fillText('ω* ' + f3(G.omTar), 152, 47);
+    c.fillText('g ' + Math.round(gNow()), 152, 64);
+    c.fillText('2ω ' + f3(coriolis()), 152, 81);
+    c.fillText('滞后 ' + f3(Math.abs(G.lag)), 152, 98);
+    c.fillStyle = Math.abs(G.om - 1.00) < 0.18 ? '#ff5a6a' : '#57e08a';
+    c.fillText('同步门禁 ' + (Math.abs(G.om - 1.00) < 0.18 ? '封锁' : '开放'), 152, 115);
+    c.fillStyle = Math.abs(G.om - 1.85) < 0.22 ? '#57e08a' : '#ff5a6a';
+    c.fillText('共振门禁 ' + (Math.abs(G.om - 1.85) < 0.22 ? '开放' : '封锁'), 152, 132);
+  }
+
+  /* ================= 渲染 · 疲劳环 ================= */
+  function drawFatigue() {
+    var c = prepFit(cvF, FVW, FVH, false), w = FVW, h = FVH;
+    c.fillStyle = '#0a111c'; c.fillRect(0, 0, w, h);
+    var cols = 7, cw = (w - 16) / cols;
+    /* 结构尚未落位：整册显示待落位，不给出任何寿命读数 */
+    if (G.build < 1) {
+      c.fillStyle = '#5a74a0'; c.font = '11px sans-serif'; c.textAlign = 'center';
+      c.fillText('待落位 · 环带结构正在按种子重建', w / 2, h / 2 - 4);
+      c.fillStyle = '#33557c'; c.font = '10px sans-serif';
+      c.fillText('标定进度 ' + Math.round(G.build * 100) + '%', w / 2, h / 2 + 16);
+      c.textAlign = 'left';
+      return;
+    }
+    for (var i = 0; i < D.TRUSSES.length; i++) {
+      var T = D.TRUSSES[i];
+      var gx = 8 + (i % cols) * cw, gy = 8 + Math.floor(i / cols) * 34;
+      var life = T.dead ? 0 : clamp(T.life, 0, 1);
+      c.strokeStyle = 'rgba(36,64,95,.95)'; c.lineWidth = 1;
+      c.beginPath(); c.arc(gx + 10, gy + 10, 8, 0, 6.2832); c.stroke();
+      c.strokeStyle = T.dead ? '#5a74a0' : (life > 0.5 ? '#57e08a' : (life > 0.25 ? '#ffb545' : '#ff5a6a'));
+      c.lineWidth = 3;
+      c.beginPath(); c.arc(gx + 10, gy + 10, 8, -1.5708, -1.5708 + 6.2832 * life); c.stroke();
+      c.fillStyle = T.dead ? '#5a74a0' : '#b9cbe4'; c.font = '8px sans-serif';
+      c.fillText(T.id, gx, gy + 30);
+    }
+  }
+
+  /* ================= DOM 同步 ================= */
+  /* 账本条目 → 事件流文本：返回 [时间戳, 语义色类, 正文] 或 null（不展示） */
+  function evLine(e) {
+    if (!e) return null;
+    var ts = f2(e.t), d = e.d, k = e.k;
+    function tn(x) { return typeDef(x).n; }
+    switch (k) {
+      case 'state':   return [ts, 'evst', '状态 → ' + (STN[d] || d)];
+      case 'ready':   return [ts, 'p', '巡环交战就绪'];
+      case 'anchor':  return [ts, 'p', '锚定同调完成 · 迟滞 ' + d.ms + 'ms'];
+      case 'hit':     return [ts, d.core ? 'p' : '', d.core ? '核心区命中 · ' + tn(d.k) : '命中 · ' + tn(d.k)];
+      case 'gate_block': return [ts, 'n', '门禁封堵 · ' + tn(d.k) + (d.near ? ' · 邻孔回充' : '')];
+      case 'kill':    return [ts, 'p', '歼灭 · ' + tn(d.k) + (d.charged ? ' · 蓄能重弹' : '')];
+      case 'leak':    return [ts, 'n', '漏防 · ' + tn(d.k) + ' · 枢纽 ' + d.hub];
+      case 'fire':    return [ts, '', d.charged ? '开火 · 蓄能重弹' : '开火 · 弹 ' + d.mag];
+      case 'reload_start': return [ts, 'n', '装填开始 · 余弹 ' + d.mag];
+      case 'reload_done':  return [ts, 'p', '装填完成 · ' + d.mag + ' 发'];
+      case 'hurt':    return [ts, 'n', '受击 −' + d.dmg + ' · 装甲 ' + Math.max(0, Math.round(d.armor))];
+      case 'impact':  return [ts, '', '落身冲击 ' + d.id + ' · 疲劳 +' + f1(d.v / 90)];
+      case 'stray':   return [ts, 'n', '弹丸误伤桁架 ' + d.id];
+      case 'truss_broken': return [ts, 'n', '桁架脱开 ' + d.id];
+      case 'rollback':return [ts, 'n', '破舱回溯 · ' + d.why + ' · 第 ' + d.n + ' 次'];
+      case 'overspin':return [ts, 'n', '超转锁死 · 第 ' + d.n + ' 次'];
+      case 'surge':   return [ts, 'n', '涌流暴涌 · 持续 ' + d.sec + 's'];
+      case 'surge_end': return [ts, 'p', '涌流退去 · 谐次窗复位'];
+      case 'wave':    return [ts, 'evst', '第 ' + d.n + ' 波投送 · 主型 ' + tn(d.lead) + ' · ' + d.total + ' 体'];
+      case 'dash':    return [ts, '', '环向冲刺 · ' + (d.facing > 0 ? '顺环' : '逆环')];
+      case 'reverse': return [ts, '', '紧急反转环向 · ω ' + f2(d.om)];
+      case 'jump':    return null;
+      case 'alloc':   return [ts, 'evst', '出力重分配 · 环 ' + d.r + ' / 武 ' + d.w + ' / 伺 ' + d.s];
+      case 'settle':  return [ts, 'p', '账本结算'];
+      default:        return null;
+    }
+  }
+  function setTxt(id, v) { var e = q(id); if (e && e.textContent !== v) e.textContent = v; }
+  function syncDom() {
+    setTxt('tokState', G.st);
+    setTxt('tokOm', f2(G.om));
+    setTxt('tokG', String(Math.round(gNow())));
+    setTxt('tokWave', (Math.min(G.wave, D.WAVES_N)) + ' / ' + D.WAVES_N);
+    setTxt('tokClock', f3(G.t) + 's');
+    var ts = q('tokState');
+    ts.className = 'tok ' + (G.st === ST_OVER || G.st === ST_BREACH ? 'bad' : (G.st === ST_SETTLE ? 'ok' : ''));
+    setTxt('stOmTar', f3(G.omTar)); setTxt('stOmNow', f3(G.om)); setTxt('stLag', f3(Math.abs(G.lag)));
+    setTxt('alRv', G.alloc.r + '%'); setTxt('alWv', G.alloc.w + '%'); setTxt('alSv', G.alloc.s + '%');
+    setTxt('alP', String(Math.round(G.P)));
+    setTxt('stTrussLoss', f2(trussLossRate()) + ' /s');
+    setTxt('stEdgeLoss', f2(G.edgeLoss || 0) + ' /s');
+    setTxt('stEconv', G.P > 60 ? '稳定' : (G.P > 30 ? '偏载' : '欠载'));
+    setTxt('stOverRate', f2(G.om > 1.55 ? (G.om - 1.55) * 62 : 0) + ' /s');
+    setTxt('stFacing', G.face > 0 ? '顺环 +' : '逆环 −');
+    setTxt('stGate', gateSummary());
+    setTxt('stAlive', G.ents.length + ' · 歼 ' + G.killed + ' · 漏 ' + G.leaked);
+    setTxt('stHub', G.hub + ' / ' + D.HUB_HP);
+    setTxt('stArmMag', Math.max(0, Math.round(G.armor)) + ' / ' + D.ARMOR_MAX + ' · ' + G.mag + ' / ' + D.MAG +
+      (G.reload > 0 ? ' · 装填 ' + f1(G.reload) + 's' : ''));
+    /* 账本列表 */
+    var R = G.st === ST_SETTLE ? (G.settleRows || reduceLedger()) : null;
+    var rows = R ? R.rows : null;
+    if (!rows) {
+      rows = [
+        ['锚定同调完成', String(G.anchorTotal), 0],
+        ['核心区命中', String(G.coreHits), 0],
+        ['命中弹数', String(G.hits), 0],
+        ['歼灭敌实体', String(G.killed), 0],
+        ['门禁封堵', String(G.gateBlocks), 0],
+        ['环向冲刺 / 反转', G.dash + ' / ' + G.reverse, 0],
+        ['超转锁死', String(G.overCount), 0],
+        ['破舱回溯', G.rollback + ' / ' + G.rollbackMax, 0],
+        ['桁架脱开', String(G.trussBroken), 0],
+        ['弹丸误伤桁架', String(G.strays), 0],
+        ['综合收益倍率', '×' + f2(multiplier()), 0]
+      ];
+    }
+    var html = '';
+    for (var i = 0; i < rows.length; i++) {
+      var r0 = rows[i];
+      var cls = r0[2] > 0 ? 'p' : (r0[2] < 0 ? 'n' : '');
+      html += '<div class="ledrow"><span>' + r0[0] + '</span><b class="' + cls + '">' +
+        (R ? r0[1] + ' · ' + (r0[2] > 0 ? '+' : '') + r0[2] : r0[1]) + '</b></div>';
+    }
+    var le = q('ledList');
+    le.innerHTML = html;
+    /* 环带事件流 */
+    var ev = q('evList');
+    if (ev) {
+      var evh = '', L = G.ledger, from = Math.max(0, L.length - 26);
+      for (var y = L.length - 1; y >= from; y--) {
+        var e = L[y], s2 = evLine(e);
+        if (!s2) continue;
+        evh += '<div class="ledrow evrow"><span class="' + s2[1] + '">' + s2[2] + '</span><b>' + s2[0] + 's</b></div>';
+      }
+      if (!evh) evh = '<div class="ledrow evrow"><span>等待事件</span><b>—</b></div>';
+      ev.innerHTML = evh;
+    }
+    /* 状态栏 */
+    var sb = q('statusbar');
+    var parts = [
+      '状态 <b>' + G.st + '</b>',
+      '种子 <b>' + D.SEED + '</b>',
+      '环带时钟 <b>' + f3(G.t) + 's</b>',
+      '账本事件 <b>' + G.ledger.length + '</b>',
+      '回溯 <b>' + G.rollback + ' / ' + G.rollbackMax + '</b>',
+      '距下次涌流 <b>' + f1(Math.max(0, G.waveT)) + 's</b>',
+      '本体航向 <b>' + (G.face > 0 ? '顺环 +' : '逆环 −') + '</b>',
+      '场中敌实体 <b>' + G.ents.length + '</b> · 歼 <b>' + G.killed + '</b> · 漏 <b>' + G.leaked + '</b>',
+      '配电枢纽 <b>' + G.hub + ' / ' + D.HUB_HP + '</b>',
+      '装甲 <b>' + Math.max(0, Math.round(G.armor)) + '</b> · 弹匣 <b>' + G.mag + ' / ' + D.MAG + '</b>',
+      '世界坐标 <b>' + Math.round(G.px) + ' , ' + Math.round(G.py) + '</b>',
+      '环速 <b>' + f3(G.om) + '</b> · 离心重力 <b>' + Math.round(gNow()) + '</b>'
+    ];
+    sb.innerHTML = parts.join(' <span class="sep">|</span> ');
+    /* 三路滑轨值回写（仅在未被拖拽时） */
+    var el1 = q('alR'); if (document.activeElement !== el1 && parseFloat(el1.value) !== G.alloc.r) el1.value = G.alloc.r;
+    var el2 = q('alW'); if (document.activeElement !== el2 && parseFloat(el2.value) !== G.alloc.w) el2.value = G.alloc.w;
+    var el3 = q('alS'); if (document.activeElement !== el3 && parseFloat(el3.value) !== G.alloc.s) el3.value = G.alloc.s;
+    q('btnEnter').textContent = G.st === ST_TITLE ? '进入环带' : (G.st === ST_SETTLE ? '再来一局' : '重新标定');
+  }
+  /* 桁架结构损耗率：由当前仍在承载衰减的桁架段数实时聚合，静止时归零 */
+  function trussLossRate() {
+    var n = 0;
+    for (var i = 0; i < D.TRUSSES.length; i++) {
+      var T = D.TRUSSES[i];
+      if (!T.dead && T.fat > 0) n++;
+    }
+    return n * 0.55;
+  }
+
+  /* ================= 主循环 ================= */
+  var acc = 0, last = 0;
+  function frame(ts) {
+    if (!last) last = ts;
+    var dt = Math.min(0.05, (ts - last) / 1000);
+    last = ts;
+    acc += dt;
+    var guard = 0;
+    if (!G.paused && !G.frozen) {
+      while (acc >= STEP && guard++ < 8) { step(); acc -= STEP; }
+    } else { acc = 0; }
+    render();
+    requestAnimationFrame(frame);
+  }
+  var domAcc = 0;
+  function render() {
+    drawWorld(); drawHud(); drawRadar(); drawCompass(); drawFatigue();
+    domAcc += 0.016;
+    if (domAcc >= 0.09) { domAcc = 0; syncDom(); }
+  }
+
+  /* ================= 对外句柄 ================= */
+  function info() {
+    return {
+      st: G.st, t: G.t, seed: G.seed, om: G.om, omTar: G.omTar, g: gNow(), cor: coriolis(),
+      P: G.P, alloc: { r: G.alloc.r, w: G.alloc.w, s: G.alloc.s },
+      overspin: G.overspin, lockT: G.lockT, overCount: G.overCount,
+      wave: G.wave, waveT: G.waveT, ents: G.ents.length, killed: G.killed, leaked: G.leaked,
+      hub: G.hub, armor: G.armor, mag: G.mag, reload: G.reload,
+      anchorOK: G.anchorOK, anchorT: G.anchorT, anchorTotal: G.anchorTotal,
+      hits: G.hits, coreHits: G.coreHits, gateBlocks: G.gateBlocks, strays: G.strays, hurt: G.hurt,
+      rollback: G.rollback, trussBroken: G.trussBroken, dash: G.dash, reverse: G.reverse,
+      fired: G.fired, ledger: G.ledger.length, maxCombo: G.maxCombo,
+      px: G.px, py: G.py, pvx: G.pvx, pvy: G.pvy, gr: G.gr, face: G.face
+    };
+  }
+  var api = {
+    info: info,
+    api2: null,
+    setAlloc: function (r, w, s) {
+      G.alloc.r = r; onAllocHard();
+      G.alloc.w = w; G.alloc.s = s; onAllocHard();
+      return G.alloc;
+    },
+    setP: function (v) { G.P = v; return G.P; },
+    teleport: function (x, y) { G.px = D.wrap(x); G.py = y; G.pvx = 0; G.pvy = 0; return info(); },
+    spawn: function (k, x, y) { spawnEnt(k, x, y === undefined ? -30 : y); return G.ents.length; },
+    clearEnts: function () { G.ents.length = 0; },
+    setOm: function (v) { G.om = v; return G.om; },
+    surge: function (sec) {
+      enterSurge(sec || 4.5);
+      return info();
+    },
+    endSurge: function () { endSurge(); return info(); },
+    overspin: function () { G.overspin = 100; step(); return info(); },
+    breach: function (why) { hullBreach(why || '坠入泄压缝'); return info(); },
+    settle: function () { settle(); return G.settleRows; },
+    step: function (n) { for (var i = 0; i < (n || 1); i++) step(); return info(); },
+    enter: function () { if (G.st === ST_TITLE) enterRing(); return info(); },
+    reload: function () { G.mag = D.MAG; G.reload = 0; return info(); },
+    setCharging: function (v) { G.charging = !!v; if (!v) G.charge = 0; },
+    setArmor: function (v) { G.armor = v; return G.armor; },
+    setHub: function (v) { G.hub = v; return G.hub; },
+    setOverspin: function (v) { G.overspin = v; return G.overspin; },
+    setFacing: function (v) { G.face = v < 0 ? -1 : 1; return G.face; },
+    setMag: function (v) { G.mag = v; return G.mag; },
+    hurtTruss: function (id, f) {
+      for (var i = 0; i < D.TRUSSES.length; i++) {
+        if (D.TRUSSES[i].id === id) { D.TRUSSES[i].fat = f; D.TRUSSES[i].life = 1 - f / 24; return D.TRUSSES[i].life; }
+      }
+      return null;
+    },
+    charge: function (v) { G.charge = v; return G.charge; },
+    shoot: function (charged) { return fire(!!charged); },
+    fireHeld: function (v) { keys['f'] = !!v; },
+    move: function (v) { keys['d'] = v > 0; keys['a'] = v < 0; if (v > 0) G.face = 1; if (v < 0) G.face = -1; },
+    jump: function () { G.anchorOK = true; G.jump = 1; tryJump(); return info(); },
+    dash: function () { dash(); return info(); },
+    reverse: function () { reverseSpin(); return info(); },
+    reset: function () { resetRun(); return info(); },
+    setState: function (s) { setFsm(s, '外部注入'); return info(); },
+    freeze: function (v) { G.frozen = !!v; return G.frozen; },
+    world: function () {
+      return {
+        W: D.W, SEED: D.SEED, trusses: D.TRUSSES.map(function (t) {
+          return { id: t.id, x: t.x, w: t.w, top: t.top, fat: t.fat, life: t.life, dead: t.dead };
+        }),
+        ports: D.PORTS, vents: D.VENTS, hub: D.HUB
+      };
+    },
+    entList: function () {
+      return G.ents.map(function (e) {
+        return { k: e.k, x: e.x, y: e.y, hp: e.hp, gate: gateOf(e.k).open, mult: gateOf(e.k).mult };
+      });
+    },
+    bulletList: function () {
+      return G.bullets.map(function (b) { return { x: b.x, y: b.y, vx: b.vx, vy: b.vy, trav: b.trav }; });
+    },
+    readAll: function () {
+      syncDom();
+      var o = {};
+      var ids = ['tokState', 'tokOm', 'tokG', 'tokWave', 'tokClock', 'alRv', 'alWv', 'alSv', 'alP',
+        'stOmTar', 'stOmNow', 'stLag', 'stTrussLoss', 'stEdgeLoss', 'stEconv', 'stOverRate',
+        'stFacing', 'stGate', 'stAlive', 'stHub', 'stArmMag'];
+      ids.forEach(function (id) { var e = q(id); o[id] = e ? e.textContent : null; });
+      o.statusbar = q('statusbar').textContent.replace(/\s+/g, ' ').trim();
+      o.ledger = Array.prototype.map.call(q('ledList').children, function (n) { return n.textContent; });
+      o.events = Array.prototype.map.call(q('evList').children, function (n) { return n.textContent; });
+      o.settle = G.settleRows ? { total: G.settleRows.total, star: G.settleRows.star } : null;
+      return o;
+    },
+    ledger: function () { return G.ledger.slice(); },
+    reduce: function () { G.settleRows = reduceLedger(); return G.settleRows; },
+    painted: function () { return paintedRatio(); }
+  };
+  function onAllocHard() {
+    q('alR').value = G.alloc.r; q('alW').value = G.alloc.w; q('alS').value = G.alloc.s;
+  }
+  window.GYROSPAN = api;
+
+  /* 着色像素比例（D1.2 探针） */
+  function paintedRatio() {
+    var cv = cvW, c = cv.getContext('2d');
+    var d = c.getImageData(0, 0, cv.width, cv.height).data;
+    var n = 0, tot = cv.width * cv.height;
+    for (var i = 0; i < d.length; i += 4 * 7) {
+      var s = d[i] + d[i + 1] + d[i + 2];
+      if (s > 36) n++;
+    }
+    return n / (tot / 7);
+  }
+
+  function syncAll() { q('btnPause').setAttribute('aria-pressed', 'false'); q('btnPause').textContent = '暂停'; }
+
+  /* ================= 启动 ================= */
+  resetRun();
+  bindInput();
+  render();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
