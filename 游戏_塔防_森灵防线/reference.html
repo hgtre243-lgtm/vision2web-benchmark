@@ -1,0 +1,2558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>森灵防线 GROVE WARDEN · 韧根潮汐</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#04140f; --pnl:#08201a; --pnl2:#0b2a21; --line:#17493a;
+  --cy:#3fdfc4; --al:#ffd166; --hot:#ffb347; --bad:#ff5c72; --vi:#b18cff; --gr:#7fe08a;
+  --tx:#cfe8df; --tx2:#7ba79a; --tx3:#4e7a70;
+}
+html,body{height:100%;background:var(--bg);color:var(--tx);
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  font-size:12px;overflow:hidden;-webkit-font-smoothing:antialiased}
+body{display:flex;justify-content:center}
+.app{width:100%;max-width:1920px;height:100vh;display:grid;
+  grid-template-columns:244px minmax(0,1fr) 344px;
+  grid-template-rows:46px minmax(0,1fr) 202px;
+  gap:6px;padding:6px;
+  grid-template-areas:"top top top" "left stage right" "left bot right";}
+.pnl{background:var(--pnl);border:1px solid var(--line);border-radius:4px;position:relative;overflow:hidden}
+
+/* ── 顶栏 ── */
+.top{grid-area:top;display:flex;align-items:stretch;gap:0;padding:0 4px}
+.tb{flex:1 1 0;display:flex;flex-direction:column;justify-content:center;
+  padding:0 9px;border-right:1px solid #10382d;min-width:0}
+.tb:last-child{border-right:0}
+.tb .k{font-size:9px;letter-spacing:.16em;color:var(--tx3);white-space:nowrap}
+.tb .v{font-size:15px;font-variant-numeric:tabular-nums;color:var(--tx);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
+.tb .v.sm{font-size:12.5px}
+.tb .v b{font-weight:600}
+
+/* ── 左栏 ── */
+.left{grid-area:left;display:flex;flex-direction:column;gap:6px;background:none;border:0;overflow:hidden}
+.sec{background:var(--pnl);border:1px solid var(--line);border-radius:4px;display:flex;flex-direction:column;min-height:0}
+.sh{font-size:9.5px;letter-spacing:.18em;color:var(--tx3);padding:6px 9px 4px;
+  border-bottom:1px solid #10382d;display:flex;justify-content:space-between;align-items:baseline;flex:none}
+.sh span{color:var(--tx2);letter-spacing:0;font-size:10px}
+.sb{padding:7px 8px;overflow:hidden;min-height:0}
+
+.card{border:1px solid #1a5341;border-radius:3px;padding:5px 7px;margin-bottom:5px;
+  display:grid;grid-template-columns:26px 1fr auto;gap:7px;align-items:center;
+  cursor:pointer;background:#0a251d;transition:background .12s,border-color .12s}
+.card:hover{background:#0f3128;border-color:var(--cy)}
+.card.on{border-color:var(--al);background:#1b2c14;box-shadow:inset 0 0 0 1px #3d5a1e}
+.card .ic{width:26px;height:26px;border-radius:3px;display:block}
+.card .nm{font-size:11.5px;color:var(--tx);line-height:1.25}
+.card .ds{font-size:9.5px;color:var(--tx3);line-height:1.3}
+.card .pr{font-size:12px;color:var(--al);font-variant-numeric:tabular-nums;text-align:right}
+.card .pr i{display:block;font-size:9px;color:var(--tx3);font-style:normal}
+
+.gr{display:flex;gap:5px;align-items:flex-start;padding:2px 0;border-bottom:1px solid #0d2c23}
+.gr:last-child{border-bottom:0}
+.gr b{font-size:10px;color:var(--cy);font-weight:600;white-space:nowrap}
+.gr i{font-size:9px;color:var(--tx3);font-style:normal;line-height:1.28}
+
+.row{display:flex;justify-content:space-between;gap:6px;padding:1.5px 0;font-size:10.5px}
+.row .k{color:var(--tx3);white-space:nowrap}
+.row .v{color:var(--tx);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.v.cy{color:var(--cy)} .v.al{color:var(--al)} .v.bad{color:var(--bad)} .v.vi{color:var(--vi)} .v.gr{color:var(--gr)}
+
+/* ── 舞台 ── */
+.stage{grid-area:stage;position:relative;background:#03100c;overflow:hidden}
+#cvWorld,#cvRig,#cvRadar,#cvSettle{display:block;width:100%;height:100%}
+.tags{position:absolute;top:7px;left:8px;right:8px;display:flex;justify-content:space-between;
+  pointer-events:none;font-size:10px;letter-spacing:.1em}
+.tag{padding:3px 8px;border-radius:2px;background:rgba(4,20,15,.78);border:1px solid #1c5a46;color:var(--tx2)}
+.tag b{color:var(--al);font-weight:600}
+.stbar{position:absolute;bottom:7px;left:8px;display:flex;align-items:center;gap:8px;
+  padding:5px 11px;border-radius:3px;background:rgba(4,20,15,.86);border:1px solid #1c5a46;pointer-events:none}
+.stbar .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.stbar .nm{font-size:12.5px;font-weight:600;letter-spacing:.04em}
+.stbar .sb2{font-size:10px;color:var(--tx3);margin-left:2px}
+.chips{position:absolute;bottom:7px;right:8px;display:flex;gap:5px;pointer-events:none;flex-wrap:wrap;justify-content:flex-end;max-width:62%}
+.chip{font-size:10px;padding:3px 7px;border-radius:2px;background:rgba(4,20,15,.78);
+  border:1px solid #17493a;color:var(--tx3);white-space:nowrap}
+.chip.on{border-color:var(--cy);color:var(--cy);background:rgba(12,48,38,.9)}
+.chip.hot{border-color:var(--hot);color:var(--hot);background:rgba(48,28,8,.9)}
+.chip.no{border-color:#5a2028;color:#a05661}
+.hint{position:absolute;top:7px;left:50%;transform:translateX(-50%);font-size:11px;
+  padding:4px 12px;border-radius:2px;background:rgba(4,20,15,.86);border:1px solid #1c5a46;
+  color:var(--al);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .18s}
+.hint.on{opacity:1}
+
+.title{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;background:radial-gradient(ellipse at 50% 42%,rgba(6,34,26,.72),rgba(2,10,8,.94))}
+.title h1{font-size:44px;letter-spacing:.22em;color:#dff6ec;font-weight:600;
+  text-shadow:0 0 26px rgba(63,223,196,.42)}
+.title h2{font-size:12.5px;letter-spacing:.42em;color:var(--cy);margin-top:-6px}
+.title p{font-size:12px;color:var(--tx2);text-align:center;line-height:1.7;max-width:560px}
+.diffs{display:flex;gap:9px;margin:3px 0}
+.df{width:152px;padding:9px 11px;border:1px solid #1c5a46;border-radius:3px;
+  background:rgba(8,32,26,.86);cursor:pointer;text-align:left;transition:.12s}
+.df:hover{border-color:var(--cy)}
+.df.on{border-color:var(--al);background:rgba(30,40,16,.9);box-shadow:0 0 0 1px #3d5a1e inset}
+.df b{display:block;font-size:13px;color:var(--tx);margin-bottom:3px}
+.df i{display:block;font-size:10px;color:var(--tx3);font-style:normal;line-height:1.45}
+.btn{padding:9px 30px;border:1px solid var(--cy);border-radius:3px;background:rgba(9,42,34,.92);
+  color:var(--cy);font-size:14px;letter-spacing:.24em;cursor:pointer;font-family:inherit}
+.btn:hover{background:rgba(16,66,53,.95)}
+.title .note{font-size:10px;color:var(--tx3);letter-spacing:.06em}
+
+/* ── 右栏 ── */
+.right{grid-area:right;display:flex;flex-direction:column;gap:6px;background:none;border:0;overflow:hidden}
+.rig{height:272px;flex:none}
+.tbl{width:100%;border-collapse:collapse;font-size:9.5px;table-layout:fixed}
+.tbl th{color:var(--tx3);font-weight:400;text-align:left;padding:1px 3px;border-bottom:1px solid #10382d;font-size:8.5px;letter-spacing:.06em}
+.tbl td{padding:1px 3px;color:var(--tx2);border-bottom:1px solid #0d2c23;line-height:1.2;vertical-align:top}
+.tbl th:nth-child(1),.tbl td:nth-child(1){width:14px}
+.tbl th:nth-child(2),.tbl td:nth-child(2){width:122px}
+.tbl tr.hi td{background:#122e12;color:var(--al)}
+.tbl tr.hi td:first-child{border-left:2px solid var(--al)}
+.tbl .sn{font-size:8.5px;letter-spacing:0;color:var(--tx);word-break:break-all}
+/* 结算面板内的两张表：两列/四列自适应，标签不换行 */
+#sTiles table,#sKine table{table-layout:auto}
+#sTiles table td,#sKine table td{width:auto;white-space:nowrap}
+#sTiles table td:nth-child(1){width:22px;text-align:right;color:var(--tx3)}
+#sTiles table td:nth-child(3),#sTiles table td:nth-child(4){text-align:right}
+#sKine table td:nth-child(1){white-space:normal}
+#sKine table td:nth-child(2){text-align:right;color:var(--tx)}
+
+/* ── 底部 ── */
+.bot{grid-area:bot;display:grid;grid-template-columns:280px minmax(0,1fr);gap:6px;background:none;border:0;overflow:hidden}
+.radar{position:relative}
+.bars{position:absolute;left:0;right:0;bottom:0;height:52px}
+.bars canvas{display:block;width:100%;height:100%}
+.ledg{display:flex;flex-direction:column;min-height:0}
+.log{font-size:10px;line-height:1.5;color:var(--tx2);overflow:hidden;height:100%}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log i{font-style:normal}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 12px}
+
+/* ── 结算 ── */
+.settle{position:fixed;inset:0;background:rgba(2,10,8,.9);display:none;
+  align-items:center;justify-content:center;z-index:50}
+.settle.on{display:flex}
+.scard{width:min(1180px,94vw);max-height:94vh;overflow:auto;background:var(--pnl);
+  border:1px solid #1c5a46;border-radius:6px;padding:16px 20px 14px;
+  box-shadow:0 0 70px rgba(0,0,0,.75)}
+.scard h3{font-size:24px;letter-spacing:.14em;color:var(--al);font-weight:600}
+.scard .sm{font-size:11px;color:var(--tx3);margin:3px 0 12px;letter-spacing:.06em}
+.sbody{display:grid;grid-template-columns:310px minmax(0,1fr);gap:16px}
+.sradar{height:236px;border:1px solid #10382d;border-radius:4px;background:#061a14}
+.srt{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.srt h4{font-size:10px;letter-spacing:.14em;color:var(--tx3);margin-bottom:5px;font-weight:400}
+.cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin-top:13px}
+.mc{border:1px solid #1a5341;border-radius:4px;padding:9px 11px;background:#0a251d}
+.mc .k{font-size:10px;color:var(--tx3);letter-spacing:.1em}
+.mc .v{font-size:25px;color:var(--cy);font-variant-numeric:tabular-nums;line-height:1.25}
+.mc .d{font-size:9.5px;color:var(--tx3);line-height:1.4}
+.sfoot{display:flex;justify-content:space-between;align-items:center;margin-top:13px;
+  padding-top:11px;border-top:1px solid #10382d;font-size:11px;color:var(--tx2)}
+.sfoot .btn{padding:6px 20px;font-size:12px;letter-spacing:.14em}
+
+/* ── 响应式 ── */
+@media (max-width:1400px){
+  .app{grid-template-columns:216px minmax(0,1fr) 272px}
+  .rig{height:238px}
+  .bot{grid-template-columns:238px minmax(0,1fr)}
+}
+@media (max-width:1180px){
+  .app{grid-template-columns:198px minmax(0,1fr) 246px;grid-template-rows:42px minmax(0,1fr) 176px}
+  .rig{height:214px}
+  .card .ds{display:none}
+  .tb .v{font-size:13px}
+}
+@media (max-width:980px){
+  .app{grid-template-columns:minmax(0,1fr) 232px;
+       grid-template-areas:"top top" "stage right" "bot bot";grid-template-rows:42px minmax(0,1fr) 150px}
+  .left{display:none}
+}
+@media (max-width:730px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "stage" "bot";
+       grid-template-rows:40px minmax(0,1fr) 132px;gap:4px;padding:4px}
+  .right{display:none}
+  .bot{grid-template-columns:minmax(0,1fr)}
+  .title h1{font-size:30px}
+  .title p{font-size:11px;max-width:88vw}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="pnl top" id="top">
+    <div class="tb"><div class="k">任务号 / 种子</div><div class="v sm"><b id="tRun">—</b> · <span id="tSeed">—</span></div></div>
+    <div class="tb"><div class="k">根脉潮汐</div><div class="v sm" id="tPhase">—</div></div>
+    <div class="tb"><div class="k">世界树核心生命</div><div class="v" id="tLife">—</div></div>
+    <div class="tb"><div class="k">营养账本</div><div class="v" id="tNutr">—</div></div>
+    <div class="tb"><div class="k">动能 / 稳定性</div><div class="v" id="tKine">—</div></div>
+    <div class="tb"><div class="k">波次进度</div><div class="v" id="tWave">—</div></div>
+    <div class="tb"><div class="k">战斗得分</div><div class="v" id="tScore">—</div></div>
+  </div>
+
+  <div class="left">
+    <div class="sec" style="flex:none">
+      <div class="sh">韧根苗圃 · 建塔 <span id="shopSub">点击选型</span></div>
+      <div class="sb" id="shop"></div>
+    </div>
+    <div class="sec" style="flex:none">
+      <div class="sh">守卫读数 <span>守卫 · 韧</span></div>
+      <div class="sb" id="hero"></div>
+    </div>
+    <div class="sec" style="min-height:0;flex:1 1 auto">
+      <div class="sh">复合高阶手势 <span id="gestSub">5 项</span></div>
+      <div class="sb" id="gestList" style="overflow:hidden"></div>
+    </div>
+  </div>
+
+  <div class="pnl stage">
+    <canvas id="cvWorld"></canvas>
+    <div class="tags">
+      <div class="tag" id="tagL">—</div>
+      <div class="tag" id="tagR">—</div>
+    </div>
+    <div class="hint" id="hintBox"></div>
+    <div class="stbar"><span class="dot" id="stDot"></span>
+      <span class="nm" id="stName">—</span><span class="sb2" id="stSub">—</span></div>
+    <div class="chips" id="chips"></div>
+    <div class="title" id="titleLayer">
+      <h1>森灵防线</h1>
+      <h2>GROVE WARDEN</h2>
+      <p>守护世界树 · 在韧根地块上布设荆棘 / 月光 / 星火三塔<br>
+         操控守卫「韧」踏准共鸣核心区以蓄能，抵挡沿根脉古道进犯的暗影魔物</p>
+      <div class="diffs" id="diffs">
+        <div class="df" data-d="easy"><b>简单</b><i>28 生命 · 460 营养<br>敌速 ×0.92 · 潮汐 ×0.80</i></div>
+        <div class="df on" data-d="normal"><b>标准</b><i>22 生命 · 360 营养<br>各系数 ×1.00</i></div>
+        <div class="df" data-d="hard"><b>困难</b><i>16 生命 · 270 营养<br>敌速 ×1.08 · 潮汐 ×1.24</i></div>
+      </div>
+      <button class="btn" id="btnGo">开始守卫</button>
+      <div class="note" id="titleNote">—</div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="sec rig"><div class="sh">动态 HUD 仪表阵列 <span>画布 B · 逐帧重绘</span></div>
+      <div style="flex:1;min-height:0;position:relative"><canvas id="cvRig"></canvas></div></div>
+    <div class="sec" style="flex:none"><div class="sh">本波情报 <span id="yieldSub">—</span></div>
+      <div class="sb" id="yieldBody"></div></div>
+    <div class="sec" style="min-height:0;flex:1 1 auto"><div class="sh">状态决策表 <span id="stTabSub">高位压制低位</span></div>
+      <div class="sb" id="stBody" style="overflow:hidden"></div></div>
+  </div>
+
+  <div class="bot">
+    <div class="pnl radar"><canvas id="cvRadar"></canvas>
+      <div class="bars"><canvas id="cvBars"></canvas></div></div>
+    <div class="pnl ledg"><div class="sh">逐帧事件溯源台账 <span id="ledgSub">—</span></div>
+      <div class="sb" id="ledgBody" style="flex:none"></div>
+      <div class="log" id="logBox" style="flex:1;min-height:0;padding:0 8px 6px"></div></div>
+  </div>
+</div>
+
+<div class="settle" id="settle">
+  <div class="scard">
+    <h3 id="sTitle">本局结算</h3>
+    <div class="sm" id="sMeta">—</div>
+    <div class="sbody">
+      <div class="sradar"><canvas id="cvSettle"></canvas></div>
+      <div class="srt">
+        <div><h4>地块完整度损耗表</h4><div id="sTiles"></div></div>
+        <div><h4>动能与营养账本</h4><div id="sKine"></div></div>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="mc"><div class="k">根脉守护</div><div class="v" id="sA">—</div><div class="d" id="sAd">—</div></div>
+      <div class="mc"><div class="k">落点精准</div><div class="v" id="sB">—</div><div class="d" id="sBd">—</div></div>
+      <div class="mc"><div class="k">动能效率</div><div class="v" id="sC">—</div><div class="d" id="sCd">—</div></div>
+    </div>
+    <div class="sfoot"><div id="sFoot">—</div>
+      <button class="btn" id="sAgain">再战一场</button></div>
+  </div>
+</div>
+
+<script>
+
+/* ============================================================
+   森灵防线 GROVE WARDEN · 韧根潮汐
+   世界事实层：常量 / 确定性随机 / 地形 / 风场 / 状态机 / 决策表
+   无系统随机源 · 无外部资源 · 固定种子逐帧可复现
+   ============================================================ */
+
+var SEED = 20261012;
+var RUNID = 'GW-7714-K';
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* ---------- 棋格 ---------- */
+var COLS = 12, ROWS = 9, CELL = 64;
+var WORLD = { cols: COLS, rows: ROWS, cell: CELL, w: COLS * CELL, h: ROWS * CELL };
+
+/* ---------- 物理常量（世界单位：像素 / 秒） ---------- */
+var PHYS = {
+  G: 1850,              // 本域基准重力加速度
+  JUMP: 980,            // 同调满级时的跃迁初速
+  CRUISE: 460,          // 额定巡航速度（归一化基准 |v| / CRUISE）
+  RUN_ACC: 2650,        // 地面推进加速度
+  AIR_ACC: 1060,        // 顺风时的空中推进加速度
+  AIR_ACC_HEAD: 1320,   // 逆风时的空中推进加速度
+  GROUND_FRIC: 3600,    // 地面摩擦
+  DRAG_X: 0.55,         // 无风水平阻尼
+  VX_MAX: 720,
+  TERM: 1400,           // 常规终端降落速度
+  TERM_DIVE: 2500,      // 下压速坠下的终端降落速度
+  TERM_LIFT: 740,       // 逆风滑翔升力下的终端降落速度
+  DIVE_ACC: 1680,       // 下压速坠的额外向下加速度
+  SPRING_K: 30,         // 地块弹性刚度
+  SPRING_C: 4.2,        // 地块阻尼
+  REBOUND_K: 0.68,      // 离块瞬间的向上反冲弹力系数
+  SINK_BASE: 1.2,       // 下沉速度基线系数
+  SINK_DIV: 200,        // 下沉速度的落速平方除数
+  SINK_BASE2: 0.00075,  // 下沉量换算系数（保持 v_sink ∝ (1 + v²/200) 的平方律）
+  SINK_MAX: 26,         // 可观测沉陷上限
+  WEAR_MAX: 60,         // 完整度折算基准
+  DECAY_PS: 0.013,      // 未失稳地块的完整度自然衰变率（每秒）
+  IMPACT_WEAR: 400,     // 冲击初速超过该值则额外扣完整度
+  TAIL_DRAG: 1.40,      // 顺风水平阻尼放大系数（满攻角）
+  HEAD_LIFT: 0.26,      // 逆风升力系数（满攻角）
+  TAIL_SUPP: 0.20,      // 顺风对跃迁初速的垂直压制系数（满攻角）
+  LIFT_GAIN: 2.6,       // 逆风升力在垂直加速度上的增益（满攻角）
+  BURST_VY_MAX: 1000,   // 蓄能弹射的垂直初速上限（超出部分转由水平冲量承载）
+  BURST_ANG: -0.62,     // 蓄能弹射的基准仰角（弧度，负值为向上）
+  SUPP_GAIN: 4.8,       // 顺风垂直压制在垂直加速度上的增益（满攻角）
+  GUST_Z: 0.32,         // 垂直阵风耦合系数（仅下坠段生效）
+  FUSE_MS: 500,         // 失稳地块离载后的碎裂引信
+  ATTUNE_MS: 350,       // 接触同调所需的静止驻留时长
+  ATTUNE_EPS: 0.05,     // 归一化静止阈值
+  CHARGE_FULL: 900,     // 蓄能满档时长
+  CHARGE_P0: 620,       // PERFECT 判定窗下沿
+  CHARGE_P1: 740,       // PERFECT 判定窗上沿
+  CHARGE_FAIL: 1000,    // 过载阈值
+  CHARGE_MUL: 1.35,     // PERFECT 弹射初速倍率
+  OVER_MS: 480,         // 过载硬直时长
+  OVER_KINE: 40,        // 过载扣除的动能
+  KINE_MAX: 100,        // 动能上限
+  KINE_SHOT: 25,        // 单次蓄能弹射的动能消耗
+  KINE_FLIP: 15,        // 磁极翻转的动能消耗
+  KINE_REFUND: 30,      // 命中共鸣核心区的动能返还
+  KINE_TETHER: 25,      // 完成能量索摆荡的动能返还
+  NUTR_REFUND: 20,      // 命中共鸣核心区的营养返还
+  EDGE_IDLE_PS: 0.05,   // 地块边缘静止时每秒扣除的稳定性储备
+  CORE_ZONE: 0.20,      // 共鸣核心区占格宽的比例（居中）
+  EDGE_ZONE: 0.62,      // 边缘区起始的归一化离差（超出即按每秒 5% 扣稳定性）
+  TETHER_RANGE: 330,    // 索锚定半径
+  TETHER_MIN: 70,       // 索长下限
+  TETHER_REEL: 340,     // 收索速率
+  SWING_G: 1500,        // 摆荡重力分量
+  SWING_DAMP: 0.9985,
+  TENSION_MAX: 3600,    // 张力极限（离心项 v²/L 与重力分量之和）
+  DETACH_ANG: 0.05,     // 自动脱索的摆角阈值
+  POL_GRAV_POS: 0.88,   // 正极重力系数
+  POL_GRAV_NEG: 1.18,   // 负极重力系数
+  POL_CD: 480,          // 磁极翻转冷却
+  POL_TILT_MS: 300,     // 磁极翻转的视差倾角扰动时长
+  TIDE_MS: 26000,       // 潮汐相位一个完整周期
+  RANGE_LO: 0.82, RANGE_HI: 1.18,   // 射程倍率带
+  SPD_LO: 0.78, SPD_HI: 1.22,       // 敌速倍率带（与射程反相）
+  TIDE_BOOST: 1.25,     // 涨潮半周期的收益倍率
+  CORR_PER_LEAK: 8,     // 每漏一只累积的腐化
+  CORR_RANGE: 0.35,     // 腐化满值时的全场射程折减上限
+  CORR_STEP: 12,        // 腐化跨过该整数倍触发腐化爆发
+  CORR_BURST_MS: 2500,  // 腐化爆发持续时间
+  CORR_BURST_CUT: 0.10, // 腐化爆发的额外射程骤降
+  HEAT_SHOT: 0.055,     // 单次开火积热
+  COOL_PS: 0.11,        // 自然散热速率（每秒）
+  OVERHEAT: 1.0,        // 过热阈值
+  RES_THRESH: 100,      // 圣泉共振达标阈值
+  RES_DECAY: 1.1,       // 共振值未达标时的自然衰减（每秒）
+  RES_PER_SWAP: 58,     // 每次潮汐换相给相邻塔的共振增量
+  CRISIS_MS: 0          // 未用（保留位）
+};
+
+/* ---------- 地形：确定性阶梯地面 ---------- */
+/* gh[c] = 该列地表格行；实心格为 r ∈ [gh[c], ROWS-1]；|gh[c+1]-gh[c]| ≤ 1 */
+function genGround() {
+  var R = mulberry32(SEED ^ 0x51D3A7), gh = [], v = 6, c, d, nv;
+  gh.push(6);                       /* 出怪口在最低处 */
+  for (c = 1; c < COLS; c++) {
+    d = R();
+    nv = v + (d < 0.34 ? -1 : d < 0.70 ? 0 : 1);
+    if (nv < 3) nv = 3;
+    if (nv > 7) nv = 7;
+    gh.push(nv); v = nv;
+  }
+  return gh;
+}
+
+/* 每一列的承重上限（确定性） */
+function genCaps() {
+  var R = mulberry32(SEED ^ 0x2C41B9), caps = [], c;
+  for (c = 0; c < COLS; c++) caps.push(2 + Math.floor(R() * 2));
+  caps[3] = 1; caps[7] = 1;
+  return caps;
+}
+
+/* ---------- 远景层（视差，不参与物理） ---------- */
+function genScenery(n, salt) {
+  var r = mulberry32(SEED ^ salt), out = [], i;
+  for (i = 0; i < n; i++) out.push({ x: r(), y: r(), w: 0.05 + r() * 0.12, h: 0.05 + r() * 0.16, a: 0.10 + r() * 0.20, p: r() * 6.283 });
+  return out;
+}
+function genMotes(n) {
+  var r = mulberry32(SEED ^ 0x5A17E3), out = [], i;
+  for (i = 0; i < n; i++) out.push({ x: r(), y: r(), m: 0.25 + r() * 0.75, p: r() * 6.283, s: 0.5 + r() * 1.4 });
+  return out;
+}
+
+/* ---------- 切变风场（非均匀 · 随高度反向 · 周期可压缩） ---------- */
+function windAt(x, y, t, cyc) {
+  var C = cyc || 4200;
+  var ph = t / C * 6.2832;
+  var wx = 268 * Math.sin(y / 138 + ph) * Math.cos(x / 520 - ph * 0.40)
+         + 96 * Math.sin(ph * 2.6 + x / 250);
+  var wz = -116 * Math.cos(y / 122 - ph * 0.70) - 34 * Math.sin(x / 330 + ph * 1.80);
+  return { x: wx, z: wz };
+}
+
+/* ---------- 八阶互斥状态机（判定优先级自上而下，高位压制低位） ---------- */
+var SN = [
+  'RUN_SETTLED_LEDGER',     /* 0 本局真实交互数据审计结算 */
+  'CRISIS_FAILED_ROLLBACK', /* 1 致命失败熔断与因果回溯 */
+  'OVERLOAD_PENALTY',       /* 2 过载失稳硬直惩罚态 */
+  'TITLE_LOBBY',            /* 3 初始待机就绪 */
+  'SEEDED_INITIALIZING',    /* 4 关卡随机种子与实体阵列重构 */
+  'DYNAMIC_BRANCHING',      /* 5 空域危机与高阶机制爆发 */
+  'ATTUNEMENT_DWELL',       /* 6 着陆/锚定同调校准挂起中 */
+  'ACTIVE_ENGAGED'          /* 7 主交互循环激活 */
+];
+var SC = ['审计结算', '熔断因果回溯', '过载失稳硬直', '初始待机就绪',
+          '实体阵列重构', '高阶机制爆发', '同调校准挂起', '主交互循环'];
+var SK = ['#ffe9a8', '#ff5c72', '#ff5c72', '#5f818e',
+          '#8babb5', '#b18cff', '#3fdfc4', '#ffd166'];
+
+/* 状态决策表：常驻 HUD 展示，与 evalState 严格同源同序 */
+var STAB = [
+  { s: 'RUN_SETTLED_LEDGER',    g: '抵达世界树核心结算 / 生命归零后结算', n: 'SEEDED_INITIALIZING' },
+  { s: 'CRISIS_FAILED_ROLLBACK', g: '核心生命归零 · 根脉断绝',            n: 'SEEDED_INITIALIZING' },
+  { s: 'OVERLOAD_PENALTY',      g: '蓄能越限 · 硬直计时 > 0',            n: 'ACTIVE_ENGAGED' },
+  { s: 'TITLE_LOBBY',           g: '未开局',                              n: 'SEEDED_INITIALIZING' },
+  { s: 'SEEDED_INITIALIZING',   g: '种子装载 · 地块阵列落位中',           n: 'ACTIVE_ENGAGED' },
+  { s: 'DYNAMIC_BRANCHING',     g: '索锚定 / 腐化爆发窗 / 共振脉冲 / 王战', n: 'ATTUNEMENT_DWELL' },
+  { s: 'ATTUNEMENT_DWELL',      g: '驻块且同调进度严格介于零与满之间',     n: 'ACTIVE_ENGAGED' },
+  { s: 'ACTIVE_ENGAGED',        g: '其余情形（主交互循环基态）',           n: '任意高位状态' }
+];
+
+/* ---------- 五行复合手势 ---------- */
+var GESTURES = [
+  { k: '动量压制蓄能弹射', d: '蓄能压缩 → 非线性弹出' },
+  { k: '空域能量索摆荡',   d: '锚定圣泉 → 单摆摆荡脱离' },
+  { k: '动量下压速坠冲击', d: '空中下压 → 落点沉陷加深' },
+  { k: '空间相位瞬时翻转', d: '重力与按键映射反向 300ms' },
+  { k: '韧根共振主动同调', d: '清空地块寿命 → 全屏脉冲' }
+];
+
+/* ---------- 防御塔 ---------- */
+var TOWERS = {
+  thorn: { k: 'thorn', n: '荆棘塔', cost: 90,  dmg: 9,  range: 152, cd: 0.34, pspd: 520, col: '#7fe08a', dim: '#2f7a45', d: '高速单体 · 棘刺弹' },
+  moon:  { k: 'moon',  n: '月光塔', cost: 120, dmg: 16, range: 178, cd: 0.75, pspd: 440, col: '#9fd8ff', dim: '#2c5f86', d: '中速缓速 · 月华弹' },
+  ember: { k: 'ember', n: '星火塔', cost: 150, dmg: 34, range: 144, cd: 1.15, pspd: 380, col: '#ffb347', dim: '#93551a', d: '低速溅射 · 星火弹' }
+};
+var TOWER_KEYS = ['thorn', 'moon', 'ember'];
+var UP_COST = [0.75, 1.25];      /* 1→2 / 2→3 级的升级费倍率 */
+var SELL_BACK = 0.70;            /* 出售返还比例 */
+
+/* ---------- 魔物 ---------- */
+var ENEMIES = {
+  wolf:    { k: 'wolf',    n: '暗影狼', hp: 62,   spd: 48, arm: 0,    bounty: 12,  col: '#8d6bd6', dim: '#3d2a6b', r: 15, w: 34, h: 26 },
+  beetle:  { k: 'beetle',  n: '石甲虫', hp: 195,  spd: 31, arm: 0.35, bounty: 22,  col: '#a99a72', dim: '#554b31', r: 17, w: 36, h: 30 },
+  wraith:  { k: 'wraith',  n: '幽魂',   hp: 88,   spd: 58, arm: 0,    bounty: 18,  col: '#6fe6d8', dim: '#1f6d67', r: 15, w: 30, h: 36, fly: 1 },
+  dropper: { k: 'dropper', n: '坠影蛛', hp: 112,  spd: 42, arm: 0.12, bounty: 20,  col: '#ff8a5c', dim: '#8a3a1c', r: 16, w: 34, h: 30, drop: 1 },
+  boss:    { k: 'boss',    n: '梦魇王', hp: 5200, spd: 26, arm: 0.28, bounty: 300, col: '#ff5c72', dim: '#7a1428', r: 30, w: 56, h: 64 }
+};
+
+/* ---------- 三档难度（生命 / 起始营养 / 敌速 / 敌血 / 潮汐频率） ---------- */
+var DIFFS = {
+  easy:   { k: 'easy',   n: '简单', life: 28, nutr: 460, espd: 0.92, ehp: 0.88, tide: 0.80 },
+  normal: { k: 'normal', n: '标准', life: 22, nutr: 360, espd: 1.00, ehp: 1.00, tide: 1.00 },
+  hard:   { k: 'hard',   n: '困难', life: 16, nutr: 270, espd: 1.08, ehp: 1.18, tide: 1.24 }
+};
+var DIFF_KEYS = ['easy', 'normal', 'hard'];
+
+/* ---------- 十波组成 ---------- */
+var WAVES = [
+  { wolf: 6 },
+  { wolf: 8, beetle: 2 },
+  { wolf: 8, beetle: 3, dropper: 2 },
+  { wolf: 7, beetle: 3, wraith: 4 },
+  { wolf: 8, beetle: 4, wraith: 5, dropper: 3 },
+  { wolf: 9, beetle: 5, wraith: 6, dropper: 3 },
+  { wolf: 10, beetle: 6, wraith: 7, dropper: 4 },
+  { wolf: 11, beetle: 7, wraith: 8, dropper: 4 },
+  { wolf: 12, beetle: 8, wraith: 9, dropper: 5 },
+  { wolf: 12, beetle: 6, wraith: 8, dropper: 5, boss: 1 }
+];
+var WAVE_LEAD = 8.0;        /* 波前倒计时（秒） */
+var SPAWN_GAP = 0.46;       /* 同波内出怪间隔（秒） */
+var EARLY_BONUS = 24;       /* 提前出怪的固定赏金 */
+
+/* ---------- 结算指标定义（全部由逐帧样本数组回溯聚合） ---------- */
+var LEDGER_DEF = [
+  { k: '根脉守护', u: '%', d: '逐帧回溯：核心生命在整局上的归一化积分' },
+  { k: '落点精准', u: '%', d: '逐帧回溯：守卫地块落点相对共鸣核心区中心的偏离量加权均值' },
+  { k: '动能效率', u: '%', d: '逐帧回溯：共鸣核心区返还动能 / 蓄能弹射消耗动能之比' }
+];
+
+</script>
+<script>
+/* ============================================================
+   森灵防线 GROVE WARDEN · 韧根潮汐 —— 引擎
+   三块画布独立重绘 · 共享单一内存物理态 · 固定步长 60 Hz
+   结算一律由逐帧样本数组 G.frames 纯函数式回溯得出
+   ============================================================ */
+(function () {
+  'use strict';
+
+  /* ─────────── 工具 ─────────── */
+  function cl(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function col(c) { return cl(Math.floor(c), 0, COLS - 1); }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function fmtT(ms) {
+    var s = ms / 1000;
+    return pad2(Math.floor(s / 60)) + ':' + pad2(Math.floor(s % 60)) + '.' + pad2(Math.floor((s % 1) * 100));
+  }
+  function hx2rgb(h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
+  function lh(a, b, t) {
+    var A = hx2rgb(a), B = hx2rgb(b);
+    return 'rgb(' + Math.round(A[0] + (B[0] - A[0]) * t) + ',' + Math.round(A[1] + (B[1] - A[1]) * t) + ',' + Math.round(A[2] + (B[2] - A[2]) * t) + ')';
+  }
+  function rgba(h, a) { var c = hx2rgb(h); return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
+
+  var STEP = 1 / 60;
+  var RANGE_SKY = ['#08251c', '#0d3325', '#164430', '#1f5537', '#2c6b3f', '#41814a'];
+  var RANGE_HI = ['#030c09', '#061a14', '#0a2a1e', '#0f3a28', '#174a31', '#21593a'];
+
+  /* ─────────── 状态 ─────────── */
+  var G, P, T, TW, EN, PJ, FX, TX, FL;
+
+  function reset(mode) {
+    var d = DIFFS[G ? G.diff : 'normal'];
+    var wasFrozen = !!(G && G.frozen);
+    G = {
+      mode: mode || 'title', diff: (G && G.diff) || 'normal',
+      t: 0, frames: [], settleFrames: 0,
+      lifeMax: d.life, life: d.life, nutr: d.nutr,
+      kills: 0, leaks: 0, combat: 0, score: 0,
+      corr: 0, corrPeak: 0, corrBurstT: 0, corrStep: 0,
+      phase: 0, swaps: 0, tideHigh: true,
+      rangeMul: PHYS.RANGE_HI, spdMul: PHYS.SPD_LO,
+      wave: 0, waveT: WAVE_LEAD, spawning: false, spawnQ: [], spawnT: 0,
+      cleared: 0, waveTotal: 0, waveLeft: 0,
+      st: -1, seedT: 0, rollT: -1, rollFrom: 0, rollTo: 0,
+      log: [], built: 0, upg: 0, sold: 0, shots: 0, hitN: 0, dmgTot: 0,
+      overheat: 0, pulses: 0, kineSpent: 0, kineGain: 0, nutrGain: 0,
+      pkEnemies: 0, boss: null, summoned: 0, bossT: 0,
+      wind: { x: 0, z: 0 }, along: false, lift: false,
+      invert: 0, buildKind: 'thorn', sel: -1,
+      mouse: { x: -999, y: -999, in: false }, hoverC: -1, hoverR: -1,
+      frozen: wasFrozen, paused: false, settled: false, settleWhy: '',
+      in: { left: false, right: false, down: false }, pendingWave: 0,
+      hint: '', hintT: 0, tilt: 0, tiltT: 0,
+      resOkPeak: 0, landSum: 0, landN: 0, windGood: 0, windN: 0,
+      agg: null, painted: 0, RNG: mulberry32(SEED ^ 0x7F31),
+      coreHitN: 0, lastState: ''
+    };
+    T = { gh: genGround(), caps: genCaps(), tile: [], nodes: [3, 8] };
+    var c, r;
+    for (c = 0; c < COLS; c++) {
+      T.tile[c] = [];
+      for (r = 0; r < ROWS; r++) {
+        if (r < T.gh[c]) { T.tile[c][r] = null; continue; }
+        T.tile[c][r] = {
+          c: c, r: r, load: 0, prevLoad: 0,
+          sink: 0, sv: 0, peak: 0, lastPeak: 0,
+          intg: 100, state: 0, fuse: PHYS.FUSE_MS, hitT: 0
+        };
+      }
+    }
+    TW = []; EN = []; PJ = []; FX = []; TX = [];
+    P = {
+      x: 3.5 * CELL, y: (T.gh[3] - 1) * CELL, vx: 0, vy: 0, onGround: false, gc: 3,
+      attune: 0, charges: 0, kine: 55, stab: 100,
+      charging: false, chargeMs: 0, lastChargeMs: 0,
+      overT: 0, overMax: 0, overMs: 0,
+      tether: null, tension: 0, reel: false, swung: false,
+      pol: 1, polT: 0, polCd: 0, face: 1,
+      resT: 0, dive: false, landV: 0, coreHit: -1, landOff: -1, lastOff: -1,
+      y0: 0
+    };
+    P.y0 = P.y;
+    if (mode === 'seed') { G.seedT = 1500; }
+    FX.length = 0;
+  }
+
+  /* ─────────── 风与潮汐 ─────────── */
+  function windCyc() { return G.corrBurstT > 0 ? 840 : 4200; }
+  function localWind(x, y) { return windAt(x, y, G.t, windCyc()); }
+
+  function stepTide(dt) {
+    var d = DIFFS[G.diff];
+    var per = PHYS.TIDE_MS / d.tide;
+    G.phase += dt * 1000 / per;
+    while (G.phase >= 1) { G.phase -= 1; G.swaps++; onSwap(); }
+    var cs = Math.cos(G.phase * 6.2832);
+    G.rangeMul = PHYS.RANGE_LO + (PHYS.RANGE_HI - PHYS.RANGE_LO) * (0.5 + 0.5 * cs);
+    G.spdMul = PHYS.SPD_LO + (PHYS.SPD_HI - PHYS.SPD_LO) * (0.5 - 0.5 * cs);
+    G.tideHigh = G.phase < 0.5;
+  }
+  function onSwap() {
+    var i, j;
+    for (i = 0; i < TW.length; i++) {
+      var tw = TW[i], adj = false;
+      for (j = 0; j < T.nodes.length; j++) if (Math.abs(tw.c - T.nodes[j]) <= 1) adj = true;
+      if (adj) tw.res = Math.min(PHYS.RES_THRESH * 1.4, tw.res + PHYS.RES_PER_SWAP);
+    }
+    pushLog('<i>潮汐</i> 换相 → ' + (G.tideHigh ? '涨潮' : '退潮') + ' · 第 ' + G.swaps + ' 次');
+  }
+
+  /* ─────────── 守卫物理 ─────────── */
+  function groundRow(c) {
+    var r = T.gh[c];
+    while (r < ROWS - 1 && T.tile[c][r].state === 2) r++;
+    return r;
+  }
+  function onLand(c, iv) {
+    P.landV = iv;
+    var off = Math.abs(P.x - (c + 0.5) * CELL) / (CELL * 0.5);
+    P.landOff = off; P.lastOff = off;
+    G.landSum += Math.max(0, 1 - off / 0.5); G.landN++;
+    if (off <= PHYS.CORE_ZONE / 2 + 0.10) {
+      /* 精准踏中地块共鸣核心区（居中 20%）→ 按离差加权瞬时充能 */
+      var w = 1 - off / (PHYS.CORE_ZONE / 2 + 0.10);
+      P.kine = Math.min(PHYS.KINE_MAX, P.kine + PHYS.KINE_REFUND * (0.5 + 0.5 * w));
+      G.nutr += Math.round(PHYS.NUTR_REFUND * (0.5 + 0.5 * w));
+      P.stab = Math.min(100, P.stab + 14);
+      G.kineGain += PHYS.KINE_REFUND * (0.5 + 0.5 * w); G.nutrGain += PHYS.NUTR_REFUND * (0.5 + 0.5 * w);
+      G.coreHitN++; P.coreHit = 24;
+      fxText(P.x, P.y - 46, '共鸣核心 +' + Math.round(PHYS.NUTR_REFUND * (0.5 + 0.5 * w)), '#3fdfc4');
+      fxBurst(P.x, P.y, '#3fdfc4', 14, 120);
+    }
+    applyImpact(c, groundRow(c), iv, 'warden');
+  }
+
+  function applyImpact(c, r, v, who) {
+    if (r >= ROWS) return;
+    var t = T.tile[c][r];
+    if (!t || t.state === 2) return;
+    /* 下沉速度：v_sink = 1.2 × (1 + v_impact² / 200)，换算为可观测沉陷并钳制 */
+    var vsink = PHYS.SINK_BASE * (1 + v * v / PHYS.SINK_DIV);
+    var pk = Math.min(PHYS.SINK_MAX, vsink * PHYS.SINK_BASE2);
+    t.lastPeak = pk;
+    t.peak = Math.min(PHYS.SINK_MAX, Math.max(t.peak, pk));
+    t.sv += pk * 9.0;
+    t.intg -= Math.max(0, v - 240) / 40 + (who === 'warden' && P.dive ? 9 : 0);
+    t.hitT = 14;
+    if (v > 300) fxBurst(P.x, 0, '#cbb27a', 6, 60);
+    if (t.intg < 0) t.intg = 0;
+    if (t.intg <= 0 && t.state === 0) { t.intg = 0; setUnstable(t); }
+  }
+
+  function setUnstable(t) {
+    if (t.state !== 0) return;
+    t.state = 1; t.fuse = PHYS.FUSE_MS;
+    fxText((t.c + 0.5) * CELL, (t.r) * CELL - 18, '地块失稳', '#ffb347');
+  }
+
+  function physics(dt) {
+    var w = localWind(P.x, P.y);
+    G.wind = w;
+    var polG = P.pol > 0 ? PHYS.POL_GRAV_POS : PHYS.POL_GRAV_NEG;
+    var ax = 0, ay = PHYS.G * polG;
+    var wn = Math.min(1, Math.abs(w.x) / 380);
+
+    var dir = (G.in.left ? -1 : 0) + (G.in.right ? 1 : 0);
+    if (P.pol < 0) dir = -dir;
+    var along = (w.x * P.vx) > 0 && Math.abs(P.vx) > 8;
+    var lift = (w.x * P.vx) < 0 && Math.abs(P.vx) > 8;
+    G.along = along; G.lift = lift;
+
+    if (dir !== 0 && P.overT <= 0 && G.rollT < 0) {
+      var acc = P.onGround ? PHYS.RUN_ACC : (lift ? PHYS.AIR_ACC_HEAD : PHYS.AIR_ACC);
+      ax += dir * acc; P.face = dir;
+    }
+    /* 顺风：水平阻尼非线性放大到满攻角 TAIL_DRAG 倍；同时背风区令气流对形体的
+       直接推移被自身阻尼吞没 → 净效果为跃迁距离显著缩短（反直觉） */
+    if (along) ax += w.x * 0.30 - (P.vx > 0 ? 1 : -1) * PHYS.TAIL_DRAG * wn * 380;
+    else ax += w.x * 0.85;
+    /* 逆风：迎风夹角产生向上升力矢量 → 跃迁高度与滞空时间显著提升 */
+    /* 顺风：同一夹角被压缩 → 上升段垂直速度被压制，跳跃高度下降 */
+    if (!P.onGround) {
+      if (lift) ay -= PHYS.HEAD_LIFT * Math.abs(w.x) * PHYS.LIFT_GAIN;
+      else if (along) ay += PHYS.TAIL_SUPP * Math.abs(w.x) * PHYS.SUPP_GAIN;
+    }
+    if (P.vy > 0) ay += w.z * PHYS.GUST_Z;   /* 垂直阵风仅作用于下坠段 */
+
+
+    if (P.onGround && dir === 0) ax += -(P.vx > 0 ? 1 : -1) * Math.min(Math.abs(P.vx) / dt, PHYS.GROUND_FRIC);
+    ax += -(P.vx > 0 ? 1 : -1) * PHYS.DRAG_X * Math.abs(P.vx) * 0.8;
+
+    var tv = P.dive && !P.onGround ? PHYS.TERM_DIVE : (lift && !P.onGround ? PHYS.TERM_LIFT : PHYS.TERM);
+    P.vx += ax * dt;
+    P.vy += ay * dt + (P.dive && !P.onGround ? PHYS.DIVE_ACC * dt : 0);
+    P.vx = cl(P.vx, -PHYS.VX_MAX, PHYS.VX_MAX);
+    if (P.vy > tv) P.vy = tv;
+
+    /* 能量索：单摆 */
+    if (P.tether) {
+      var an = P.tether;
+      var dx = P.x - an.x, dy = P.y - an.y;
+      var L = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (P.reel) L = Math.max(PHYS.TETHER_MIN, L - PHYS.TETHER_REEL * dt);
+      var ang = Math.atan2(dx, -dy);
+      var th = ang - Math.PI;                            /* 相对正下方（稳定平衡点）的摆角 */
+      while (th > Math.PI) th -= 6.2832;
+      while (th < -Math.PI) th += 6.2832;
+      var vtan = (P.vx * Math.cos(ang) + P.vy * Math.sin(ang));
+      var aTan = -(PHYS.SWING_G / L) * Math.sin(th);
+      vtan = (vtan + aTan * dt) * PHYS.SWING_DAMP;
+      ang = ang + (vtan / L) * dt;                       /* 角速度积分 → 真实摆荡 */
+      var nx = an.x + Math.sin(ang) * L, ny = an.y - Math.cos(ang) * L;
+      P.vx = vtan * Math.cos(ang); P.vy = vtan * Math.sin(ang);
+      P.x = nx; P.y = ny;
+      th = ang - Math.PI;
+      while (th > Math.PI) th -= 6.2832;
+      while (th < -Math.PI) th += 6.2832;
+      P.tension = (vtan * vtan) / L + PHYS.SWING_G * Math.cos(th);
+      P._th = th; P._vt = vtan; P._L = L;
+      if (Math.abs(th) > 0.55) P.swung = true;           /* 已摆开 */
+      if (P.tension > PHYS.TENSION_MAX || (Math.abs(th) < PHYS.DETACH_ANG && P.swung)) {
+        endTether(true);                                  /* 自然脱索 → 动能返还 */
+      }
+    } else {
+      P.x += P.vx * dt; P.y += P.vy * dt;
+    }
+    P.x = cl(P.x, 8, WORLD.w - 8);
+    P.y = cl(P.y, -400, WORLD.h);
+
+    if (P.overT > 0) { P.overT -= dt * 1000; }
+    if (P.polCd > 0) P.polCd -= dt * 1000;
+    if (P.resT > 0) P.resT -= dt * 1000;
+    if (P.coreHit > 0) P.coreHit -= dt * 1000;
+    if (P.polT > 0) P.polT -= dt * 1000;
+    collide();
+
+    /* 相位倾角扰动（视差） */
+    if (G.tiltT > 0) { G.tiltT -= dt * 1000; G.tilt = Math.sin(G.tiltT * 0.021) * 0.055 * (G.tiltT / PHYS.POL_TILT_MS); }
+    else G.tilt = 0;
+  }
+
+  function collide() {
+    var c = col(Math.floor(P.x / CELL));
+    var gy = groundRow(c) * CELL;
+    var was = P.onGround, land = false, iv = Math.abs(P.vy);
+    if (P.y >= gy && P.vy >= 0) { P.y = gy; land = true; }
+    else if (was && gy < P.y && P.y - gy <= CELL + 2 && P.vy <= 0) { P.y = gy; land = true; iv = 0; }
+    P.onGround = land;
+    if (land) { P.vy = 0; P.gc = c; if (!was) onLand(c, iv); }
+  }
+
+  /* ─────────── 地块 ─────────── */
+  function towerAt(c, r) {
+    for (var i = 0; i < TW.length; i++) if (TW[i].c === c && TW[i].r === r) return TW[i];
+    return null;
+  }
+  function stepTiles(dt) {
+    var c, r, i;
+    for (c = 0; c < COLS; c++) for (r = T.gh[c]; r < ROWS; r++) {
+      var t = T.tile[c][r];
+      if (!t) continue;
+      t.prevLoad = t.load; t.load = 0;
+      if (t.hitT > 0) t.hitT--;
+    }
+    if (P.onGround) { var st = T.tile[P.gc] && T.tile[P.gc][groundRow(P.gc)]; if (st) st.load++; }
+    for (i = 0; i < TW.length; i++) { var tt = T.tile[TW[i].c] && T.tile[TW[i].c][TW[i].r]; if (tt) tt.load++; }
+    for (i = 0; i < EN.length; i++) {
+      var e = EN[i]; if (e.fly || !e.onGround) continue;
+      var ec = col(Math.floor(e.x / CELL));
+      var et = T.tile[ec] && T.tile[ec][groundRow(ec)];
+      if (et) et.load++;
+    }
+    for (c = 0; c < COLS; c++) for (r = T.gh[c]; r < ROWS; r++) {
+      var t2 = T.tile[c][r];
+      if (!t2 || t2.state === 2) continue;
+      /* 弹簧：承重 + 冲击峰值共同决定静态沉陷目标 */
+      var target = Math.min(PHYS.SINK_MAX * 1.15, t2.load * 2.4 + t2.peak);
+      var a = -60 * (t2.sink - target) - 9 * t2.sv;
+      t2.sv += a * dt; t2.sink += t2.sv * dt;
+      if (t2.sink < 0) { t2.sink = 0; if (t2.sv < 0) t2.sv = 0; }
+      if (t2.sink > PHYS.SINK_MAX * 1.4) { t2.sink = PHYS.SINK_MAX * 1.4; if (t2.sv > 0) t2.sv = 0; }
+      /* 未失稳地块完整度自然衰变 */
+      if (t2.state === 0) { t2.intg -= PHYS.DECAY_PS * dt * 8; if (t2.intg <= 0) { t2.intg = 0; setUnstable(t2); } }
+      /* 载荷离块瞬间：向反方向弹起（k = 0.68），反冲只发生在离块瞬间 */
+      if (t2.prevLoad > 0 && t2.load === 0) {
+        var svb = t2.sv;
+        t2.sv = -PHYS.REBOUND_K * (Math.abs(t2.sv) + t2.lastPeak * 4.0);
+        t2.rbd = { svBefore: svb, lp: t2.lastPeak, out: t2.sv };
+      }
+      /* 承重超限 → 立即失稳 */
+      if (t2.load > T.caps[c] && t2.state === 0) setUnstable(t2);
+      /* 引信：失稳且无载荷时倒计时，到期碎裂为不可站立虚空 */
+      if (t2.state === 1) {
+        if (t2.load > 0) t2.fuse = PHYS.FUSE_MS;
+        else {
+          t2.fuse -= dt * 1000;
+          if (t2.fuse <= 0) fracture(c, r);
+        }
+      }
+    }
+  }
+  function fracture(c, r) {
+    var t = T.tile[c][r];
+    if (!t || t.state === 2) return;
+    t.state = 2; t.intg = 0; t.sink = 0; t.sv = 0;
+    if (r === ROWS - 1) { t.state = 0; t.intg = 35; return; }
+    fxText((c + 0.5) * CELL, r * CELL, '地块碎裂', '#ff5c72');
+    fxBurst((c + 0.5) * CELL, r * CELL, '#cbb27a', 20, 150);
+    var tw = towerAt(c, r);
+    if (tw) {
+      fxText((c + 0.5) * CELL, r * CELL - 26, tw.name + ' 崩塌', '#ff5c72');
+      TW.splice(TW.indexOf(tw), 1);
+    }
+  }
+
+  /* ─────────── 手势 ─────────── */
+  function jumpPower() {
+    var w = G.wind.x, wn = Math.min(1, Math.abs(w) / 380);
+    var d = G.in.right ? 1 : (G.in.left ? -1 : P.face);
+    if (P.pol < 0) d = -d;
+    var along = (w * d) > 0;
+    var mul = along ? (1 - PHYS.TAIL_SUPP * wn) : (1 + PHYS.HEAD_LIFT * wn * 1.2);
+    return PHYS.JUMP * mul;
+  }
+  function tryJump() {
+    if (G.mode !== 'play' || P.overT > 0 || G.rollT >= 0 || G.settled) return false;
+    if (P.tether) { endTether(false); return true; }
+    if (P.charges < 1) {
+      hint('跃迁能力未激活 · 需在支撑面上静止驻留完成能量同调');
+      fxText(P.x, P.y - 44, '同调未完成', '#ff5c72');
+      return false;
+    }
+    P.charges = 0; P.attune = 0;
+    P.vy = -jumpPower();
+    P.onGround = false;
+    fxBurst(P.x, P.y, '#3fdfc4', 8, 90);
+    return true;
+  }
+  function chargeStart() {
+    if (G.mode !== 'play' || P.overT > 0 || G.rollT >= 0 || G.settled) return false;
+    if (P.kine < PHYS.KINE_SHOT) { hint('动能不足 · 蓄能弹射需要 ' + PHYS.KINE_SHOT + ' 动能'); return false; }
+    if (P.charges < 1) { hint('跃迁能力未激活 · 需先完成能量同调'); return false; }
+    P.charging = true; P.chargeMs = 0;
+    return true;
+  }
+  function chargeRelease() {
+    if (!P.charging) return false;
+    P.charging = false;
+    var ms = P.chargeMs;
+    P.lastChargeMs = ms;
+    if (ms < 260) { hint('蓄能不足 · 未释放弹射'); return false; }
+    if (ms > PHYS.CHARGE_FAIL) {
+      /* 过载熔断：硬直期内屏蔽全部输入 */
+      P.overT = PHYS.OVER_MS; P.overMax = PHYS.OVER_MS;
+      P.kine = Math.max(0, P.kine - PHYS.OVER_KINE);
+      pushLog('<i>惩罚</i> 蓄能越限 ' + Math.round(ms) + 'ms → 硬直 ' + PHYS.OVER_MS + 'ms · 动能 −' + PHYS.OVER_KINE);
+      fxText(P.x, P.y - 48, '过载硬直', '#ff5c72');
+      G.overheat++;
+      P.charges = 0;
+      return true;
+    }
+    var u = cl(ms / PHYS.CHARGE_FULL, 0, 1);
+    var mul = 1 + 1.15 * u * u;                     /* 非线性：蓄力量平方放大 */
+    var perfect = ms >= PHYS.CHARGE_P0 && ms <= PHYS.CHARGE_P1;
+    if (perfect) mul *= PHYS.CHARGE_MUL;
+    P.kine = Math.max(0, P.kine - PHYS.KINE_SHOT);
+    G.kineSpent += PHYS.KINE_SHOT;
+    var ang = PHYS.BURST_ANG + (G.in.left ? -0.30 : G.in.right ? 0.30 : 0);
+    if (P.pol < 0) ang = -ang;
+    var sp = jumpPower() * mul;
+    /* 垂直初速封顶：多余冲量转由水平分量承载，跃迁不越出可视空域 */
+    var vy = Math.min(PHYS.BURST_VY_MAX, Math.abs(Math.sin(ang)) * sp);
+    P.vx = Math.cos(ang) * sp * 0.72;
+    P.vy = -vy;
+    P.onGround = false; P.charges = 0; P.attune = 0;
+    fxBurst(P.x, P.y, perfect ? '#ffd166' : '#3fdfc4', 18, 170);
+    fxText(P.x, P.y - 48, perfect ? 'PERFECT ×' + PHYS.CHARGE_MUL : '弹射 ×' + mul.toFixed(2), perfect ? '#ffd166' : '#3fdfc4');
+    pushLog('<i>弹射</i> 蓄能 ' + Math.round(ms) + 'ms ' + (perfect ? 'PERFECT' : '×' + mul.toFixed(2)) + ' · 动能 −' + PHYS.KINE_SHOT);
+    return true;
+  }
+  function togglePolarity() {
+    if (G.mode !== 'play' || P.overT > 0 || P.polCd > 0 || G.rollT >= 0 || G.settled) return false;
+    if (P.kine < PHYS.KINE_FLIP) { hint('动能不足 · 磁极翻转需要 ' + PHYS.KINE_FLIP + ' 动能'); return false; }
+    P.kine -= PHYS.KINE_FLIP; G.kineSpent += PHYS.KINE_FLIP;
+    P.pol = -P.pol; P.polCd = PHYS.POL_CD; P.polT = 300; G.tiltT = PHYS.POL_TILT_MS;
+    pushLog('<i>相位</i> 磁极翻转 → ' + (P.pol > 0 ? '正极 ×' + PHYS.POL_GRAV_POS : '负极 ×' + PHYS.POL_GRAV_NEG) + ' · 按键映射反向');
+    fxBurst(P.x, P.y - 22, '#b18cff', 22, 200);
+    return true;
+  }
+  function tetherKey() {
+    if (G.mode !== 'play' || P.overT > 0 || G.rollT >= 0 || G.settled) return false;
+    if (P.tether) { endTether(false); return true; }
+    var best = null, bd = 1e9;
+    for (var i = 0; i < T.nodes.length; i++) {
+      var nx = (T.nodes[i] + 0.5) * CELL, ny = (T.gh[T.nodes[i]] - 5.2) * CELL;
+      var d = Math.hypot(nx - P.x, ny - P.y);
+      if (d < PHYS.TETHER_RANGE && d < bd) { bd = d; best = { x: nx, y: ny, i: i }; }
+    }
+    if (!best) { hint('半径内无圣泉锚点 · 无法抛索'); return false; }
+    P.tether = best; P.swung = false; P.charges = 0; P.attune = 0;
+    fxBurst(best.x, best.y, '#3fdfc4', 16, 130);
+    pushLog('<i>锚定</i> 能量索拴住圣泉 #' + (best.i + 1) + ' · 索长 ' + Math.round(bd));
+    return true;
+  }
+  function endTether(natural) {
+    if (!P.tether) return;
+    var an = P.tether;
+    P.tether = null; P.tension = 0; P.reel = false;
+    if (natural) {
+      P.kine = Math.min(PHYS.KINE_MAX, P.kine + PHYS.KINE_TETHER);
+      G.kineGain += PHYS.KINE_TETHER;
+      fxText(P.x, P.y - 46, '摆荡完成 +' + PHYS.KINE_TETHER + ' 动能', '#3fdfc4');
+      pushLog('<i>脱索</i> 摆荡释放 · 动能 +' + PHYS.KINE_TETHER);
+    }
+    an.i + 0;
+  }
+  function resonate() {
+    if (G.mode !== 'play' || P.overT > 0 || G.rollT >= 0 || G.settled) return false;
+    if (!P.onGround || P.attune < 1) { hint('同调未完成 · 无法共振释放'); return false; }
+    var c = P.gc, r = groundRow(c);
+    var t = T.tile[c][r];
+    if (!t || t.state === 2) return false;
+    if (t.state === 0) setUnstable(t);
+    t.fuse = 1;
+    P.resT = 1400; G.pulses++;
+    var dmg = 90;
+    for (var i = 0; i < EN.length; i++) {
+      var e = EN[i];
+      e.hp -= dmg * (1 - ENEMIES[e.k].arm);
+      e.flash = 16; G.dmgTot += dmg;
+      fxText(e.x, e.y - 30, '' + Math.round(dmg), '#ffd166');
+    }
+    P.vy = -jumpPower() * 0.86; P.onGround = false; P.charges = 0; P.attune = 0;
+    fxBurst(P.x, P.y, '#ffd166', 46, 320);
+    pushLog('<i>共振</i> 韧根脉冲释放 · 全场 ' + EN.length + ' 只魔物受创 · 该地块寿命清空');
+    return true;
+  }
+
+  /* ─────────── 塔 ─────────── */
+  function buildN(kind, c, r) {
+    var spec = TOWERS[kind];
+    var t = T.tile[c] && T.tile[c][r];
+    if (!t || t.state !== 0) { hint('该地块不可建造（已失稳或碎裂）'); return false; }
+    if (r !== groundRow(c)) { hint('只能建造在暴露的韧根地块表面'); return false; }
+    if (towerAt(c, r)) { hint('该格已有防御塔'); return false; }
+    if (T.nodes.indexOf(c) >= 0) { hint('圣泉节点本身不可建造'); return false; }
+    if (G.nutr < spec.cost) { hint('营养不足 · ' + spec.n + ' 需要 ' + spec.cost); return false; }
+    G.nutr -= spec.cost; G.built++;
+    var tw = {
+      c: c, r: r, kind: kind, name: spec.n, lv: 1, cd: 0.4, heat: 0, over: false,
+      res: 0, attune: 0, attuneT: 0, intg: 100, spend: spec.cost, shots: 0,
+      born: G.t, aim: -1
+    };
+    TW.push(tw);
+    fxText((c + 0.5) * CELL, r * CELL - 26, spec.n + ' 落位 · 同调校准中', '#7fe08a');
+    pushLog('<i>建造</i> ' + spec.n + ' @列' + c + ' · 营养 −' + spec.cost + ' · 同调校准 ' + PHYS.ATTUNE_MS + 'ms');
+    return true;
+  }
+  function upgradeN(c, r) {
+    var tw = towerAt(c, r);
+    if (!tw) return false;
+    if (tw.lv >= 3) { hint('已达最高等级'); return false; }
+    var cost = Math.round(TOWERS[tw.kind].cost * UP_COST[tw.lv - 1]);
+    if (G.nutr < cost) { hint('营养不足 · 升级需要 ' + cost); return false; }
+    G.nutr -= cost; tw.lv++; tw.spend += cost; G.upg++;
+    tw.res = 0; tw.attune = 0; tw.attuneT = 0; tw.intg = Math.min(100, tw.intg + 22);
+    fxText((c + 0.5) * CELL, r * CELL - 30, 'Lv.' + tw.lv + ' · 共振清零', '#9fd8ff');
+    pushLog('<i>升级</i> ' + tw.name + ' → Lv.' + tw.lv + ' · 营养 −' + cost + ' · 共振值归零');
+    return true;
+  }
+  function sellN(c, r) {
+    var tw = towerAt(c, r);
+    if (!tw) return false;
+    var back = Math.floor(tw.spend * SELL_BACK);
+    G.nutr += back; G.sold++;
+    TW.splice(TW.indexOf(tw), 1);
+    fxText((c + 0.5) * CELL, r * CELL - 26, '出售 +' + back, '#ffd166');
+    pushLog('<i>出售</i> ' + tw.name + ' · 营养 +' + back);
+    return true;
+  }
+  function rangeOf(tw) {
+    var base = TOWERS[tw.kind].range * (1 + 0.10 * (tw.lv - 1));
+    var cut = Math.min(PHYS.CORR_RANGE, G.corr / 100 * 0.5);
+    if (G.corrBurstT > 0) cut += PHYS.CORR_BURST_CUT;
+    return base * G.rangeMul * (1 - cut);
+  }
+  function dmgOf(tw) {
+    var d = TOWERS[tw.kind].dmg * Math.pow(1.45, tw.lv - 1);
+    if (tw.res >= PHYS.RES_THRESH) d *= 1.25;
+    return d;
+  }
+  function stepTowers(dt) {
+    var i, j;
+    for (i = 0; i < TW.length; i++) {
+      var tw = TW[i];
+      /* 地块寿命 / 完整度 */
+      var t = T.tile[tw.c] && T.tile[tw.c][tw.r];
+      if (!t || t.state === 2) { TW.splice(i, 1); i--; continue; }
+      /* 同调校准：落成/升级后必须在原地驻留满 ATTUNE_MS 才由 0 置 1 */
+      if (tw.attune < 1) {
+        tw.attuneT += dt * 1000;
+        if (tw.attuneT >= PHYS.ATTUNE_MS) tw.attune = 1;
+        else continue;
+      }
+      /* 共振未达标时缓慢自然衰减 */
+      if (tw.res < PHYS.RES_THRESH) tw.res = Math.max(0, tw.res - PHYS.RES_DECAY * dt);
+      /* 过热与散热 */
+      if (tw.over) { tw.heat -= PHYS.COOL_PS * dt; if (tw.heat <= 0.42) { tw.over = false; tw.heat = 0.42; } }
+      else tw.heat = Math.max(0, tw.heat - PHYS.COOL_PS * dt);
+      /* 魔物啃噬：同格魔物按秒扣塔完整度 */
+      for (j = 0; j < EN.length; j++) {
+        var e = EN[j];
+        if (Math.abs(e.x - (tw.c + 0.5) * CELL) < 30 && !e.fly) {
+          tw.intg -= 7.5 * dt;
+          if (tw.intg <= 0) { tw.intg = 0; fracture(tw.c, tw.r); }
+        }
+      }
+      if (tw.over) continue;
+      tw.cd -= dt;
+      if (tw.cd > 0) continue;
+      /* 索敌 */
+      var R = rangeOf(tw), best = null, bd = 1e9;
+      var tx = (tw.c + 0.5) * CELL, ty = tw.r * CELL - 14;
+      for (j = 0; j < EN.length; j++) {
+        var q = EN[j];
+        var d = Math.hypot(q.x - tx, q.y - ty);
+        if (d < R && d < bd) { bd = d; best = q; }
+      }
+      if (!best) continue;
+      fire(tw, best, tx, ty);
+      tw.cd = TOWERS[tw.kind].cd;
+      tw.heat += PHYS.HEAT_SHOT * (1 + G.corr / 140);
+      if (tw.heat >= PHYS.OVERHEAT) { tw.over = true; tw.heat = PHYS.OVERHEAT; }
+    }
+  }
+  function fire(tw, e, tx, ty) {
+    var sp = TOWERS[tw.kind].pspd, dmg = dmgOf(tw);
+    /* 弹道飞行时间结算：按目标速度预测拦截点 */
+    var t = 0;
+    for (var k = 0; k < 5; k++) {
+      var px = e.x + e.vx * t, py = e.y - 12 + e.vy * t;
+      t = Math.hypot(px - tx, py - ty) / sp;
+    }
+    var px2 = e.x + e.vx * t, py2 = e.y - 12 + e.vy * t;
+    var ang = Math.atan2(py2 - ty, px2 - tx);
+    PJ.push({
+      x: tx, y: ty, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+      dmg: dmg, kind: tw.kind, spl: tw.kind === 'ember' ? 42 : 0,
+      life: 2.0, tx: px2, ty: py2, trail: []
+    });
+    G.shots++;
+    fxBurst(tx + Math.cos(ang) * 12, ty + Math.sin(ang) * 12, TOWERS[tw.kind].col, 4, 60);
+  }
+
+  /* ─────────── 弹道 ─────────── */
+  function stepProj(dt) {
+    var i, j;
+    for (i = 0; i < PJ.length; i++) {
+      var p = PJ[i];
+      var w = localWind(p.x, p.y);
+      var wn = Math.min(1, Math.abs(w.x) / 380);
+      var along = (w.x * p.vx) > 0;
+      /* 顺风：水平阻尼非线性放大到满攻角 TAIL_DRAG 倍 → 弹道射程缩短 */
+      if (along) p.vx -= (p.vx > 0 ? 1 : -1) * PHYS.TAIL_DRAG * wn * 300 * dt;
+      /* 逆风：升力 → 弹道射程延长 */
+      else p.vy -= PHYS.HEAD_LIFT * Math.abs(w.x) * 1.1 * dt;
+      p.vx += w.x * 0.42 * dt; p.vy += w.z * 0.30 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
+      if (p.trail.length > 7) p.trail.shift();
+      p.trail.push(p.x, p.y);
+      if (p.y > WORLD.h + 60 || p.x < -60 || p.x > WORLD.w + 60 || p.life <= 0) { PJ.splice(i, 1); i--; continue; }
+      for (j = 0; j < EN.length; j++) {
+        var e = EN[j];
+        if (Math.hypot(e.x - p.x, e.y - 12 - p.y) < ENEMIES[e.k].r + 6) {
+          damage(e, p.dmg, p.kind);
+          if (p.spl) {
+            for (var q = 0; q < EN.length; q++) {
+              var o = EN[q];
+              if (o !== e && Math.hypot(o.x - p.x, o.y - p.y) < p.spl) damage(o, p.dmg * 0.5, 'splash');
+            }
+            fxBurst(p.x, p.y, '#ffb347', 16, 150);
+          } else fxBurst(p.x, p.y, TOWERS[p.kind].col, 6, 80);
+          PJ.splice(i, 1); i--; break;
+        }
+      }
+    }
+  }
+  function damage(e, d, kind) {
+    var real = d * (1 - ENEMIES[e.k].arm);
+    e.hp -= real; e.flash = 10;
+    G.dmgTot += real; G.hitN++;
+    if (kind === 'moon') { e.slow = 0.35; e.slowT = 1.2; }
+    fxText(e.x + (G.RNG() * 14 - 7), e.y - 30, '' + Math.round(real), kind === 'splash' ? '#ffb347' : '#dff6ec');
+    if (e.hp <= 0) kill(e);
+  }
+  function kill(e) {
+    var i = EN.indexOf(e);
+    if (i < 0) return;
+    EN.splice(i, 1);
+    G.kills++;
+    var bounty = Math.round(ENEMIES[e.k].bounty * (1 + G.wave * 0.03) * (G.tideHigh ? PHYS.TIDE_BOOST : 1) * (G.corr > 0 ? 1 : 1));
+    G.nutr += bounty; G.nutrGain += bounty;
+    G.combat += Math.round(bounty * 2.2);
+    fxText(e.x, e.y - 40, '+' + bounty, '#ffd166');
+    fxBurst(e.x, e.y - 12, ENEMIES[e.k].col, 14, 150);
+    if (e.k === 'boss') { G.boss = null; pushLog('<i>击杀</i> 梦魇王 已被击破 · 营养 +' + bounty); }
+  }
+
+  /* ─────────── 魔物 ─────────── */
+  function spawn(k) {
+    var spec = ENEMIES[k], d = DIFFS[G.diff];
+    var e = {
+      k: k, x: -20 - G.RNG() * 26, y: (T.gh[0] - 1) * CELL, vx: 0, vy: 0,
+      hp: spec.hp * d.ehp * (1 + G.wave * 0.055), arm: spec.arm,
+      onGround: false, wasAir: true, slow: 0, slowT: 0, flash: 0,
+      fly: !!spec.fly, flyY: (T.gh[0] - 4.2) * CELL, born: G.t, jit: G.RNG()
+    };
+    e.hpMax = e.hp;
+    if (spec.fly) { e.y = e.flyY; e.onGround = false; }
+    if (spec.drop) { e.y = (T.gh[0] - 6.5) * CELL; e.vy = 180; e.wasAir = true; }
+    if (k === 'boss') {
+      G.boss = e; G.bossT = 0;
+      pushLog('<i>王战</i> 梦魇王 进入根脉古道 · 每 8 秒召唤 2 只衍生暗影狼');
+    }
+    EN.push(e);
+    if (EN.length > G.pkEnemies) G.pkEnemies = EN.length;
+  }
+  function stepEnemies(dt) {
+    var i, j;
+    /* 清算上一帧被共振脉冲等处决的魔物 */
+    for (i = EN.length - 1; i >= 0; i--) if (EN[i].hp <= 0) kill(EN[i]);
+    for (i = 0; i < EN.length; i++) {
+      var e = EN[i], spec = ENEMIES[e.k];
+      if (e.flash > 0) e.flash--;
+      var sp = spec.spd * G.spdMul * DIFFS[G.diff].espd;
+      var w = localWind(e.x, e.y);
+      sp *= (1 + w.x / 900);
+      if (e.slowT > 0) { sp *= (1 - e.slow); e.slowT -= dt; }
+      e.vx = sp;
+      e.x += sp * dt;
+      if (e.fly) {
+        e.y += (e.flyY - e.y) * Math.min(1, dt * 2.6);
+      } else {
+        e.vy += PHYS.G * dt;
+        if (e.vy > PHYS.TERM) e.vy = PHYS.TERM;
+        e.y += e.vy * dt;
+        var c = col(Math.floor(e.x / CELL));
+        var gy = groundRow(c) * CELL;
+        if (e.y >= gy && e.vy >= 0) {
+          var iv = Math.abs(e.vy);
+          e.y = gy; e.vy = 0;
+          if (e.wasAir && iv > 90) {
+            applyImpact(c, groundRow(c), iv * 0.55, 'enemy');
+            if (iv > 620) { e.hp -= 14; fxText(e.x, e.y - 34, '坠落 −14', '#ff8a5c'); if (e.hp <= 0) { kill(e); continue; } }
+          }
+          e.onGround = true; e.wasAir = false;
+        } else { e.onGround = false; e.wasAir = true; }
+        /* 跨越碎裂虚空：坠落伤害 */
+        var g2 = T.tile[c] && T.tile[c][groundRow(c)];
+        if (g2 && groundRow(c) > T.gh[c]) { e.hp -= 26 * dt; fxBurst(e.x, e.y, '#ff5c72', 1, 30); if (e.hp <= 0) { kill(e); continue; } }
+      }
+      /* 梦魇王召唤 */
+      if (e.k === 'boss') {
+        G.bossT += dt;
+        if (G.bossT >= 8) {
+          G.bossT = 0;
+          var n = 0;
+          for (j = 0; j < EN.length; j++) if (EN[j].k === 'wolf' && EN[j].derived) n++;
+          if (n < 4) { spawn('wolf'); EN[EN.length - 1].derived = true; EN[EN.length - 1].x = e.x - 30; spawn('wolf'); EN[EN.length - 1].derived = true; EN[EN.length - 1].x = e.x - 56; G.summoned += 2; pushLog('<i>王战</i> 梦魇王召唤 2 只衍生暗影狼'); }
+        }
+      }
+      /* 抵达世界树核心 */
+      if (e.x >= WORLD.w - 26) {
+        var dmgLife = e.k === 'boss' ? 4 : 1;
+        G.life -= dmgLife; G.leaks++;
+        var before = Math.floor(G.corr / PHYS.CORR_STEP);
+        G.corr = Math.min(100, G.corr + PHYS.CORR_PER_LEAK);
+        if (G.corr > G.corrPeak) G.corrPeak = G.corr;
+        var after = Math.floor(G.corr / PHYS.CORR_STEP);
+        if (after > before) { G.corrBurstT = PHYS.CORR_BURST_MS; pushLog('<i>爆发</i> 腐化跨过 ' + (after * PHYS.CORR_STEP) + ' · 全场射程骤降 ' + Math.round(PHYS.CORR_BURST_CUT * 100) + '%'); }
+        pushLog('<i>漏怪</i> ' + spec.n + ' 抵达世界树核心 · 生命 −' + dmgLife + ' · 腐化 +' + PHYS.CORR_PER_LEAK);
+        fxBurst(WORLD.w - 20, e.y, '#ff5c72', 24, 200);
+        EN.splice(i, 1); i--;
+        if (G.life <= 0) { G.life = 0; failRun(); return; }
+      }
+    }
+  }
+
+  /* ─────────── 波次 ─────────── */
+  function beginWave(n) {
+    G.wave = n;
+    var comp = WAVES[n - 1], q = [], k;
+    var extra = Math.floor(G.corr / PHYS.CORR_STEP);
+    for (k in comp) if (comp.hasOwnProperty(k)) {
+      for (var i = 0; i < comp[k] + (k === 'wolf' ? extra : 0); i++) q.push(k);
+    }
+    /* 确定性洗牌 */
+    for (var s = q.length - 1; s > 0; s--) {
+      var r = Math.floor(G.RNG() * (s + 1)), tmp = q[s]; q[s] = q[r]; q[r] = tmp;
+    }
+    G.spawnQ = q; G.spawnT = 0; G.spawning = true;
+    G.waveTotal = q.length; G.waveLeft = q.length;
+    pushLog('<i>波次</i> 第 ' + n + ' / 10 波来袭 · ' + q.length + ' 只' + (extra > 0 ? '（腐化增生 +' + extra + '）' : ''));
+  }
+  function stepWaves(dt) {
+    if (G.mode !== 'play' || G.settled) return;
+    /* ① 出怪中 */
+    if (G.spawning) {
+      G.spawnT -= dt;
+      if (G.spawnT <= 0 && G.spawnQ.length) { spawn(G.spawnQ.shift()); G.spawnT = SPAWN_GAP; }
+      if (!G.spawnQ.length) G.spawning = false;
+      return;
+    }
+    /* ② 波间整备倒计时 */
+    if (G.pendingWave) {
+      G.waveT -= dt;
+      if (G.waveT <= 0) { var nx = G.pendingWave; G.pendingWave = 0; beginWave(nx); }
+      return;
+    }
+    /* ③ 无波次在途：清场判定 */
+    if (G.wave >= 1 && EN.length === 0) {
+      G.cleared++;
+      pushLog('<i>清场</i> 第 ' + G.wave + ' 波清空 · 波间整备 ' + WAVE_LEAD.toFixed(1) + 's');
+      if (G.wave >= 10) { settle('ALL_CLEAR'); return; }
+      G.pendingWave = G.wave + 1;
+      G.waveT = WAVE_LEAD;
+      return;
+    }
+    /* ④ 开局首波 */
+    if (G.wave === 0) { G.pendingWave = 1; G.waveT = WAVE_LEAD; }
+  }
+
+  /* ─────────── 特效 ─────────── */
+  function fxBurst(x, y, c, n, sp) {
+    for (var i = 0; i < n; i++) {
+      var a = G.RNG() * 6.2832, v = sp * (0.4 + G.RNG() * 0.9);
+      FX.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30, c: c, life: 0.5 + G.RNG() * 0.5, max: 1, r: 1.5 + G.RNG() * 2.2 });
+    }
+  }
+  function fxText(x, y, s, c) { TX.push({ x: x, y: y, s: s, c: c, t: 0, life: 1.25 }); }
+  function stepFx(dt) {
+    var i;
+    for (i = 0; i < FX.length; i++) { var f = FX[i]; f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 340 * dt; f.vx *= 0.97; f.life -= dt; if (f.life <= 0) { FX.splice(i, 1); i--; } }
+    for (i = 0; i < TX.length; i++) { var t = TX[i]; t.t += dt; t.y -= 26 * dt; if (t.t >= t.life) { TX.splice(i, 1); i--; } }
+  }
+  function hint(s) { G.hint = s; G.hintT = 1.6; }
+
+  /* ─────────── 台账 ─────────── */
+  function recordFrame() {
+    if (G.frames.length >= 72000) return;
+    var c, r, sum = 0, n = 0;
+    for (c = 0; c < COLS; c++) for (r = T.gh[c]; r < ROWS; r++) { var t = T.tile[c][r]; if (t && t.state !== 2) { sum += t.intg; n++; } }
+    var enHp = 0;
+    for (var i = 0; i < EN.length; i++) enHp += Math.max(0, EN[i].hp);
+    var resOk = 0;
+    for (i = 0; i < TW.length; i++) if (TW[i].res >= PHYS.RES_THRESH) resOk++;
+    if (resOk > G.resOkPeak) G.resOkPeak = resOk;
+    var lo = P.landOff >= 0 ? P.landOff : -1;
+    P.landOff = -1;
+    if (G.lift && P.vy < 0) { G.windGood++; }
+    G.windN++;
+    G.frames.push([
+      Math.round(G.t), +P.x.toFixed(2), +P.y.toFixed(2), +P.vx.toFixed(2), +P.vy.toFixed(2),
+      +P.kine.toFixed(2), +P.stab.toFixed(2), G.life, G.nutr, G.kills, G.leaks, G.corr,
+      +G.phase.toFixed(4), TW.length, EN.length, Math.round(enHp),
+      G.shots, Math.round(G.dmgTot), n ? +(sum / n).toFixed(2) : 0, resOk, lo, G.hitN
+    ]);
+    /* 结算面板：每 6 步记录一帧 */
+    if (G.frames.length % 6 === 0) G.settleFrames = G.frames.length;
+  }
+
+  function aggregate() {
+    var F = G.frames, n = F.length, i;
+    if (!n) return { n: 0 };
+    var guard = 0, integ = 0, resOk = 0, wind = 0, landS = 0, landN = 0, kineG = 0, kineS = 0;
+    var peakHp = 0, lastDmg = 0;
+    for (i = 0; i < n; i++) {
+      var f = F[i];
+      guard += f[7] / G.lifeMax;
+      integ += f[18];
+      resOk += f[19];
+      if (f[20] >= 0) { landS += Math.max(0, 1 - f[20] / 0.5); landN++; }
+      if (f[4] < 0) wind += 1;
+      if (i > 0) { var d = f[21] - F[i - 1][21]; if (d > 0) lastDmg += d; }
+    }
+    kineG = G.kineGain; kineS = Math.max(1, G.kineSpent);
+    var prec = landN ? cl(landS / landN * 100, 0, 100) : 0;
+    var integP = cl(integ / n, 0, 100);
+    var eff = cl(kineG / kineS * 62, 0, 100);
+    var chain = cl(resOk / n / 6 * 100, 0, 100);
+    var windP = cl(wind / n * 260, 0, 100);
+    var g = cl(guard / n * 100, 0, 100);
+    var sc = prec * 0.26 + integP * 0.22 + eff * 0.18 + chain * 0.18 + windP * 0.16;
+    var grade = sc >= 88 ? 'S' : sc >= 76 ? 'A' : sc >= 62 ? 'B' : sc >= 45 ? 'C' : 'D';
+    if (G.settleWhy === 'CORE_LOST') grade = 'F';
+    return {
+      n: n, guard: +g.toFixed(1), prec: +prec.toFixed(1), integ: +integP.toFixed(1),
+      eff: +eff.toFixed(1), chain: +chain.toFixed(1), wind: +windP.toFixed(1),
+      score: +sc.toFixed(1), grade: grade, lands: landN, dmg: Math.round(lastDmg),
+      resPeak: G.resOkPeak
+    };
+  }
+
+  /* ─────────── 状态机 ─────────── */
+  function evalState() {
+    var s;
+    if (G.settled) s = 0;
+    else if (G.rollT >= 0) s = 1;
+    else if (P.overT > 0) s = 2;
+    else if (G.mode === 'title') s = 3;
+    else if (G.mode === 'seed') s = 4;
+    else if (P.tether || P.resT > 0 || G.corrBurstT > 0 || G.boss) s = 5;
+    else if (P.onGround && !P.charging && P.attune > 0 && P.attune < 1) s = 6;
+    else s = 7;
+    if (s !== G.st) { G.st = s; pushLog('<i>状态</i> → ' + SN[s] + ' (' + SC[s] + ')'); }
+  }
+  function pushLog(s) {
+    G.log.unshift(s);
+    if (G.log.length > 90) G.log.pop();
+  }
+
+  /* ─────────── 主循环 ─────────── */
+  function tick(dt) {
+    if (G.mode === 'seed') {
+      G.seedT -= dt * 1000;
+      if (G.seedT <= 0) { G.mode = 'play'; pushLog('<i>装填</i> 地块阵列落位完成 · 主交互循环激活'); }
+      stepTiles(dt); stepFx(dt); recordFrame(); evalState(); return;
+    }
+    G.t += dt * 1000;
+    if (G.hintT > 0) G.hintT -= dt;
+    if (G.corrBurstT > 0) G.corrBurstT -= dt * 1000;
+    if (P.resT > 0) P.resT -= dt * 1000;
+
+    if (G.rollT >= 0) {
+      G.rollT -= dt * 1000;
+      if (G.rollT <= 0) { G.rollT = -1; settle('CORE_LOST'); }
+      stepFx(dt); recordFrame(); evalState(); return;
+    }
+    if (G.settled) { evalState(); return; }
+
+    G.wave = G.wave || 0;
+    stepTide(dt);
+    if (P.charging) P.chargeMs = Math.min(PHYS.CHARGE_FAIL + 420, P.chargeMs + dt * 1000);
+    physics(dt);
+    stepTiles(dt);
+    stepTowers(dt);
+    stepEnemies(dt);
+    stepProj(dt);
+    stepFx(dt);
+
+    /* 接触同调：支撑面上维持近零速度累计 ATTUNE_MS 才由 0 置 1 */
+    var sp = Math.hypot(P.vx, P.vy) / PHYS.CRUISE;
+    if (P.onGround && sp < PHYS.ATTUNE_EPS && P.overT <= 0) {
+      P.attune = Math.min(1, P.attune + dt * 1000 / PHYS.ATTUNE_MS);
+      if (P.attune >= 1 && P.charges < 1) {
+        P.charges = 1;
+        fxText(P.x, P.y - 42, '能量同调完成 · 跃迁已激活', '#3fdfc4');
+        fxBurst(P.x, P.y, '#3fdfc4', 12, 110);
+      }
+    } else { P.attune = 0; P.charges = 0; }
+
+    /* 稳定性储备：地块边缘（核心区之外）静止驻留时每秒扣 5% */
+    if (P.onGround) {
+      var off = Math.abs(P.x - (P.gc + 0.5) * CELL) / (CELL * 0.5);
+      if (off > PHYS.EDGE_ZONE) {
+        P.stab -= PHYS.EDGE_IDLE_PS * 100 * dt;
+        if (P.stab <= 0) {
+          P.stab = 0;
+          var t2 = T.tile[P.gc] && T.tile[P.gc][groundRow(P.gc)];
+          if (t2 && t2.state === 0) setUnstable(t2);
+        }
+      }
+    }
+    stepWaves(dt);
+    /* 波前倒计时 */
+    G.waveLeft = G.spawning ? G.spawnQ.length + EN.length : EN.length;
+
+    recordFrame();
+    evalState();
+    if (!G.frozen) renderDom();
+  }
+  function failRun() {
+    if (G.rollT >= 0 || G.settled) return;
+    G.rollT = 1600; G.rollFrom = G.frames.length; G.rollTo = 0;
+    G.settleWhy = 'CORE_LOST';
+    pushLog('<i>失败</i> 核心生命归零 · 触发熔断与因果回溯');
+    for (var i = 0; i < 30; i++) fxBurst(WORLD.w - 24, 4 * CELL, '#ff5c72', 3, 220);
+  }
+  function settle(why) {
+    if (G.settled) return;
+    G.settleWhy = why; G.settled = true;
+    G.agg = aggregate();
+    G.score = G.agg.score;
+    pushLog('<i>结算</i> ' + why + ' · 评级 ' + G.agg.grade + ' · 帧样本 ' + G.agg.n);
+    renderSettle();
+  }
+
+  /* ─────────── 渲染：主视窗 ─────────── */
+  function fit(cv) {
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = cv.clientWidth, h = cv.clientHeight;
+    if (w < 2 || h < 2) return null;
+    var tw = Math.round(w * dpr), th = Math.round(h * dpr);
+    if (cv.width !== tw || cv.height !== th) { cv.width = tw; cv.height = th; }
+    var g = cv.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { g: g, w: w, h: h };
+  }
+
+  function camFor(w, h) {
+    var s = Math.min(w / (WORLD.w + 60), h / (WORLD.h + 96));
+    return { s: s, ox: (w - WORLD.w * s) / 2, oy: (h - WORLD.h * s) / 2 + 16 };
+  }
+
+  function drawWorld() {
+    var f = fit(cvWorld); if (!f) return;
+    var g = f.g, w = f.w, h = f.h;
+    G.painted++;
+    var cam = camFor(w, h);
+
+    /* 天幕：低处暖、高处冷，随高度插值 */
+    var alt = cl(1 - P.y / WORLD.h, 0, 1);
+    var sky = g.createLinearGradient(0, 0, 0, h);
+    for (var k = 0; k < RANGE_SKY.length; k++) sky.addColorStop(k / (RANGE_SKY.length - 1), lh(RANGE_SKY[k], RANGE_HI[k], alt));
+    g.fillStyle = sky; g.fillRect(0, 0, w, h);
+
+    g.save();
+    g.translate(cam.ox, cam.oy);
+    g.scale(cam.s, cam.s);
+    if (G.tilt) { g.translate(WORLD.w / 2, WORLD.h / 2); g.rotate(G.tilt); g.translate(-WORLD.w / 2, -WORLD.h / 2); }
+
+    /* 远景树冠（一次性缓存，确定性） */
+    if (!G._sc) { G._sc = genScenery(26, 0x1A3B); G._mo = genMotes(70); }
+    for (var i = 0; i < G._sc.length; i++) {
+      var o = G._sc[i];
+      g.fillStyle = 'rgba(20,62,44,' + o.a.toFixed(3) + ')';
+      g.beginPath();
+      g.ellipse(o.x * WORLD.w, o.y * 220 + 40 - P.y * 0.03, o.w * WORLD.w, o.h * WORLD.w * 0.7, 0, 0, 6.2832);
+      g.fill();
+    }
+
+    /* 地块（装载阶段按列先后落位，未落位者只画轮廓） */
+    var seedCol = G.mode === 'seed' ? Math.floor(cl(1 - G.seedT / 1500, 0, 1) * COLS) : COLS;
+    for (var c = 0; c < COLS; c++) for (var r = 0; r < ROWS; r++) {
+      var t = T.tile[c][r];
+      if (!t) continue;
+      if (c > seedCol) {
+        g.strokeStyle = 'rgba(95,129,142,.28)'; g.lineWidth = 1;
+        g.strokeRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2);
+        continue;
+      }
+      drawTile(g, t, c, r);
+    }
+
+    /* 圣泉节点 */
+    for (i = 0; i < T.nodes.length; i++) {
+      var nc = T.nodes[i], nx = (nc + 0.5) * CELL, ny = T.gh[nc] * CELL;
+      var br = 20 + Math.sin(G.t / 620 + i) * 4;
+      g.strokeStyle = 'rgba(63,223,196,.55)'; g.lineWidth = 2;
+      g.beginPath(); g.arc(nx, ny - 4, br, 0, 6.2832); g.stroke();
+      g.strokeStyle = 'rgba(63,223,196,.22)'; g.lineWidth = 1;
+      g.beginPath(); g.arc(nx, ny - 4, br + 8, 0, 6.2832); g.stroke();
+      g.fillStyle = 'rgba(63,223,196,.9)';
+      g.beginPath(); g.arc(nx, ny - 4, 5, 0, 6.2832); g.fill();
+    }
+
+    /* 古道：沿地表的高亮虚线 */
+    g.save();
+    g.strokeStyle = 'rgba(255,209,102,.60)'; g.lineWidth = 3; g.setLineDash([9, 7]);
+    g.lineDashOffset = -(G.t / 42) % 16;
+    g.beginPath();
+    for (c = 0; c < COLS; c++) {
+      var yy = T.gh[c] * CELL - 5;
+      if (c === 0) g.moveTo(c * CELL, yy); else g.lineTo(c * CELL, yy);
+    }
+    g.lineTo(WORLD.w, T.gh[COLS - 1] * CELL - 5);
+    g.stroke();
+    g.restore();
+
+    /* 出怪口 */
+    var ox2 = 6, oy2 = T.gh[0] * CELL - 16;
+    var gr = 12 + Math.sin(G.t / 300) * 3;
+    g.fillStyle = 'rgba(255,138,92,.16)'; g.beginPath(); g.arc(ox2, oy2, gr + 10, 0, 6.2832); g.fill();
+    g.fillStyle = '#ff8a5c'; g.beginPath(); g.arc(ox2, oy2, gr, 0, 6.2832); g.fill();
+
+    /* 世界树核心 */
+    drawCore(g);
+
+    /* 塔 */
+    for (i = 0; i < TW.length; i++) drawTower(g, TW[i]);
+
+    /* 弹道 */
+    for (i = 0; i < PJ.length; i++) {
+      var p = PJ[i];
+      g.strokeStyle = rgba(TOWERS[p.kind].col, .45); g.lineWidth = 2;
+      g.beginPath();
+      for (var q = 0; q < p.trail.length; q += 2) {
+        if (q === 0) g.moveTo(p.trail[q], p.trail[q + 1]); else g.lineTo(p.trail[q], p.trail[q + 1]);
+      }
+      g.lineTo(p.x, p.y); g.stroke();
+      g.fillStyle = TOWERS[p.kind].col;
+      g.beginPath(); g.arc(p.x, p.y, p.kind === 'ember' ? 6 : 4, 0, 6.2832); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.75)';
+      g.beginPath(); g.arc(p.x - 1, p.y - 1, 1.6, 0, 6.2832); g.fill();
+    }
+
+    /* 魔物 */
+    for (i = 0; i < EN.length; i++) drawEnemy(g, EN[i]);
+
+    /* 守卫 */
+    drawWarden(g);
+
+    /* 粒子 */
+    for (i = 0; i < FX.length; i++) {
+      var fx = FX[i];
+      g.globalAlpha = cl(fx.life / fx.max, 0, 1);
+      g.fillStyle = fx.c;
+      g.beginPath(); g.arc(fx.x, fx.y, fx.r, 0, 6.2832); g.fill();
+    }
+    g.globalAlpha = 1;
+
+    /* 伤害飘字 */
+    for (i = 0; i < TX.length; i++) {
+      var tt = TX[i], al = cl(1 - tt.t / tt.life, 0, 1);
+      g.globalAlpha = al; g.fillStyle = tt.c;
+      g.font = '600 13px system-ui,sans-serif'; g.textAlign = 'center';
+      g.fillText(tt.s, tt.x, tt.y);
+    }
+    g.globalAlpha = 1; g.textAlign = 'left';
+
+    /* 悬停射程圈 */
+    if (G.hoverC >= 0 && G.mouse.in && G.mode === 'play') {
+      var hc = G.hoverC, hr = groundRow(hc);
+      var spec = TOWERS[G.buildKind];
+      g.fillStyle = 'rgba(63,223,196,.10)';
+      g.beginPath(); g.arc((hc + 0.5) * CELL, hr * CELL - 14, spec.range * G.rangeMul, 0, 6.2832); g.fill();
+      g.strokeStyle = 'rgba(63,223,196,.55)'; g.lineWidth = 1.5; g.stroke();
+      g.strokeStyle = 'rgba(255,209,102,.85)'; g.lineWidth = 2;
+      g.strokeRect(hc * CELL + 1, hr * CELL + 1, CELL - 2, CELL - 2);
+    }
+    g.restore();
+
+    /* 覆盖层：波前倒计时 / 清场 / 王血条 / 腐化暗角 */
+    if (G.mode === 'seed') {
+      var sp = cl(1 - G.seedT / 1500, 0, 1);
+      var bw2 = w * 0.64, bx2 = (w - bw2) / 2, by2 = h * 0.47;
+      g.fillStyle = 'rgba(3,16,12,.82)'; g.fillRect(bx2 - 14, by2 - 32, bw2 + 28, 64);
+      g.strokeStyle = 'rgba(63,223,196,.60)'; g.lineWidth = 1; g.strokeRect(bx2 - 14, by2 - 32, bw2 + 28, 64);
+      g.fillStyle = '#cfe8df'; g.font = '600 12px system-ui,sans-serif'; g.textAlign = 'left';
+      g.fillText('种子装载 · 实体阵列重构', bx2, by2 - 14);
+      g.fillStyle = '#ffd166'; g.font = '700 13px system-ui,sans-serif'; g.textAlign = 'right';
+      g.fillText(Math.round(sp * 100) + '%', bx2 + bw2, by2 - 14);
+      g.textAlign = 'left';
+      g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(bx2, by2, bw2, 13);
+      g.fillStyle = '#3fdfc4'; g.fillRect(bx2, by2, bw2 * sp, 13);
+      g.fillStyle = '#8babb5'; g.font = '10px system-ui,sans-serif';
+      g.fillText('列 ' + Math.min(COLS, seedCol + 1) + ' / ' + COLS + ' 已落位 · 圣泉节点 ' + T.nodes.length + ' 处 · 承重上限已裁定 · 种子 ' + SEED, bx2, by2 + 25);
+    }
+    if (G.pendingWave && G.mode === 'play') {
+      var cx = w / 2, cy = cam.oy + 3.2 * CELL * cam.s;
+      var pr = 62, pg = cl(G.waveT / WAVE_LEAD, 0, 1);
+      g.fillStyle = 'rgba(3,16,12,.72)'; g.beginPath(); g.arc(cx, cy, pr, 0, 6.2832); g.fill();
+      g.strokeStyle = 'rgba(255,209,102,.9)'; g.lineWidth = 4;
+      g.beginPath(); g.arc(cx, cy, pr - 4, -1.5708, -1.5708 + 6.2832 * pg); g.stroke();
+      g.fillStyle = '#ffd166'; g.textAlign = 'center';
+      g.font = '600 15px system-ui,sans-serif'; g.fillText('第 ' + G.pendingWave + ' 波来袭', cx, cy - 8);
+      g.font = '700 26px system-ui,sans-serif'; g.fillText(Math.ceil(G.waveT), cx, cy + 20);
+      g.font = '400 11px system-ui,sans-serif'; g.fillStyle = '#cfe8df';
+      g.fillText('秒后开波 · 按 N 提前出怪 +' + EARLY_BONUS + ' 金', cx, cy + 40);
+      g.textAlign = 'left';
+    }
+    if (G.boss) {
+      var bw = w * 0.52, bx = (w - bw) / 2, by = 46;
+      g.fillStyle = 'rgba(3,16,12,.78)'; g.fillRect(bx - 8, by - 16, bw + 16, 34);
+      g.strokeStyle = '#7a1428'; g.lineWidth = 1; g.strokeRect(bx - 8, by - 16, bw + 16, 34);
+      g.fillStyle = '#3a0e18'; g.fillRect(bx, by, bw, 11);
+      g.fillStyle = '#ff5c72'; g.fillRect(bx, by, bw * cl(G.boss.hp / G.boss.hpMax, 0, 1), 11);
+      g.fillStyle = '#ffd7dd'; g.font = '600 11px system-ui,sans-serif';
+      g.fillText('梦魇王  ' + Math.max(0, Math.round(G.boss.hp)) + ' / ' + Math.round(G.boss.hpMax), bx, by - 4);
+    }
+    if (G.corrBurstT > 0) {
+      var st = 7, ph = (G.t / 90) % 2;
+      for (var s2 = 0; s2 < st; s2++) {
+        g.fillStyle = 'rgba(255,60,110,.10)';
+        g.fillRect(0, (s2 * 2 + ph) * h / (st * 2), w, h / (st * 2));
+      }
+      /* 横向红色扫描条：沿画面上下扫过 */
+      var sy = ((G.t / 22) % (h + 200)) - 100;
+      var sg = g.createLinearGradient(0, sy - 46, 0, sy + 46);
+      sg.addColorStop(0, 'rgba(255,60,110,0)');
+      sg.addColorStop(0.5, 'rgba(255,92,114,.34)');
+      sg.addColorStop(1, 'rgba(255,60,110,0)');
+      g.fillStyle = sg; g.fillRect(0, sy - 46, w, 92);
+      g.fillStyle = 'rgba(255,120,140,.70)';
+      g.fillRect(0, sy - 1, w, 2);
+    }
+    /* 腐化暗角 */
+    if (G.corr > 0 || G.corrBurstT > 0) {
+      var ci = cl(G.corr / 100 + (G.corrBurstT > 0 ? 0.18 : 0), 0, 0.6);
+      var vg = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.28, w / 2, h / 2, Math.max(w, h) * 0.72);
+      vg.addColorStop(0, 'rgba(80,20,110,0)');
+      vg.addColorStop(1, 'rgba(46,8,72,' + (0.20 + ci * 0.7).toFixed(3) + ')');
+      g.fillStyle = vg; g.fillRect(0, 0, w, h);
+    }
+    /* 熔断回溯 */
+    if (G.rollT >= 0) {
+      var k2 = 1 - G.rollT / 1600;
+      g.fillStyle = 'rgba(40,2,10,' + (0.16 + 0.24 * (1 - k2)).toFixed(3) + ')';
+      g.fillRect(0, 0, w, h);
+      g.strokeStyle = 'rgba(255,92,114,.85)'; g.lineWidth = 3;
+      g.strokeRect(5, 5, w - 10, h - 10);
+      g.textAlign = 'center';
+      g.fillStyle = '#ff5c72'; g.font = '700 30px system-ui,sans-serif';
+      g.fillText('熔断 · 因果回溯', w / 2, h / 2 - 10);
+      g.fillStyle = '#ffd7dd'; g.font = '400 13px system-ui,sans-serif';
+      g.fillText(Math.max(0, Math.ceil(G.rollT)) + ' ms', w / 2, h / 2 + 18);
+      g.fillStyle = '#cfe8df'; g.font = '400 12px system-ui,sans-serif';
+      g.fillText('已回滚帧 ' + G.rollFrom + ' / 总帧数 ' + G.frames.length, w / 2, h / 2 + 42);
+      g.textAlign = 'left';
+    }
+    /* 过载失稳：红色警示晕 + 硬直描边 */
+    if (P.overT > 0) {
+      var ov = cl(P.overT / PHYS.OVER_MS, 0, 1);
+      var rg = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.18, w / 2, h / 2, Math.max(w, h) * 0.70);
+      rg.addColorStop(0, 'rgba(255,60,80,0)');
+      rg.addColorStop(1, 'rgba(122,10,28,' + (0.28 + 0.34 * ov).toFixed(3) + ')');
+      g.fillStyle = rg; g.fillRect(0, 0, w, h);
+      g.strokeStyle = 'rgba(255,92,114,' + (0.35 + 0.45 * ov).toFixed(3) + ')'; g.lineWidth = 2;
+      g.strokeRect(4, 4, w - 8, h - 8);
+    }
+    /* 磁极倒置色相 */
+    if (P.pol < 0) {
+      g.globalCompositeOperation = 'difference';
+      g.fillStyle = 'rgba(80,60,140,' + (0.10 + 0.06 * cl(P.polT / 300, 0, 1)).toFixed(3) + ')';
+      g.fillRect(0, 0, w, h);
+      g.globalCompositeOperation = 'source-over';
+    }
+  }
+
+  function drawTile(g, t, c, r) {
+    var x = c * CELL, y = r * CELL + t.sink;
+    if (t.state === 2) {
+      /* 碎裂虚空 */
+      g.fillStyle = 'rgba(2,10,8,.55)';
+      g.fillRect(x + 2, r * CELL + 2, CELL - 4, CELL - 4);
+      g.strokeStyle = 'rgba(255,92,114,.30)'; g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(x + 8, r * CELL + 6); g.lineTo(x + 26, r * CELL + 30); g.lineTo(x + 14, r * CELL + 54);
+      g.moveTo(x + 56, r * CELL + 10); g.lineTo(x + 34, r * CELL + 34); g.lineTo(x + 50, r * CELL + 58);
+      g.stroke();
+      return;
+    }
+    var top = (r === T.gh[c]);
+    var wear = cl(t.intg / 100, 0, 1);
+    var base = top ? lh('#1d3a20', '#4a3a1e', 1 - wear) : lh('#16402a', '#3a2c18', 1 - wear);
+    g.fillStyle = base;
+    g.fillRect(x, y, CELL + 0.6, CELL + 0.6);
+    if (top) {
+      g.fillStyle = t.state === 1 ? 'rgba(255,179,71,.55)' : lh('#3f7a3a', '#8a6a26', 1 - wear);
+      g.fillRect(x, y, CELL + 0.6, 7);
+    }
+    g.strokeStyle = 'rgba(0,0,0,.30)'; g.lineWidth = 1;
+    g.strokeRect(x + .5, y + .5, CELL - 1, CELL - 1);
+    /* 共鸣核心区（居中 20%） */
+    if (top) {
+      var cw = CELL * PHYS.CORE_ZONE;
+      g.fillStyle = t.state === 1 ? 'rgba(255,92,114,.22)' : 'rgba(63,223,196,.20)';
+      g.fillRect(x + (CELL - cw) / 2, y + 7, cw, 4);
+      g.strokeStyle = 'rgba(63,223,196,.85)'; g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(x + (CELL - cw) / 2, y + 4); g.lineTo(x + (CELL - cw) / 2, y + 15);
+      g.moveTo(x + (CELL + cw) / 2, y + 4); g.lineTo(x + (CELL + cw) / 2, y + 15);
+      g.stroke();
+      /* 承重 */
+      if (t.load > 0) {
+        g.fillStyle = 'rgba(255,209,102,.9)';
+        g.font = '600 9px system-ui,sans-serif';
+        g.fillText(t.load + '/' + T.caps[c], x + CELL - 20, y + 18);
+      }
+      if (t.state === 1) {
+        g.strokeStyle = 'rgba(255,179,71,.95)'; g.lineWidth = 2;
+        g.beginPath();
+        g.arc(x + CELL / 2, y + 4, 14, -1.5708, -1.5708 + 6.2832 * (1 - t.fuse / PHYS.FUSE_MS));
+        g.stroke();
+      }
+    }
+    if (t.hitT > 0) {
+      g.fillStyle = 'rgba(255,255,255,' + (t.hitT / 14 * 0.14).toFixed(3) + ')';
+      g.fillRect(x, y, CELL, CELL);
+    }
+  }
+
+  function drawTower(g, tw) {
+    var spec = TOWERS[tw.kind];
+    var x = (tw.c + 0.5) * CELL, y = tw.r * CELL;
+    var hgt = 26 + tw.lv * 6;
+    g.save();
+    g.globalAlpha = tw.attune < 1 ? 0.55 : 1;
+    /* 塔身 */
+    g.fillStyle = spec.dim;
+    g.beginPath(); g.moveTo(x - 9, y); g.lineTo(x + 9, y); g.lineTo(x + 5, y - hgt); g.lineTo(x - 5, y - hgt); g.closePath(); g.fill();
+    /* 塔冠 */
+    g.fillStyle = spec.col;
+    if (tw.kind === 'thorn') {
+      g.beginPath(); g.moveTo(x, y - hgt - 14); g.lineTo(x + 12, y - hgt + 2); g.lineTo(x - 12, y - hgt + 2); g.closePath(); g.fill();
+    } else if (tw.kind === 'moon') {
+      g.beginPath(); g.arc(x, y - hgt - 4, 10, 0, 6.2832); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.5)'; g.beginPath(); g.arc(x - 3, y - hgt - 7, 3.4, 0, 6.2832); g.fill();
+    } else {
+      g.beginPath(); g.arc(x, y - hgt - 3, 8, 0, 6.2832); g.fill();
+      g.fillStyle = 'rgba(255,220,140,.75)';
+      g.beginPath(); g.arc(x, y - hgt - 3, 4.4, 0, 6.2832); g.fill();
+    }
+    /* 等级环 */
+    if (tw.lv >= 2) {
+      g.strokeStyle = tw.lv >= 3 ? '#ffd166' : '#cfe8df'; g.lineWidth = 2;
+      g.beginPath(); g.arc(x, y - hgt / 2, 13, 0, 6.2832); g.stroke();
+    }
+    /* 过热条 */
+    var hw = 22;
+    g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(x - hw / 2, y - hgt - 22, hw, 4);
+    g.fillStyle = tw.over ? '#ff5c72' : '#ffb347';
+    g.fillRect(x - hw / 2, y - hgt - 22, hw * cl(tw.heat, 0, 1), 4);
+    /* 共振达标标记 */
+    if (tw.res >= PHYS.RES_THRESH) {
+      g.fillStyle = '#3fdfc4';
+      g.beginPath(); g.arc(x + 13, y - hgt - 6, 4, 0, 6.2832); g.fill();
+      g.strokeStyle = 'rgba(63,223,196,.6)'; g.lineWidth = 1;
+      g.beginPath(); g.arc(x + 13, y - hgt - 6, 7, 0, 6.2832); g.stroke();
+    }
+    /* 过载红圈 */
+    if (tw.over) {
+      g.strokeStyle = '#ff5c72'; g.lineWidth = 2;
+      g.beginPath(); g.arc(x, y - hgt / 2, 17, 0, 6.2832); g.stroke();
+      g.fillStyle = '#ff5c72'; g.font = '600 9px system-ui,sans-serif'; g.textAlign = 'center';
+      g.fillText('过载', x, y - hgt - 28); g.textAlign = 'left';
+    }
+    /* 同调校准进度 */
+    if (tw.attune < 1) {
+      g.strokeStyle = 'rgba(63,223,196,.9)'; g.lineWidth = 2;
+      g.beginPath(); g.arc(x, y - hgt / 2, 19, -1.5708, -1.5708 + 6.2832 * cl(tw.attuneT / PHYS.ATTUNE_MS, 0, 1)); g.stroke();
+    }
+    /* 完整度 */
+    if (tw.intg < 99) {
+      g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(x - hw / 2, y - hgt - 27, hw, 3);
+      g.fillStyle = tw.intg > 50 ? '#7fe08a' : '#ff5c72';
+      g.fillRect(x - hw / 2, y - hgt - 27, hw * cl(tw.intg / 100, 0, 1), 3);
+    }
+    g.restore();
+    /* 棘锁协同连线：与相邻塔 */
+    for (var i = 0; i < TW.length; i++) {
+      var o = TW[i];
+      if (o === tw || Math.abs(o.c - tw.c) > 2) continue;
+      if (tw.res < PHYS.RES_THRESH || o.res < PHYS.RES_THRESH) continue;
+      g.strokeStyle = 'rgba(63,223,196,.30)'; g.lineWidth = 1.2; g.setLineDash([4, 5]);
+      g.beginPath();
+      g.moveTo(x, y - hgt + 6); g.lineTo((o.c + 0.5) * CELL, o.r * CELL - (26 + o.lv * 6) + 6);
+      g.stroke(); g.setLineDash([]);
+    }
+  }
+
+  function drawEnemy(g, e) {
+    var spec = ENEMIES[e.k];
+    var x = e.x, y = e.y;
+    /* 投影 */
+    g.fillStyle = 'rgba(0,0,0,.30)';
+    g.beginPath(); g.ellipse(x, y + 2, spec.r * 0.9, 4, 0, 0, 6.2832); g.fill();
+    var c1 = e.flash > 0 ? '#ffffff' : spec.col;
+    g.fillStyle = c1;
+    if (e.k === 'wolf') {
+      g.beginPath(); g.moveTo(x - 16, y); g.lineTo(x + 12, y - 8); g.lineTo(x + 18, y - 22); g.lineTo(x + 4, y - 18); g.lineTo(x - 6, y - 26); g.lineTo(x - 8, y - 12); g.closePath(); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(x + 12, y - 18, 2, 0, 6.2832); g.fill();
+    } else if (e.k === 'beetle') {
+      g.beginPath(); g.ellipse(x, y - 14, 17, 13, 0, 0, 6.2832); g.fill();
+      g.strokeStyle = spec.dim; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(x - 14, y - 14); g.lineTo(x + 14, y - 14); g.stroke();
+    } else if (e.k === 'wraith') {
+      g.globalAlpha = 0.82;
+      g.beginPath(); g.arc(x, y - 22, 11, 3.1416, 6.2832); g.fill();
+      g.beginPath(); g.moveTo(x - 11, y - 22); g.lineTo(x - 7, y - 2); g.lineTo(x, y - 9); g.lineTo(x + 7, y - 2); g.lineTo(x + 11, y - 22); g.closePath(); g.fill();
+      g.globalAlpha = 1;
+      g.fillStyle = '#062a26'; g.beginPath(); g.arc(x - 4, y - 24, 2, 0, 6.2832); g.arc(x + 4, y - 24, 2, 0, 6.2832); g.fill();
+    } else if (e.k === 'dropper') {
+      g.beginPath(); g.arc(x, y - 13, 12, 0, 6.2832); g.fill();
+      g.strokeStyle = c1; g.lineWidth = 2;
+      for (var li = 0; li < 4; li++) {
+        var la = -0.6 + li * 0.4;
+        g.beginPath(); g.moveTo(x, y - 13);
+        g.lineTo(x + Math.cos(la + 2.2) * 20, y - 13 + Math.sin(la + 2.2) * 20); g.stroke();
+      }
+    } else {
+      g.beginPath(); g.moveTo(x - 26, y); g.lineTo(x - 10, y - 34); g.lineTo(x + 10, y - 62); g.lineTo(x + 26, y - 34); g.lineTo(x + 26, y); g.closePath(); g.fill();
+      g.fillStyle = '#ffe0e4'; g.beginPath(); g.arc(x - 8, y - 52, 3.4, 0, 6.2832); g.arc(x + 8, y - 52, 3.4, 0, 6.2832); g.fill();
+    }
+    /* 血条 */
+    var hw = Math.max(20, spec.r * 1.8), hy = y - spec.h - 8;
+    g.fillStyle = 'rgba(0,0,0,.62)'; g.fillRect(x - hw / 2, hy, hw, 3.4);
+    g.fillStyle = e.k === 'boss' ? '#ff5c72' : '#ff8a5c';
+    g.fillRect(x - hw / 2, hy, hw * cl(e.hp / e.hpMax, 0, 1), 3.4);
+    if (e.slowT > 0) { g.fillStyle = '#9fd8ff'; g.fillRect(x - hw / 2 - 3, hy, 2, 3.4); }
+  }
+
+  function drawWarden(g) {
+    var x = P.x, y = P.y;
+    g.fillStyle = 'rgba(0,0,0,.34)';
+    g.beginPath(); g.ellipse(x, y + 2, 14, 4.5, 0, 0, 6.2832); g.fill();
+    /* 蓄能压缩形变 */
+    var sq = P.charging ? 1 - cl(P.chargeMs / PHYS.CHARGE_FAIL, 0, 1) * 0.30 : 1;
+    var hh = 46 * sq, ww = 20 * (P.charging ? 1 + (1 - sq) * 0.7 : 1);
+    g.fillStyle = P.overT > 0 ? '#ff8a9a' : (P.pol > 0 ? '#8ff0d8' : '#c8a8ff');
+    g.beginPath();
+    g.moveTo(x - ww / 2, y); g.lineTo(x - ww / 2 + 3, y - hh * 0.62);
+    g.lineTo(x, y - hh); g.lineTo(x + ww / 2 - 3, y - hh * 0.62);
+    g.lineTo(x + ww / 2, y); g.closePath(); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.75)';
+    g.beginPath(); g.arc(x + P.face * 4, y - hh * 0.78, 2.6, 0, 6.2832); g.fill();
+    /* 同调进度弧 */
+    if (P.attune > 0 && P.attune < 1) {
+      g.strokeStyle = '#3fdfc4'; g.lineWidth = 3;
+      g.beginPath(); g.arc(x, y - hh * 0.5, 25, -1.5708, -1.5708 + 6.2832 * P.attune); g.stroke();
+      g.fillStyle = '#3fdfc4'; g.font = '600 10px system-ui,sans-serif'; g.textAlign = 'center';
+      g.fillText(Math.round(P.attune * 100) + '%', x, y - hh * 0.5 - 30); g.textAlign = 'left';
+    }
+    if (P.charges > 0) {
+      g.strokeStyle = 'rgba(255,209,102,.85)'; g.lineWidth = 2;
+      g.beginPath(); g.arc(x, y - hh * 0.5, 28, 0, 6.2832); g.stroke();
+    }
+    /* 蓄能环 */
+    if (P.charging) {
+      var u = cl(P.chargeMs / PHYS.CHARGE_FULL, 0, 1.25);
+      g.strokeStyle = P.chargeMs >= PHYS.CHARGE_P0 && P.chargeMs <= PHYS.CHARGE_P1 ? '#ffd166' : '#3fdfc4';
+      g.lineWidth = 4;
+      g.beginPath(); g.arc(x, y - hh * 0.5, 32, -1.5708, -1.5708 + 6.2832 * cl(u, 0, 1)); g.stroke();
+      /* PERFECT 判定窗弧 */
+      g.strokeStyle = 'rgba(255,209,102,.55)'; g.lineWidth = 6;
+      g.beginPath();
+      g.arc(x, y - hh * 0.5, 38,
+        -1.5708 + 6.2832 * (PHYS.CHARGE_P0 / PHYS.CHARGE_FULL),
+        -1.5708 + 6.2832 * (PHYS.CHARGE_P1 / PHYS.CHARGE_FULL));
+      g.stroke();
+      g.fillStyle = '#ffd166'; g.font = '600 11px system-ui,sans-serif'; g.textAlign = 'center';
+      g.fillText(Math.round(P.chargeMs) + ' ms', x, y - hh * 0.5 - 34); g.textAlign = 'left';
+    }
+    /* 能量索 */
+    if (P.tether) {
+      var an = P.tether;
+      g.strokeStyle = '#3fdfc4'; g.lineWidth = 2.4;
+      g.beginPath();
+      g.moveTo(an.x, an.y);
+      g.quadraticCurveTo((an.x + x) / 2 + 10, (an.y + y) / 2 + 16, x, y - hh * 0.6);
+      g.stroke();
+      g.strokeStyle = 'rgba(63,223,196,.45)'; g.lineWidth = 1;
+      g.beginPath(); g.arc(an.x, an.y, 14 + Math.sin(G.t / 120) * 3, 0, 6.2832); g.stroke();
+      var mx = (an.x + x) / 2, my = (an.y + y) / 2 + 8;
+      g.fillStyle = 'rgba(3,16,12,.85)'; g.fillRect(mx - 30, my - 9, 60, 15);
+      g.strokeStyle = 'rgba(63,223,196,.4)'; g.lineWidth = 1; g.strokeRect(mx - 30, my - 9, 60, 15);
+      g.fillStyle = '#3fdfc4'; g.font = '600 10px system-ui,sans-serif'; g.textAlign = 'center';
+      g.fillText(Math.round(P.tension) + '/' + PHYS.TENSION_MAX, mx, my + 2); g.textAlign = 'left';
+      g.fillStyle = '#3fdfc4';
+      g.fillRect(mx - 28, my + 7, 56 * cl(P.tension / PHYS.TENSION_MAX, 0, 1), 2.4);
+    }
+    /* 速坠尾迹 */
+    if (P.dive && !P.onGround) {
+      g.strokeStyle = 'rgba(255,179,71,.7)'; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(x, y - hh - 4); g.lineTo(x, y - hh - 26); g.stroke();
+    }
+    if (P.resT > 0) {
+      var rr = (1 - P.resT / 1400) * 420;
+      g.strokeStyle = 'rgba(255,209,102,' + (P.resT / 1400 * 0.8).toFixed(2) + ')';
+      g.lineWidth = 5;
+      g.beginPath(); g.arc(x, y, rr, 0, 6.2832); g.stroke();
+    }
+  }
+
+  function drawCore(g) {
+    var x = WORLD.w - 34, y = T.gh[COLS - 1] * CELL;
+    var pulse = 1 + Math.sin(G.t / 500) * 0.04;
+    g.strokeStyle = '#5a3a1c'; g.lineWidth = 8;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - 96); g.stroke();
+    var cols = ['#1f5537', '#2c6b3f', '#41814a'];
+    for (var i = 0; i < 3; i++) {
+      g.fillStyle = cols[i];
+      g.globalAlpha = 0.92 - i * 0.10;
+      g.beginPath();
+      g.ellipse(x, y - 106 - i * 22, (54 - i * 12) * pulse, (26 - i * 5) * pulse, 0, 0, 6.2832);
+      g.fill();
+    }
+    g.globalAlpha = 1;
+    g.fillStyle = 'rgba(63,223,196,.9)';
+    g.beginPath(); g.arc(x, y - 150, 6 + Math.sin(G.t / 300) * 2, 0, 6.2832); g.fill();
+    /* 生命环 */
+    g.strokeStyle = 'rgba(255,209,102,.75)'; g.lineWidth = 3;
+    g.beginPath(); g.arc(x, y - 96, 20, -1.5708, -1.5708 + 6.2832 * cl(G.life / G.lifeMax, 0, 1)); g.stroke();
+  }
+
+  /* ─────────── 渲染：HUD 仪表阵列（画布 B） ─────────── */
+  function panel(g, x, y, w, h, title, sub) {
+    g.fillStyle = 'rgba(8,32,26,.92)'; g.fillRect(x, y, w, h);
+    g.strokeStyle = '#17493a'; g.lineWidth = 1; g.strokeRect(x + .5, y + .5, w - 1, h - 1);
+    g.fillStyle = '#4e7a70'; g.font = '9px system-ui,sans-serif';
+    g.fillText(title, x + 7, y + 12);
+    if (sub) { g.fillStyle = '#7ba79a'; g.textAlign = 'right'; g.fillText(sub, x + w - 7, y + 12); g.textAlign = 'left'; }
+  }
+
+  function drawRig() {
+    var f = fit(cvRig); if (!f) return;
+    var g = f.g, w = f.w, h = f.h;
+    g.clearRect(0, 0, w, h);
+    var pad = 6, gap = 6;
+    var cw = (w - pad * 2 - gap) / 2;
+    var ch = (h - pad * 2 - gap * 2) / 3;
+
+    /* ① 风切矢量罗盘 */
+    var x = pad, y = pad;
+    panel(g, x, y, cw, ch, '① 风切矢量罗盘', Math.round(Math.hypot(G.wind.x, G.wind.z)) + ' u/s');
+    var cx = x + cw / 2, cy = y + ch / 2 + 6, R = Math.min(cw, ch) * 0.30;
+    g.strokeStyle = 'rgba(23,73,58,.9)'; g.lineWidth = 1;
+    g.beginPath(); g.arc(cx, cy, R, 0, 6.2832); g.stroke();
+    g.beginPath(); g.arc(cx, cy, R * 0.55, 0, 6.2832); g.stroke();
+    var wa = Math.atan2(G.wind.z, G.wind.x), wm = cl(Math.hypot(G.wind.x, G.wind.z) / 420, 0, 1);
+    g.strokeStyle = G.lift ? '#3fdfc4' : (G.along ? '#ffb347' : '#9fd8ff');
+    g.lineWidth = 2.4;
+    g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(wa) * R * wm, cy + Math.sin(wa) * R * wm); g.stroke();
+    g.fillStyle = g.strokeStyle;
+    g.beginPath(); g.arc(cx + Math.cos(wa) * R * wm, cy + Math.sin(wa) * R * wm, 3.4, 0, 6.2832); g.fill();
+    g.fillStyle = '#7ba79a'; g.font = '10px system-ui,sans-serif';
+    g.fillText(P.tether ? '索载 · 摆荡中' : (G.lift ? '逆风 · 升力向量' : (G.along ? '顺风 · 阻尼放大' : '静风 · 无攻角')), x + 7, y + ch - 6);
+
+    /* ② 动能示波雷达 */
+    x = pad + cw + gap;
+    panel(g, x, y, cw, ch, '② 动能示波雷达', P.kine.toFixed(0) + ' / ' + PHYS.KINE_MAX);
+    g.strokeStyle = 'rgba(23,73,58,.9)'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(x + 7, y + ch - 14); g.lineTo(x + cw - 7, y + ch - 14); g.stroke();
+    var hist = (G._kh || (G._kh = []));
+    hist.push(P.kine); if (hist.length > 64) hist.shift();
+    g.strokeStyle = '#3fdfc4'; g.lineWidth = 1.6;
+    g.beginPath();
+    for (var i = 0; i < hist.length; i++) {
+      var px = x + 7 + (cw - 14) * i / 63, py = y + ch - 14 - (ch - 34) * cl(hist[i] / PHYS.KINE_MAX, 0, 1);
+      if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+    }
+    g.stroke();
+    g.fillStyle = 'rgba(63,223,196,.14)'; g.fillRect(x + 7, y + ch - 14 - (ch - 34) * cl(P.kine / PHYS.KINE_MAX, 0, 1), cw - 14, (ch - 34) * cl(P.kine / PHYS.KINE_MAX, 0, 1));
+
+    /* ③ 地块寿命倒计时环形条 */
+    y = pad + ch + gap;
+    panel(g, pad, y, cw, ch, '③ 地块寿命倒计时', P.onGround ? ('列 ' + P.gc) : '空中');
+    var rt = P.onGround ? (T.tile[P.gc] && T.tile[P.gc][groundRow(P.gc)]) : null;
+    var rcx = pad + 34, rcy = y + ch / 2 + 6, rR = Math.min(24, ch * 0.32);
+    g.strokeStyle = 'rgba(23,73,58,.9)'; g.lineWidth = 6;
+    g.beginPath(); g.arc(rcx, rcy, rR, 0, 6.2832); g.stroke();
+    if (rt) {
+      g.strokeStyle = rt.state === 1 ? '#ffb347' : '#3fdfc4'; g.lineWidth = 6;
+      var fr = rt.state === 1 ? cl(rt.fuse / PHYS.FUSE_MS, 0, 1) : cl(rt.intg / 100, 0, 1);
+      g.beginPath(); g.arc(rcx, rcy, rR, -1.5708, -1.5708 + 6.2832 * fr); g.stroke();
+    }
+    g.fillStyle = '#cfe8df'; g.font = '600 11px system-ui,sans-serif';
+    g.fillText(rt ? ('#' + rt.c + ' · ' + (rt.state === 1 ? '失稳 ' + Math.max(0, Math.round(rt.fuse)) + 'ms' : '完整 ' + Math.round(rt.intg) + '%')) : '无载荷', pad + 66, y + ch / 2 - 2);
+    g.fillStyle = '#7ba79a'; g.font = '10px system-ui,sans-serif';
+    g.fillText(rt ? ('沉陷 ' + rt.sink.toFixed(1) + ' / 承重 ' + rt.load + '/' + T.caps[rt.c]) : '跃迁中', pad + 66, y + ch / 2 + 12);
+
+    /* ④ 过载压力标尺 */
+    x = pad + cw + gap;
+    panel(g, x, y, cw, ch, '④ 过载压力标尺', P.overT > 0 ? '硬直 ' + Math.ceil(P.overT) + 'ms' : '待机');
+    var bx = x + 8, bw = cw - 16, by = y + ch / 2 + 7, bh = 11;
+    g.fillStyle = '#cfe8df'; g.font = '600 11px system-ui,sans-serif';
+    g.fillText(P.charging ? ('蓄能 ' + Math.round(P.chargeMs) + ' ms') : (P.overT > 0 ? ('越限 · 动能 −' + PHYS.OVER_KINE) : '未蓄能'), bx, y + ch / 2 - 8);
+    g.fillStyle = '#ffd166'; g.font = '9px system-ui,sans-serif';
+    g.fillText('PERFECT 判定窗 ' + PHYS.CHARGE_P0 + '–' + PHYS.CHARGE_P1 + 'ms', bx, by - 4);
+    g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(bx, by, bw, bh);
+    var pcm = P.charging ? P.chargeMs : (P.overT > 0 ? (P.lastChargeMs || 0) : 0);
+    var fw = cl(pcm / PHYS.CHARGE_FAIL, 0, 1) * bw;
+    g.fillStyle = pcm > PHYS.CHARGE_FAIL ? '#ff5c72' : (pcm >= PHYS.CHARGE_P0 && pcm <= PHYS.CHARGE_P1 ? '#ffd166' : '#3fdfc4');
+    g.fillRect(bx, by, fw, bh);
+    var p0 = PHYS.CHARGE_P0 / PHYS.CHARGE_FAIL * bw, p1 = PHYS.CHARGE_P1 / PHYS.CHARGE_FAIL * bw;
+    g.fillStyle = 'rgba(255,209,102,.20)'; g.fillRect(bx + p0, by, p1 - p0, bh);
+    g.strokeStyle = 'rgba(255,209,102,.85)'; g.lineWidth = 1;
+    g.strokeRect(bx + p0 + .5, by - 2, p1 - p0 - 1, bh + 4);
+
+    /* ⑤ 共鸣链蓄能槽（七格） */
+    y = pad + (ch + gap) * 2;
+    panel(g, pad, y, cw, ch, '⑤ 共鸣链蓄能槽', (TW.length ? (TW.filter(function (t) { return t.res >= PHYS.RES_THRESH; }).length + ' 座达标') : '无塔'));
+    var gx = pad + 8, gw = (cw - 16 - 6 * 4) / 7, gy = y + ch / 2 - 4;
+    var seq = [];
+    for (i = 0; i < 7; i++) {
+      var tc = TW[i];
+      seq.push(tc ? cl(tc.res / PHYS.RES_THRESH, 0, 1) : 0);
+    }
+    for (i = 0; i < 7; i++) {
+      var gxx = gx + i * (gw + 4);
+      g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(gxx, gy, gw, 20);
+      var ok = seq[i] >= 1;
+      g.fillStyle = ok ? '#3fdfc4' : 'rgba(63,223,196,.30)';
+      g.fillRect(gxx, gy + 20 * (1 - seq[i]), gw, 20 * seq[i]);
+      g.strokeStyle = ok ? '#3fdfc4' : 'rgba(23,73,58,.9)'; g.lineWidth = 1;
+      g.strokeRect(gxx + .5, gy + .5, gw - 1, 19);
+    }
+    g.fillStyle = '#7ba79a'; g.font = '10px system-ui,sans-serif';
+    g.fillText('共鸣链 ' + TW.filter(function (t) { return t.res >= PHYS.RES_THRESH; }).length + '/7 座 · 帧 ' + G.frames.length, pad + 8, y + ch - 6);
+
+    /* ⑥ 空域危机与磁极面板 */
+    x = pad + cw + gap;
+    var corrCut = Math.round((cl(G.corr / 100 * 0.5, 0, PHYS.CORR_RANGE) + (G.corrBurstT > 0 ? PHYS.CORR_BURST_CUT : 0)) * 100);
+    panel(g, x, y, cw, ch, '⑥ 相位 / 腐化', '射程折减 −' + corrCut + '%');
+    g.fillStyle = '#cfe8df'; g.font = '10.5px system-ui,sans-serif';
+    g.fillText('磁极 ' + (P.pol > 0 ? '正极 ×' + PHYS.POL_GRAV_POS : '负极 ×' + PHYS.POL_GRAV_NEG), x + 8, y + ch / 2 - 5);
+    g.fillStyle = '#b18cff'; g.font = '9px system-ui,sans-serif'; g.textAlign = 'right';
+    g.fillText('腐化 ' + G.corr.toFixed(0), x + cw - 8, y + ch / 2 - 5);
+    g.textAlign = 'left'; g.fillStyle = '#cfe8df'; g.font = '10.5px system-ui,sans-serif';
+    g.fillText('冷却 ' + Math.max(0, Math.round(P.polCd)) + 'ms · 映射 ' + (P.pol > 0 ? '常规' : '已反向'), x + 8, y + ch / 2 + 11);
+    var cwid = cw - 16, cbx = x + 8, cby = y + ch - 13;
+    g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(cbx, cby, cwid, 7);
+    g.fillStyle = '#b18cff'; g.fillRect(cbx, cby, cwid * cl(G.corr / 100, 0, 1), 7);
+    if (G.corrBurstT > 0) { g.fillStyle = '#ff5c72'; g.fillRect(cbx, cby, cwid * cl(G.corrBurstT / PHYS.CORR_BURST_MS, 0, 1), 7); }
+  }
+
+  /* ─────────── 渲染：雷达 + 走势带（画布 C） ─────────── */
+  function drawRadar() {
+    var f = fit(cvRadar); if (!f) return;
+    var g = f.g, w = f.w, h = f.h;
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = '#061a14'; g.fillRect(0, 0, w, h);
+    var usable = h - 52;                 /* 底部 52px 由走势带画布覆盖 */
+    var bw = w - 20, bh = usable - 46, ox = 10, oy = 8;
+    var s = Math.min(bw / WORLD.w, bh / WORLD.h);
+    var mw = WORLD.w * s, mh = WORLD.h * s;
+    var mx = ox + (bw - mw) / 2, my = oy + (bh - mh) / 2;
+    g.save(); g.translate(mx, my); g.scale(s, s);
+    /* 地块 */
+    for (var c = 0; c < COLS; c++) for (var r = T.gh[c]; r < ROWS; r++) {
+      var t = T.tile[c][r];
+      g.fillStyle = !t ? '#08201a' : (t.state === 2 ? 'rgba(255,92,114,.16)' : (t.state === 1 ? 'rgba(255,179,71,.26)' : 'rgba(31,85,55,.75)'));
+      g.fillRect(c * CELL, r * CELL, CELL, CELL);
+    }
+    /* 古道轮廓 */
+    g.strokeStyle = 'rgba(255,209,102,.55)'; g.lineWidth = 5;
+    g.beginPath();
+    for (c = 0; c < COLS; c++) { var yy = T.gh[c] * CELL; if (c === 0) g.moveTo(0, yy); else g.lineTo(c * CELL, yy); }
+    g.lineTo(WORLD.w, T.gh[COLS - 1] * CELL);
+    g.stroke();
+    /* 塔 */
+    for (var i = 0; i < TW.length; i++) {
+      g.fillStyle = TOWERS[TW[i].kind].col;
+      g.fillRect(TW[i].c * CELL + 10, TW[i].r * CELL - 6, CELL - 20, 16);
+    }
+    /* 魔物 */
+    for (i = 0; i < EN.length; i++) {
+      g.fillStyle = ENEMIES[EN[i].k].col;
+      g.beginPath(); g.arc(EN[i].x, EN[i].y - 10, ENEMIES[EN[i].k].r * 0.8, 0, 6.2832); g.fill();
+    }
+    /* 守卫航迹 */
+    g.strokeStyle = 'rgba(63,223,196,.45)'; g.lineWidth = 2;
+    g.beginPath();
+    var F = G.frames, st = Math.max(0, F.length - 260);
+    for (i = st; i < F.length; i += 4) { if (i === st) g.moveTo(F[i][1], F[i][2]); else g.lineTo(F[i][1], F[i][2]); }
+    g.stroke();
+    /* 守卫 */
+    g.fillStyle = '#ffd166'; g.beginPath(); g.arc(P.x, P.y - 20, 9, 0, 6.2832); g.fill();
+    /* 出怪口 / 核心 */
+    g.fillStyle = '#ff8a5c'; g.beginPath(); g.arc(8, T.gh[0] * CELL - 16, 12, 0, 6.2832); g.fill();
+    g.fillStyle = '#3fdfc4'; g.beginPath(); g.arc(WORLD.w - 20, T.gh[COLS - 1] * CELL - 60, 14, 0, 6.2832); g.fill();
+    g.restore();
+
+    /* 相位条 */
+    var py = usable - 30, px0 = 10, pw = w - 20;
+    g.fillStyle = 'rgba(0,0,0,.42)'; g.fillRect(px0, py, pw, 12);
+    var lg = g.createLinearGradient(px0, 0, px0 + pw, 0);
+    lg.addColorStop(0, 'rgba(255,209,102,.85)'); lg.addColorStop(0.5, 'rgba(63,223,196,.55)');
+    lg.addColorStop(1, 'rgba(159,216,255,.75)');
+    g.fillStyle = lg; g.fillRect(px0, py, pw, 12);
+    g.fillStyle = '#ffffff'; g.fillRect(px0 + pw * G.phase - 1.5, py - 4, 3, 20);
+    g.fillStyle = '#4e7a70'; g.font = '9px system-ui,sans-serif';
+    g.fillText('涨潮', px0, py - 6); g.textAlign = 'right'; g.fillText('退潮', px0 + pw, py - 6); g.textAlign = 'left';
+    g.fillStyle = '#cfe8df'; g.font = '9.5px system-ui,sans-serif';
+    g.fillText('相位 ' + G.phase.toFixed(3) + ' · 换相 ' + G.swaps, px0, py + 22);
+    g.textAlign = 'right';
+    g.fillText('射程 ×' + G.rangeMul.toFixed(2) + ' · 敌速 ×' + G.spdMul.toFixed(2), px0 + pw, py + 22);
+    g.textAlign = 'left';
+  }
+
+  function drawBars() {
+    var f = fit(cvBars); if (!f) return;
+    var g = f.g, w = f.w, h = f.h;
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = 'rgba(6,26,20,.86)'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#17493a'; g.lineWidth = 1; g.strokeRect(.5, .5, w - 1, h - 1);
+    g.fillStyle = '#4e7a70'; g.font = '9px system-ui,sans-serif';
+    g.fillText('走势带 · 营养 / 腐化', 7, 12);
+    var F = G.frames, n = F.length, st = Math.max(0, n - 220);
+    var maxN = 1, i;
+    for (i = st; i < n; i++) maxN = Math.max(maxN, F[i][8]);
+    /* 营养 */
+    g.strokeStyle = '#ffd166'; g.lineWidth = 1.6; g.beginPath();
+    for (i = st; i < n; i++) {
+      var px = 7 + (w - 14) * (i - st) / Math.max(1, n - st - 1);
+      var py = h - 8 - (h - 26) * cl(F[i][8] / maxN, 0, 1);
+      if (i === st) g.moveTo(px, py); else g.lineTo(px, py);
+    }
+    g.stroke();
+    /* 腐化 */
+    g.strokeStyle = '#b18cff'; g.lineWidth = 1.6; g.beginPath();
+    for (i = st; i < n; i++) {
+      var px2 = 7 + (w - 14) * (i - st) / Math.max(1, n - st - 1);
+      var py2 = h - 8 - (h - 26) * cl(F[i][11] / 100, 0, 1);
+      if (i === st) g.moveTo(px2, py2); else g.lineTo(px2, py2);
+    }
+    g.stroke();
+    var resOk = TW.filter(function (t) { return t.res >= PHYS.RES_THRESH; }).length;
+    g.fillStyle = '#7ba79a'; g.font = '9px system-ui,sans-serif'; g.textAlign = 'right';
+    g.fillText('协同连线 ' + TW.filter(function (t) { return t.res >= PHYS.RES_THRESH; }).length + ' 条 · 过载 ' + TW.filter(function (t) { return t.over; }).length + ' 塔', w - 7, 12);
+    g.textAlign = 'left';
+    resOk + 0;
+  }
+
+  /* ─────────── 渲染：结算雷达 ─────────── */
+  function drawSettleRadar() {
+    var f = fit(cvSettle); if (!f) return;
+    var g = f.g, w = f.w, h = f.h;
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = '#061a14'; g.fillRect(0, 0, w, h);
+    var a = G.agg; if (!a || !a.n) return;
+    var cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.34;
+    var axes = [
+      { k: '落点精准', v: a.prec }, { k: '地块完整', v: a.integ },
+      { k: '动能效率', v: a.eff }, { k: '共鸣连锁', v: a.chain }, { k: '风场利用', v: a.wind }
+    ];
+    g.strokeStyle = 'rgba(23,73,58,.9)'; g.lineWidth = 1;
+    for (var ring = 1; ring <= 4; ring++) {
+      g.beginPath();
+      for (var i = 0; i <= 5; i++) {
+        var ang = -1.5708 + i * 6.2832 / 5;
+        var px = cx + Math.cos(ang) * R * ring / 4, py = cy + Math.sin(ang) * R * ring / 4;
+        if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+      }
+      g.stroke();
+    }
+    for (i = 0; i < 5; i++) {
+      var ang2 = -1.5708 + i * 6.2832 / 5;
+      g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(ang2) * R, cy + Math.sin(ang2) * R); g.stroke();
+      g.fillStyle = '#7ba79a'; g.font = '10px system-ui,sans-serif'; g.textAlign = 'center';
+      g.fillText(axes[i].k, cx + Math.cos(ang2) * (R + 20), cy + Math.sin(ang2) * (R + 20) + 3);
+      g.fillStyle = '#cfe8df';
+      g.fillText(Math.round(axes[i].v) + '', cx + Math.cos(ang2) * (R * axes[i].v / 100), cy + Math.sin(ang2) * (R * axes[i].v / 100) - 5);
+      g.textAlign = 'left';
+    }
+    g.beginPath();
+    for (i = 0; i <= 5; i++) {
+      var ang3 = -1.5708 + i * 6.2832 / 5, j = i % 5;
+      var px2 = cx + Math.cos(ang3) * R * axes[j].v / 100, py2 = cy + Math.sin(ang3) * R * axes[j].v / 100;
+      if (i === 0) g.moveTo(px2, py2); else g.lineTo(px2, py2);
+    }
+    g.closePath();
+    g.fillStyle = 'rgba(63,223,196,.22)'; g.fill();
+    g.strokeStyle = '#3fdfc4'; g.lineWidth = 2; g.stroke();
+  }
+
+  /* ─────────── DOM ─────────── */
+  function renderDom() {
+    var d = DIFFS[G.diff];
+    el('tRun').textContent = RUNID;
+    el('tSeed').textContent = SEED;
+    el('tPhase').textContent = (G.tideHigh ? '涨潮' : '退潮') + ' ' + G.phase.toFixed(3) + ' · ×' + G.rangeMul.toFixed(3);
+    el('tLife').innerHTML = '<b style="color:' + (G.life <= 4 ? '#ff5c72' : '#ffd166') + '">' + G.life + '</b> / ' + G.lifeMax;
+    el('tNutr').textContent = G.nutr + ' 营养';
+    el('tKine').textContent = P.kine.toFixed(0) + ' / ' + Math.round(P.stab) + '%';
+    el('tWave').textContent = G.wave + '/10 波 · 在场 ' + EN.length + ' · 清场 ' + G.cleared;
+    el('tScore').textContent = G.combat + ' 分';
+
+    el('tagL').innerHTML = '根脉潮汐 · <b>' + (G.tideHigh ? '涨潮' : '退潮') + '</b> · 射程 ×' + G.rangeMul.toFixed(3) + ' · 敌速 ×' + G.spdMul.toFixed(3);
+    el('tagR').innerHTML = '生命 <b>' + G.life + '</b> · 腐化 ' + G.corr.toFixed(0) + ' · 塔 ' + TW.length + ' 座 · 击杀 ' + G.kills + ' / 漏 ' + G.leaks;
+
+    var st = G.st || 0;
+    el('stDot').style.background = SK[st];
+    el('stName').textContent = SN[st];
+    el('stName').style.color = SK[st];
+    el('stSub').textContent = SC[st] + ' · ' + (G.mode === 'play' ? fmtT(G.t) : '未开局');
+    el('hintBox').className = 'hint' + (G.hintT > 0 ? ' on' : '');
+    el('hintBox').textContent = G.hint;
+
+    /* 塔卡 */
+    var shop = el('shop');
+    if (shop.children.length !== 3) {
+      shop.innerHTML = TOWER_KEYS.map(function (k) {
+        var s = TOWERS[k];
+        return '<div class="card" data-k="' + k + '"><canvas class="ic" width="52" height="52" data-ic="' + k + '"></canvas>' +
+          '<div><div class="nm">' + s.n + '</div><div class="ds">' + s.d + '</div></div>' +
+          '<div class="pr">' + s.cost + '<i>营养</i></div></div>';
+      }).join('');
+      Array.prototype.forEach.call(shop.querySelectorAll('canvas[data-ic]'), drawIcon);
+    }
+    Array.prototype.forEach.call(shop.children, function (c) {
+      var k = c.getAttribute('data-k');
+      c.className = 'card' + (G.buildKind === k ? ' on' : '');
+      var s = TOWERS[k];
+      c.querySelector('.ds').textContent = s.d;
+      c.querySelector('.pr').innerHTML = s.cost + '<i>' + (G.nutr < s.cost ? '营养不足' : '营养') + '</i>';
+    });
+    el('shopSub').textContent = '已建 ' + TW.length + ' 座 · 共振达标 ' + TW.filter(function (t) { return t.res >= PHYS.RES_THRESH; }).length + ' 座';
+
+    /* 守卫读数 */
+    el('hero').innerHTML =
+      row('动能 / 上限', P.kine.toFixed(0) + ' / ' + PHYS.KINE_MAX, 'cy') +
+      row('稳定性储备', Math.round(P.stab) + ' %', P.stab < 30 ? 'bad' : 'gr') +
+      row('同调进度', (P.attune >= 1 ? '已完成' : Math.round(P.attune * 100) + ' %'), P.attune >= 1 ? 'cy' : '') +
+      row('跃迁充能', P.charges > 0 ? '1 / 1' : '0 / 1（未激活）', P.charges > 0 ? 'al' : 'bad') +
+      row('磁极', (P.pol > 0 ? '正极' : '负极') + ' · 重力 ×' + (P.pol > 0 ? PHYS.POL_GRAV_POS : PHYS.POL_GRAV_NEG), 'vi') +
+      row('终端降落', (P.dive ? PHYS.TERM_DIVE : (G.lift ? PHYS.TERM_LIFT : PHYS.TERM)) + ' px/s', '') +
+      row('能量索', P.tether ? '锚定 · 张力 ' + Math.round(P.tension) + '/' + PHYS.TENSION_MAX : '未锚定', P.tether ? 'cy' : '') +
+      row('落点离差', P.lastOff >= 0 ? '上次 ' + (P.lastOff * 100).toFixed(0) + ' %' : '—', '') +
+      row('核心命中', G.coreHitN + ' 次', 'al');
+
+    /* 手势 */
+    if (el('gestList').children.length === 0) {
+      el('gestList').innerHTML = GESTURES.map(function (x) {
+        return '<div class="gr"><div><b>' + x.k + '</b><br><i>' + x.d + '</i></div></div>';
+      }).join('');
+    }
+
+    /* 本波情报 */
+    var comp = WAVES[Math.min(9, Math.max(0, (G.pendingWave || G.wave || 1) - 1))] || {};
+    var rows = '';
+    for (var k2 in comp) if (comp.hasOwnProperty(k2)) {
+      rows += '<div class="row"><span class="k">' + ENEMIES[k2].n + '</span><span class="v">×' + comp[k2] + '</span></div>';
+    }
+    var extra = Math.floor(G.corr / PHYS.CORR_STEP);
+    el('yieldBody').innerHTML = rows +
+      row('腐化增生', '+' + extra + ' 只', extra > 0 ? 'bad' : '') +
+      row('提前出怪', (G.pendingWave ? '剩余 ' + G.waveT.toFixed(1) + ' s' : (G.wave > 0 ? '本波进行中' : '待开局')) + ' → +' + EARLY_BONUS + ' 金', 'al') +
+      row('在场 / 击杀', EN.length + ' / ' + G.kills, '') +
+      row('漏怪 / 腐化', G.leaks + ' / ' + G.corr.toFixed(0), G.corr > 0 ? 'bad' : 'gr') +
+      row('点击棋盘', '建塔 · 右键升级 · 中键出售', '');
+    el('yieldSub').textContent = '第 ' + Math.max(1, G.pendingWave || G.wave || 1) + ' 波';
+
+    /* 决策表 */
+    var hi = G.st || 0;
+    var t = '<table class="tbl"><tr><th>#</th><th>状态</th><th>守卫</th></tr>';
+    for (var i = 0; i < STAB.length; i++) {
+      t += '<tr class="' + (i === hi ? 'hi' : '') + '"><td>' + (i + 1) + '</td><td class="sn">' + STAB[i].s + '</td><td>' + STAB[i].g + '</td></tr>';
+    }
+    t += '</table>';
+    el('stBody').innerHTML = t;
+
+    /* 台账 */
+    var F = G.frames, n = F.length, last = n ? F[n - 1] : null;
+    var resOk = TW.filter(function (x) { return x.res >= PHYS.RES_THRESH; }).length;
+    var overN = TW.filter(function (x) { return x.over; }).length;
+    var fracN = 0, unstN = 0;
+    for (var c = 0; c < COLS; c++) for (var r = T.gh[c]; r < ROWS; r++) { var tt = T.tile[c][r]; if (tt && tt.state === 2) fracN++; else if (tt && tt.state === 1) unstN++; }
+    el('ledgSub').textContent = '帧样本 ' + n + ' · 恒等于数组长度';
+    el('ledgBody').innerHTML = '<div class="grid3">' +
+      stat('帧样本数', n) + stat('任务号', RUNID) + stat('种子', SEED) +
+      stat('本局用时', G.mode === 'play' ? fmtT(G.t) : '—') + stat('协同连线', resOk) + stat('过载塔数', overN) +
+      stat('地块碎裂', fracN) + stat('地块失稳', unstN) + stat('场上峰值', G.pkEnemies) +
+      '</div>' +
+      '<div class="grid3" style="margin-top:4px">' +
+      stat('开火次数', G.shots) + stat('累计伤害', Math.round(G.dmgTot)) + stat('动能 得/耗', Math.round(G.kineGain) + '/' + G.kineSpent) +
+      stat('营养净收入', Math.round(G.nutrGain)) + stat('脉冲/过热', G.pulses + '/' + G.overheat) + stat('建造·升级·出售', G.built + '·' + G.upg + '·' + G.sold) +
+      '</div>';
+
+    /* 事件流 */
+    el('logBox').innerHTML = G.log.slice(0, 6).map(function (s) { return '<div>' + s + '</div>'; }).join('');
+
+    /* 芯片 */
+    var chips = [
+      ['跃迁', P.charges > 0 ? 'on' : 'no', 'Space'],
+      ['蓄能', P.charging ? (P.chargeMs > PHYS.CHARGE_FAIL ? 'hot' : 'on') : (P.overT > 0 ? 'hot' : ''), 'J 按住'],
+      ['能量索', P.tether ? 'on' : '', 'K'],
+      ['速坠', P.dive ? 'on' : '', 'S/↓'],
+      ['磁极', P.pol < 0 ? 'hot' : '', 'L'],
+      ['共振', P.resT > 0 ? 'on' : '', 'U'],
+      ['结算', '', 'Enter']
+    ];
+    el('chips').innerHTML = chips.map(function (c) { return '<span class="chip ' + c[1] + '">' + c[0] + '<span style="opacity:.55"> ' + c[2] + '</span></span>'; }).join('');
+  }
+  function row(k, v, cls) { return '<div class="row"><span class="k">' + k + '</span><span class="v ' + (cls || '') + '">' + v + '</span></div>'; }
+  function stat(k, v) { return '<div class="row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
+  function el(id) { return document.getElementById(id); }
+
+  /* 图标（程序化绘制，无外部图片） */
+  function drawIcon(cv) {
+    var k = cv.getAttribute('data-ic'), s = TOWERS[k];
+    var g = cv.getContext('2d'), w = cv.width, h = cv.height;
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, 0, w, h);
+    g.fillStyle = s.dim;
+    g.beginPath(); g.moveTo(w * .38, h * .86); g.lineTo(w * .62, h * .86); g.lineTo(w * .57, h * .42); g.lineTo(w * .43, h * .42); g.closePath(); g.fill();
+    g.fillStyle = s.col;
+    if (k === 'thorn') { g.beginPath(); g.moveTo(w * .5, h * .12); g.lineTo(w * .76, h * .46); g.lineTo(w * .24, h * .46); g.closePath(); g.fill(); }
+    else if (k === 'moon') { g.beginPath(); g.arc(w * .5, h * .32, w * .21, 0, 6.2832); g.fill(); }
+    else { g.beginPath(); g.arc(w * .5, h * .34, w * .18, 0, 6.2832); g.fill(); g.fillStyle = 'rgba(255,220,140,.8)'; g.beginPath(); g.arc(w * .5, h * .34, w * .09, 0, 6.2832); g.fill(); }
+  }
+
+  /* ─────────── 结算面板 ─────────── */
+  function renderSettle() {
+    var a = G.agg; if (!a) return;
+    el('settle').className = 'settle on';
+    var why = G.settleWhy === 'ALL_CLEAR' ? '10 波全清！' : G.settleWhy === 'CORE_LOST' ? '核心陷落' : '主动结算';
+    el('sTitle').textContent = why + ' · 评级 ' + a.grade;
+    el('sMeta').textContent = '10 波 · ' + DIFFS[G.diff].n + '难度 · 根系种子 ' + SEED + ' · 用时 ' + fmtT(G.t) + ' · 帧样本 ' + a.n;
+
+    var s = '<table class="tbl"><tr><th>列</th><th>状态</th><th>峰值沉陷</th><th>完整度</th></tr>';
+    for (var c = 0; c < COLS; c++) {
+      var r = groundRow(c), t = T.tile[c][r];
+      var cap = T.caps[c];
+      var stt = !t ? '虚空' : (t.state === 2 ? '碎裂' : (t.state === 1 ? '失稳' : (t.load > 0 ? '承重 ' + t.load + '/' + cap : '稳固')));
+      var ig = !t ? 0 : t.state === 2 ? 0 : Math.max(0, Math.round(t.intg));
+      s += '<tr><td>' + c + '</td><td>' + stt + '</td><td>' + (!t ? '—' : t.peak.toFixed(1)) + '</td><td>' + ig + ' %</td></tr>';
+    }
+    s += '</table>';
+    el('sTiles').innerHTML = s;
+
+    var k = '<table class="tbl">';
+    k += '<tr><td>动能上限</td><td>' + PHYS.KINE_MAX + '</td></tr>';
+    k += '<tr><td>弹射消耗</td><td>' + G.kineSpent + '（' + Math.round(G.kineSpent / PHYS.KINE_SHOT) + ' 次）</td></tr>';
+    k += '<tr><td>核心区返还</td><td>' + Math.round(G.kineGain) + '（' + G.coreHitN + ' 次）</td></tr>';
+    k += '<tr><td>边缘落点扣减</td><td>' + G.landN + ' 次采样</td></tr>';
+    k += '<tr><td>共振脉冲 / 磁极翻转</td><td>' + G.pulses + ' / ' + G.overheat + '</td></tr>';
+    k += '<tr><td>营养净收入</td><td>' + Math.round(G.nutrGain) + ' · 剩余 ' + G.nutr + '</td></tr>';
+    k += '<tr><td>建造 / 升级 / 出售</td><td>' + G.built + ' / ' + G.upg + ' / ' + G.sold + '</td></tr>';
+    k += '<tr><td>开火 / 累计伤害</td><td>' + G.shots + ' / ' + Math.round(G.dmgTot) + '</td></tr>';
+    k += '<tr><td>击杀 / 漏怪</td><td>' + G.kills + ' / ' + G.leaks + '</td></tr>';
+    k += '<tr><td>地块碎裂 / 峰值沉陷</td><td>' + countFrac() + ' / ' + peakSink().toFixed(1) + '</td></tr>';
+    k += '</table>';
+    el('sKine').innerHTML = k;
+
+    el('sA').textContent = a.guard.toFixed(1) + '%';
+    el('sAd').textContent = '逐帧回溯：核心生命在 ' + a.n + ' 帧上的归一化积分';
+    el('sB').textContent = a.prec.toFixed(1) + '%';
+    el('sBd').textContent = '逐帧回溯：' + a.lands + ' 次落点相对共鸣核心区中心的偏离量加权';
+    el('sC').textContent = a.eff.toFixed(1) + '%';
+    el('sCd').textContent = '逐帧回溯：核心区返还 / 弹射消耗 动能之比';
+    el('sFoot').innerHTML = '结算原因 <b style="color:#ffd166">' + G.settleWhy + '</b> · 五轴加权 <b style="color:#3fdfc4">' + a.score.toFixed(1) + '</b> · 评级 <b style="color:#ffd166">' + a.grade + '</b> · 帧样本数 ' + a.n + '（恒等于逐帧数组长度）· 协同达标峰值 ' + a.resPeak + ' 座 · 风场利用 ' + a.wind.toFixed(1) + '%';
+    drawSettleRadar();
+    G.painted++;
+  }
+  function countFrac() { var n = 0, c, r; for (c = 0; c < COLS; c++) for (r = T.gh[c]; r < ROWS; r++) if (T.tile[c][r] && T.tile[c][r].state === 2) n++; return n; }
+  function peakSink() { var m = 0, c, r; for (c = 0; c < COLS; c++) for (r = T.gh[c]; r < ROWS; r++) if (T.tile[c][r]) m = Math.max(m, T.tile[c][r].peak); return m; }
+
+  /* ─────────── 输入 ─────────── */
+  G = { diff: 'normal' };
+  var cvWorld, cvRig, cvRadar, cvBars, cvSettle;
+  G.in = { left: false, right: false, down: false };
+
+  function bindKeys() {
+    window.addEventListener('keydown', function (ev) {
+      var k = ev.key;
+      if (k === 'ArrowLeft' || k === 'a' || k === 'A') { G.in.left = true; ev.preventDefault(); }
+      if (k === 'ArrowRight' || k === 'd' || k === 'D') { G.in.right = true; ev.preventDefault(); }
+      if (k === 'ArrowDown' || k === 's' || k === 'S') { P.dive = true; ev.preventDefault(); }
+      if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') { tryJump(); ev.preventDefault(); }
+      if (k === 'j' || k === 'J') { if (!P.charging) chargeStart(); }
+      if (k === 'k' || k === 'K') { tetherKey(); }
+      if (k === 'l' || k === 'L') { togglePolarity(); }
+      if (k === 'u' || k === 'U') { resonate(); }
+      if (k === 'p' || k === 'P') { G.paused = !G.paused; hint(G.paused ? '已暂停' : '已恢复'); }
+      if (k === 'Escape') { toTitle(); }
+      if (k === 'Enter') { if (G.mode === 'play' && !G.settled) settle('MANUAL'); else startRun(); }
+    });
+    window.addEventListener('keyup', function (ev) {
+      var k = ev.key;
+      if (k === 'ArrowLeft' || k === 'a' || k === 'A') G.in.left = false;
+      if (k === 'ArrowRight' || k === 'd' || k === 'D') G.in.right = false;
+      if (k === 'ArrowDown' || k === 's' || k === 'S') P.dive = false;
+      if (k === 'j' || k === 'J') chargeRelease();
+    });
+  }
+  function bindMouse() {
+    cvWorld.addEventListener('mousemove', function (ev) {
+      var r = cvWorld.getBoundingClientRect();
+      var cam = camFor(r.width, r.height);
+      var wx = (ev.clientX - r.left - cam.ox) / cam.s, wy = (ev.clientY - r.top - cam.oy) / cam.s;
+      G.mouse.x = wx; G.mouse.y = wy; G.mouse.in = true;
+      var c = col(Math.floor(wx / CELL)), rr = Math.floor(wy / CELL);
+      G.hoverC = (rr >= T.gh[c] && rr < ROWS) ? c : -1;
+      if (G.hoverC >= 0) G.hoverR = groundRow(G.hoverC);
+    });
+    cvWorld.addEventListener('mouseleave', function () { G.mouse.in = false; G.hoverC = -1; });
+    cvWorld.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    cvWorld.addEventListener('mousedown', function (ev) {
+      if (G.mode !== 'play' || G.settled) return;
+      var r0 = cvWorld.getBoundingClientRect(), cam = camFor(r0.width, r0.height);
+      var wx = (ev.clientX - r0.left - cam.ox) / cam.s;
+      var c = col(Math.floor(wx / CELL)), rr = groundRow(c);
+      if (ev.button === 0) { if (!buildN(G.buildKind, c, rr)) upgradeN(c, rr); }
+      else if (ev.button === 2) upgradeN(c, rr);
+      else if (ev.button === 1) { ev.preventDefault(); sellN(c, rr); }
+    });
+  }
+  function bindChips() {
+    el('shop').addEventListener('click', function (ev) {
+      var card = ev.target.closest ? ev.target.closest('.card') : null;
+      if (!card) return;
+      G.buildKind = card.getAttribute('data-k');
+    });
+    el('diffs').addEventListener('click', function (ev) {
+      var d = ev.target.closest ? ev.target.closest('.df') : null;
+      if (!d) return;
+      G.diff = d.getAttribute('data-d');
+      Array.prototype.forEach.call(el('diffs').children, function (x) { x.className = 'df' + (x === d ? ' on' : ''); });
+      el('titleNote').textContent = '根系种子 ' + SEED + ' · 定点步进 60 Hz · 逐帧可复现 · 任务号 ' + RUNID;
+    });
+    el('btnGo').addEventListener('click', startRun);
+    el('sAgain').addEventListener('click', function () { el('settle').className = 'settle'; startRun(); });
+  }
+  function startRun() {
+    el('settle').className = 'settle';
+    reset('seed');
+    G.mode = 'seed'; G.seedT = 1500;
+    G.pendingWave = 0;
+    el('titleLayer').style.display = 'none';
+    pushLog('<i>开局</i> ' + DIFFS[G.diff].n + '难度 · 生命 ' + G.life + ' · 营养 ' + G.nutr + ' · 种子 ' + SEED);
+  }
+  function toTitle() {
+    el('settle').className = 'settle';
+    reset('title');
+    el('titleLayer').style.display = 'flex';
+  }
+
+  /* ─────────── 启动 ─────────── */
+  var acc = 0, last = 0, rigTick = 0, radarTick = 0;
+  function loopWorld() {
+    requestAnimationFrame(loopWorld);
+    var now = performance.now();
+    var dr = (now - last) / 1000; last = now;
+    if (G.frozen) return;
+    if (G.paused) { drawWorld(); return; }
+    acc += Math.min(0.12, dr);
+    var n = 0;
+    while (acc >= STEP && n < 6) { tick(STEP); acc -= STEP; n++; }
+    drawWorld();
+  }
+  function loopRig() {
+    requestAnimationFrame(loopRig);
+    if (G.frozen) return;
+    if ((rigTick++ & 1) !== 0) return;
+    drawRig();
+  }
+  function loopRadar() {
+    requestAnimationFrame(loopRadar);
+    if (G.frozen) return;
+    if ((radarTick++ % 6) !== 0) return;
+    drawRadar(); drawBars();
+  }
+
+  function boot() {
+    cvWorld = el('cvWorld'); cvRig = el('cvRig'); cvRadar = el('cvRadar');
+    cvBars = el('cvBars'); cvSettle = el('cvSettle');
+    reset('title');
+    el('titleLayer').style.display = 'flex';
+    el('titleNote').textContent = '根系种子 ' + SEED + ' · 定点步进 60 Hz · 逐帧可复现 · 任务号 ' + RUNID;
+    bindKeys(); bindMouse(); bindChips();
+    renderDom();
+    last = performance.now();
+    requestAnimationFrame(loopWorld);
+    requestAnimationFrame(loopRig);
+    requestAnimationFrame(loopRadar);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+
+  /* ─────────── 探针接口 ─────────── */
+  window.GROVE = {
+    seed: function (n) { SEED = n; reset(G.mode); return SEED; },
+    freeze: function () { G.frozen = true; },
+    unfreeze: function () { G.frozen = false; acc = 0; last = performance.now(); },
+    step: function (n) { for (var i = 0; i < (n || 1); i++) tick(STEP); drawWorld(); drawRig(); drawRadar(); return G.t; },
+    start: function () { startRun(); return G.mode; },
+    toTitle: function () { toTitle(); return G.mode; },
+    state: function () { return SN[G.st || 0]; },
+    stateIdx: function () { return G.st || 0; },
+    mode: function () { return G.mode; },
+    info: function () {
+      var resOk = 0, overN = 0;
+      for (var i = 0; i < TW.length; i++) { if (TW[i].res >= PHYS.RES_THRESH) resOk++; if (TW[i].over) overN++; }
+      return {
+        t: G.t, frames: G.frames.length, life: G.life, nutr: G.nutr, kills: G.kills, leaks: G.leaks,
+        corr: G.corr, phase: G.phase, swaps: G.swaps, tideHigh: G.tideHigh, rangeMul: G.rangeMul,
+        spdMul: G.spdMul, towers: TW.length, enemies: EN.length, shots: G.shots, proj: PJ.length,
+        resOk: resOk, overheat: overN, boss: G.boss ? Math.round(G.boss.hp) : -1, summoned: G.summoned,
+        built: G.built, upg: G.upg, sold: G.sold, dmg: Math.round(G.dmgTot), wave: G.wave,
+        cleared: G.cleared, pending: G.pendingWave || 0, waveT: G.waveT, score: G.combat,
+        rollT: G.rollT, settled: G.settled, why: G.settleWhy, corrBurst: G.corrBurstT > 0,
+        frac: countFrac(), peakSink: +peakSink().toFixed(2), pkEnemies: G.pkEnemies
+      };
+    },
+    player: function () { return { x: P.x, y: P.y, vx: P.vx, vy: P.vy, onGround: P.onGround, gc: P.gc, attune: P.attune, charges: P.charges, kine: P.kine, stab: P.stab, pol: P.pol, tether: !!P.tether, tension: P.tension, charging: P.charging, chargeMs: P.chargeMs, overT: P.overT, dive: P.dive, landOff: P.landOff, landV: P.landV, th: P._th || 0, tension2: P._vt || 0, swung: !!P.swung }; },
+    consts: function () { var o = {}, k; for (k in PHYS) if (PHYS.hasOwnProperty(k)) o[k] = PHYS[k]; return o; },
+    setT: function (ms) { G.t = ms; return G.t; },
+    dom: function () { renderDom(); return 1; },
+    paint: function () { drawWorld(); drawRig(); drawRadar(); drawBars(); renderDom(); if (G.settled) drawSettleRadar(); return 1; },
+    tiles: function () { var o = [], c, r; for (c = 0; c < COLS; c++) for (r = T.gh[c]; r < ROWS; r++) { var t = T.tile[c][r]; if (t) o.push({ c: c, r: r, state: t.state, sink: +t.sink.toFixed(2), sv: +t.sv.toFixed(2), peak: +t.peak.toFixed(2), lastPeak: +t.lastPeak.toFixed(2), intg: +t.intg.toFixed(1), load: t.load, cap: T.caps[c], fuse: +t.fuse.toFixed(0) }); } return o; },
+    tile: function (c, r) { var t = T.tile[c] && T.tile[c][r]; return t ? { state: t.state, sink: t.sink, sv: t.sv, peak: t.peak, lastPeak: t.lastPeak, intg: t.intg, load: t.load, fuse: t.fuse, rbd: t.rbd || null } : null; },
+    ground: function () { return T.gh.slice(); },
+    groundRows: function () { var o = [], c; for (c = 0; c < COLS; c++) o.push(groundRow(c)); return o; },
+    wind: function () { return { x: G.wind.x, z: G.wind.z, along: G.along, lift: G.lift }; },
+    towers: function () { return TW.map(function (t) { return { c: t.c, r: t.r, kind: t.kind, lv: t.lv, attune: t.attune, attuneT: t.attuneT, res: t.res, heat: t.heat, over: t.over, intg: t.intg, shots: t.shots, range: rangeOf(t), dmg: dmgOf(t) }; }); },
+    enemies: function () { return EN.map(function (e) { return { k: e.k, x: e.x, y: e.y, hp: e.hp, hpMax: e.hpMax, vx: e.vx, vy: e.vy, onGround: e.onGround }; }); },
+    agg: function () { return aggregate(); },
+    log: function () { return G.log.slice(0, 40); },
+    painted: function () { return G.painted; },
+    hint: function () { return G.hint; },
+    /* —— 探针操作 —— */
+    hold: function (k, v) { G.in[k] = !!v; return G.in[k]; },
+    jump: function () { return tryJump(); },
+    charge: function (v) { return v ? chargeStart() : chargeRelease(); },
+    tether: function () { return tetherKey(); },
+    polarity: function () { return togglePolarity(); },
+    resonate: function () { return resonate(); },
+    dive: function (v) { P.dive = !!v; return P.dive; },
+    build: function (k, c, r) { if (k) G.buildKind = k; return buildN(G.buildKind, c, r === undefined ? groundRow(c) : r); },
+    upgrade: function (c, r) { return upgradeN(c, r === undefined ? groundRow(c) : r); },
+    sell: function (c, r) { return sellN(c, r === undefined ? groundRow(c) : r); },
+    setAttune: function (v) { P.attune = v; P.charges = v >= 1 ? 1 : 0; return P.attune; },
+    setKine: function (v) { P.kine = v; return P.kine; },
+    setStab: function (v) { P.stab = v; return P.stab; },
+    setNutr: function (v) { G.nutr = v; return G.nutr; },
+    setLife: function (v) { G.life = v; return G.life; },
+    setCorr: function (v) { G.corr = v; return G.corr; },
+    teleport: function (x, y) { P.x = x; P.y = y; P.vx = 0; P.vy = 0; P.onGround = false; return { x: P.x, y: P.y }; },
+    setVel: function (x, y) { P.vx = x; P.vy = y; return { vx: P.vx, vy: P.vy }; },
+    setGround: function (arr) { for (var c = 0; c < COLS && c < arr.length; c++) { var nv = arr[c], r; for (r = 0; r < ROWS; r++) T.tile[c][r] = null; T.gh[c] = nv; for (r = nv; r < ROWS; r++) T.tile[c][r] = { c: c, r: r, load: 0, prevLoad: 0, sink: 0, sv: 0, peak: 0, lastPeak: 0, intg: 100, state: 0, fuse: PHYS.FUSE_MS, hitT: 0 }; } return T.gh.slice(); },
+    fracture: function (c, r) { fracture(c, r); return T.tile[c][r] ? T.tile[c][r].state : -1; },
+    setIntg: function (c, r, v) { var t = T.tile[c][r]; if (t) t.intg = v; return t ? t.intg : -1; },
+    unstable: function (c, r) { var t = T.tile[c][r]; if (t) setUnstable(t); return t ? t.state : -1; },
+    spawn: function (k, x) { spawn(k); if (x !== undefined) EN[EN.length - 1].x = x; return EN.length; },
+    clearEnemies: function () { EN.length = 0; return 0; },
+    wave: function (n) { beginWave(n); return G.wave; },
+    wavePending: function (n) { G.pendingWave = n | 0; G.waveT = WAVE_LEAD; return G.pendingWave; },
+    crisis: function (v) { G.corrBurstT = v ? PHYS.CORR_BURST_MS : 0; return G.corrBurstT; },
+    settle: function (why) { settle(why || 'PROBE'); return G.settled; },
+    unsettle: function () { G.settled = false; G.rollT = -1; el('settle').className = 'settle'; return G.settled; },
+    reset: function (m) { reset(m || 'play'); return G.mode; },
+    frameAt: function (i) { return G.frames[i] || null; },
+    windAt: function (x, y, t, c) { return windAt(x, y, t === undefined ? G.t : t, c); },
+    clearFx: function () { FX.length = 0; TX.length = 0; return 0; },
+    crashCheck: function () { return { painted: G.painted, frames: G.frames.length }; }
+  };
+})();
+
+</script>
+</body>
+</html>

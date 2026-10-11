@@ -1,0 +1,1971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>轴心脉冲 AXELPULSE · 俯视环道漂移竞速</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#05070f}
+body{
+  font:12px/1.45 "DejaVu Sans Mono","Menlo","Consolas",monospace;
+  color:#a9c6e0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(140% 110% at 50% -10%,#131a3a 0%,#090c1c 46%,#04050c 100%);
+  -webkit-font-smoothing:antialiased;
+}
+#stage{position:relative;width:1280px;height:720px;display:flex;flex-direction:column;gap:8px;padding:10px 14px}
+
+/* ── 顶栏 ───────────────────────────────────────────── */
+#bar{
+  height:42px;flex:0 0 42px;display:flex;align-items:center;gap:14px;padding:0 14px;
+  border:1px solid #2b2f6e;border-radius:4px;
+  background:linear-gradient(180deg,#161b3f 0%,#0a0d20 100%);
+  box-shadow:inset 0 1px 0 #4a51b0,0 4px 14px #000a;
+}
+#hTitle{font-size:15px;font-weight:700;letter-spacing:3px;color:#9ff0ff;text-shadow:0 0 12px #29d8d8}
+#hTitle small{font-size:10px;letter-spacing:1px;color:#7a86c8;font-weight:400;margin-left:8px}
+#hState{
+  font-size:11px;letter-spacing:2px;padding:3px 10px;border-radius:3px;
+  color:#0a1222;background:#5fe0c0;font-weight:700;box-shadow:0 0 12px #1d9f8a;
+}
+#hDiff{font-size:11px;color:#ffd479;letter-spacing:1px}
+#hDepth{margin-left:auto;display:flex;gap:16px;font-size:11px;letter-spacing:1px;color:#8b93cf}
+#hDepth b{color:#e6f0ff;font-weight:700}
+
+/* ── 主区 ───────────────────────────────────────────── */
+#main{flex:1 1 auto;display:flex;gap:10px;min-height:0}
+#left{flex:0 0 auto;display:flex;flex-direction:column;gap:8px}
+#right{flex:0 0 auto;display:flex;flex-direction:column;gap:8px}
+
+.pane{
+  position:relative;border:1px solid #2b2f6e;border-radius:4px;overflow:hidden;
+  background:#080b1a;box-shadow:inset 0 0 40px #000c,0 3px 12px #0008;
+}
+.pane > canvas{display:block}
+.tag{
+  position:absolute;top:0;left:0;font-size:9px;letter-spacing:2px;
+  padding:2px 7px;color:#9fe8ff;background:#1b2154dd;border-right:1px solid #2b2f6e;
+  border-bottom:1px solid #2b2f6e;border-radius:0 0 4px 0;z-index:4;pointer-events:none;
+}
+
+/* ── 覆盖层与结算面板（挂在 stage 内，随舞台缩放） ──── */
+#ov{
+  position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:13px;text-align:center;
+  background:radial-gradient(92% 84% at 42% 46%,#101a3f70 0%,#070a1aaa 66%,#04050cc8 100%);
+}
+#ov.hide{display:none}
+#ovT{font-size:30px;letter-spacing:10px;color:#cff8ff;
+     text-shadow:0 0 8px #04060f,0 0 18px #04060f,0 0 30px #04060f,0 0 24px #21c7cc,0 0 60px #0d3f68}
+#ovS{font-size:12px;letter-spacing:4px;color:#9dc0e2;
+     text-shadow:0 0 6px #04060f,0 0 14px #04060f}
+#ovB{font-size:11px;letter-spacing:2px;color:#8fd8b8;line-height:2}
+#ovB em{color:#ffd479;font-style:normal;font-weight:700}
+#ovH{font-size:11px;letter-spacing:1px;color:#ffc98a;max-width:1180px;line-height:1.7}
+#ovH em{color:#ffd479;font-style:normal;font-weight:700}
+#ovC{font-size:10px;letter-spacing:1px;color:#5f7aad;max-width:1180px;line-height:1.7;
+     border-top:1px solid #2b2f6e;padding-top:7px;margin-top:2px}
+.diffs{display:flex;gap:12px;margin-top:2px}
+.df{
+  width:204px;padding:9px 12px;border:1px solid #3a3f8a;border-radius:4px;
+  background:linear-gradient(180deg,#141a44,#0a0d22);
+}
+.df b{display:block;font-size:13px;letter-spacing:3px;color:#bfefff;margin-bottom:5px}
+.df i{display:block;font-size:10px;line-height:1.8;color:#8b93cf;font-style:normal}
+.df.on{border-color:#4fe0c0;box-shadow:0 0 20px #12756a,inset 0 0 24px #0a3d38}
+.df.on b{color:#7fffdc}
+
+#card{
+  position:absolute;inset:0;z-index:9;display:none;flex-direction:column;
+  padding:18px 24px;gap:9px;background:linear-gradient(180deg,#0a1130f2,#04060ff7);
+}
+#card.on{display:flex}
+#card h2{font-size:22px;letter-spacing:8px;color:#9ff4ff;text-shadow:0 0 18px #1d94b8;font-weight:700}
+#card .sub{font-size:11px;letter-spacing:3px;color:#7f8ec8;margin-bottom:3px}
+#cGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 10px}
+#cGrid .cell{
+  border:1px solid #2b2f6e;border-radius:3px;padding:5px 9px;
+  background:#0d1330;display:flex;justify-content:space-between;align-items:baseline;
+}
+#cGrid .cell u{font-size:10px;color:#8b93cf;text-decoration:none;letter-spacing:1px}
+#cGrid .cell b{font-size:13px;color:#e6f0ff}
+#cGrid .cell b.warn{color:#ff9d6b}
+#cGrid .cell b.good{color:#7fffdc}
+#cFoot{display:flex;gap:18px;align-items:flex-end;margin-top:auto;font-size:11px;color:#8b93cf;letter-spacing:1px}
+.grade{
+  font-size:44px;font-weight:700;letter-spacing:4px;color:#ffd479;
+  text-shadow:0 0 26px #b07d2090;line-height:.9;
+}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <div id="bar">
+    <div id="hTitle">轴心脉冲 AXELPULSE<small>俯视环道漂移竞速 · RING DRIFT</small></div>
+    <div id="hState">TITLE_LOBBY</div>
+    <div id="hDiff">标准</div>
+    <div id="hDepth">
+      <span>速度 <b id="dSpeed">0</b> km/h</span>
+      <span>圈次 <b id="dLap">0 / 10</b></span>
+      <span>波次 <b id="dWave">0 / 10</b></span>
+      <span>轴心 <b id="dLife">30</b></span>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="left">
+      <div class="pane"><span class="tag">A · 主视窗 环道剖面</span><canvas id="world" width="546" height="546"></canvas></div>
+      <div class="pane"><span class="tag">C · 环境雷达与远端预警</span><canvas id="radar" width="546" height="86"></canvas></div>
+    </div>
+    <div id="right">
+      <div class="pane"><span class="tag">B · 动态仪表组</span><canvas id="rig" width="690" height="356"></canvas></div>
+      <div class="pane"><span class="tag">D · 环形计量</span><canvas id="rings" width="690" height="138"></canvas></div>
+      <div class="pane"><span class="tag">E · 收益倍率账本</span><canvas id="ledger" width="690" height="130"></canvas></div>
+    </div>
+  </div>
+
+  <div id="ov"></div>
+  <div id="card"></div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   轴心脉冲 AXELPULSE · 俯视环道漂移竞速 —— 平衡数据与静态标定表
+   本文件只放常数、表与几何蓝图；一切随时间演化的量都在 app.js 内解算。
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* 环道是一条极坐标闭合曲线 r(θ) = R0 + AMP·cos(NC·θ + PH)。
+   弯道数 NC 由难度决定，曲率场因此逐段变化 —— 既不是恒定圆，也不是折线，
+   限速必须沿 θ 逐点解算，不能靠「直道/弯道」两张表查。 */
+var SEG = 24;                       // 环道浮屿数：整圈切成 24 段可站立浮屿
+var R0 = 300.0;                     // 中心线基准半径（世界单位）
+var HW = 46.0;                      // 环道半宽（世界单位）
+var SC = 0.545;                     // 世界单位 → 主视窗像素
+var LAPS = 10;                      // 正赛圈数
+var KMH = 0.34;                     // 速度读数换算（世界单位/秒 → km/h）
+var M_PER_UNIT = 0.5;               // 世界单位 → 米（仅用于读数）
+
+/* 非欧风场：三层内波模态叠加。切变使相邻半径处的风向局部反号，
+   因此「顺风」与「逆风」在环道上交替出现，没有哪一段能一顺到底。 */
+var WAVE_MODES = [
+  { amp: 26.0, k: 3.0, w: 1.000, ph: 0.00 },   // k 为角向波数
+  { amp: 16.0, k: 5.0, w: 1.618, ph: 2.11 },
+  { amp:  9.0, k: 8.0, w: 2.414, ph: 4.03 }
+];
+
+/* 五层环带（由内向外）：半径窗口 + 摩擦系数 + 透光 + 风剪倍率。
+   浮屿不是均匀的 —— 越靠外圈摩擦越低、风剪越强，走线选择因此有代价。 */
+var STRATA = [
+  { n: '轴心环', r0: 0.00, r1: 0.20, mu: 1.28, light: 0.42, shear: 0.55, tint: '#12283f' },
+  { n: '内切线', r0: 0.20, r1: 0.45, mu: 1.06, light: 0.72, shear: 0.82, tint: '#0f3450' },
+  { n: '中线带', r0: 0.45, r1: 0.70, mu: 0.94, light: 1.00, shear: 1.00, tint: '#0d4463' },
+  { n: '外切线', r0: 0.70, r1: 0.88, mu: 0.82, light: 0.66, shear: 1.22, tint: '#0a3a56' },
+  { n: '真空带', r0: 0.88, r1: 1.00, mu: 0.70, light: 0.30, shear: 1.48, tint: '#07293d' }
+];
+
+/* 动力学与结构常数。凡「每秒」口径的量显式以 _S 结尾。 */
+var PHYS = {
+  /* 推进与阻力。阻力是速度平方项 + 线性项，因此极速不是一句 clamp 出来的，
+     而是两条曲线相交解出来的 —— 风剪改变阻力系数，极速随之逐段漂移。 */
+  THROTTLE: 430.0,      // 油门切向加速度
+  BRAKE: 560.0,         // 刹车切向减速度
+  DRAG2: 0.00062,       // 平方阻力系数
+  DRAG1: 0.42,          // 线性阻力系数
+  TAIL_DRAG: 1.40,      // 顺风时阻力非线性放大系数
+  LIFT_K: 168.0,        // 逆风迎角产生的垂向升力系数
+  VMAX: 820.0,          // 速度硬上限（世界单位/秒）
+
+  /* 侧向是三量拔河：驾驶员意图的侧速 uTarget、抓地把它拉过去的速率、
+     以及离心外推。三者必须同量级，否则要么一打舵就贴墙，要么转向形同虚设。 */
+  UMAX: 200.0,          // 满舵对应的侧向速度上限
+  U_REF: 260.0,         // 舵效随速度爬升的参考速度
+  GRIP: 5.20,           // 抓地回复速率（把侧速拉向意图）
+  DRIFT_GRIP: 2.05,     // 手刹漂移时的抓地回复速率
+  CURVE_K: 0.030,       // 离心侧速 = CURVE_K · κ · v²（κ 带符号，凹段朝轴心甩）
+  SLIP_MAX: 0.735,      // 滑移角硬上限（弧度，≈42°）
+  SLIP_SOFT: 0.559,     // 滑移角过坡阈值（≈32°），越过后蓄能效率折损
+  SLIP_LOW: 0.314,      // 滑移角低效阈值（≈18°）
+  SLIP_SOFT_K: 0.60,    // 过坡区间效率折算
+  SLIP_LOW_K: 0.40,     // 低效区间效率折算
+  WALL_BOUNCE: 0.36,    // 撞外侧护墙的速度保留率
+  WALL_FATIGUE: 4.2,    // 撞墙一次的结构疲劳增量
+  WALL_BREAK: 480.0,    // 撞墙速度门：越过即触发因果回溯而非擦墙
+  SHOCK_R_BASE: 96.0,   // 速坠冲击波基准半径
+  SHOCK_DMG: 40.0,      // 速坠冲击波基准伤害
+  ARMOR_BREAK_V: 430.0, // 击穿重装拦截所需的最小下坠速度
+
+  GRAV: 980.0,          // 垂向重力（世界单位/秒²）
+  HOP_V: 296.0,         // 跃迁初速（世界单位/秒）
+  HOP_JUMPS: 2,         // 跃迁次数上限
+
+  ATTUNE_MS: 350.0,     // 接触同调所要求的低速持续时间
+  ATTUNE_EPS: 0.05,     // 「静止」的速度阈值（世界单位/秒）
+  ATTUNE_R_CHARGE: 46.0,// 同调充盈速率（每秒）
+  CORE_ZONE: 0.20,      // 浮屿锚定核心区占比（±10% 弧长）
+  EDGE_DRAIN: 0.05,     // 停在浮屿边缘：稳定性储备每秒流失 5%
+
+  DECAY_LOAD: 0.052,    // 浮屿承重下沉时的寿命衰减（每秒）
+  DECAY_REST: 0.010,    // 浮屿无负载时的自然寿命衰减（每秒）
+  REGROW_RATE: 0.34,    // 重组速率（每秒恢复的寿命比）
+  SINK_BASE: 1.2,       // 下沉冲量基准
+  SINK_DIV: 200.0,      // 下沉冲量的落地速度平方除数
+  SINK_SPRING: 5.6,     // 回弹弹簧刚度
+  SINK_DAMP: 2.4,       // 回弹阻尼
+  REBOUND_K: 0.68,      // 离台瞬间的反方向弹起系数
+  FUSE_MS: 500.0,       // 离台后引信时长，逾期碎裂为虚空
+  VOID_MS: 900.0,       // 碎裂后的虚空持续时长，期满自行重组
+
+  POL_MS: 300.0,        // 相位翻转的视差倾角扰动时长
+  POL_TILT: 0.148,      // 视差倾角最大弧度
+  POL_COST: 15.0,       // 每次相位翻转的固定气耗
+  POL_IMMUNE_MS: 700.0, // 相位翻转后的相位免疫时长
+  PHASE_REARM: 4.0,     // 相位体穿身之后的再装填时长（期间不再造成撞击）
+  MERCY_S: 1.0,         // 因果回溯后的重组保护时长（期间免于一切撞击）
+
+  CAT_K: 0.0110,        // 张力蓄能弹射：冲量 = CAT_K · charge^1.6
+  CAT_EXP: 1.6,         // 弹射的非线性指数（超线性）
+  CAT_FULL: 1150.0,     // 蓄能满值
+  CAT_SAFE: 900.0,      // 蓄能安全线，越过后进入过载预警带
+  CAT_GAS: 0.00058,     // 蓄能每单位抽走的氮气
+  OVER_MS: 1400.0,      // 过载熔断的硬直时长
+  OVER_FATIGUE: 6.5,    // 熔断一次的结构疲劳
+  OVER_PENALTY: 80.0,   // 熔断一次的固定扣分（与倍率无关，账本里以负号记一条）
+
+  TETHER_RANGE: 104.0,  // 能量索可抓取半径
+  TETHER_L: 96.0,       // 索长
+  TETHER_G: 430.0,      // 单摆有效重力
+  TETHER_DAMP: 0.72,    // 摆荡阻尼
+  TETHER_SWING_MIN: 0.55,// 释放时切向速度下限才给气
+  TETHER_GAS: 9.5,      // 摆荡释放回补的气量基数
+
+  WAVE_GAP: 2.0,        // 清空一波后到下一波压上的间隔
+  WAVE_HOLD: 12.0,      // 单波久攻不下的强制加压时限（超过即无视残余直接提波）
+  HAZ_CAP: 36,          // 同屏拦截单位上限（超出不再投放，防止规模失控）
+  LIFE_ERODE: 0.055,    // 每架在航拦截单位每秒对轴心本体的侵蚀
+  LIFE_ERODE_BOSS: 0.15,// 轴心卫戍的侵蚀倍率（按 boss 单算）
+  LIFE_REPAIR: 2.6,     // 核心区锚定同调一次修复的轴心寿命
+
+  HOMING_R: 300.0,      // 拦截无人机的趋近半径
+  PULSE_R: 150.0,       // 同调脉冲半径
+  PULSE_DMG: 110.0,     // 同调脉冲伤害
+  PULSE_COOL: 0.70,     // 脉冲释放后的冷却（秒）
+
+  ROLLBACK_S: 1.10,     // 失误回滚的世界时钟回退量（秒）
+  ROLLBACK_GAS: 2,      // 回滚扣除的氮气段数
+  STAB_HIT: 3.4,        // 单次撞击扣的稳定性储备
+  FATIGUE_HIT: 0.000004,// 撞击结构疲劳 ∝ v² 的系数
+  FATIGUE_SLIP: 0.0090, // 长时间大滑移每秒累积的结构疲劳
+  FATIGUE_MAX: 100.0,
+  REPAIR_S: 14.0,       // 锚定同调期间每秒修复的结构疲劳
+  STAB_REFILL_S: 9.0    // 锚定同调期间每秒回补的稳定性储备
+};
+
+/* 拦截无人机。armor 单位只被「足够快的冲击波」或同调脉冲击穿；
+   phase 是不可拦截的相位体，只能靠相位翻转规避。 */
+var HAZ = {
+  drone: { n: '拦截机',   hp: 20,  spd: 118, dmg: 0.30, r: 9,  col: '#8ef0c8', mass: 0.7 },
+  lancer:{ n: '穿刺艇',   hp: 38,  spd: 152, dmg: 0.55, r: 11, col: '#ffd166', mass: 1.1 },
+  hulk:  { n: '重装拦截', hp: 70,  spd: 84,  dmg: 0.80, r: 13, col: '#ff8a5c', mass: 2.0, armor: true },
+  phase: { n: '相位体',   hp: 999, spd: 196, dmg: 0.00, r: 27, col: '#7ad7ff', mass: 0.0, ethereal: true },
+  core:  { n: '轴心卫戍', hp: 420, spd: 74,  dmg: 1.60, r: 23, col: '#c08bff', mass: 5.0, boss: true }
+};
+
+/* 十波强化曲线：数量、混编、血速倍率逐波抬升，第 10 波为轴心卫戍战。 */
+var WAVES = [
+  { n: '一', list: [['drone', 4]], hp: 1.00, spd: 1.00 },
+  { n: '二', list: [['drone', 5], ['lancer', 1]], hp: 1.06, spd: 1.03 },
+  { n: '三', list: [['drone', 5], ['lancer', 2], ['phase', 1]], hp: 1.12, spd: 1.06 },
+  { n: '四', list: [['drone', 6], ['lancer', 2], ['hulk', 1]], hp: 1.20, spd: 1.09 },
+  { n: '五', list: [['drone', 6], ['lancer', 3], ['hulk', 2], ['phase', 1]], hp: 1.30, spd: 1.13 },
+  { n: '六', list: [['drone', 7], ['lancer', 3], ['hulk', 2], ['phase', 2]], hp: 1.42, spd: 1.17 },
+  { n: '七', list: [['drone', 8], ['lancer', 4], ['hulk', 3], ['phase', 2]], hp: 1.56, spd: 1.21 },
+  { n: '八', list: [['drone', 8], ['lancer', 5], ['hulk', 3], ['phase', 3]], hp: 1.72, spd: 1.26 },
+  { n: '九', list: [['drone', 9], ['lancer', 5], ['hulk', 4], ['phase', 3]], hp: 1.90, spd: 1.31 },
+  { n: '十', list: [['core', 1], ['drone', 8], ['lancer', 4], ['hulk', 4], ['phase', 3]], hp: 2.10, spd: 1.36 }
+];
+
+/* 三档难度。nc 弯道数、espd 敌速倍率、mer 风剪倍率、drain 寿命衰减倍率。 */
+var DIFFS = {
+  easy:   { n: '新手', nc: 6,  life: 38, gas: 118, espd: 0.92, mer: 0.86, drain: 0.80, vmax: 0.94 },
+  normal: { n: '标准', nc: 8,  life: 30, gas: 100, espd: 1.00, mer: 1.00, drain: 1.00, vmax: 1.00 },
+  hard:   { n: '极限', nc: 12, life: 24, gas: 90,  espd: 1.08, mer: 1.20, drain: 1.26, vmax: 1.06 }
+};
+
+/* 八阶互斥状态机：正向推进链（一局对局一生的先后次序）。 */
+var FSM_ORDER = [
+  'TITLE_LOBBY', 'SEEDED_INITIALIZING', 'ACTIVE_ENGAGED', 'ATTUNEMENT_DWELL',
+  'DYNAMIC_BRANCHING', 'OVERLOAD_PENALTY', 'CRISIS_FAILED_ROLLBACK', 'RUN_SETTLED_LEDGER'
+];
+/* 抢占优先级表（越靠前优先级越高）。多个条件同时成立时由这张表裁决。
+   TITLE_LOBBY 居首：它是唯一的「非对局」态，只能被 start()/restart() 显式离开；
+   终局次之（结算之后 tick 早退、读条不再递减，必须优先于回溯读条）；再次是回溯读条。 */
+var FSM_PRIORITY = [
+  'TITLE_LOBBY', 'RUN_SETTLED_LEDGER', 'CRISIS_FAILED_ROLLBACK', 'OVERLOAD_PENALTY',
+  'DYNAMIC_BRANCHING', 'ATTUNEMENT_DWELL', 'SEEDED_INITIALIZING', 'ACTIVE_ENGAGED'
+];
+
+/* 环道蓝图：浮屿状态由固定种子展开，人工校验过连通性与可达性。 */
+var SEED = 20260919;
+var RUNID = 'AX-2207-P';
+var BOARD_HINT = {
+  anchorPlates: [2, 5, 8, 11, 14, 17, 20, 23], // 带锚定核心区的浮屿（其余仍可站立，只是无核心）
+  pylons: [[1, 12], [7, 12], [13, 12], [19, 12]], // 能量索锚塔所在的（浮屿, 横向格）
+  gates:  [[4, 6], [16, 6]],                   // 过线计时门（左右各一）
+  axisCore: [12, 0]                            // 轴心本体所在（浮屿下标, 横向）
+};
+
+</script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   轴心脉冲 AXELPULSE · 俯视环道漂移竞速 —— 解算内核
+   一切随时间演化的量都在这里；data.js 只提供常数与蓝图。
+   ══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  /* ══════════════ 0. 工具 ══════════════════════════════════════ */
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function f1(v) { return (+v).toFixed(1); }
+  function f2(v) { return (+v).toFixed(2); }
+  function f3(v) { return (+v).toFixed(3); }
+  function sign(v) { return v < 0 ? -1 : (v > 0 ? 1 : 0); }
+  /* 确定性伪随机：同一个种子在任何机器上给出同一串数。 */
+  function mulberry(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function mmss(t, dec) {
+    var m = Math.floor(t / 60), s = t - m * 60;
+    var pad = function (n, w) { n = Math.floor(n); return ('000' + n).slice(-w); };
+    if (dec === 2) return pad(m, 2) + ':' + (s < 10 ? '0' : '') + s.toFixed(2);
+    return pad(m, 2) + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+  }
+
+  /* ══════════════ 1. 环道几何 ══════════════════════════════════
+     极坐标闭合曲线 r(θ) = R0 + amp·cos(nc·θ + ph)。
+     amp 与 nc 反比标定，使三档难度的最小曲率半径落在同一量级 ——
+     否则极限档的 12 弯会退化成不可通过的发卡。 */
+  var AMPK = 52.0 * 8.0;
+  var SEG_A = Math.PI * 2 / SEG;
+
+  function rad(th) { return R0 + G.amp * Math.cos(G.nc * th + G.ph); }
+  /* 极坐标曲率：κ = (r² + 2r'² − r·r'') / (r² + r'²)^1.5，带符号。
+     符号决定离心力朝环外还是朝环内推 —— 花瓣形的凹段会把车往轴心甩。 */
+  function curv(th) {
+    var a = G.nc * th + G.ph, A = G.amp, n = G.nc;
+    var r = R0 + A * Math.cos(a);
+    var d1 = -A * n * Math.sin(a);
+    var d2 = -A * n * n * Math.cos(a);
+    var num = r * r + 2 * d1 * d1 - r * d2;
+    var den = Math.pow(r * r + d1 * d1, 1.5);
+    return num / den;
+  }
+  function tangent(th) {
+    var e = 0.0025, x1 = rad(th - e), x2 = rad(th + e);
+    var p1x = x1 * Math.cos(th - e), p1y = x1 * Math.sin(th - e);
+    var p2x = x2 * Math.cos(th + e), p2y = x2 * Math.sin(th + e);
+    return Math.atan2(p2y - p1y, p2x - p1x);
+  }
+  /* 浮屿下标与屿内归一化位置。core 区即屿中央 20% 弧长。 */
+  function plateOf(th) {
+    var u = th / (Math.PI * 2);
+    u -= Math.floor(u);
+    var p = Math.floor(u * SEG) % SEG;
+    var f = u * SEG - Math.floor(u * SEG);
+    return [p, f];
+  }
+  function inCore(f) {
+    var h = PHYS.CORE_ZONE * 0.5;
+    return f >= 0.5 - h && f <= 0.5 + h;
+  }
+  /* 环带由横向偏移 d 归一化决定：越靠外摩擦越低、风剪越强。 */
+  function strataAt(d) {
+    var sn = clamp((d + HW) / (2 * HW), 0, 0.99999);
+    for (var i = 0; i < STRATA.length; i++)
+      if (sn >= STRATA[i].r0 && sn < STRATA[i].r1) return i;
+    return STRATA.length - 1;
+  }
+  /* 风场：三层内波模态叠加。返回 [切向分量, 横向分量]。 */
+  function windAt(th, t) {
+    var wt = 0, wx = 0;
+    for (var i = 0; i < WAVE_MODES.length; i++) {
+      var m = WAVE_MODES[i];
+      wt += m.amp * 0.62 * Math.sin(m.k * th + m.w * t * 0.7 + m.ph);
+      wx += m.amp * 0.46 * Math.cos(m.k * th - m.w * t * 0.9 + m.ph * 1.7);
+    }
+    return [wt * G.mer, wx * G.mer];
+  }
+
+  /* ══════════════ 2. 状态 ══════════════════════════════════ */
+  var G = {
+    seed: SEED, diff: 'normal', nc: 8, amp: 52, ph: 0, mer: 1, espd: 1, drain: 1,
+    state: 'TITLE_LOBBY', prev: 'TITLE_LOBBY',
+    t: 0, f: 0, frozen: true, paused: false,
+    plates: [], drones: [], fx: [], logs: [], ledger: [], marks: [],
+    revealed: 0, lap: 0, totalTh: 0, lapT: 0, lapTimes: [], bestLap: 0,
+    wave: 0, waveState: 'idle', waveT: 0, kills: 0, salvage: 0,
+    life: 30, lifeMax: 30, gas: 100, gasMax: 100, stab: 100, fatigue: 0,
+    combo: 0, bestCombo: 0, yieldMul: 1, comboHold: 0,
+    mercy: 0, rollV: 0, rollT: -1, rollReason: '', hazRnd: mulberry(SEED ^ 0x5bf03635),
+    coreN: 0, landN: 0, edgeTime: 0, plungeCount: 0, plungeBest: 0,
+    polCount: 0, catCount: 0, tgCount: 0, overCount: 0, hitCount: 0, wallCount: 0,
+    score: 0, rank: 3, rankBest: 3, overtakes: 0,
+    settled: false, result: '', overT: 0, rollT: -1, rollReason: '',
+    runtime: 0, cleanRun: 0, boostT: 0, boostN: 0, shockN: 0,
+    speedPeak: 0, slipPeak: 0, gasSpent: 0, fatiguePeak: 0,
+    rateGas: 0, rateStab: 0, rateFat: 0
+  };
+  var P = {
+    th: 0, d: 0, r: R0, v: 0, u: 0, slip: 0, alt: 0, vz: 0,
+    hop: 0, onPlate: -1, onGround: false, attuneT: 0, attune: 0, attuned: false,
+    charge: 0, charging: false, vent: 0, polT: 0, polImm: 0, tether: null, tgA: 0, tgW: 0,
+    pulseCool: 0, _lastCombo: 0,
+    steer: 0, throttle: 1, brake: 0, hand: false, cool: 0, coreMiss: 0,
+    hitFlash: 0, sinkV: 0, x: 0, y: 0, head: 0
+  };
+
+  function newPlates() {
+    var rnd = mulberry(G.seed ^ (G.nc * 7919));
+    var out = [];
+    for (var i = 0; i < SEG; i++) {
+      var anchor = BOARD_HINT.anchorPlates.indexOf(i) >= 0;
+      /* 寿命初值带种子扰动：同一档难度下每局的衰减顺序都不同。 */
+      var l0 = 0.72 + rnd() * 0.28;
+      out.push({
+        i: i, life: l0, alive: true, fuse: -1, voidT: 0, sink: 0, sinkV: 0, sink0: 0,
+        impact: 0, anchor: anchor, load: false, everLoad: false, decay: 0
+      });
+    }
+    return out;
+  }
+
+  function resetRun() {
+    G.plates = newPlates();
+    G.drones = []; G.fx = []; G.logs = []; G.ledger = []; G.marks = [];
+    G.t = 0; G.f = 0; G.revealed = 0; G.lap = 0; G.totalTh = 0; G.lapT = 0;
+    G.lapTimes = []; G.bestLap = 0; G.wave = 0; G.waveState = 'idle'; G.waveT = 0;
+    G.kills = 0; G.salvage = 0; G.life = G.lifeMax; G.gas = G.gasMax;
+    G.stab = 100; G.fatigue = 0; G.combo = 0; G.bestCombo = 0; G.yieldMul = 1;
+    G.comboHold = 0; G.coreN = 0; G.landN = 0; G.edgeTime = 0;
+    G.plungeCount = 0; G.plungeBest = 0; G.polCount = 0; G.catCount = 0;
+    G.tgCount = 0; G.overCount = 0; G.hitCount = 0; G.wallCount = 0;
+    G.score = 0; G.rank = 3; G.rankBest = 3; G.overtakes = 0;
+    G.settled = false; G.result = ''; G.overT = 0; G.rollT = -1; G.rollReason = '';
+    G.runtime = 0; G.cleanRun = 0; G.boostT = 0; G.boostN = 0; G.shockN = 0;
+    G.speedPeak = 0; G.slipPeak = 0; G.gasSpent = 0; G.fatiguePeak = 0;
+    G.rateGas = 0; G.rateStab = 0; G.rateFat = 0;
+    G.mercy = 0; G.rollV = 0; G.rollT = -1; G.rollReason = '';
+    G.hazRnd = mulberry(G.seed ^ 0x5bf03635);
+    var d = DIFFS[G.diff];
+    G.lifeMax = d.life; G.life = d.life; G.gasMax = d.gas; G.gas = d.gas;
+    G.mer = d.mer; G.espd = d.espd; G.drain = d.drain;
+    G.nc = d.nc; G.amp = AMPK / G.nc;
+    var rnd = mulberry(G.seed);
+    G.ph = rnd() * Math.PI * 2;
+    P.th = 0; P.d = 0; P.v = 0; P.u = 0; P.slip = 0; P.alt = 0; P.vz = 0;
+    P.hop = PHYS.HOP_JUMPS; P.onPlate = -1; P.onGround = false; P.attuneT = 0; P.attune = 0;
+    P.attuned = false; P.charge = 0; P.charging = false; P.vent = 0; P.polT = 0; P.polImm = 0;
+    P.tether = null; P.tgA = 0; P.tgW = 0; P.steer = 0; P.cool = 0; P.coreMiss = 0;
+    P.hitFlash = 0; P.sinkV = 0; P.pulseCool = 0; P._lastCombo = 0;
+    /* 输入闩锁也必须清干净。K 是「按住即真」的键位表，上一局结束时按住的键
+       会原样带进新一局 —— 重开后再跑同一条输入序列就得到不同结果，
+       「同种子同输入 → 同结果」的可复现性直接失效。 */
+    for (var kk in K) K[kk] = false;
+    syncPos();
+    /* 账本的第一条：本局的环道是按这个固定种子逐段解出来的。显影态本身也是
+       本局已经发生的事实，不该在账上留一段空白 —— 审计链必须从第 0 帧接上。 */
+    ev('种子', 0, '环道 ' + SEG + ' 段逐段解算 · 锚定浮屿 ' +
+      BOARD_HINT.anchorPlates.length + ' 段 · 种子 ' + G.seed);
+  }
+
+  function syncPos() {
+    P.r = rad(P.th) + P.d;
+    P.x = P.r * Math.cos(P.th);
+    P.y = P.r * Math.sin(P.th);
+    P.head = tangent(P.th);
+  }
+
+  /* ══════════════ 3. 事件溯源账本 ══════════════ */
+  function ev(type, amt, note) {
+    var e = { f: G.f, t: G.t, type: type, amt: amt, note: note };
+    G.ledger.push(e);
+    G.logs.push('[' + G.f + '] ' + type + ' ' + (amt >= 0 ? '+' : '') + f1(amt) + ' ' + note);
+    if (G.logs.length > 400) G.logs.shift();
+    if (G.ledger.length > 4000) G.ledger.shift();
+    return e;
+  }
+  function score(note, amt) {
+    var gain = amt * G.yieldMul;
+    G.score += gain;
+    ev('入账', gain, note + ' ×' + f2(G.yieldMul));
+    return gain;
+  }
+  function bumpCombo(note) {
+    G.combo++; G.comboHold = 3.2;
+    if (G.combo > G.bestCombo) G.bestCombo = G.combo;
+    G.yieldMul = 1 + Math.min(2.4, Math.max(0, G.combo - 1) * 0.13);
+    if (G.combo > 1) ev('连击', G.combo, note + ' · 第 ' + G.combo + ' 段');
+  }
+
+  /* ══════════════ 4. 输入 ══════════════ */
+  var K = {};
+  var KEYS = {
+    KeyW: 'up', ArrowUp: 'up', KeyS: 'dn', ArrowDown: 'dn',
+    KeyA: 'lf', ArrowLeft: 'lf', KeyD: 'rt', ArrowRight: 'rt',
+    Space: 'hand', KeyJ: 'hop', KeyK: 'cat', KeyL: 'pol', KeyU: 'tg', KeyI: 'pulse'
+  };
+  function act(a) { return !!K[a]; }
+
+  /* ══════════════ 5. 手势：蓄能弹射 / 相位翻转 / 能量索 / 脉冲 ══════════════ */
+  function doHop() {
+    /* 接触同调时延（核心地雷）：落地把跃迁余量直接清零，绝不重置。
+       余量唯一来源是「驻留同调满窗口」——所以落地后 350 ms 内发这条命令必然失败。 */
+    if (P.hop <= 0) { ev('跃迁', 0, '余量不足 · 需驻留同调回充'); return false; }
+    if (P.alt <= 0.5) { P.vz = PHYS.HOP_V * (G.diff === 'hard' ? 1.04 : 1.0); P.alt = 0.6; }
+    else { P.vz = PHYS.HOP_V * 0.86; }          // 二段跳：余量够就能再补一次
+    P.hop--;
+    ev('跃迁', 0, (P.alt <= 0.6 ? '起跳' : '二段跳') + ' · 余量 ' + P.hop);
+    return true;
+  }
+  function doPolarity() {
+    if (P.polT > 0) return false;
+    if (G.gas < PHYS.POL_COST) { ev('相位', 0, '氮气不足'); return false; }
+    G.gas -= PHYS.POL_COST; G.gasSpent += PHYS.POL_COST;
+    P.polT = PHYS.POL_MS / 1000; P.polImm = PHYS.POL_IMMUNE_MS / 1000;
+    G.polCount++;
+    score('空间相位翻转 · 免疫相位体', 12);
+    return true;
+  }
+  function tryTether() {
+    if (P.tether) {
+      /* 脱离角自选：切向速度越过下限才回补氮气，否则只是空放。 */
+      var sp = Math.abs(P.tgW) * PHYS.TETHER_L;
+      P.tether = null;
+      if (sp >= PHYS.TETHER_SWING_MIN * 220) {
+        var g = PHYS.TETHER_GAS * clamp(sp / 400, 0.4, 1.6);
+        G.gas = Math.min(G.gasMax, G.gas + g);
+        G.tgCount++;
+        score('能量索摆荡释放', 16);
+        bumpCombo('能量索');
+      } else {
+        ev('能量索', 0, '切向速度不足 ' + f0(sp) + ' < 下限');
+      }
+      return true;
+    }
+    var best = null, bd = 1e9;
+    for (var i = 0; i < BOARD_HINT.pylons.length; i++) {
+      var py = BOARD_HINT.pylons[i];
+      var th = (py[0] + py[1] / 13) * SEG_A;
+      var dd = Math.abs(th - P.th);
+      dd = Math.min(dd, Math.PI * 2 - dd);
+      var dist = dd * rad(P.th);
+      if (dist < PHYS.TETHER_RANGE && dist < bd) { bd = dist; best = { th: th, r: rad(th) }; }
+    }
+    if (!best) { ev('能量索', 0, '范围内无锚塔'); return false; }
+    P.tether = best; P.tgA = Math.atan2(P.y - best.r * Math.sin(best.th), P.x - best.r * Math.cos(best.th));
+    P.tgW = clamp(P.v / PHYS.TETHER_L * 0.5, -3, 3);
+    ev('能量索', 0, '锁定锚塔 · 摆荡中');
+    return true;
+  }
+  function doPulse() {
+    if (P.pulseCool > 0) return false;
+    if (!P.attuned) { ev('同调脉冲', 0, '未完成同调 · 拒绝释放'); return false; }
+    if (G.gas < 18) { ev('同调脉冲', 0, '氮气不足'); return false; }
+    G.gas -= 18; G.gasSpent += 18; P.pulseCool = PHYS.PULSE_COOL;
+    var n = 0;
+    for (var i = G.drones.length - 1; i >= 0; i--) {
+      var h = G.drones[i];
+      if (Math.hypot(h.x - P.x, h.y - P.y) <= PHYS.PULSE_R) {
+        h.hp -= PHYS.PULSE_DMG; n++;
+        if (h.hp <= 0) { G.drones.splice(i, 1); G.kills++; }
+      }
+    }
+    G.shockN++;
+    burst(P.x, P.y, '#7fffdc', 34);
+    score('浮屿共振同调脉冲', 20 + n * 4);
+    if (n) bumpCombo('脉冲清场');
+    return true;
+  }
+  function f0(v) { return Math.round(v); }
+
+  function burst(x, y, col, n) {
+    for (var i = 0; i < n; i++) {
+      var a = (i / n) * Math.PI * 2 + G.f * 0.017;
+      var s = 40 + (i % 7) * 22;
+      G.fx.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.5 + (i % 5) * 0.08, col: col });
+    }
+    if (G.fx.length > 900) G.fx.splice(0, G.fx.length - 900);
+  }
+
+  /* ══════════════ 6. 浮屿：下沉 / 回弹 / 引信 / 虚空 / 重组 ══════════════ */
+  function landOn(pl, impact) {
+    /* 承重下沉冲量严格按题面公式：v_sink = 1.2 × (1 + v_impact² / 200)。
+       impact 原样留存在浮屿上，探针据此逐位复核公式，不必去猜落地速度。 */
+    pl.impact = impact;
+    pl.sink0 = PHYS.SINK_BASE * (1 + impact * impact / PHYS.SINK_DIV);
+    pl.sinkV = pl.sink0;
+    pl.decay += 1;
+  }
+  function stepPlates(dt) {
+    var pp = plateOf(P.th), idx = pp[0], f = pp[1];
+    /* 「载重」的判据是「当前格位」而不是「脚底离地」：刹车或原地跃迁时格位没变，
+       浮屿就不该被抛下，更不该点燃引信 —— 否则低速起跳等于自己把脚下踩塌，
+       落地必死，整局卡在回溯循环里。只有真的驶离（格位推进）才引爆尾迹。 */
+    for (var i = 0; i < G.plates.length; i++) {
+      var pl = G.plates[i];
+      /* 引信先走时、后判载重：否则「点燃引信」的那一帧当场就被扣掉一个 dt，
+         500 ms 的窗口只剩 483 ms —— 题面写死的时长必须逐帧精确，不能提前引爆。 */
+      if (pl.fuse >= 0 && pl.alive) {
+        pl.fuse -= dt * 1000;
+        if (pl.fuse <= 0) { pl.alive = false; pl.fuse = -1; pl.voidT = PHYS.VOID_MS; }
+      }
+      var loaded = i === idx && pl.alive;
+      if (loaded !== pl.load) {
+        if (!loaded && pl.load) {
+          /* 离台瞬间：反方向弹起，并点燃 500 ms 引信 */
+          pl.sinkV = -PHYS.REBOUND_K * pl.sinkV;
+          pl.fuse = PHYS.FUSE_MS;
+        }
+        pl.load = loaded;
+        if (loaded) { pl.everLoad = true; pl.fuse = -1; }
+      }
+      if (loaded) {
+        pl.life -= PHYS.DECAY_LOAD * G.drain * dt;
+        pl.decay += dt;
+      } else if (pl.alive) {
+        pl.life += PHYS.REGROW_RATE * dt;
+        if (pl.life > 1) pl.life = 1;
+      }
+      /* 回弹：弹簧 - 阻尼 */
+      var a = -PHYS.SINK_SPRING * pl.sink - PHYS.SINK_DAMP * pl.sinkV;
+      pl.sinkV += a * dt;
+      pl.sink += pl.sinkV * dt * 0.03;
+      pl.sink *= 0.999;
+      if (!pl.alive) {
+        pl.voidT -= dt * 1000;
+        if (pl.voidT <= 0) { pl.alive = true; pl.voidT = 0; pl.life = 0.42; }
+      }
+    }
+  }
+
+  /* ══════════════ 7. 无人机波次 ══════════════ */
+  function spawnWave(n) {
+    var w = WAVES[clamp(n, 1, WAVES.length) - 1];
+    for (var i = 0; i < w.list.length; i++) {
+      var kind = w.list[i][0], cnt = w.list[i][1];
+      for (var j = 0; j < cnt; j++) spawnDrone(kind, w);
+    }
+    G.wave = n; G.waveState = 'fighting';
+    ev('波次', n, '第 ' + w.n + ' 波压上 · ' + G.drones.length + ' 架');
+  }
+  function spawnDrone(kind, w) {
+    if (G.drones.length >= PHYS.HAZ_CAP) return;   // 同屏规模硬顶，防止帧率被拖垮
+    var H = HAZ[kind];
+    /* 投放位置走「种子化伪随机流」而不是 Math.random：
+       整局的因果必须可复现，同种子同输入序列必须逐位同结果，
+       用系统熵源会让每一次运行的波次落点都不同，状态因果链就断了。 */
+    var th = (0.25 + G.hazRnd() * 0.5) * Math.PI * 2;
+    var r = rad(th) + (G.hazRnd() * 2 - 1) * HW * 0.9;
+    G.drones.push({
+      kind: kind, n: H.n, hp: H.hp * (w ? w.hp : 1), hpMax: H.hp * (w ? w.hp : 1),
+      x: r * Math.cos(th), y: r * Math.sin(th), th: th, r: r,
+      spd: H.spd * G.espd * (w ? w.spd : 1), dmg: H.dmg, rad: H.r,
+      col: H.col, armor: !!H.armor, ethereal: !!H.ethereal, boss: !!H.boss,
+      hitT: 0
+    });
+  }
+  function stepDrones(dt) {
+    for (var i = G.drones.length - 1; i >= 0; i--) {
+      var h = G.drones[i];
+      h.hitT = Math.max(0, h.hitT - dt);
+      /* 趋近：玩家的位置决定威胁朝哪聚集（HOMING_R 之外只是巡弋） */
+      var dth = P.th - h.th;
+      while (dth > Math.PI) dth -= Math.PI * 2;
+      while (dth < -Math.PI) dth += Math.PI * 2;
+      var dist = Math.abs(dth) * h.r;
+      var homing = dist < PHYS.HOMING_R;
+      var w = homing ? 1.0 : 0.30;
+      h.th += sign(dth) * (h.spd * w / h.r) * dt;
+      var dr = (P.r - h.r);
+      if (homing) h.r += clamp(dr, -1, 1) * h.spd * 0.32 * dt;
+      h.r = clamp(h.r, rad(h.th) - HW - 30, rad(h.th) + HW + 30);
+      h.x = h.r * Math.cos(h.th); h.y = h.r * Math.sin(h.th);
+      /* 碰撞判定。三重闸门，缺任何一条都会退化成「停在原地被无限连撞」的死循环：
+         ① 回溯后的重组保护（G.mercy）—— 刚被拉回因果的这段时间不再吃撞击；
+         ② 单体再装填（h.hitT）—— 相位体不可击杀，撞完必须飞过去重新进入；
+         ③ 相位免疫（P.polImm）—— 主动翻转相位换来的豁免。 */
+      var dd = Math.hypot(h.x - P.x, h.y - P.y);
+      if (G.mercy > 0 || h.hitT > 0 || P.alt >= 26) continue;
+      if (dd < h.rad + 11) {
+        if (h.ethereal && P.polImm > 0) continue;
+        if (h.dmg > 0 || h.ethereal) {
+          G.stab -= PHYS.STAB_HIT; P.hitFlash = 0.35; h.hitT = 0.3;
+          G.hitCount++;
+          G.fatigue += PHYS.FATIGUE_HIT * P.v * P.v;
+          if (h.ethereal) {
+            /* 相位体撞不毁，只会穿身而过：把它甩到前方去，并给它一段再装填期，
+               否则它会一直贴在停止的车身上，每 1.1 秒的每次回溯都立刻再崩一次。 */
+            h.hitT = PHYS.PHASE_REARM;
+            h.th += 0.45;
+            crash('撞入相位体 · 相位未翻转');
+            return;
+          } else { G.drones.splice(i, 1); G.kills++; ev('击杀', 0, '撞击 ' + h.n); }
+        }
+      }
+    }
+  }
+
+  /* ══════════════ 8. 失败熔断与因果回溯 ══════════════ */
+  function crash(reason) {
+    if (G.rollT >= 0 || G.settled) return;
+    G.rollT = PHYS.ROLLBACK_S;
+    G.rollReason = reason;
+    /* 回退距离必须按「触发瞬间」的速率算。读条期间 v 被逐帧乘 0.94 衰减到接近零，
+       等到退位置时再读 P.v 就只剩百分之一，退回距离不足半个浮屿 ——
+       车会被原地放回同一块碎裂虚空上，下一帧再崩，整局卡死在回溯循环里。 */
+    G.rollV = Math.abs(P.v);
+    G.mercy = PHYS.MERCY_S;   // 重组保护：把「崩→退→再崩」的链条从物理上切断
+    /* 回滚：世界时钟倒退，氮气扣两段，名次与连击随之回滚 */
+    G.gas = Math.max(0, G.gas - PHYS.ROLLBACK_GAS * (G.gasMax / 3));
+    G.combo = 0; G.yieldMul = 1;
+    G.cleanRun = 0;
+    /* 回溯必须把「触发判据」本身一并拉回安全区，否则疲劳/稳定性仍越限，
+       下一帧立刻再次熔断，整局卡在回溯循环里出不来。 */
+    if (G.fatigue >= PHYS.FATIGUE_MAX) G.fatigue = 68;
+    if (G.stab <= 0) G.stab = 42;
+    ev('回溯', 0, reason);
+  }
+
+  /* ══════════════ 9. 主步进 ══════════════ */
+  function tick(dt) {
+    G.t += dt; G.f++;
+    if (G.mercy > 0) G.mercy -= dt;
+    if (G.state === 'TITLE_LOBBY') { resolveState(); return; }
+    if (G.state === 'SEEDED_INITIALIZING') {
+      G.revealed = Math.min(1, G.revealed + dt / 1.1);
+      if (G.revealed >= 1) { G.state = 'ACTIVE_ENGAGED'; }
+      return;
+    }
+    if (G.settled) { resolveState(); return; }
+
+    /* 损耗率的基准值必须在「真的推进物理」的这一帧开头取。早退的三态
+       （待机 / 显影 / 结算）没有物理推进，取基准只会把渲染节奏混进读数 —— */
+    var _g0 = G.gas, _s0 = G.stab, _f0 = G.fatigue;
+
+    /* 回溯读条：期间世界时钟倒转，位置与名次同步回退 */
+    if (G.rollT >= 0) {
+      G.rollT -= dt;
+      P.v *= 0.94; P.u *= 0.94;
+      if (G.rollT < 0) {
+        G.rollT = -1;
+        G.totalTh = Math.max(0, G.totalTh - PHYS.ROLLBACK_S * (G.rollV || 0) / Math.max(1, rad(P.th)));
+        P.th = G.totalTh % (Math.PI * 2);
+        P.d *= 0.4; P.alt = 0; P.vz = 0;
+        /* 落点兜底：回溯的语义是「退回到上一处可站立节点」，不是「原样放回原处」。
+           退回点若恰好落在已碎裂的浮屿上，就把它就地重组 —— 否则崩→退→再崩，
+           形成永不脱出的死循环，直接违反「不存在无解状态」这条硬门。 */
+        var rpi = plateOf(P.th)[0], rpl = G.plates[rpi];
+        if (!rpl.alive) { rpl.alive = true; rpl.voidT = 0; rpl.life = Math.max(rpl.life, 0.55); }
+        rpl.fuse = -1; rpl.sinkV = 0;
+        syncPos();
+      }
+      resolveState(); return;
+    }
+
+    if (P.pulseCool > 0) P.pulseCool -= dt;
+    if (P.polT > 0) P.polT -= dt;
+    if (P.polImm > 0) P.polImm -= dt;
+    if (P.hitFlash > 0) P.hitFlash -= dt;
+    G.lapT += dt; G.runtime += dt;
+
+    /* ── 8.1 手势输入 ─────────────────────────── */
+    P.steer = (act('lf') ? -1 : 0) + (act('rt') ? 1 : 0);
+    P.throttle = act('up') ? 1 : 0;
+    P.brake = act('dn') ? 1 : 0;
+    P.hand = act('hand');
+    if (act('cat') && G.overT <= 0) {
+      /* 蓄能：氮气被抽走换成压缩形变；越过安全线仍可继续，代价是熔断风险。
+         硬直期间操纵面失效，蓄能键也必须一并锁死，否则放空窗口会被当场覆盖。 */
+      P.charging = true;
+      P.charge += dt * 620;
+      G.gas = Math.max(0, G.gas - PHYS.CAT_GAS * 620 * dt);
+      G.gasSpent += PHYS.CAT_GAS * 620 * dt;
+      if (P.charge >= PHYS.CAT_FULL) {
+        /* 熔断是「强制放空」而不是「凭空归零」：蓄能量在硬直窗口里可见地泄掉。
+           若一帧跳回 0，仪表上就只剩一条空槽，玩家读不到「刚才顶到了什么量级」，
+           题面里「越限即释放」这条也就失去了可观察的证据。 */
+        P.vent = PHYS.OVER_MS / 1000; P.charging = false;
+        G.overT = PHYS.OVER_MS / 1000; G.overCount++;
+        G.fatigue += PHYS.OVER_FATIGUE;
+        /* 「强制释放、扣分并进入硬直」三件事都要在账上留痕：扣分按固定值算，
+           不随收益倍率放大，否则后期一次误按就能把整局抹平。 */
+        var pen = -PHYS.OVER_PENALTY;
+        if (G.score + pen < 0) pen = -G.score;
+        G.score += pen;
+        ev('熔断', pen, '蓄能超频越限 · 强制放空 · 硬直 ' + (PHYS.OVER_MS / 1000) + ' s');
+      }
+    } else if (P.charging) {
+      P.charging = false;
+      var imp = PHYS.CAT_K * Math.pow(P.charge, PHYS.CAT_EXP);
+      P.v += imp * 0.60; P.vz += imp * 0.10;
+      if (P.charge > PHYS.CAT_SAFE) { G.overT = PHYS.OVER_MS / 1000 * 0.5; G.overCount++; }
+      G.catCount++;
+      score('非线性张力蓄能弹射 · 蓄能 ' + f0(P.charge), 14 + P.charge / 60);
+      bumpCombo('蓄能弹射');
+      P.charge = 0;
+    }
+    if (act('pol')) { K.pol = false; doPolarity(); }
+    if (K.tg) { K.tg = false; tryTether(); }
+    if (K.pulse) { K.pulse = false; doPulse(); }
+    if (K.hop) { K.hop = false; doHop(); }
+
+    /* 过载硬直：期间舵面锁死，只能靠惯性滑行 */
+    var stunned = G.overT > 0;
+    if (stunned) { G.overT -= dt; P.steer = 0; P.throttle = 0; }
+    /* 强制放空：硬直窗口内把越限的那一槽线性泄到 0，越限越多泄得越久 */
+    if (P.vent > 0) {
+      P.vent -= dt;
+      P.charge = P.vent > 0 ? PHYS.CAT_FULL * (P.vent / (PHYS.OVER_MS / 1000)) : 0;
+    }
+
+    /* ── 8.2 风剪与垂向 ─────────────────────────── */
+    var wnd = windAt(P.th, G.t), wt = wnd[0], wx = wnd[1];
+    var si = strataAt(P.d), st = STRATA[si];
+    var airborne = P.alt > 0.5;
+    var tail = (wt * sign(P.v || 1)) > 0;
+
+    if (!airborne) {
+      P.vz = 0;
+    } else {
+      P.vz -= PHYS.GRAV * dt;
+      /* 反常识：逆风迎角产生向上的升力矢量，滞空时间显著拉长 */
+      if (!tail) P.vz += PHYS.LIFT_K * Math.abs(wt) / 90 * dt;
+      P.alt += P.vz * dt;
+      if (P.alt <= 0) {
+        var impact = Math.abs(P.vz);
+        P.alt = 0;
+        P.hop = 0;                 // 落地清零，不回充
+        var pp0 = plateOf(P.th), pl0 = G.plates[pp0[0]];
+        if (!pl0.alive) { crash('坠入碎裂虚空'); P.vz = 0; }
+        else {
+          landOn(pl0, impact);
+          /* 高速落地生成冲击波：越快的下坠，半径与伤害越夸张 */
+          if (impact > 168) {
+            var R0s = PHYS.SHOCK_R_BASE * (1 + impact / 260);
+            var n = 0;
+            for (var q = G.drones.length - 1; q >= 0; q--) {
+              var hh = G.drones[q];
+              if (Math.hypot(hh.x - P.x, hh.y - P.y) <= R0s) {
+                var dmg = PHYS.SHOCK_DMG * (1 + impact / 300);
+                if (hh.armor && impact < 430) { hh.hitT = 0.3; continue; }
+                hh.hp -= dmg; n++;
+                if (hh.hp <= 0) { G.drones.splice(q, 1); G.kills++; }
+              }
+            }
+            G.plungeCount++; G.shockN++;
+            if (impact > G.plungeBest) G.plungeBest = impact;
+            burst(P.x, P.y, '#ffd166', 26);
+            score('动量下压速坠冲击 · 落速 ' + f0(impact), 10 + n * 5);
+            if (n) bumpCombo('速坠清场');
+          }
+        }
+        P.vz = 0;
+      }
+    }
+
+    /* ── 8.3 切向推进 ─────────────────────────── */
+    var vm = DIFFS[G.diff].vmax * (1 + (G.boostT > 0 ? 0.55 : 0));
+    var aT = 0;
+    if (P.throttle) aT += PHYS.THROTTLE * vm;
+    if (P.brake) aT -= PHYS.BRAKE;
+    if (G.boostT > 0) { aT += PHYS.THROTTLE * 2.2; G.boostT -= dt; }
+    /* 阻力：平方项 + 线性项；顺风时平方项整体放大 40% —— 顺风反而更慢 */
+    var dragMul = (airborne && tail) ? PHYS.TAIL_DRAG : 1.0;
+    aT -= (PHYS.DRAG2 * dragMul * P.v * Math.abs(P.v)) + PHYS.DRAG1 * P.v * st.mu;
+    P.v += aT * dt;
+    if (P.v < 0) P.v = 0;
+    if (P.v > PHYS.VMAX * vm) P.v = PHYS.VMAX * vm;
+
+    /* ── 8.4 横向动力学 ─────────────────────────── */
+    if (P.tether) {
+      /* 单摆：角加速度 = -(g/L)·sinθ - 阻尼·ω，横向推力被索约束吸收 */
+      var gL = PHYS.TETHER_G / PHYS.TETHER_L;
+      P.tgW += (-gL * Math.sin(P.tgA) - PHYS.TETHER_DAMP * P.tgW) * dt;
+      P.tgA += P.tgW * dt;
+      P.d = (P.tether.r + PHYS.TETHER_L * Math.cos(P.tgA)) - rad(P.th);
+      P.u = -PHYS.TETHER_L * Math.sin(P.tgA) * P.tgW;
+    } else {
+      var authority = clamp(P.v / PHYS.U_REF, 0, 1) * (stunned ? 0 : 1);
+      var uTarget = PHYS.UMAX * P.steer * authority;
+      /* 离心外推：花瓣凸段把车往环外推、凹段往轴心甩，κ 带符号 */
+      var acent = PHYS.CURVE_K * curv(P.th) * P.v * P.v;
+      var grip = P.hand ? PHYS.DRIFT_GRIP : PHYS.GRIP;
+      /* 风剪横向分量按环带倍率放大：跑外线换摩擦，代价是风更硬 */
+      P.u += ((uTarget - P.u) * grip - acent + wx * 5.4 * st.shear) * dt;
+    }
+
+    /* ── 8.5 位置推进与滑移角 ─────────────────────── */
+    P.th += (P.v / Math.max(1, rad(P.th))) * dt;
+    /* 累计环程必须记在 G.totalTh 上 —— 圈次判定、回溯回退、结算读数读的都是它。
+       曾经写在 P.totalTh 这个没人读的影子字段上，结果圈次永远停在 0，整局打不完。 */
+    G.totalTh += (P.v / Math.max(1, rad(P.th))) * dt;
+    P.d += P.u * dt;
+    if (P.d > HW) { P.d = HW; wall(); }
+    else if (P.d < -HW) { P.d = -HW; wall(); }
+    syncPos();
+    P.slip = Math.atan2(P.u, Math.max(20, P.v));
+    if (Math.abs(P.slip) > PHYS.SLIP_MAX) P.slip = sign(P.slip) * PHYS.SLIP_MAX;
+    if (Math.abs(P.slip) > G.slipPeak) G.slipPeak = Math.abs(P.slip);
+    if (P.v > G.speedPeak) G.speedPeak = P.v;
+
+    /* 漂移不给氮气 —— 氮气只有「核心区锚定同调」与「能量索摆荡释放」两个来源。
+       漂移的回报是过弯速度与连击段数，段数再去抬收益倍率，形成经济循环。 */
+    var ab = Math.abs(P.slip), eff = 1.0;
+    if (ab > PHYS.SLIP_SOFT) eff = PHYS.SLIP_SOFT_K;
+    else if (ab < PHYS.SLIP_LOW) eff = PHYS.SLIP_LOW_K;
+    if (P.hand) {
+      G.cleanRun += dt;
+      if (ab > 0.25 && G.f >= (P._lastCombo || 0) + 42) { P._lastCombo = G.f; bumpCombo('漂移连贯'); }
+    }
+    /* 结构疲劳：长时间大滑移会累积 */
+    if (ab > 0.5) G.fatigue += PHYS.FATIGUE_SLIP * dt * 60 * 0.016;
+
+    /* ── 8.6 浮屿与坠落 ─────────────────────────── */
+    /* 接地标志必须先算再交给浮屿解算：stepPlates 的载重判据读的就是它，
+       放在后面会让浮屿永远慢一帧，引信也就永远点不着。 */
+    var pp = plateOf(P.th), pl = G.plates[pp[0]];
+    P.onPlate = pp[0];
+    P.onGround = P.alt <= 0.5 && pl.alive;
+    stepPlates(dt);
+    if (P.alt <= 0.5 && !pl.alive) { crash('驶入碎裂虚空'); }
+
+    /* ── 8.7 接触同调时延（核心地雷） ─────────────── */
+    var slow = Math.abs(P.v) < PHYS.ATTUNE_EPS;
+    if (P.onGround && slow) {
+      P.attuneT += dt * 1000;
+      if (P.attuneT >= PHYS.ATTUNE_MS) {
+        if (!P.attuned) {
+          var core = inCore(pp[1]) && pl.anchor;
+          P.attuned = true;
+          /* 跃迁余量「由 0 置为 1」—— 这是唯一的回充途径。
+             用 max 而不是直接赋值：开局带着的种子余量（2）不该被起跑线上的
+             一次驻留同调削掉，只有落地清零过的那一次才需要回充。 */
+          P.hop = Math.max(P.hop, 1);
+          G.gas = Math.min(G.gasMax, G.gas + PHYS.ATTUNE_R_CHARGE);
+          G.stab = Math.min(100, G.stab + PHYS.STAB_REFILL_S * (PHYS.ATTUNE_MS / 1000));
+          G.fatigue = Math.max(0, G.fatigue - PHYS.REPAIR_S * (PHYS.ATTUNE_MS / 1000));
+          P.coreMiss = 0;
+          G.landN++;
+          if (core) {
+            G.coreN++; score('核心区锚定同调 · 精准', 24); bumpCombo('精准锚定');
+            /* 只有核心区锚定才修复轴心寿命 —— 边缘同调只回气，不回血 */
+            G.life = Math.min(G.lifeMax, G.life + PHYS.LIFE_REPAIR);
+          }
+          else { score('边缘锚定同调 · 非核心', 6); ev('同调', 0, '未落在核心区 · 无精准加成'); }
+          burst(P.x, P.y, core ? '#7fffdc' : '#5f96ad', core ? 22 : 10);
+        }
+      }
+    } else {
+      if (P.attuneT > 0 && P.attuneT < PHYS.ATTUNE_MS) ev('同调', 0, '窗口内速度越界 · 进度打回');
+      P.attuneT = 0; P.attuned = false;
+    }
+    P.attune = clamp(P.attuneT / PHYS.ATTUNE_MS, 0, 1);
+
+    /* 边缘驻留：核心区外停着按秒扣稳定性储备 */
+    var onEdge = P.onGround && slow && !(inCore(pp[1]) && pl.anchor);
+    if (onEdge) {
+      G.stab -= PHYS.EDGE_DRAIN * 100 * dt;
+      G.edgeTime += dt;
+    }
+
+    /* ── 8.8 波次 / 无人机 / 账本 ─────────────────── */
+    stepDrones(dt);
+    /* 轴心本体侵蚀：在航拦截单位按秒啃轴心寿命（轴心卫戍按 boss 倍率单算）。
+       没有这条，「轴心守护」这一轴永远是满值 —— 权重最高的 0.30 白送，
+       而且清波与不清波没有任何区别，经济循环根本闭不上。 */
+    var erode = 0;
+    for (var di = 0; di < G.drones.length; di++)
+      erode += G.drones[di].boss ? PHYS.LIFE_ERODE * PHYS.LIFE_ERODE_BOSS : PHYS.LIFE_ERODE;
+    G.life -= erode * dt;
+    /* 轴心归零是「终局失败」而不是可回溯的失误：回溯只退 1.1 秒，
+       而寿命是单调累积的消耗，退一秒救不回来，只会退化成永不脱出的崩溃循环。 */
+    if (G.life <= 0) { G.life = 0; if (G.rollT < 0 && !G.settled) finishRun('轴心失守 · 任务失败'); }
+    for (var i = G.fx.length - 1; i >= 0; i--) {
+      var q = G.fx[i];
+      q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= 0.93; q.vy *= 0.93; q.life -= dt;
+      if (q.life <= 0) G.fx.splice(i, 1);
+    }
+    if (G.comboHold > 0) { G.comboHold -= dt; if (G.comboHold <= 0) { G.combo = 0; G.yieldMul = 1; } }
+
+    /* 圈次与波次推进：每过一圈提一波 */
+    var lapNow = Math.floor(G.totalTh / (Math.PI * 2));
+    if (lapNow > G.lap) {
+      G.lap = lapNow;
+      G.lapTimes.push(G.lapT);
+      if (!G.bestLap || G.lapT < G.bestLap) G.bestLap = G.lapT;
+      score('完成第 ' + G.lap + ' 圈 · ' + mmss(G.lapT, 2), 40);
+      G.lapT = 0;
+      if (G.lap >= LAPS) finishRun(LAPS + ' 圈完赛');
+    }
+    /* 波次由「清空 + 冷却」驱动，而不是绑在圈次上：绑圈次的话十波强化曲线
+       根本没机会展开，跑完三圈也只见得到三波，资源压力形同虚设。
+       久攻不下（WAVE_HOLD）则无视残余直接加压，保证压迫感单调上升。 */
+    if (G.wave === 0 && G.t > 0.6) spawnWave(1);
+    G.waveT += dt;
+    if (G.waveState === 'fighting') {
+      if (G.drones.length === 0) {
+        G.waveState = 'cleared'; G.waveT = 0; G.salvage++;
+        score('清空第 ' + G.wave + ' 波', 30);
+      } else if (G.waveT >= PHYS.WAVE_HOLD && G.wave < WAVES.length) {
+        spawnWave(G.wave + 1);
+      }
+    } else if (G.waveState === 'cleared' && G.waveT >= PHYS.WAVE_GAP && G.wave < WAVES.length) {
+      spawnWave(G.wave + 1);
+    }
+    G.fatiguePeak = Math.max(G.fatiguePeak, G.fatigue);
+
+    /* ── 实时损耗率：按仿真步长做指数平滑，不按渲染帧做差分 ──
+       监视器要读的是「这一秒资源往哪边走」，那是仿真量；若拿两次重绘之间的
+       差值去除，读数就变成渲染节奏的函数（冻结步进下甚至会读到跨场景的差）。
+       时间常数 0.25 s：足够平滑，又能在一秒内反映趋势反转。 */
+    var rk = Math.min(1, dt / 0.25);
+    G.rateGas += ((G.gas - _g0) / dt - G.rateGas) * rk;
+    G.rateStab += ((G.stab - _s0) / dt - G.rateStab) * rk;
+    G.rateFat += ((G.fatigue - _f0) / dt - G.rateFat) * rk;
+
+    /* 失败判据：稳定性清零 / 结构疲劳越限 */
+    if (G.stab <= 0) crash('稳定性储备耗尽');
+    if (G.fatigue >= PHYS.FATIGUE_MAX) crash('结构疲劳越限 · 解体');
+
+    resolveState();
+  }
+
+  function wall() {
+    P.u = -P.u * PHYS.WALL_BOUNCE;
+    G.fatigue += PHYS.WALL_FATIGUE;
+    G.wallCount++;
+    if (Math.abs(P.v) > PHYS.WALL_BREAK) { crash('高速撞上外侧护墙'); return; }
+    P.v *= 0.86;
+    ev('擦墙', 0, '速度 ' + f0(P.v) + ' · 结构疲劳 +' + f1(PHYS.WALL_FATIGUE));
+  }
+
+  /* ══════════════ 10. 状态机解析（优先级抢占） ══════════════ */
+  function crisisOn() {
+    return G.stab < 34 || G.fatigue > 74 || G.drones.some(function (h) { return h.boss; });
+  }
+  function resolveState() {
+    var s;
+    /* 待机大厅必须排在最前：它是唯一的「非对局」态，只能由 start()/restart()
+       显式离开。若把它排在 revealed<1 之后，toMenu() 之后再走一帧就会被
+       「显影未完成」抢成 SEEDED_INITIALIZING，待机态永远回不去。
+       其余次序 = 终局 > 回溯 > 过载 > 危机分支 > 同调驻留 > 显影 > 主循环。 */
+    if (G.state === 'TITLE_LOBBY') s = 'TITLE_LOBBY';
+    else if (G.settled) s = 'RUN_SETTLED_LEDGER';
+    else if (G.rollT >= 0) s = 'CRISIS_FAILED_ROLLBACK';
+    else if (G.overT > 0) s = 'OVERLOAD_PENALTY';
+    else if (crisisOn()) s = 'DYNAMIC_BRANCHING';
+    else if (P.attuneT > 0 || P.attuned) s = 'ATTUNEMENT_DWELL';
+    else if (G.revealed < 1) s = 'SEEDED_INITIALIZING';
+    else s = 'ACTIVE_ENGAGED';
+    if (s !== G.state) { G.prev = G.state; G.state = s; onEnter(s); }
+  }
+  function onEnter(s) {
+    if (s === 'ACTIVE_ENGAGED') ev('状态', 0, '主交互循环激活');
+    else if (s === 'ATTUNEMENT_DWELL') ev('状态', 0, '进入同调驻留窗口');
+    else if (s === 'OVERLOAD_PENALTY') ev('状态', 0, '过载失稳硬直');
+    else if (s === 'DYNAMIC_BRANCHING') ev('状态', 0, '空域危机分支');
+    else if (s === 'CRISIS_FAILED_ROLLBACK') ev('状态', 0, '因果回溯 · ' + G.rollReason);
+  }
+
+  /* ══════════════ 11. 结算聚合（账本回溯） ══════════════ */
+  function aggregate() {
+    var lifeP = clamp(G.life / G.lifeMax, 0, 1);
+    var waveP = clamp(G.wave / WAVES.length, 0, 1);
+    var salvP = clamp(G.salvage / 10, 0, 1);
+    var clean = clamp(1 - G.fatiguePeak / PHYS.FATIGUE_MAX, 0, 1);
+    var chain = clamp(G.bestCombo / 26, 0, 1);
+    var hasCore = G.landN > 0;
+    var core = hasCore ? clamp(G.coreN / G.landN, 0, 1) : 0;
+    /* 权重和必须与分子逐项对齐：漏掉连击的 0.16 会让分母只有 0.80
+       而分子上限是 0.96，满分制下算出 110+ 的分数。 */
+    var wSum = 0.30 + 0.18 + 0.16 + 0.16 + 0.16 + (hasCore ? 0.20 : 0);
+    var sc = (lifeP * 0.30 + waveP * 0.18 + salvP * 0.16 + clean * 0.16 +
+              chain * 0.16 + (hasCore ? core * 0.20 : 0)) / wSum * 100;
+    var grade = sc >= 88 ? 'S' : sc >= 76 ? 'A' : sc >= 62 ? 'B' : sc >= 48 ? 'C' : sc >= 32 ? 'D' : 'F';
+    return {
+      n: G.ledger.length, sc: sc, grade: grade, lifeP: lifeP, waveP: waveP,
+      salvP: salvP, clean: clean, chain: chain, core: core, hasCore: hasCore,
+      wSum: wSum, fatiguePeak: G.fatiguePeak, speedPeak: G.speedPeak,
+      slipPeak: G.slipPeak, lapTimes: G.lapTimes.slice()
+    };
+  }
+
+  function finishRun(result) {
+    if (G.settled) return;
+    G.settled = true; G.result = result;
+    ev('结算', 0, result + ' · 账本 ' + G.ledger.length + ' 条');
+    resolveState();
+  }
+
+  /* ══════════════ 12. 画布与绘制工具 ══════════════ */
+  var CV = {}, CX = {};
+  ['world', 'radar', 'rig', 'rings', 'ledger'].forEach(function (id) {
+    CV[id] = document.getElementById(id);
+    CX[id] = CV[id].getContext('2d');
+  });
+  function clear(c, w, h, bg) {
+    c.clearRect(0, 0, w, h);
+    if (bg) { c.fillStyle = bg; c.fillRect(0, 0, w, h); }
+  }
+  function bar(c, x, y, w, h, frac, back, fore, label, val) {
+    c.fillStyle = back; c.fillRect(x, y, w, h);
+    c.fillStyle = fore; c.fillRect(x, y, w * clamp(frac, 0, 1), h);
+    c.strokeStyle = '#2b3a6e'; c.lineWidth = 1; c.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    if (label) { c.fillStyle = '#8b93cf'; c.font = '10px monospace'; c.fillText(label, x, y - 3); }
+    if (val !== undefined) {
+      c.fillStyle = '#dff0ff'; c.font = 'bold 11px monospace'; c.textAlign = 'right';
+      c.fillText(val, x + w, y - 3); c.textAlign = 'left';
+    }
+  }
+  function ring(c, cx, cy, r, frac, col, back, thick) {
+    c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2);
+    c.strokeStyle = back || '#16204a'; c.lineWidth = thick || 5; c.stroke();
+    c.beginPath(); c.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(frac, 0, 1));
+    c.strokeStyle = col; c.lineWidth = thick || 5; c.stroke();
+  }
+
+  /* ══════════════ 13. 主视窗 ══════════════ */
+  function w2sX(x) { return 273 + x * SC; }
+  function w2sY(y) { return 273 + y * SC; }
+  function bandPath(c, th0, th1, rIn, rOut, steps) {
+    c.beginPath();
+    for (var i = 0; i <= steps; i++) {
+      var th = lerp(th0, th1, i / steps);
+      var r = rIn(th) * SC, x = 273 + r * Math.cos(th), y = 273 + r * Math.sin(th);
+      i ? c.lineTo(x, y) : c.moveTo(x, y);
+    }
+    for (var j = steps; j >= 0; j--) {
+      var th2 = lerp(th0, th1, j / steps);
+      var r2 = rOut(th2) * SC, x2 = 273 + r2 * Math.cos(th2), y2 = 273 + r2 * Math.sin(th2);
+      c.lineTo(x2, y2);
+    }
+    c.closePath();
+  }
+
+  var worldW = 546, worldH = 546;
+  function paintWorld(c) {
+    clear(c, worldW, worldH, '#04060f');
+    var g = c.createRadialGradient(273, 273, 20, 273, 273, 300);
+    g.addColorStop(0, '#0b1330'); g.addColorStop(0.55, '#070b1c'); g.addColorStop(1, '#03040c');
+    c.fillStyle = g; c.fillRect(0, 0, worldW, worldH);
+
+    /* ── 浮屿环：每段按五层环带切成条带 ── */
+    for (var i = 0; i < SEG; i++) {
+      var pl = G.plates[i];
+      var th0 = i * SEG_A, th1 = th0 + SEG_A;
+      var rev = clamp(G.revealed * SEG - i, 0, 1);
+      if (rev <= 0) continue;
+      var e1 = lerp(th0, th1, rev);
+      var sink = pl.sink;
+      if (!pl.alive) {
+        /* 虚空：只剩一圈暗红残迹，中间是能看见星空的洞 */
+        bandPath(c, th0, e1, function (t) { return rad(t) - HW; }, function (t) { return rad(t) + HW; }, 5);
+        c.fillStyle = 'rgba(255,90,90,0.10)'; c.fill();
+        c.strokeStyle = 'rgba(255,120,120,0.35)'; c.lineWidth = 1; c.stroke();
+      } else {
+        for (var s = 0; s < STRATA.length; s++) {
+          var S0 = STRATA[s];
+          var rIn = function (t) { return rad(t) + (-HW + S0.r0 * 2 * HW) - sink; };
+          var rOut = function (t) { return rad(t) + (-HW + S0.r1 * 2 * HW) - sink; };
+          bandPath(c, th0, e1, rIn, rOut, 5);
+          var dim = 0.35 + 0.65 * pl.life;
+          c.fillStyle = S0.tint; c.globalAlpha = dim; c.fill(); c.globalAlpha = 1;
+        }
+        /* 核心区高亮：只有带锚定核心的浮屿才画 */
+        if (pl.anchor) {
+          var cm = 0.5 - PHYS.CORE_ZONE * 0.5, cp = 0.5 + PHYS.CORE_ZONE * 0.5;
+          var c0 = th0 + SEG_A * cm, c1 = th0 + SEG_A * cp;
+          bandPath(c, c0, Math.min(c1, e1), function (t) { return rad(t) - HW * 0.55; },
+                   function (t) { return rad(t) + HW * 0.55; }, 4);
+          c.fillStyle = 'rgba(95,224,192,' + (0.16 + 0.20 * pl.life) + ')'; c.fill();
+          c.strokeStyle = 'rgba(127,255,220,0.45)'; c.lineWidth = 1; c.stroke();
+        }
+        /* 引信：琥珀 → 红，越接近碎裂越靠红 */
+        if (pl.fuse >= 0) {
+          var fq = 1 - clamp(pl.fuse / PHYS.FUSE_MS, 0, 1);
+          bandPath(c, th0, th1, function (t) { return rad(t) - HW; }, function (t) { return rad(t) + HW; }, 5);
+          c.fillStyle = 'rgba(255,' + Math.round(170 - 120 * fq) + ',60,' + (0.18 + 0.42 * fq) + ')'; c.fill();
+        }
+        c.strokeStyle = 'rgba(120,160,255,0.16)'; c.lineWidth = 1;
+        bandPath(c, th0, th1, function (t) { return rad(t) - HW; }, function (t) { return rad(t) + HW; }, 5);
+        c.stroke();
+      }
+    }
+
+    /* ── 起终点方格线 ── */
+    (function () {
+      var n = 6;
+      for (var k = 0; k < n; k++) {
+        var a0 = -0.010 + k * 0.0034, a1 = a0 + 0.0034;
+        bandPath(c, a0, a1, function (t) { return rad(t) - HW + HW * 2 * (k % 2) / 2; },
+                 function (t) { return rad(t) - HW + HW * 2 * ((k % 2) + 1) / 2; }, 2);
+        c.fillStyle = k % 2 ? '#e8f4ff' : '#2a3560'; c.globalAlpha = 0.75; c.fill(); c.globalAlpha = 1;
+      }
+    })();
+
+    /* ── 能量索锚塔 ── */
+    for (var pi = 0; pi < BOARD_HINT.pylons.length; pi++) {
+      var py = BOARD_HINT.pylons[pi];
+      var pth = (py[0] + py[1] / 13) * SEG_A;
+      var pr = (rad(pth) + (-HW + (py[1] / 13) * 2 * HW)) * SC;
+      var px = 273 + pr * Math.cos(pth), pyy = 273 + pr * Math.sin(pth);
+      c.beginPath(); c.arc(px, pyy, 5, 0, Math.PI * 2);
+      c.fillStyle = '#ffd166'; c.fill();
+      c.strokeStyle = 'rgba(255,209,102,0.45)'; c.lineWidth = 1;
+      c.beginPath(); c.arc(px, pyy, 11 + Math.sin(G.t * 3 + pi) * 2, 0, Math.PI * 2); c.stroke();
+    }
+
+    /* ── 轴心本体 ── */
+    (function () {
+      var pulse = 0.55 + 0.45 * Math.sin(G.t * 2.2);
+      var gg = c.createRadialGradient(273, 273, 2, 273, 273, 74);
+      gg.addColorStop(0, 'rgba(159,244,255,' + (0.55 * pulse) + ')');
+      gg.addColorStop(0.4, 'rgba(80,120,255,0.20)');
+      gg.addColorStop(1, 'rgba(20,30,80,0)');
+      c.fillStyle = gg; c.beginPath(); c.arc(273, 273, 74, 0, Math.PI * 2); c.fill();
+      for (var k = 0; k < 6; k++) {
+        var a = G.t * 0.5 + k * Math.PI / 3;
+        c.beginPath(); c.moveTo(273, 273);
+        c.lineTo(273 + Math.cos(a) * 46, 273 + Math.sin(a) * 46);
+        c.strokeStyle = 'rgba(120,180,255,0.18)'; c.lineWidth = 1; c.stroke();
+      }
+      c.beginPath(); c.arc(273, 273, 15, 0, Math.PI * 2);
+      c.fillStyle = 'rgba(200,240,255,' + (0.35 + 0.3 * pulse) + ')'; c.fill();
+      c.fillStyle = '#9ff4ff'; c.font = '9px monospace'; c.textAlign = 'center';
+      c.fillText('轴心', 273, 273 + 32); c.textAlign = 'left';
+    })();
+
+    /* ── 轮胎印 ── */
+    for (var m = 0; m < G.marks.length; m++) {
+      var mk = G.marks[m];
+      c.fillStyle = 'rgba(120,150,255,' + (0.30 * mk.a) + ')';
+      c.fillRect(w2sX(mk.x) - 1.5, w2sY(mk.y) - 1.5, 3, 3);
+    }
+
+    /* ── 粒子 ── */
+    for (var q = 0; q < G.fx.length; q++) {
+      var p = G.fx[q];
+      c.globalAlpha = clamp(p.life * 1.6, 0, 1);
+      c.fillStyle = p.col;
+      c.fillRect(w2sX(p.x) - 1.5, w2sY(p.y) - 1.5, 3, 3);
+    }
+    c.globalAlpha = 1;
+
+    /* ── 无人机 ── */
+    for (var d = 0; d < G.drones.length; d++) {
+      var h = G.drones[d];
+      var hx = w2sX(h.x), hy = w2sY(h.y);
+      if (h.ethereal) c.globalAlpha = 0.42 + 0.3 * Math.sin(G.t * 7 + d);
+      c.beginPath(); c.arc(hx, hy, h.rad * 0.62, 0, Math.PI * 2);
+      c.fillStyle = h.col; c.fill();
+      if (h.armor) { c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); }
+      if (h.boss) {
+        c.beginPath(); c.arc(hx, hy, h.rad * 0.62 + 6, 0, Math.PI * 2);
+        c.strokeStyle = h.col; c.lineWidth = 2; c.stroke();
+      }
+      if (h.hitT > 0) { c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); }
+      c.globalAlpha = 1;
+    }
+
+    /* ── 玩家：影子 + 车体（高度用屏幕位移表达） ── */
+    var sx = w2sX(P.x), sy = w2sY(P.y);
+    var lift = P.alt * SC * 0.9;
+    c.globalAlpha = 0.30;
+    c.beginPath(); c.ellipse(sx, sy, 10, 6, 0, 0, Math.PI * 2);
+    c.fillStyle = '#000'; c.fill(); c.globalAlpha = 1;
+    /* 相位翻转的视差倾角扰动 */
+    var tilt = P.polT > 0 ? PHYS.POL_TILT * (P.polT / (PHYS.POL_MS / 1000)) : 0;
+    c.save();
+    c.translate(sx, sy - lift);
+    c.rotate(P.head + Math.PI / 2 + tilt * 0.5);
+    c.beginPath();
+    c.moveTo(0, -13); c.lineTo(9, 10); c.lineTo(0, 5); c.lineTo(-9, 10); c.closePath();
+    c.fillStyle = P.hitFlash > 0 ? '#ffffff' : '#9ff4ff'; c.fill();
+    c.strokeStyle = G.boostT > 0 ? '#ff5fd0' : '#4fe0c0'; c.lineWidth = 2; c.stroke();
+    if (P.polT > 0) {
+      c.beginPath(); c.arc(0, 0, 20, 0, Math.PI * 2);
+      c.strokeStyle = 'rgba(200,140,255,' + (P.polT * 3) + ')'; c.lineWidth = 2; c.stroke();
+    }
+    c.restore();
+    if (P.tether) {
+      c.beginPath(); c.moveTo(sx, sy - lift);
+      c.lineTo(w2sX(P.tether.r * Math.cos(P.tether.th)), w2sY(P.tether.r * Math.sin(P.tether.th)));
+      c.strokeStyle = 'rgba(255,209,102,0.85)'; c.lineWidth = 1.5; c.stroke();
+    }
+
+    paintVeil(c);
+  }
+
+  /* ── 状态差异层：八阶状态在主视窗必须各有可辨认的画面差异 ── */
+  function paintVeil(c) {
+    var W = worldW, H = worldH;
+    /* ① 种子解算：未显影的半环被暗幕盖住，带扫描线 */
+    if (G.revealed < 1) {
+      var a0 = G.revealed * Math.PI * 2;
+      c.save();
+      c.beginPath(); c.moveTo(273, 273);
+      c.arc(273, 273, 300, a0, a0 + Math.PI * 2); c.closePath();
+      c.fillStyle = 'rgba(3,5,14,0.94)'; c.fill();
+      c.restore();
+      c.beginPath(); c.moveTo(273, 273);
+      c.lineTo(273 + Math.cos(a0) * 290, 273 + Math.sin(a0) * 290);
+      c.strokeStyle = 'rgba(95,224,192,0.85)'; c.lineWidth = 2; c.stroke();
+      c.fillStyle = '#5fe0c0'; c.font = 'bold 11px monospace';
+      /* 读数放在画布左下角：左上角被窗格标签占着，两行字叠在一起读不出来 */
+      c.fillText('种子 ' + G.seed + ' 逐段解算 ' + Math.round(G.revealed * 100) + '%', 12, H - 10);
+    }
+    /* ② 同调驻留：以浮屿为圆心的谐振环一圈圈外扩 */
+    if (G.state === 'ATTUNEMENT_DWELL') {
+      var cx = 273 + (rad(P.th)) * SC * Math.cos(P.th), cy = 273 + (rad(P.th)) * SC * Math.sin(P.th);
+      for (var k = 0; k < 3; k++) {
+        var rp = (18 + ((G.f * 1.4 + k * 26) % 74)) * SC + 10;
+        c.beginPath(); c.arc(cx, cy, rp, 0, Math.PI * 2);
+        c.strokeStyle = 'rgba(127,255,220,' + (0.45 * (1 - ((G.f * 1.4 + k * 26) % 74) / 74)) + ')';
+        c.lineWidth = 2; c.stroke();
+      }
+      c.fillStyle = '#7fffdc'; c.font = 'bold 11px monospace';
+      c.fillText('锚定同调驻留 ' + f2(P.attune) + ' · 低速窗口', 12, H - 10);
+    }
+    /* ③ 危机分支：红色暗角 + 呼吸边框 */
+    if (G.state === 'DYNAMIC_BRANCHING') {
+      var dg = Math.max(clamp((G.fatigue - 74) / 26, 0, 1), clamp(1 - G.stab / 34, 0, 1));
+      var vg = c.createRadialGradient(273, 273, 90, 273, 273, 290);
+      vg.addColorStop(0, 'rgba(255,40,60,0)');
+      vg.addColorStop(1, 'rgba(255,40,60,' + (0.16 + 0.30 * dg) + ')');
+      c.fillStyle = vg; c.fillRect(0, 0, W, H);
+      c.strokeStyle = 'rgba(255,90,90,' + (0.35 + 0.45 * Math.abs(Math.sin(G.t * 4))) + ')';
+      c.lineWidth = 3; c.strokeRect(1.5, 1.5, W - 3, H - 3);
+      c.fillStyle = '#ff8a5c'; c.font = 'bold 11px monospace';
+      c.fillText('空域危机 · 轴心卫戍在场', 12, H - 10);
+    }
+    /* ④ 过载熔断：橙色冲洗 + 车体向外扩散的压力环 */
+    if (G.overT > 0) {
+      var ot = clamp(G.overT / (PHYS.OVER_MS / 1000), 0, 1);
+      c.fillStyle = 'rgba(255,138,92,' + (0.24 * ot) + ')'; c.fillRect(0, 0, W, H);
+      for (var q = 0; q < 3; q++) {
+        var rr = 26 + q * 34 + (1 - ot) * 60;
+        c.beginPath(); c.arc(w2sX(P.x), w2sY(P.y), rr, 0, Math.PI * 2);
+        c.strokeStyle = 'rgba(255,180,120,' + (0.5 * ot) + ')'; c.lineWidth = 2; c.stroke();
+      }
+      c.fillStyle = '#ffb27a'; c.font = 'bold 11px monospace';
+      c.fillText('过载熔断硬直 ' + f1(G.overT) + ' s · 舵面锁死', 12, H - 10);
+    }
+    /* ⑤ 因果回溯：把整块视窗按进度盖回去，底部固定通知板 */
+    if (G.rollT >= 0) {
+      var rp2 = 1 - clamp(G.rollT / PHYS.ROLLBACK_S, 0, 1);
+      c.fillStyle = 'rgba(4,6,16,0.88)'; c.fillRect(0, 0, W, H * rp2);
+      c.beginPath(); c.moveTo(0, H * rp2); c.lineTo(W, H * rp2);
+      c.strokeStyle = 'rgba(255,90,90,0.9)'; c.lineWidth = 2; c.stroke();
+      c.fillStyle = 'rgba(8,10,24,0.94)'; c.fillRect(24, H - 62, W - 48, 44);
+      c.strokeStyle = '#ff5a5a'; c.lineWidth = 1; c.strokeRect(24.5, H - 61.5, W - 49, 43);
+      c.textAlign = 'center';
+      c.fillStyle = '#ff9d6b'; c.font = 'bold 13px monospace';
+      c.fillText('回溯 · ' + G.rollReason, W / 2, H - 42);
+      c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+      c.fillText('世界时钟回退 ' + PHYS.ROLLBACK_S + ' s · 剩余 ' + f1(Math.max(0, G.rollT)) + ' s', W / 2, H - 26);
+      c.textAlign = 'left';
+    }
+  }
+
+  /* ══════════════ 14. 环境雷达（低频） ══════════════ */
+  var radarW = 546, radarH = 86;
+  function paintRadar(c) {
+    clear(c, radarW, radarH, '#05070f');
+    var cx = 74, cy = 43, k = 0.135;
+    /* 整圈轮廓 */
+    c.beginPath();
+    for (var i = 0; i <= 96; i++) {
+      var th = i / 96 * Math.PI * 2, r = rad(th) * k;
+      var x = cx + r * Math.cos(th), y = cy + r * Math.sin(th);
+      i ? c.lineTo(x, y) : c.moveTo(x, y);
+    }
+    c.closePath();
+    c.strokeStyle = 'rgba(120,160,255,0.30)'; c.lineWidth = 1; c.stroke();
+    /* 浮屿状态环：引信琥珀、虚空红、完好青 */
+    for (var p = 0; p < SEG; p++) {
+      var pl = G.plates[p];
+      var th0 = p * SEG_A, steps = 4;
+      c.beginPath();
+      for (var j = 0; j <= steps; j++) {
+        var t = lerp(th0, th0 + SEG_A, j / steps), r2 = rad(t) * k;
+        var x2 = cx + r2 * Math.cos(t), y2 = cy + r2 * Math.sin(t);
+        j ? c.lineTo(x2, y2) : c.moveTo(x2, y2);
+      }
+      c.strokeStyle = !pl.alive ? '#ff5a5a' : (pl.fuse >= 0 ? '#ffb020' : '#2f6f8f');
+      c.lineWidth = pl.alive ? (pl.fuse >= 0 ? 3 : 2) : 3;
+      c.stroke();
+    }
+    /* 远端危险预警 */
+    for (var d = 0; d < G.drones.length; d++) {
+      var h = G.drones[d];
+      c.beginPath(); c.arc(cx + h.x * k, cy + h.y * k, h.boss ? 4 : 2, 0, Math.PI * 2);
+      c.fillStyle = h.col; c.fill();
+    }
+    /* 玩家 */
+    c.beginPath(); c.arc(cx + P.x * k, cy + P.y * k, 3.4, 0, Math.PI * 2);
+    c.fillStyle = '#9ff4ff'; c.fill();
+    c.strokeStyle = '#4fe0c0'; c.lineWidth = 1; c.stroke();
+    /* 右侧读数 */
+    var band = STRATA[strataAt(P.d)];
+    var wnd = windAt(P.th, G.t);
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('环境雷达 · 远端预警', 150, 16);
+    c.fillStyle = '#dff0ff'; c.font = 'bold 11px monospace';
+    c.fillText('外环剩余 ' + G.plates.filter(function (q) { return q.alive; }).length + '/' + SEG, 150, 34);
+    c.fillText('引信 ' + G.plates.filter(function (q) { return q.fuse >= 0; }).length +
+               ' · 虚空 ' + G.plates.filter(function (q) { return !q.alive; }).length, 150, 51);
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('当前环带 ' + band.n + ' · 摩擦 ' + f2(band.mu) + ' · 风剪 ×' + f2(band.shear), 150, 69);
+    c.fillText('切向风 ' + f1(wnd[0]) + ' · 横向风 ' + f1(wnd[1]), 150, 82);
+    /* 波次刻度 */
+    for (var wv = 0; wv < WAVES.length; wv++) {
+      var wx = 380 + wv * 14;
+      c.fillStyle = wv < G.wave ? '#ff8a5c' : '#1b2450';
+      c.fillRect(wx, 27, 10, 12);
+      c.strokeStyle = '#2b3a6e'; c.lineWidth = 1; c.strokeRect(wx + 0.5, 27.5, 9, 11);
+    }
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('波次进度 ' + G.wave + ' / ' + WAVES.length, 380, 20);
+    c.fillStyle = '#7fb6cc';
+    c.fillText(G.drones.length ? '威胁 ' + G.drones.length + ' 架 · ' + (G.waveState === 'fighting' ? '交战中' : '已清空')
+                               : '空域清空', 380, 58);
+    c.fillText('圈 ' + G.lap + '/' + LAPS + ' · 上一圈 ' + (G.lapTimes.length ? mmss(G.lapTimes[G.lapTimes.length - 1], 2) : '--:--.--'), 380, 76);
+  }
+
+  /* ══════════════ 15. 动态仪表组 ══════════════ */
+  var rigW = 690, rigH = 356;
+  function paintRig(c) {
+    clear(c, rigW, rigH, '#05070f');
+    var wnd = windAt(P.th, G.t);
+    var si = strataAt(P.d), band = STRATA[si];
+    var tail = (wnd[0] * sign(P.v || 1)) > 0;
+
+    /* ── 速度矢量仪 ── */
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('速度矢量仪', 14, 16);
+    c.fillStyle = '#dff0ff'; c.font = 'bold 26px monospace';
+    c.fillText(f0(P.v * KMH), 14, 48);
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('km/h', 14 + c.measureText(f0(P.v * KMH)).width + 40, 48);
+    c.fillStyle = '#dff0ff'; c.font = 'bold 11px monospace';
+    c.fillText('切向 ' + f0(P.v) + ' · 侧向 ' + f0(P.u), 110, 34);
+    c.fillText('滑移角 ' + f1(Math.abs(P.slip) * 180 / Math.PI) + '°' +
+               (Math.abs(P.slip) > PHYS.SLIP_SOFT ? ' 过坡 ×0.60' :
+                Math.abs(P.slip) < PHYS.SLIP_LOW ? ' 低效 ×0.40' : ' 高效'), 110, 50);
+    bar(c, 300, 34, 150, 10, P.v / PHYS.VMAX, '#1b2450', '#4fe0c0', '', Math.round(P.v / PHYS.VMAX * 100) + '%');
+    bar(c, 470, 34, 150, 10, Math.abs(P.slip) / PHYS.SLIP_MAX, '#2a1b3a',
+        Math.abs(P.slip) > PHYS.SLIP_SOFT ? '#ff8a5c' : '#c08bff', '', f1(Math.abs(P.slip) * 180 / Math.PI) + '°');
+
+    /* ── 风切矢量罗盘 ── */
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('风切矢量罗盘', 14, 78);
+    var ccx = 62, ccy = 112, cr = 26;
+    c.beginPath(); c.arc(ccx, ccy, cr, 0, Math.PI * 2);
+    c.strokeStyle = '#1b2450'; c.lineWidth = 1; c.stroke();
+    c.beginPath(); c.moveTo(ccx - cr, ccy); c.lineTo(ccx + cr, ccy);
+    c.strokeStyle = '#141c40'; c.stroke();
+    var wa = Math.atan2(wnd[1], wnd[0]);
+    c.beginPath(); c.moveTo(ccx, ccy);
+    c.lineTo(ccx + Math.cos(wa) * cr * 0.9, ccy + Math.sin(wa) * cr * 0.9);
+    c.strokeStyle = tail ? '#ff8a5c' : '#7fffdc'; c.lineWidth = 3; c.stroke();
+    c.fillStyle = '#dff0ff'; c.font = 'bold 11px monospace';
+    c.fillText(tail ? '顺风 · 阻尼 ×1.40' : '逆风 · 升力矢量', 100, 106);
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('切向 ' + f1(wnd[0]) + ' px/s · 横向 ' + f1(wnd[1]) + ' px/s', 100, 124);
+
+    /* ── 层带色标 ── */
+    for (var s2 = 0; s2 < STRATA.length; s2++) {
+      c.fillStyle = STRATA[s2].tint;
+      c.fillRect(18, 168 + s2 * 13, 10, 9);
+      c.fillStyle = s2 === si ? '#dff4ff' : '#5f7aad';
+      c.font = s2 === si ? 'bold 10px monospace' : '10px monospace';
+      c.fillText(STRATA[s2].n + '  摩擦 ' + f2(STRATA[s2].mu) + '  风剪 ×' + f2(STRATA[s2].shear), 33, 177 + s2 * 13);
+    }
+
+    /* ── 资源条 ── */
+    var bx = 330, bw = 330;
+    var seg = G.gasMax / 3, gs = [];
+    for (var k = 0; k < 3; k++) gs.push(clamp((G.gas - k * seg) / seg, 0, 1));
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('氮气三段能量', bx, 78);
+    for (var k2 = 0; k2 < 3; k2++) {
+      var q = gs[k2];
+      c.fillStyle = '#1b2450'; c.fillRect(bx + k2 * 62, 86, 56, 14);
+      c.fillStyle = q >= 1 ? '#ff5fd0' : '#7fffdc';
+      c.fillRect(bx + k2 * 62, 86, 56 * q, 14);
+      c.strokeStyle = '#2b3a6e'; c.lineWidth = 1; c.strokeRect(bx + k2 * 62 + 0.5, 86.5, 55, 13);
+      c.fillStyle = '#8b93cf'; c.font = '9px monospace';
+      c.fillText(q <= 0 ? '空' : (q >= 1 ? '满' : Math.round(q * 100) + '%'), bx + k2 * 62 + 15, 96);
+    }
+    c.fillStyle = '#dff0ff'; c.font = 'bold 11px monospace'; c.textAlign = 'right';
+    c.fillText(f1(G.gas / G.gasMax * 100) + '%', bx + bw, 96); c.textAlign = 'left';
+
+    bar(c, bx, 128, bw, 12, G.stab / 100, '#3a2a10', G.stab < 34 ? '#ff8a5c' : '#ffd166',
+        '稳定性储备（核心区外停驻每秒 −5%）', f1(G.stab));
+    bar(c, bx, 166, bw, 12, G.fatigue / PHYS.FATIGUE_MAX, '#2a1030',
+        G.fatigue > 74 ? '#ff5a5a' : '#c08bff', '结构疲劳（撞击 / 大滑移累积）', f1(G.fatigue));
+    bar(c, bx, 204, bw, 12, P.charge / PHYS.CAT_FULL, '#2a1b3a',
+        P.charge > PHYS.CAT_SAFE ? '#ff8a5c' : '#c08bff',
+        '蓄能压缩量  安全线 ' + f0(PHYS.CAT_SAFE) + ' / 满值 ' + f0(PHYS.CAT_FULL), f0(P.charge));
+
+    /* ── 实时损耗率监视器 ── */
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('实时损耗率监视器（正增益一律警示色）', bx, 244);
+    var rates = [['氮气', G.rateGas], ['稳定', G.rateStab], ['结构', G.rateFat]];
+    for (var r = 0; r < rates.length; r++) {
+      var v = rates[r][1];
+      c.fillStyle = v > 0.01 ? '#ff8a5c' : (v < -0.01 ? '#7fffdc' : '#5f7aad');
+      c.font = 'bold 10px monospace';
+      c.fillText(rates[r][0] + ' ' + (v >= 0 ? '+' : '') + f1(v) + '/s', bx + r * 112, 262);
+    }
+
+    /* ── 手势键位提示 ── */
+    var hints = [
+      'Space 手刹漂移 · 滑移角>32° 蓄能折损至六成',
+      'J 浮空跃迁 · 余量 ' + P.hop + ' · 只有同调驻留能回充',
+      'K 长按蓄能弹射 · 越限即熔断硬直',
+      'L 空间相位翻转 · 300 ms 视差倾角扰动',
+      'U 能量索抓取摆荡 · 再按脱离，切向速度达标回补氮气',
+      'I 浮屿共振同调脉冲 · 需先完成同调驻留'
+    ];
+    for (var h4 = 0; h4 < hints.length; h4++) {
+      c.fillStyle = h4 === 1 && P.hop === 0 ? '#ff8a5c' : '#5f7aad';
+      c.font = '10px monospace';
+      c.fillText(hints[h4], 14, 268 + h4 * 14);
+    }
+    c.fillStyle = P.attuned ? '#7fffdc' : '#8b93cf';
+    c.font = 'bold 11px monospace';
+    c.fillText(P.attuned ? '同调已确立 · 跃迁余量已由 0 置为 1' : '同调未确立 · 跃迁余量保持 ' + P.hop, bx, 300);
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('环带 ' + band.n + ' · 曲率 ' + f3(Math.abs(curv(P.th))) +
+               ' · 浮屿寿命 ' + f2(G.plates[plateOf(P.th)[0]].life), bx, 318);
+    c.fillText('名次 ' + G.rank + '/' + 6 + ' · 反超 ' + G.overtakes + ' · 撞墙 ' + G.wallCount +
+               ' · 回溯 ' + (G.rollT >= 0 ? '读条中' : '无'), bx, 336);
+  }
+
+  /* ══════════════ 16. 环形计量 ══════════════ */
+  var ringW = 690, ringH = 138;
+  function paintRings(c) {
+    clear(c, ringW, ringH, '#05070f');
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('浮屿寿命环形条 · 离台挂 ' + f0(PHYS.FUSE_MS) + ' ms 引信', 14, 15);
+    var y0 = 74;
+    var stepX = Math.min(58, (430 - 30) / Math.max(1, SEG - 1));
+    for (var i = 0; i < SEG; i++) {
+      var pl = G.plates[i];
+      var x = 30 + i * stepX;
+      var col = !pl.alive ? '#ff5a5a' : (pl.fuse >= 0 ? '#ffb020' : (pl.anchor ? '#7fffdc' : '#4f8fbf'));
+      ring(c, x, y0, 13, pl.alive ? pl.life : 0, col, '#141c40', 4);
+      c.fillStyle = (!pl.alive || pl.fuse >= 0) ? col : '#5f7aad';
+      c.font = '8px monospace'; c.textAlign = 'center';
+      c.fillText(pl.alive ? (pl.fuse >= 0 ? '引信' : (pl.anchor ? '核' : '屿')) : '虚空', x, y0 + 26);
+      c.textAlign = 'left';
+    }
+    /* 同调充盈环 */
+    ring(c, 500, 46, 20, P.attune, P.attuned ? '#7fffdc' : '#5fe0c0', '#141c40', 6);
+    c.fillStyle = '#dff0ff'; c.font = 'bold 11px monospace'; c.textAlign = 'center';
+    c.fillText(Math.round(P.attune * 100) + '%', 500, 50); c.textAlign = 'left';
+    c.fillStyle = '#8b93cf'; c.font = '9px monospace'; c.textAlign = 'center';
+    c.fillText('同调充盈', 500, 78); c.textAlign = 'left';
+
+    /* 多段连击蓄能槽：三段配色 */
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('多段连击蓄能槽', 548, 15);
+    var seg2 = 12, sx0 = 548, sy0 = 22;
+    for (var k = 0; k < seg2; k++) {
+      var on = k < G.combo;
+      var col2 = k < 4 ? '#4fe0c0' : (k < 8 ? '#ffd166' : '#ff5fd0');
+      c.fillStyle = on ? col2 : '#141c40';
+      c.fillRect(sx0 + k * 11, sy0, 9, 10);
+      c.strokeStyle = '#2b3a6e'; c.lineWidth = 1;
+      c.strokeRect(sx0 + k * 11 + 0.5, sy0 + 0.5, 8, 9);
+    }
+    c.fillStyle = '#ffd479'; c.font = 'bold 13px monospace';
+    c.fillText('×' + f2(G.yieldMul), sx0, sy0 + 30);
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('收益倍率 · 连击 ' + G.combo + '/' + G.bestCombo, sx0, sy0 + 44);
+    c.fillText('归零 ' + f1(Math.max(0, G.comboHold)) + ' s', sx0, sy0 + 56);
+    /* 底部统计带 */
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('速坠冲击 ' + G.plungeCount + ' 次 · 峰值 ' + Math.round(G.plungeBest) + ' px/s', 14, 128);
+    c.fillText('相位 ' + G.polCount + ' · 蓄能弹射 ' + G.catCount + ' · 能量索 ' + G.tgCount +
+               ' · 过载 ' + G.overCount, 230, 128);
+  }
+
+  /* ══════════════ 17. 收益倍率账本 ══════════════ */
+  var ledW = 690, ledH = 130;
+  function paintLedger(c) {
+    clear(c, ledW, ledH, '#05070f');
+    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
+    c.fillText('逐帧事件溯源账本 · 帧号 / 时刻 / 类型 / 带符号数额', 14, 14);
+    c.fillStyle = '#5f7aad';
+    c.fillText('共 ' + G.ledger.length + ' 条 · 收益倍率 ×' + f2(G.yieldMul), 470, 14);
+    var rows = 7, n = G.ledger.length;
+    for (var i = 0; i < rows; i++) {
+      var idx = n - rows + i;
+      var y = 30 + i * 14;
+      if (idx < 0) continue;
+      var e = G.ledger[idx];
+      var hot = e.type === '入账' || e.type === '连击';
+      c.fillStyle = hot ? '#7fffdc' : (e.type === '回溯' || e.type === '熔断' ? '#ff8a5c' : '#8b93cf');
+      c.font = '10px monospace';
+      var amt = (e.amt >= 0 ? '+' : '') + f1(e.amt);
+      c.fillText(('     ' + e.f).slice(-5) + '  ' + mmss(e.t, 1) + '  ' + e.type.padEnd(6, ' ') +
+                 ('        ' + amt).slice(-8) + '  ' + e.note, 14, y);
+    }
+  }
+
+  /* ══════════════ 18. 覆盖层与结算面板 ══════════════ */
+  var ovEl = document.getElementById('ov');
+  var cardEl = document.getElementById('card');
+  function buildMenu() {
+    ovEl.className = '';
+    ovEl.innerHTML =
+      '<div id="ovT">轴 心 脉 冲</div>' +
+      '<div id="ovS">AXELPULSE · 俯视环道漂移竞速</div>' +
+      '<div class="diffs">' + buildDiffCards() + '</div>' +
+      '<div id="ovH">接触同调需在落点驻留 <em>350 ms</em> · 驶离浮屿 <em>500 ms</em> 后碎裂为虚空 · ' +
+        '停在浮屿边缘每秒流失 <em>5%</em> 稳定性 · 顺风阻力 ×<em>1.40</em>（顺风反而更慢）</div>' +
+      '<div id="ovB">' +
+        '种子 <em>' + G.seed + '</em> · <em>R</em> 重设种子 · <em>Enter</em> 发车<br>' +
+        '<em>A / D</em> 转向 · <em>W</em> 油门 · <em>S</em> 刹车（同调驻留必须刹停）<br>' +
+        '<em>Space</em> 手刹漂移 · <em>J</em> 浮空跃迁 · <em>K</em> 长按蓄能弹射<br>' +
+        '<em>L</em> 相位翻转 · <em>U</em> 能量索 · <em>I</em> 同调脉冲' +
+      '</div>' +
+      '<div id="ovC">' + FSM_ORDER.join(' → ') + '</div>';
+  }
+  function buildDiffCards() {
+    var out = '';
+    for (var k in DIFFS) {
+      var d = DIFFS[k];
+      /* 三档一律给满三行同样的三项，否则短的那档会把最后一项挤成孤字换行 */
+      out += '<div class="df' + (k === G.diff ? ' on' : '') + '" data-d="' + k + '"><b>' + d.n + '</b><i>' +
+        '弯道 ' + d.nc + ' · 轴心 ' + d.life + ' · 氮气 ' + d.gas + '<br>' +
+        '限速 ×' + d.vmax.toFixed(2) + ' · 敌速 ×' + d.espd.toFixed(2) + '<br>' +
+        '风剪 ×' + d.mer.toFixed(2) + ' · 衰减 ×' + d.drain.toFixed(2) +
+        '</i></div>';
+    }
+    return out;
+  }
+  function showCard() {
+    cardEl.className = 'on';
+    var a = aggregate();
+    if (G.settled && !a._written) { /* 保持纯函数式：每次重算 */ }
+    var cell = function (k, v, cls) {
+      return '<div class="cell"><u>' + k + '</u><b class="' + (cls || '') + '">' + v + '</b></div>';
+    };
+    cardEl.innerHTML =
+      '<h2>' + G.result + '</h2>' +
+      '<div class="sub">RUNID ' + RUNID + ' · 种子 ' + G.seed + ' · 难度 ' + DIFFS[G.diff].n +
+        ' · 仿真 ' + G.f + ' 帧 / ' + f1(G.t) + ' s</div>' +
+      '<div id="cGrid">' +
+        cell('圈次进度', G.lap + ' / ' + LAPS) +
+        cell('补给回收', G.salvage + ' 段') +
+        cell('累计得分', Math.round(G.score), 'good') +
+        cell('峰值倍率', '×' + f2(G.yieldMul)) +
+        cell('轴心耦合余量', f1(G.life) + ' / ' + G.lifeMax, a.lifeP > 0.5 ? 'good' : 'warn') +
+        cell('氮气余量', f1(G.gas) + ' / ' + G.gasMax, G.gas > 30 ? 'good' : 'warn') +
+        cell('结构疲劳峰值', f1(a.fatiguePeak) + ' / 100', a.fatiguePeak < 60 ? 'good' : 'warn') +
+        cell('氮气消耗', f1(G.gasSpent)) +
+        cell('速坠冲击次数', G.plungeCount + ' · 峰值 ' + Math.round(G.plungeBest) + ' px/s') +
+        cell('核心区锚定', (G.coreN || 0) + ' / ' + (G.landN || 0)) +
+        cell('平均落点精准度', a.hasCore ? f3(a.core) : '—') +
+        cell('相位/弹射/索', G.polCount + ' / ' + G.catCount + ' / ' + G.tgCount) +
+        cell('过载熔断', G.overCount + ' 次', G.overCount ? 'warn' : 'good') +
+        cell('撞墙次数', G.wallCount + ' 处', G.wallCount ? 'warn' : 'good') +
+        cell('账本事件', a.n) +
+        cell('边缘暴露累计', f1(G.edgeTime) + ' s') +
+      '</div>' +
+      '<div id="cFoot">' +
+        '<div class="grade">' + a.grade + '</div>' +
+        /* 六个归一化分量必须与题面点名的六项一一对上：轴心守护 / 波次压制 /
+           补给回收 / 结构抑制 / 连击连贯度 / 落点精准。同调轴由落点精准度
+           归一化而来，无样本时整轴剔除，必须在读数处写明并同步重算权重和。 */
+        '<div>综合评分 ' + f1(a.sc) + ' / 100<br>' +
+          '轴心守护 ' + f2(a.lifeP) + ' · 波次压制 ' + f2(a.waveP) + ' · 补给回收 ' + f2(a.salvP) + '<br>' +
+          '结构抑制 ' + f2(a.clean) + ' · 连击连贯度 ' + f2(a.chain) + ' · 落点精准 ' +
+            (a.hasCore ? f2(a.core) + '（同调轴）' : '—（无落点样本）') +
+          (a.hasCore ? '' : '<br>同调轴整轴剔除 · 权重和已按剩余五轴重算') +
+        '</div>' +
+        '<div style="margin-left:auto;text-align:right">RUN_SETTLED_LEDGER<br>Enter / R 返回母舰</div>' +
+      '</div>';
+  }
+  function hideCard() { cardEl.className = ''; }
+
+  /* ══════════════ 19. 顶栏 ══════════════ */
+  var barEls = {
+    st: document.querySelector('#hState'), df: document.querySelector('#hDiff'),
+    sp: document.querySelector('#dSpeed'), lp: document.querySelector('#dLap'),
+    wv: document.querySelector('#dWave'), lf: document.querySelector('#dLife')
+  };
+  var lastBar = '';
+  function syncBar() {
+    var sig = G.state + '|' + Math.round(P.v * KMH) + '|' + G.lap + '|' + G.wave + '|' + f1(G.life);
+    if (sig === lastBar) return;
+    lastBar = sig;
+    barEls.st.textContent = G.state;
+    barEls.df.textContent = DIFFS[G.diff].n;
+    barEls.sp.textContent = Math.round(P.v * KMH);
+    barEls.lp.textContent = G.lap + ' / ' + LAPS;
+    barEls.wv.textContent = G.wave + ' / ' + WAVES.length;
+    barEls.lf.textContent = f1(G.life);
+    var menace = G.state === 'DYNAMIC_BRANCHING' || G.state === 'CRISIS_FAILED_ROLLBACK';
+    barEls.st.style.background = G.state === 'RUN_SETTLED_LEDGER' ? '#ffd479'
+      : menace ? '#ff8a5c' : (G.state === 'OVERLOAD_PENALTY' ? '#ff5fd0' : '#5fe0c0');
+  }
+
+  /* ══════════════ 20. 蒙皮同步 ══════════════ */
+  function syncOverlay() {
+    var menu = (G.state === 'TITLE_LOBBY');
+    if (menu) { if (ovEl.className === 'hide') buildMenu(); }
+    else if (ovEl.className !== 'hide') ovEl.className = 'hide';
+    if (G.settled) { if (cardEl.className !== 'on') showCard(); }
+    else if (cardEl.className === 'on') hideCard();
+  }
+  function paint() {
+    syncOverlay(); syncBar(); paintWorld(CX.world); paintRadar(CX.radar);
+    paintRig(CX.rig); paintRings(CX.rings); paintLedger(CX.ledger);
+  }
+
+  /* ══════════════ 21. 公开 API ══════════════ */
+  var API = {
+    seed: function (n) { G.seed = n | 0; lastBar = ''; return G.seed; },
+    setDifficulty: function (k) { if (DIFFS[k]) G.diff = k; return G.diff; },
+    start: function () {
+      if (G.state === 'TITLE_LOBBY' || G.settled) {
+        resetRun(); G.state = 'SEEDED_INITIALIZING'; G.revealed = 0;
+      }
+      G.frozen = false; G.paused = false; syncOverlay(); return G.state;
+    },
+    toMenu: function () { G.frozen = true; G.settled = false; G.state = 'TITLE_LOBBY'; syncOverlay(); return G.state; },
+    restart: function () { G.frozen = false; G.settled = false; resetRun(); G.state = 'SEEDED_INITIALIZING'; G.revealed = 0; syncOverlay(); return G.state; },
+    pause: function () { G.paused = true; G.frozen = true; return true; },
+    resume: function () { G.paused = false; G.frozen = false; return true; },
+    freeze: function () { G.frozen = true; return true; },
+    thaw: function () { G.frozen = false; return true; },
+    step: function (n) { for (var i = 0; i < (n || 1); i++) tick(1 / 60); return G.f; },
+    seek: function (sec) {
+      resetRun(); G.state = 'ACTIVE_ENGAGED'; G.revealed = 1;
+      var n = Math.max(0, Math.round(sec * 60));
+      for (var i = 0; i < n; i++) tick(1 / 60);
+      G.frozen = true; syncOverlay(); return G.f;
+    },
+    fastForward: function (sec) { return API.step(Math.round((sec || 0) * 60)); },
+    finish: function () { finishRun(LAPS + ' 圈完赛'); return API.state(); },
+    paint: function () { paint(); return true; },
+    state: function () { return G.state; },
+    fsmOrder: function () { return FSM_ORDER.slice(); },
+    fsmPriority: function () { return FSM_PRIORITY.slice(); },
+    consts: function () { return { SEG: SEG, R0: R0, HW: HW, SC: SC, LAPS: LAPS, KMH: KMH, PHYS: PHYS, HAZ: HAZ, WAVES: WAVES, DIFFS: DIFFS }; },
+    info: function () {
+      return {
+        state: G.state, t: +G.t.toFixed(2), frames: G.f, frozen: G.frozen,
+        seed: G.seed, diff: G.diff, nc: G.nc,
+        speed: P.v, speedKmh: P.v * KMH, lateral: P.u, slip: P.slip,
+        alt: P.alt, vz: P.vz, hop: P.hop, th: P.th, d: P.d,
+        attune: P.attune, attuned: P.attuned, attuneT: P.attuneT,
+        charge: P.charge, charging: P.charging, polT: P.polT, tether: !!P.tether,
+        plate: P.onPlate, onGround: P.onGround,
+        lap: G.lap, lapT: G.lapT, lapTimes: G.lapTimes.slice(), bestLap: G.bestLap,
+        totalTh: G.totalTh, wave: G.wave, waveState: G.waveState,
+        hazards: G.drones.length, kills: G.kills, salvage: G.salvage,
+        life: G.life, lifeMax: G.lifeMax, gas: G.gas, gasMax: G.gasMax,
+        stab: G.stab, fatigue: G.fatigue, cool: 0,
+        combo: G.combo, bestCombo: G.bestCombo, yieldMul: G.yieldMul,
+        coreN: G.coreN, landN: G.landN, edgeTime: G.edgeTime,
+        plungeCount: G.plungeCount, plungeBest: G.plungeBest,
+        polCount: G.polCount, catCount: G.catCount, tgCount: G.tgCount,
+        overCount: G.overCount, overT: G.overT, rollT: G.rollT, rollReason: G.rollReason,
+        wallCount: G.wallCount, hitCount: G.hitCount,
+        score: G.score, rank: G.rank, overtakes: G.overtakes,
+        revealed: G.revealed, settled: G.settled, result: G.result,
+        ledger: G.ledger.length
+      };
+    },
+    track: function () {
+      return { nc: G.nc, amp: G.amp, ph: G.ph, seg: SEG, r0: R0, hw: HW, seed: G.seed };
+    },
+    plates: function () {
+      return G.plates.map(function (p) {
+        return { i: p.i, life: p.life, alive: p.alive, fuse: p.fuse, voidT: p.voidT,
+                 sink: p.sink, sinkV: p.sinkV, sink0: p.sink0, impact: p.impact, anchor: p.anchor,
+                 load: p.load, decay: p.decay };
+      });
+    },
+    drones: function () {
+      return G.drones.map(function (h) {
+        return { kind: h.kind, n: h.n, x: h.x, y: h.y, hp: h.hp, hpMax: h.hpMax,
+                 rad: h.rad, r: h.r, th: h.th, armor: h.armor, ethereal: h.ethereal, boss: h.boss };
+      });
+    },
+    player: function () {
+      return { th: P.th, d: P.d, r: P.r, x: P.x, y: P.y, v: P.v, u: P.u, slip: P.slip,
+               alt: P.alt, vz: P.vz, hop: P.hop, attune: P.attune, charge: P.charge,
+               onGround: P.onGround, onPlate: P.onPlate, tether: !!P.tether,
+               tgA: P.tgA, tgW: P.tgW, head: P.head };
+    },
+    agg: function () { return aggregate(); },
+    ledger: function () { return G.ledger.slice(); },
+    log: function () { return G.logs.slice(); },
+    radial: function (th) { return rad(th); },
+    curvature: function (th) { return curv(th); },
+    windAt: function (th) { return windAt(th === undefined ? P.th : th, G.t); },
+    plateAt: function (th) { return plateOf(th === undefined ? P.th : th); },
+    inCore: function (f) { return inCore(f); },
+    strataAt: function (d) { return STRATA[strataAt(d === undefined ? P.d : d)]; },
+    /* ── 布场钩子 ── */
+    /* 操纵面注入必须走按键状态：tick 每帧都会从按键重读操纵面，
+       直接写 P.throttle / P.steer 会在同一帧被覆盖掉。 */
+    setKine: function (throttle, steer) {
+      K.up = throttle > 0.02; K.dn = throttle < -0.02;
+      K.lf = steer < -0.02; K.rt = steer > 0.02;
+      return true;
+    },
+    setHand: function (v) { K.hand = !!v; return true; },
+    /* 蓄能键同样要能按住：熔断是「顶着安全线继续蓄」的结果，
+       只给一次性的 release() 就绕过了熔断判据，过载态便无从复现。 */
+    setCat: function (v) { K.cat = !!v; return true; },
+    setSlip: function (s) { P.u = Math.tan(clamp(s, -PHYS.SLIP_MAX, PHYS.SLIP_MAX)) * Math.max(20, P.v); return P.slip; },
+    setVel: function (v, u) { P.v = v; if (u !== undefined) P.u = u; return true; },
+    setAlt: function (a, vz) { P.alt = a; P.vz = vz || 0; return true; },
+    teleport: function (th, d) { P.th = th; if (d !== undefined) P.d = d; syncPos(); return true; },
+    setHop: function (n) { P.hop = n; return P.hop; },
+    setGas: function (g) { G.gas = clamp(g, 0, G.gasMax) * (g <= 1.001 && g >= 0 ? G.gasMax : 1); return G.gas; },
+    setStab: function (s) { G.stab = clamp(s <= 1.001 && s >= 0 ? s * 100 : s, 0, 100); return G.stab; },
+    setFatigue: function (v) { G.fatigue = clamp(v, 0, PHYS.FATIGUE_MAX); return G.fatigue; },
+    setLife: function (v) { G.life = clamp(v <= 1.001 && v >= 0 ? v * G.lifeMax : v, 0, G.lifeMax); return G.life; },
+    setCombo: function (n) { G.combo = n | 0; if (G.combo > G.bestCombo) G.bestCombo = G.combo; G.yieldMul = 1 + Math.min(2.4, Math.max(0, G.combo - 1) * 0.13); return G.combo; },
+    setSalvage: function (n) { G.salvage = n | 0; return G.salvage; },
+    setPlate: function (i, o) {
+      var p = G.plates[i]; if (!p || !o) return false;
+      if ('life' in o) p.life = o.life;
+      if ('alive' in o) p.alive = !!o.alive;
+      if ('fuse' in o) p.fuse = o.fuse;
+      if ('voidT' in o) p.voidT = o.voidT;
+      if ('sinkV' in o) p.sinkV = o.sinkV;
+      return true;
+    },
+    setCharge: function (v) { P.charge = clamp(v, 0, PHYS.CAT_FULL); return P.charge; },
+    charge: function () { P.charging = true; return P.charge; },
+    release: function () {
+      var imp = PHYS.CAT_K * Math.pow(P.charge, PHYS.CAT_EXP);
+      P.v += imp * 0.60; P.vz += imp * 0.10;
+      G.catCount++; P.charging = false; P.charge = 0;
+      return imp;
+    },
+    hop: function () { return doHop(); },
+    polarity: function () { return doPolarity(); },
+    tether: function () { return tryTether(); },
+    pulse: function () { return doPulse(); },
+    plunge: function (imp) {
+      P.vz = -(imp || 260); P.alt = Math.max(P.alt, 1);
+      G.plungeCount++; return true;
+    },
+    overload: function () { G.overT = PHYS.OVER_MS / 1000; G.overCount++; return true; },
+    crisis: function (r) { crash(r || '探针注入的致命失败'); return true; },
+    wall: function () { wall(); return G.wallCount; },
+    setAttune: function (v) { P.attuneT = clamp(v, 0, 1) * PHYS.ATTUNE_MS; P.attuned = v >= 1; return P.attune; },
+    wave: function (n) { spawnWave(n); return G.wave; },
+    spawn: function (kind, th, d) {
+      var H = HAZ[kind]; if (!H) return false;
+      var w = WAVES[clamp(G.wave, 1, WAVES.length) - 1];
+      var thx = (th === undefined) ? P.th + 0.6 : th;
+      var r = rad(thx) + (d === undefined ? 0 : d);
+      G.drones.push({
+        kind: kind, n: H.n, hp: H.hp * w.hp, hpMax: H.hp * w.hp,
+        x: r * Math.cos(thx), y: r * Math.sin(thx), th: thx, r: r,
+        spd: H.spd * G.espd * w.spd, dmg: H.dmg, rad: H.r, col: H.col,
+        armor: !!H.armor, ethereal: !!H.ethereal, boss: !!H.boss, hitT: 0
+      });
+      return true;
+    },
+    clearDrones: function () { G.drones = []; return true; },
+    killAll: function () { G.kills += G.drones.length; G.drones = []; return true; },
+    clearFx: function () { G.fx = []; G.marks = []; return true; },
+    settle: function (r) { finishRun(r || LAPS + ' 圈完赛'); return true; },
+    marks: function () { return G.marks.slice(); }
+  };
+  /* 标记：撞击 / 漂移痕，交给主循环采样 */
+  function sampleMarks() {
+    if (Math.abs(P.slip) > 0.28 && P.alt <= 0.5)
+      G.marks.push({ x: P.x, y: P.y, a: clamp(Math.abs(P.slip) / PHYS.SLIP_MAX, 0, 1) });
+    else if (G.marks.length && G.f % 3 === 0) G.marks.push({ x: P.x, y: P.y, a: 0.12 });
+    if (G.marks.length > 300) G.marks.splice(0, G.marks.length - 300);
+  }
+
+  /* ══════════════ 22. 输入绑定 ══════════════ */
+  window.addEventListener('keydown', function (e) {
+    var a = KEYS[e.code];
+    if (a) { K[a] = true; if (e.code === 'Space') e.preventDefault(); }
+    if (e.code === 'KeyJ') K.hop = true;
+    if (e.code === 'KeyU') K.tg = true;
+    if (e.code === 'KeyI') K.pulse = true;
+    if (e.code === 'KeyL') K.pol = true;
+    if (e.code === 'Enter') {
+      if (G.state === 'TITLE_LOBBY') API.start();
+      else if (G.settled) API.toMenu();
+    }
+    if (e.code === 'KeyR') { G.seed = (G.seed * 1103515245 + 12345) & 0x7fffffff; buildMenu(); }
+    if (e.code === 'Digit1') { G.diff = 'easy'; buildMenu(); }
+    if (e.code === 'Digit2') { G.diff = 'normal'; buildMenu(); }
+    if (e.code === 'Digit3') { G.diff = 'hard'; buildMenu(); }
+  });
+  window.addEventListener('keyup', function (e) {
+    var a = KEYS[e.code];
+    if (a) K[a] = false;
+  });
+  window.addEventListener('blur', function () { for (var k in K) K[k] = false; });
+  document.addEventListener('mousedown', function (e) {
+    var el = e.target.closest ? e.target.closest('.df') : null;
+    if (el) { G.diff = el.getAttribute('data-d'); buildMenu(); }
+  });
+
+  /* ══════════════ 23. 主循环（定长步进 + 五路独立重绘） ══════════════ */
+  var acc = 0, last = 0;
+  function advance(now) {
+    if (G.frozen || G.paused) { last = now; return; }
+    if (!last) last = now;
+    var dt = (now - last) / 1000; last = now;
+    if (dt > 0.25) dt = 0.25;
+    acc += dt;
+    var n = 0;
+    while (acc >= 1 / 60 && n < 8) { tick(1 / 60); sampleMarks(); acc -= 1 / 60; n++; }
+  }
+  function loopWorld(now) { advance(now); paintWorld(CX.world); syncBar(); requestAnimationFrame(loopWorld); }
+  function loopRig() { paintRig(CX.rig); requestAnimationFrame(loopRig); }
+  function loopRadar() { paintRadar(CX.radar); requestAnimationFrame(loopRadar); }
+  function loopRings() { paintRings(CX.rings); requestAnimationFrame(loopRings); }
+  function loopLedger() { paintLedger(CX.ledger); requestAnimationFrame(loopLedger); }
+
+  /* ══════════════ 24. 启动 ══════════════ */
+  resetRun();
+  G.state = 'TITLE_LOBBY';
+  G.frozen = true;
+  buildMenu();
+  window.AXELPULSE = API;
+  paint();
+  requestAnimationFrame(loopWorld);
+  requestAnimationFrame(loopRig);
+  requestAnimationFrame(loopRadar);
+  requestAnimationFrame(loopRings);
+  requestAnimationFrame(loopLedger);
+})();
+
+</script>
+</body>
+</html>

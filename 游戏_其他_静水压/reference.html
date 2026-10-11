@@ -1,0 +1,2443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>静水压 HYDROSTAT · 压载深潜</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#03080f}
+body{
+  font:12px/1.45 "DejaVu Sans Mono","Menlo","Consolas",monospace;
+  color:#a9cfe0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(140% 110% at 50% -10%,#0a2233 0%,#05121c 46%,#02070c 100%);
+  -webkit-font-smoothing:antialiased;
+}
+#stage{position:relative;width:1280px;height:720px;display:flex;flex-direction:column;gap:8px;padding:10px 14px}
+
+/* ── 顶栏 ───────────────────────────────────────────── */
+#bar{
+  height:42px;flex:0 0 42px;display:flex;align-items:center;gap:14px;padding:0 14px;
+  border:1px solid #12455e;border-radius:4px;
+  background:linear-gradient(180deg,#0b2c3d 0%,#061926 100%);
+  box-shadow:inset 0 1px 0 #1c6a8e,0 4px 14px #000a;
+}
+#hTitle{font-size:15px;font-weight:700;letter-spacing:3px;color:#8ff0ff;text-shadow:0 0 12px #29b6d8}
+#hTitle small{font-size:10px;letter-spacing:1px;color:#4d8ea8;font-weight:400;margin-left:8px}
+#hState{
+  font-size:11px;letter-spacing:2px;padding:3px 10px;border-radius:3px;
+  color:#0a1a22;background:#5fe0c0;font-weight:700;box-shadow:0 0 12px #1d9f8a;
+}
+#hDiff{font-size:11px;color:#ffd479;letter-spacing:1px}
+#hDepth{margin-left:auto;display:flex;gap:16px;font-size:11px;letter-spacing:1px;color:#7fb6cc}
+#hDepth b{color:#dff4ff;font-weight:700}
+
+/* ── 主区 ───────────────────────────────────────────── */
+#main{flex:1 1 auto;display:flex;gap:10px;min-height:0}
+#left{flex:0 0 auto;display:flex;flex-direction:column;gap:8px}
+#right{flex:0 0 auto;display:flex;flex-direction:column;gap:8px}
+
+.pane{
+  position:relative;border:1px solid #12455e;border-radius:4px;overflow:hidden;
+  background:#04101a;box-shadow:inset 0 0 40px #000c,0 3px 12px #0008;
+}
+.pane > canvas{display:block}
+.tag{
+  position:absolute;top:0;left:0;font-size:9px;letter-spacing:2px;
+  padding:2px 7px;color:#9fe8ff;background:#0d3446dd;border-right:1px solid #12455e;
+  border-bottom:1px solid #12455e;border-radius:0 0 4px 0;z-index:4;pointer-events:none;
+}
+
+/* ── 覆盖层与结算面板（挂在 stage 内，随舞台缩放） ──── */
+#ov{
+  position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:13px;text-align:center;
+  background:radial-gradient(80% 70% at 50% 40%,#04222fd8 0%,#020a11f2 70%,#01060af7 100%);
+}
+#ov.hide{display:none}
+#ovT{font-size:30px;letter-spacing:10px;color:#9ff4ff;text-shadow:0 0 24px #21a7cc,0 0 60px #0d5068}
+#ovS{font-size:12px;letter-spacing:4px;color:#69b6d0}
+#ovB{font-size:11px;letter-spacing:2px;color:#8fd8b8;line-height:2}
+#ovB em{color:#ffd479;font-style:normal;font-weight:700}
+.diffs{display:flex;gap:12px;margin-top:2px}
+.df{
+  width:204px;padding:9px 12px;border:1px solid #17506a;border-radius:4px;
+  background:linear-gradient(180deg,#08293a,#04141e);
+}
+.df b{display:block;font-size:13px;letter-spacing:3px;color:#bfefff;margin-bottom:5px}
+.df i{display:block;font-size:10px;line-height:1.8;color:#6ea9c0;font-style:normal}
+.df.on{border-color:#4fe0c0;box-shadow:0 0 20px #12756a,inset 0 0 24px #0a3d38}
+.df.on b{color:#7fffdc}
+
+#card{
+  position:absolute;inset:0;z-index:9;display:none;flex-direction:column;
+  padding:18px 24px;gap:9px;background:linear-gradient(180deg,#02141ef2,#01080df7);
+}
+#card.on{display:flex}
+#card h2{font-size:22px;letter-spacing:8px;color:#9ff4ff;text-shadow:0 0 18px #1d94b8;font-weight:700}
+#card .sub{font-size:11px;letter-spacing:3px;color:#6aa8c0;margin-bottom:3px}
+#cGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 10px}
+#cGrid .cell{
+  border:1px solid #12455e;border-radius:3px;padding:5px 9px;
+  background:#062029;display:flex;justify-content:space-between;align-items:baseline;
+}
+#cGrid .cell u{font-size:10px;color:#6ea9c0;text-decoration:none;letter-spacing:1px}
+#cGrid .cell b{font-size:13px;color:#dff4ff}
+#cGrid .cell b.warn{color:#ff9d6b}
+#cGrid .cell b.good{color:#7fffdc}
+#cFoot{display:flex;gap:18px;align-items:flex-end;margin-top:auto;font-size:11px;color:#7fb6cc;letter-spacing:1px}
+.grade{
+  font-size:44px;font-weight:700;letter-spacing:4px;color:#ffd479;
+  text-shadow:0 0 26px #b07d2090;line-height:.9;
+}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <div id="bar">
+    <div id="hTitle">静水压 HYDROSTAT<small>压载深潜 · BALLAST DESCENT</small></div>
+    <div id="hState">TITLE_LOBBY</div>
+    <div id="hDiff">标准</div>
+    <div id="hDepth">
+      <span>深度 <b id="dDepth">0</b> m</span>
+      <span>层带 <b id="dBand">光合层</b></span>
+      <span>波次 <b id="dWave">0 / 10</b></span>
+      <span>脐带 <b id="dLife">30</b></span>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="left">
+      <div class="pane"><span class="tag">A · 主视窗 剖面</span><canvas id="world" width="546" height="546"></canvas></div>
+      <div class="pane"><span class="tag">C · 声呐回波剖面</span><canvas id="sonar" width="546" height="86"></canvas></div>
+    </div>
+    <div id="right">
+      <div class="pane"><span class="tag">B · 动态仪表组</span><canvas id="rig" width="690" height="356"></canvas></div>
+      <div class="pane"><span class="tag">D · 环形计量</span><canvas id="rings" width="690" height="138"></canvas></div>
+      <div class="pane"><span class="tag">E · 收益倍率账本</span><canvas id="ledger" width="690" height="130"></canvas></div>
+    </div>
+  </div>
+
+  <div id="ov"></div>
+  <div id="card"></div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   静水压 HYDROSTAT · 压载深潜 —— 平衡数据与静态标定表
+   本文件只放常数、表与布局蓝图；一切随时间演化的量都在 app.js 内解算。
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* 棋盘：局部坐标系，行 0 = 水面（母船），行 ROWS-1 = 海床（压碎层底） */
+var COLS = 13, ROWS = 13, CELL = 42;
+var WORLD_W = COLS * CELL, WORLD_H = ROWS * CELL;
+var M_PER_ROW = 175;                       // 每格代表的米数（仅用于读数显示）
+
+/* 洋流的「非欧」来源：三层内波模态叠加，密度跃层处剪切使相邻层流向反号。
+   振幅与相位速度都随层带下标变化，因此剖面里没有一处是恒定加减。 */
+var WAVE_MODES = [
+  { amp: 21.0, k: 0.000419, w: 1.000, ph: 0.00 },
+  { amp: 13.5, k: 0.000711, w: 1.618, ph: 2.11 },
+  { amp:  8.0, k: 0.001183, w: 2.414, ph: 4.03 }
+];
+
+/* 五层密度剖面。rho 为相对密度，light 为透光率，o2 为耗氧倍率，
+   shear 为该层是否位于密度跃层之下（决定垂向流向是否反号）。 */
+var STRATA = [
+  { n: '光合层',   r0: 0,  r1: 2,  rho: 1.000, light: 1.00, o2: 0.62, tint: '#1d6f8e' },
+  { n: '温跃层',   r0: 3,  r1: 5,  rho: 1.014, light: 0.72, o2: 0.88, tint: '#155a7c' },
+  { n: '密度跃层', r0: 6,  r1: 8,  rho: 1.032, light: 0.44, o2: 1.08, tint: '#0e4463' },
+  { n: '暗层',     r0: 9,  r1: 10, rho: 1.055, light: 0.18, o2: 1.34, tint: '#092e47' },
+  { n: '压碎层',   r0: 11, r1: 12, rho: 1.082, light: 0.04, o2: 1.72, tint: '#061f33' }
+];
+
+/* 动力学与结构常数。全部为「每帧」口径的量都显式以 _F 结尾。 */
+var PHYS = {
+  /* 静水压与波义耳气囊：P = 1 + KAPPA·d，V = gasInBladder / P。
+     于是越深气囊越小、净浮力越负 —— 下潜是正反馈，必须主动注气才刹得住。 */
+  KAPPA: 1.90,
+  RHO0: 1.0,
+  BUOY_K: 276.0,        // 单位体积排开质量产生的上向加速度
+  M_HULL: 1.00,         // 耐压壳自重（无量纲质量单位）
+  M_BALLAST: 1.62,      // 压载水满舱时的附加质量
+  M_SALVAGE: 0.115,     // 每件打捞物的附加质量
+  ORIENT_K: 240.0,      // 姿态回正（把速度朝有效推力方向对齐的强度）
+  HULL_HW: 9.0,         // 耐压壳半宽 px（碰撞盒）
+  HULL_HH: 11.0,        // 耐压壳半高 px：站立高度 = 所在行顶 - HULL_HH
+
+  DRAG: 1.05,           // 基础水阻
+  TAIL_DRAG: 1.40,      // 顺流时水阻的非线性放大系数
+  LIFT_K: 62.0,         // 迎流夹角产生的垂向升力系数
+  VMAX: 640.0,          // 速度硬上限 px/s
+
+  VENT_RATE: 1.15,      // 气囊补偿注气速率（单位/秒），实际消耗再乘静水压
+  BLEED_RATE: 0.90,     // 气囊排气泄压速率
+  BLADDER_MAX: 1.30,    // 气囊实际容积上限（超限即过载熔断）
+  BLADDER_SAFE: 1.12,   // 气囊稳定容积上限，越过后进入过载预警带
+
+  BALLAST_RATE: 0.62,   // 注水/排水速率（每秒质量单位）
+  LATERAL: 132.0,       // 横向推进器加速度
+
+  PLUNGE_IMPULSE: 900.0,// 动量下压的额外下向加速度 px/s²
+  PLUNGE_GAS: 0.22,      // 速坠每秒抽走的气囊容积
+  PLUNGE_MIN_V: 168.0,  // 触发冲击波所需的最小下向速度 px/s
+  SHOCK_R: 96.0,        // 冲击波基准半径
+  SHOCK_DMG: 40.0,      // 冲击波基准伤害
+  ARMOR_BREAK_V: 430.0, // 击穿铁甲所需的最小下向速度 px/s
+  FATIGUE_IMPACT: 0.000018, // 结构疲劳 ∝ v² 的系数
+
+  CAT_K: 0.0110,        // 张力蓄能弹射：冲量 = CAT_K · charge^1.6
+  CAT_EXP: 1.6,         // 弹射的非线性指数（超线性）
+  CAT_FULL: 1150.0,     // 蓄能满值
+  CAT_GAS: 0.00058,     // 蓄能每单位抽走的气囊容积
+
+  POL_MS: 300.0,        // 空间相位翻转的主视窗视差倾角扰动时长
+  POL_TILT: 0.148,      // 视差倾角最大弧度
+  POL_COST: 15.0,       // 每次相位翻转的固定气耗
+
+  TETHER_RANGE: 96.0,   // 能量索可抓取半径
+  TETHER_L: 92.0,       // 索长
+  TETHER_G: 430.0,      // 单摆有效重力
+  TETHER_DAMP: 0.72,    // 摆荡阻尼
+  TETHER_SWING_MIN: 0.55, // 释放时切向速度下限才给气
+  TETHER_GAS: 9.5,      // 摆荡释放回补的气量基数
+
+  ATTUNE_MS: 350.0,     // 接触同调所要求的低速持续时间
+  ATTUNE_EPS: 0.05,     // 「静止」的速度阈值 px/s
+  HOMING_R: 300.0,      // 深渊生物的趋近半径：玩家的位置决定威胁朝哪聚集
+  ATTUNE_R_CHARGE: 46.0,// 同调充盈速率（每秒）
+  PULSE_R: 150.0,       // 同调脉冲半径
+  PULSE_DMG: 110.0,      // 同调脉冲伤害
+  PULSE_COOL: 0.70,   // 脉冲释放后的喷口冷却（秒），期间同调不可再蓄
+
+  CORE_ZONE: 0.20,      // 喷口核心区占比（±20% 格宽）
+  EDGE_DRAIN: 0.05,     // 停在舱段边缘：稳定性储备每秒流失 5%
+
+  SINK_BASE: 1.2,       // 舱段下沉位移基准
+  SINK_DIV: 200.0,      // 下沉位移的冲击速度平方除数
+  SINK_SPRING: 5.6,     // 舱段回弹弹簧刚度
+  SINK_DAMP: 2.4,       // 舱段回弹阻尼
+  REBOUND_K: 0.68,      // 离台瞬间舱段的反方向弹起系数
+  FUSE_MS: 500.0,       // 离台后引信时长，逾期碎裂为不可站立虚空
+  VOID_MS: 900.0,       // 碎裂后的虚空残留显示时长
+
+  O2_REFILL: 34.0,      // 水面补给区每秒回氧
+  FATIGUE_ABYSS: 0.86,  // 压碎层暴露每秒累积的结构疲劳
+  HULL_REPAIR: 22.0,    // 水面减压舱每秒修复的结构疲劳
+  CHEW_ROW: 1,          // 深渊生物抵达该行及以上即开始啃噬脐带
+  CHEW_WINDOW: 4.5,    // 单次啃噬窗口（秒）：咬满就被母船放电驱离
+  CHEW_DIVE: 6.5,       // 被驱离后的下潜时长（秒），期间不再啃噬
+};
+
+/* 深渊生物。armor 单位只被「足够快的冲击波」或同调脉冲击穿；
+   surge 是不可拦截的压力波，只能靠相位翻转或躲进层带阴影规避。 */
+var HAZ = {
+  krill: { n: '磷虾群', hp: 20,  spd: 60,  chew: 0.30, r: 9,  col: '#8ef0c8', mass: 0.7 },
+  eel:   { n: '巨口鳗', hp: 38,  spd: 98,  chew: 0.55, r: 11, col: '#ffd166', mass: 1.1 },
+  crab:  { n: '铁甲蟹', hp: 70,  spd: 42,  chew: 0.80, r: 13, col: '#ff8a5c', mass: 2.0, armor: true },
+  surge: { n: '压力波', hp: 999, spd: 132, chew: 0.00, r: 27, col: '#7ad7ff', mass: 0.0, ethereal: true },
+  levi:  { n: '深渊王', hp: 420, spd: 38,  chew: 1.60, r: 23, col: '#c08bff', mass: 5.0, boss: true }
+};
+
+/* 十波强化曲线：数量、混编、血速倍率逐波抬升，第 10 波为王战。 */
+var WAVES = [
+  { n: '一', list: [['krill', 4]], hp: 1.00, spd: 1.00 },
+  { n: '二', list: [['krill', 5], ['eel', 1]], hp: 1.06, spd: 1.03 },
+  { n: '三', list: [['krill', 5], ['eel', 2], ['surge', 1]], hp: 1.12, spd: 1.06 },
+  { n: '四', list: [['krill', 6], ['eel', 2], ['crab', 1]], hp: 1.20, spd: 1.09 },
+  { n: '五', list: [['krill', 6], ['eel', 3], ['crab', 2], ['surge', 1]], hp: 1.30, spd: 1.13 },
+  { n: '六', list: [['krill', 7], ['eel', 3], ['crab', 2], ['surge', 2]], hp: 1.42, spd: 1.17 },
+  { n: '七', list: [['krill', 8], ['eel', 4], ['crab', 3], ['surge', 2]], hp: 1.56, spd: 1.21 },
+  { n: '八', list: [['krill', 8], ['eel', 5], ['crab', 3], ['surge', 3]], hp: 1.72, spd: 1.26 },
+  { n: '九', list: [['krill', 9], ['eel', 5], ['crab', 4], ['surge', 3]], hp: 1.90, spd: 1.31 },
+  { n: '十', list: [['levi', 1], ['krill', 8], ['eel', 4], ['crab', 4], ['surge', 3]], hp: 2.10, spd: 1.36 }
+];
+
+/* 三档难度。espd 敌速倍率，mer 洋流/内波倍率，drain 耗氧倍率。 */
+var DIFFS = {
+  shallow: { n: '浅测', life: 38, o2: 118, gas: 104, espd: 0.92, mer: 0.86, drain: 0.80 },
+  normal:  { n: '标准', life: 30, o2: 100, gas: 100, espd: 1.00, mer: 1.00, drain: 1.00 },
+  abyss:   { n: '深潜', life: 24, o2: 90,  gas: 100, espd: 1.08, mer: 1.20, drain: 1.26 }
+};
+
+/* 八阶互斥状态机的优先级表（数字越小优先级越高，抢占式迁移）。 */
+var FSM_ORDER = [
+  'CRISIS_FAILED_ROLLBACK', 'RUN_SETTLED_LEDGER', 'OVERLOAD_PENALTY',
+  'DYNAMIC_BRANCHING', 'ATTUNEMENT_DWELL', 'ACTIVE_ENGAGED',
+  'SEEDED_INITIALIZING', 'TITLE_LOBBY'
+];
+
+/* 棋盘蓝图：舱段坐标由固定种子展开，人工校验过连通性与可达性。 */
+var SEED = 20260920;
+var RUNID = 'HY-1147-D';
+var BOARD_HINT = {
+  sectionRows: [2, 4, 6, 8, 10],   // 沉船残骸舱段所在行
+  vents: [[2, 6], [10, 9]],        // 热液喷口（只有正中 20% 核心区才算精准同调）
+  hatches: [[0, 12], [12, 12]],    // 深渊出怪舱口
+  mother: [6, 0]                   // 母船补给区中心
+};
+
+</script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   静水压 HYDROSTAT · 压载深潜
+   —— 一切随时间演化的量都在本文件内解算；data.js 只提供静态标定表。
+   ══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  /* ── 0. 基础工具 ───────────────────────────────────────────────── */
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function el(id) { return document.getElementById(id); }
+  function hyp(x, y) { return Math.sqrt(x * x + y * y); }
+  function f1(v) { return (Math.round(v * 10) / 10).toFixed(1); }
+  function f2(v) { return (Math.round(v * 100) / 100).toFixed(2); }
+  function f3(v) { return (Math.round(v * 1000) / 1000).toFixed(3); }
+
+  function ctxOf(id) {
+    var cv = el(id);
+    var x = cv.getContext('2d');
+    x.imageSmoothingEnabled = true;
+    return x;
+  }
+  var WC = ctxOf('world'), RG = ctxOf('rig'), SN = ctxOf('sonar'),
+      RD = ctxOf('rings'), LG = ctxOf('ledger');
+
+  function mkCanvas(w, h) {
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    return c;
+  }
+  /* 程序化生成的水下噪点与生物微光贴片：全部由代码绘制，不引用任何外部资源 */
+  function buildNoise(w, h, n, seed, col, aMax, rMax) {
+    var cv = mkCanvas(w, h), x = cv.getContext('2d');
+    var rng = seed >>> 0;
+    var rnd = function () { rng = (rng * 1103515245 + 12345) & 0x7fffffff; return rng / 0x7fffffff; };
+    for (var i = 0; i < n; i++) {
+      var r = 0.6 + rnd() * rMax;
+      x.globalAlpha = rnd() * aMax;
+      x.fillStyle = col;
+      x.beginPath();
+      x.arc(rnd() * w, rnd() * h, r, 0, 6.2832);
+      x.fill();
+    }
+    return cv;
+  }
+  var TEX_MARINE = buildNoise(546, 546, 620, 7717, '#bfeaff', 0.30, 2.2);
+  var TEX_DUST = buildNoise(546, 546, 380, 3313, '#7fd8ff', 0.16, 1.6);
+
+  /* ── 1. 全局状态 ───────────────────────────────────────────────── */
+  var G = {
+    state: 'TITLE_LOBBY', phaseIdx: 1, t: 0, f: 0, dt: 1 / 60,
+    seed: SEED, rng: SEED,
+    diff: 'normal',
+    board: null,
+    life: 30, lifeMax: 30, lifeFlash: 0,
+    o2: 100, o2Max: 100,
+    gas: 100, gasMax: 100,
+    stab: 100, stabMax: 100,
+    fatigue: 0,
+    ballast: 0.80, bladder: 0.95,
+    salvage: 0, salvageMass: 0,
+    yieldMul: 1.0,
+    score: 0, kills: 0, leaks: 0,
+    wave: 0, waveState: 'idle', waveT: 0, spawned: 0, pending: [],
+    combo: 0, bestCombo: 0, comboT: 0,
+    attune: 0, attuneT: 0, attuneVent: -1, pulses: 0,
+    overT: 0, overCount: 0, polT: 0, polCount: 0, catCount: 0, tgCount: 0,
+    plungeCount: 0, plungeBest: 0,
+    rollT: -1, rollReason: '', result: '', settled: false, aggCache: null,
+    ledger: [], logs: [],
+    hazards: [], fx: [], shocks: [], pulses: [],
+    frozen: false, paused: false, camT: 0, hudT: 0, revealed: 0,
+    depthMax: 0, gasSpent: 0, timeAtDepth: 0, edgeTime: 0
+  };
+
+  var P = {
+    x: 6.5 * CELL, y: 0.5 * CELL, vx: 0, vy: 0,
+    onGround: false, gsec: -1, gcore: false, dwell: 0,
+    charging: false, charge: 0, plunging: false, plungeV: 0,
+    tether: -1, tethA: 0, tethW: 0, tethLen: 0,
+    lastImpact: 0, airT: 0
+  };
+
+  var KEYS = {};
+  var KIN = { lat: 0, bal: 0 };
+
+  function pushLog(s, col) {
+    G.logs.push({ s: s, col: col || '#8fd8b8', t: G.t });
+    if (G.logs.length > 40) G.logs.shift();
+  }
+  function led(kind, amount, note) {
+    G.ledger.push({ f: G.f, t: +G.t.toFixed(2), kind: kind, amount: amount, note: note || '',
+                    depth: Math.round(P.y / CELL * M_PER_ROW), wave: G.wave });
+  }
+
+  /* ── 2. 确定性随机与棋盘展开 ───────────────────────────────────── */
+  function mkRnd(s) {
+    var r = s >>> 0;
+    return function () { r = (r * 1103515245 + 12345) & 0x7fffffff; return r / 0x7fffffff; };
+  }
+
+  function strataOf(row) {
+    for (var i = 0; i < STRATA.length; i++) if (row >= STRATA[i].r0 && row <= STRATA[i].r1) return i;
+    return row < 0 ? 0 : STRATA.length - 1;
+  }
+
+  function genBoard(seed) {
+    var rnd = mkRnd(seed);
+    var solid = [], kind = [], sec = [], vent = [];
+    var r, c, i;
+    for (r = 0; r < ROWS; r++) {
+      solid.push([]); kind.push([]); sec.push([]); vent.push([]);
+      for (c = 0; c < COLS; c++) { solid[r].push(false); kind[r].push(0); sec[r].push(null); vent[r].push(-1); }
+    }
+    var board = { solid: solid, kind: kind, sec: sec, vent: vent, sections: [], vents: [], hatches: [], shafts: [], cells: 0 };
+
+    function newSection(seedRow, note) {
+      var s = { id: board.sections.length, cells: [], sink: 0, sinkV: 0, fuse: -1, hp: 1,
+                alive: true, core0: 0, core1: 0, note: note, impactN: 0, voidT: 0,
+                seedRow: seedRow, wantCrate: -1, wantAnchor: -1 };
+      board.sections.push(s);
+      return s;
+    }
+    function put(s, cc, rr, k) {
+      if (rr < 0 || rr >= ROWS || cc < 0 || cc >= COLS) return;
+      if (solid[rr][cc]) return;
+      solid[rr][cc] = true; kind[rr][cc] = k; sec[rr][cc] = s; s.cells.push([cc, rr]);
+    }
+
+    /* ① 沉船残骸舱段：每行一段水平舱体，长度与横向偏移由种子展开 */
+    for (i = 0; i < BOARD_HINT.sectionRows.length; i++) {
+      r = BOARD_HINT.sectionRows[i];
+      var len = 3 + Math.floor(rnd() * 3);
+      var c0 = 1 + Math.floor(rnd() * (COLS - len - 2));
+      var s = newSection(r, '舱段 ' + (i + 1));
+      for (c = c0; c < c0 + len; c++) put(s, c, r, 1);
+      /* 打捞物与桅杆锚点先只登记意图，待凿井后再落到真正存活的格上 */
+      s.wantCrate = c0 + 1 + Math.floor(rnd() * Math.max(1, len - 2));
+      if (i % 2 === 0) s.wantAnchor = c0 + len - 1;
+      if (i % 2 === 1) for (var k2 = 1; k2 <= 2; k2++) put(s, c0, r - k2, 1);
+      board.cells += s.cells.length;
+    }
+
+    /* ② 热液喷口：一座独立的五格浮屿，正中一格就是喷口。
+       这一行的五格先从原属舱段摘出来再改挂到基座 —— 否则基座核心区会算到旁边的
+       舱段中心去，而喷口正中那条窄带既不在基座核心区里、又要按边缘规则扣稳定性。 */
+    for (i = 0; i < BOARD_HINT.vents.length; i++) {
+      var vc = BOARD_HINT.vents[i][0], vr = BOARD_HINT.vents[i][1];
+      var vs = newSection(vr, '喷口基座 ' + (i + 1));
+      for (var dc = -2; dc <= 2; dc++) {
+        var cc = vc + dc;
+        if (cc < 0 || cc >= COLS) continue;
+        var own2 = sec[vr][cc];
+        if (own2) {
+          solid[vr][cc] = false; kind[vr][cc] = 0; sec[vr][cc] = null;
+          own2.cells = own2.cells.filter(function (q) { return !(q[0] === cc && q[1] === vr); });
+        }
+        put(vs, cc, vr, 1);
+      }
+      kind[vr][vc] = 2; vent[vr][vc] = i;
+      board.vents.push({ id: i, c: vc, r: vr, x: (vc + 0.5) * CELL, y: (vr + 0.5) * CELL,
+                         t: rnd() * 6.2832, bank: 0, charge: 0, ready: false, cool: 0, sec: vs.id });
+    }
+
+    /* ③ 凿井：把每个喷口所在的一整列从水面打通到海床，成为贯穿全局的竖直井筒。
+       向上的那半截不做的话，上层残骸会把喷口核心区彻底封死，同调驻留永远进不去；
+       向下的那半截不做的话，一旦从层间缝隙漏到下层，就再也爬不回来 —— 残骸层会变成单陷阱。 */
+    for (i = 0; i < board.vents.length; i++) {
+      var vv = board.vents[i];
+      for (var rr = 0; rr < ROWS; rr++) {
+        if (rr === vv.r || !solid[rr][vv.c]) continue;
+        var owner = sec[rr][vv.c];
+        solid[rr][vv.c] = false; kind[rr][vv.c] = 0; sec[rr][vv.c] = null;
+        if (owner) {
+          owner.cells = owner.cells.filter(function (q) { return !(q[0] === vv.c && q[1] === rr); });
+          owner.shaftOpen = true;
+        }
+      }
+      board.shafts.push({ c: vv.c, r0: 0, r1: ROWS - 1, why: 'vent' });
+    }
+    /* ③b 中央升降井：无论种子怎么长，全局至少留一条从水面直通海床的竖直通道。
+       没有它，残骸层一旦在某个深度连成整片，玩家就会掉进「上不去也下不来」的死层。 */
+    var midC = Math.floor(COLS / 2);
+    if (midC !== board.vents[0].c && midC !== board.vents[1].c) {
+      for (var rm = 0; rm < ROWS; rm++) {
+        if (!solid[rm][midC]) continue;
+        var ownM = sec[rm][midC];
+        solid[rm][midC] = false; kind[rm][midC] = 0; sec[rm][midC] = null;
+        if (ownM) {
+          ownM.cells = ownM.cells.filter(function (q) { return !(q[0] === midC && q[1] === rm); });
+          ownM.shaftOpen = true;
+        }
+      }
+      board.shafts.push({ c: midC, r0: 0, r1: ROWS - 1, why: 'lift' });
+    }
+
+    /* ④ 归一化：核心区按「凿井后仍存活的同行格」重算，
+          否则被凿掉的那一列会让核心落在虚空上，精准同调变成不可能 */
+    for (i = 0; i < board.sections.length; i++) {
+      var sx = board.sections[i];
+      var rowCells = sx.cells.filter(function (q) { return q[1] === sx.seedRow; })
+                            .map(function (q) { return q[0]; })
+                            .sort(function (a, b) { return a - b; });
+      if (!rowCells.length) { sx.ghost = true; continue; }
+      var lo = rowCells[0], hi = rowCells[rowCells.length - 1], span = hi - lo + 1;
+      var a0 = lo + Math.floor(span * 0.4), a1 = lo + Math.ceil(span * 0.6);
+      if (a1 <= a0) a1 = a0;
+      while (a0 < hi && rowCells.indexOf(a0) < 0) a0++;
+      while (a1 > lo && rowCells.indexOf(a1) < 0) a1--;
+      if (a0 > a1) { a0 = lo; a1 = hi; }
+      sx.core0 = a0; sx.core1 = a1;
+      /* 喷口基座的核心区就是喷口本体那一格：几何中心 (core0+core1+1)/2·CELL 必须
+         与 vent.x 严格重合，否则「命中核心带」与「边缘豁免」会落在两条互不相交的窄带上 */
+      for (var vi2 = 0; vi2 < board.vents.length; vi2++) {
+        var vv2 = board.vents[vi2];
+        if (vv2.sec === sx.id) { sx.core0 = vv2.c; sx.core1 = vv2.c; }
+      }
+      /* 打捞物落在核心范围内且确实存活的格上 */
+      if (sx.wantCrate >= 0) {
+        var pick = rowCells.filter(function (q) { return q >= sx.core0 && q <= sx.core1; })[0];
+        if (pick === undefined) pick = rowCells[Math.floor(rowCells.length / 2)];
+        if (pick !== undefined) kind[sx.seedRow][pick] = 4;
+      }
+      if (sx.wantAnchor >= 0) {
+        var pa = rowCells[rowCells.length - 1];
+        kind[sx.seedRow][pa] = 3;
+      }
+    }
+    board.sections = board.sections.filter(function (q) { return !q.ghost; });
+    for (i = 0; i < board.sections.length; i++) board.sections[i].id = i;
+    /* id 重排后重建反查表，避免 standableAt / collapse 指向错段 */
+    for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) {
+      if (sec[r][c] && sec[r][c].ghost) sec[r][c] = null;
+    }
+
+    /* ⑤ 深渊出怪舱口：海床两角，不做实体，只是刷怪标记 */
+    for (i = 0; i < BOARD_HINT.hatches.length; i++) {
+      board.hatches.push({ c: BOARD_HINT.hatches[i][0], r: BOARD_HINT.hatches[i][1],
+                           x: (BOARD_HINT.hatches[i][0] + 0.5) * CELL,
+                           y: (BOARD_HINT.hatches[i][1] + 0.5) * CELL });
+    }
+    return board;
+  }
+
+  /* ── 3. 非欧微气象：内波矢量场与静水压 ────────────────────────── */
+  function pressureAt(row) { return 1 + PHYS.KAPPA * clamp(row / (ROWS - 1), 0, 1); }
+  function densityAt(row) { return STRATA[strataOf(row)].rho / STRATA[0].rho; }
+
+  /* 三层内波模态叠加：振幅、波数、相速都随层带下标变化。
+   密度跃层以下的垂向分量整体反号 —— 于是顺流与逆流在相邻两行翻转，
+   剖面里不存在任何一处可以用恒定加减近似。 */
+  function currentAt(row, t) {
+    var si = strataOf(row);
+    var mer = DIFFS[G.diff].mer;
+    var vx = 0, vy = 0;
+    for (var m = 0; m < WAVE_MODES.length; m++) {
+      var M = WAVE_MODES[m];
+      var amp = M.amp * (1 + 0.30 * si) * mer;
+      var ph = M.k * (row * CELL) + M.w * t * 0.62 + M.ph;
+      vx += amp * Math.sin(ph);
+      vy += amp * 0.44 * Math.sin(ph * 0.83 + 1.17 + (si >= 2 ? Math.PI : 0));
+    }
+    return { x: vx, y: vy };
+  }
+
+  /* 净浮力：波义耳气囊 V = bladder / P。越深 V 越小，
+   于是 d(升力)/d(注气) ∝ 1/P 被压掉一个数量级 —— 深水的操纵增益塌缩，
+   而下潜因此成为正反馈：越沉越沉。 */
+  function physics(row) {
+    var Pr = pressureAt(row), rho = densityAt(row);
+    var V = G.bladder / Pr;
+    var W = PHYS.M_HULL + G.ballast * PHYS.M_BALLAST + G.salvageMass;
+    var up = rho * V * PHYS.BUOY_K;
+    var dn = W * 100;
+    return { P: Pr, rho: rho, V: V, W: W, up: up, dn: dn, net: up - dn };
+  }
+
+  /* ── 4. 实体：深渊生物 ─────────────────────────────────────────── */
+  function spawnHaz(type, x, y) {
+    var H = HAZ[type];
+    var wv = WAVES[Math.max(0, Math.min(G.wave - 1, WAVES.length - 1))];
+    var hpm = wv ? wv.hp : 1, spm = (wv ? wv.spd : 1) * DIFFS[G.diff].espd;
+    /* 每个个体的相位差由帧号与横坐标推出，不用随机数，保证种子局可复现 */
+    var h = { type: type, H: H, x: x, y: y, vx: 0, vy: -H.spd * spm,
+              hp: H.hp * hpm, hpMax: H.hp * hpm, spd: H.spd * spm,
+              r: H.r, dead: false, t: 0, chewing: false, mark: 0, born: G.t,
+              chewT: 0, diveT: 0,
+              ph: ((G.f * 0.37 + x * 0.013) % 6.2832) };
+    G.hazards.push(h);
+    return h;
+  }
+
+  function killHaz(h, how) {
+    if (h.dead) return;
+    h.dead = true;
+    G.kills++;
+    var base = h.H.boss ? 220 : (h.H.ethereal ? 0 : 24);
+    if (base) {
+      G.combo++; G.comboT = 3.4;
+      if (G.combo > G.bestCombo) G.bestCombo = G.combo;
+      var mul = 1 + Math.min(2.4, (G.combo - 1) * 0.13);
+      var gain = base * mul;
+      G.score += gain;
+      led('击杀', Math.round(gain), h.H.n + ' ×' + f2(mul));
+    }
+    for (var i = 0; i < 10; i++) burst(h.x, h.y, h.H.col, 34 + (i % 4) * 18);
+    if (h.H.boss) pushLog('深渊王被 ' + how + ' 瓦解 · 倍率 ×' + f2(G.yieldMul), '#ffd479');
+  }
+
+  function burst(x, y, col, sp, life) {
+    var a = (G.f * 2.399963) % 6.2832;
+    G.fx.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 12,
+                r: 1.2 + (G.f % 5) * 0.5, col: col, life: life || 34, max: life || 34 });
+  }
+
+  /* ── 5. 空间拓扑与分层判定 ─────────────────────────────────────── */
+  function tileAt(x, y) {
+    var c = Math.floor(x / CELL), r = Math.floor(y / CELL);
+    if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return { c: c, r: r, solid: false, kind: -1, sec: null };
+    var s = G.board.sec[r][c];
+    var alive = !s || s.alive;
+    return { c: c, r: r, solid: G.board.solid[r][c] && alive, kind: G.board.kind[r][c],
+             sec: s, vent: G.board.vent[r][c] };
+  }
+  function standableAt(c, r) {
+    if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
+    if (!G.board.solid[r][c]) return false;
+    var s = G.board.sec[r][c];
+    return !s || s.alive;
+  }
+
+  /* ── 6. 八阶互斥有限状态机 ─────────────────────────────────────── */
+  function setState(s) {
+    if (G.state === s) return;
+    G.phaseIdx = FSM_ORDER.indexOf(s);
+    pushLog('状态 → ' + s, '#9fe8ff');
+    G.state = s;
+    var b = el('hState');
+    if (b) b.textContent = s;
+  }
+
+  function fsm() {
+    if (G.settled) { setState('RUN_SETTLED_LEDGER'); return; }
+    if (G.rollT >= 0) { setState('CRISIS_FAILED_ROLLBACK'); return; }
+    if (G.state === 'TITLE_LOBBY') return;
+    if (G.overT > 0) { setState('OVERLOAD_PENALTY'); return; }
+    var crisis = G.hazards.some(function (h) { return h.H.boss && !h.dead; }) ||
+                 G.fatigue > 74 || G.life < G.lifeMax * 0.34;
+    if (crisis && G.state !== 'SEEDED_INITIALIZING') { setState('DYNAMIC_BRANCHING'); return; }
+    if (G.attuneT > 0 || G.attune > 0.02) { setState('ATTUNEMENT_DWELL'); return; }
+    if (G.revealed < 1) { setState('SEEDED_INITIALIZING'); return; }
+    setState('ACTIVE_ENGAGED');
+  }
+
+  /* ── 7. 输入 ───────────────────────────────────────────────────── */
+  function bindKeys() {
+    window.addEventListener('keydown', function (e) {
+      var k = e.key;
+      if (KEYS[k]) { e.preventDefault(); return; }
+      KEYS[k] = true;
+      e.preventDefault();
+      if (k === 'p' || k === 'P') { G.paused = !G.paused; return; }
+      if (k === 'r' || k === 'R') { startRun(); return; }
+      if (k === 'Escape') { toTitle(); return; }
+      if (G.state === 'TITLE_LOBBY') {
+        if (k === '1') { G.diff = 'shallow'; buildDiffCards(); }
+        else if (k === '2') { G.diff = 'normal'; buildDiffCards(); }
+        else if (k === '3') { G.diff = 'abyss'; buildDiffCards(); }
+        else if (k === 'Enter' || k === ' ') { startRun(); }
+        return;
+      }
+      if (G.settled && (k === 'Enter' || k === ' ')) { toTitle(); return; }
+      if (k === 'l' || k === 'L') { P.charging = true; }
+      if (k === 'u' || k === 'U') { doPolarity(); }
+      if (k === ' ') { doTether(); }
+      if (k === 'Shift') { doPlunge(); }
+      if (k === 'Enter') { doPulse(); }
+    }, { passive: false });
+    window.addEventListener('keyup', function (e) {
+      var k = e.key;
+      KEYS[k] = false;
+      if (k === 'l' || k === 'L') releaseCatapult();
+      if (k === 'Shift') P.plunging = false;
+    });
+    window.addEventListener('blur', function () { KEYS = {}; P.charging = false; });
+  }
+
+  function readKin() {
+    var lat = 0;
+    if (KEYS['a'] || KEYS['A'] || KEYS['ArrowLeft']) lat -= 1;
+    if (KEYS['d'] || KEYS['D'] || KEYS['ArrowRight']) lat += 1;
+    KIN.lat = lat;
+    KIN.bal = 0;
+    if (KEYS['s'] || KEYS['S'] || KEYS['ArrowDown']) KIN.bal += 1;
+    if (KEYS['w'] || KEYS['W'] || KEYS['ArrowUp']) KIN.bal -= 1;
+  }
+
+  /* ── 8. 高阶手势 ───────────────────────────────────────────────── */
+  /* ① 动量下压速坠冲击 */
+  function doPlunge() {
+    if (G.settled || P.tether >= 0) return;
+    P.plunging = true; P.plungeV = 0; G.plungeCount++;
+    pushLog('动量下压 · 速坠冲击就绪', '#ff9d6b');
+  }
+  /* ② 非线性张力蓄能弹射 */
+  function releaseCatapult() {
+    if (!P.charging) return;
+    P.charging = false;
+    var ch = P.charge;
+    if (ch < 60) { P.charge = 0; return; }
+    if (G.stab < 22) { pushLog('稳定性储备不足 · 弹射哑火', '#ff8a5c'); P.charge = 0; return; }
+    var imp = PHYS.CAT_K * Math.pow(ch, PHYS.CAT_EXP);
+    P.vy -= imp;
+    G.bladder = Math.max(0, G.bladder - ch * PHYS.CAT_GAS);
+    G.stab = Math.max(0, G.stab - ch * 0.021);
+    G.catCount++;
+    led('蓄能弹射', Math.round(imp), '蓄能 ' + Math.round(ch) + ' · 冲量超线性');
+    for (var i = 0; i < 14; i++) burst(P.x, P.y + 10, '#7fffdc', 60 + i * 9, 30);
+    if (G.bladder > PHYS.BLADDER_SAFE * pressureAt(P.y / CELL)) triggerOverload('蓄能越限 · 气囊超压');
+    P.charge = 0;
+  }
+  /* ③ 空间相位瞬时翻转 */
+  function doPolarity() {
+    if (G.settled || P.tether >= 0) return;
+    if (G.gas < PHYS.POL_COST) { pushLog('高压气不足 · 相位翻转未触发', '#ff8a5c'); return; }
+    if (G.stab < 16) { pushLog('稳定性储备不足 · 相位翻转未触发', '#ff8a5c'); return; }
+    G.gas -= PHYS.POL_COST; G.gasSpent += PHYS.POL_COST;
+    G.polT = PHYS.POL_MS / 1000; G.polCount++;
+    G.stab = Math.max(0, G.stab - 5.0);
+    led('相位翻转', -PHYS.POL_COST, '浮力极性瞬时反置 · 视差倾角扰动');
+    pushLog('空间相位瞬时翻转 · ' + PHYS.POL_MS + ' ms', '#c08bff');
+  }
+  /* ④ 空域能量索抓取与摆荡释放 */
+  function tetherAnchor() {
+    var best = -1, bd = PHYS.TETHER_RANGE;
+    for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) {
+      if (G.board.kind[r][c] !== 3) continue;
+      var s = G.board.sec[r][c]; if (s && !s.alive) continue;
+      var ax = (c + 0.5) * CELL, ay = (r + 0.5) * CELL;
+      var d = hyp(ax - P.x, ay - P.y);
+      if (d < bd) { bd = d; best = r * COLS + c; }
+    }
+    return best;
+  }
+  function doTether() {
+    if (G.settled) return;
+    if (P.tether >= 0) {
+      var tang = P.tethW * PHYS.TETHER_L;
+      var ang = Math.abs(P.tethA % 6.2832);
+      var off = Math.min(ang, Math.abs(ang - 6.2832), Math.abs(ang - 3.1416));
+      P.tether = -1;
+      P.vx += Math.cos(P.tethA) * tang;
+      P.vy += Math.sin(P.tethA) * tang;
+      G.tgCount++;
+      var gain = 0;
+      if (Math.abs(tang) > PHYS.TETHER_SWING_MIN * 100) {
+        gain = PHYS.TETHER_GAS * clamp(Math.abs(tang) / 400, 0.2, 1.6) * (1 - off / 1.6);
+        gain = Math.max(0, gain);
+        if (gain > 0) G.tetherGain = true;
+        G.gas = Math.min(G.gasMax, G.gas + gain);
+        G.stab = Math.min(G.stabMax, G.stab + 6);
+        led('摆荡回补', +gain.toFixed(1), '释放角 ' + f2(off) + ' rad · 离差加权');
+      }
+      pushLog(gain > 0 ? '能量索释放 · 回补 ' + f1(gain) + ' 高压气' : '能量索释放 · 离差过大无回补',
+              gain > 0 ? '#7fffdc' : '#ff8a5c');
+      return;
+    }
+    var a = tetherAnchor();
+    if (a < 0) { pushLog('半径内无锚点 · 能量索空放', '#ff8a5c'); return; }
+    var ac = a % COLS, ar = Math.floor(a / COLS);
+    var ax = (ac + 0.5) * CELL, ay = (ar + 0.5) * CELL;
+    var L = clamp(hyp(P.x - ax, P.y - ay), 34, PHYS.TETHER_L);
+    P.tether = a; P.tethLen = L;
+    P.tethA = Math.atan2(P.y - ay, P.x - ax);
+    P.tethW = (P.vx * Math.cos(P.tethA) + P.vy * Math.sin(P.tethA)) / L;
+    G.stab = Math.min(G.stabMax, G.stab + 3);
+    pushLog('能量索咬合 · 索长 ' + Math.round(L) + ' px', '#9fe8ff');
+  }
+  /* ⑤ 浮屿共振主动同调释放 */
+  function doPulse() {
+    if (G.settled) return;
+    var v = G.board.vents[G.attuneVent];
+    var charge = v ? clamp(G.attune, 0, 1) : 0;
+    if (charge < 0.12) { pushLog('同调不足 · 脉冲未成形', '#ff8a5c'); return; }
+    var pw = 0.35 + 0.65 * charge;
+    G.pulses.push({ x: P.x, y: P.y, r: 12, max: PHYS.PULSE_R * pw, life: 42, maxLife: 42,
+                    dmg: PHYS.PULSE_DMG * pw });
+    G.pulses.push({ x: P.x, y: P.y, r: 12, max: PHYS.PULSE_R * pw * 0.6, life: 30, maxLife: 30, dmg: 0 });
+    /* 伤害在同调释放的这一帧一次结清：脉冲环只是它的可视化残留，
+       因此伤害与帧率、与渲染分支都无关。 */
+    var nHit = applyPulse(P.x, P.y, PHYS.PULSE_R * pw, PHYS.PULSE_DMG * pw);
+    G.pulses_hit = nHit; G.pulses2 = (G.pulses2 || 0) + nHit;
+    if (v) { v.bank = 0; v.ready = false; v.charge = 0; v.cool = PHYS.PULSE_COOL; }
+    /* 释放即失去同调：与触地同一条规矩 —— 必须重新走完 350 ms 低速驻留，
+       蓄能门才会再次打开。喷口也因此不能被连续点按刷取。 */
+    P.attuned = false; P.dwell = 0; P.charge = 0;
+    G.attune = 0; G.attuneT = 0; G.attuneVent = -1;
+    G.score += 40 * charge;
+    led('同调脉冲', Math.round(PHYS.PULSE_DMG * pw),
+        '充盈 ' + Math.round(charge * 100) + '% · 命中 ' + nHit + ' 目标');
+    pushLog('共振同调释放 · 脉冲强度 ' + Math.round(charge * 100) + '%', '#7ad7ff');
+    for (var i = 0; i < 20; i++) burst(P.x, P.y, '#7ad7ff', 70 + i * 7, 40);
+  }
+
+  function triggerOverload(why) {
+    if (G.overT > 0) return;
+    G.overT = 1.6; G.overCount++;
+    G.fatigue = Math.min(100, G.fatigue + 4.2);
+    G.bladder = Math.max(0, G.bladder * 0.55);
+    G.bladder; // 泄放
+    G.score = Math.max(0, G.score - 30);
+    G.combo = 0;
+    led('过载熔断', -30, why);
+    pushLog('过载熔断 · ' + why, '#ff8a5c');
+    for (var i = 0; i < 26; i++) burst(P.x, P.y, '#ff8a5c', 80 + i * 6, 44);
+  }
+
+  /* ── 9. 分层判定辅助 ───────────────────────────────────────────── */
+  function coreHalfOf(s) { return Math.max(CELL * 0.20, (s.core1 - s.core0 + 1) * CELL * 0.10); }
+  function coreXOf(s) { return (s.core0 + s.core1 + 1) * 0.5 * CELL; }
+  function inCore(s, x) { return !!s && Math.abs(x - coreXOf(s)) <= coreHalfOf(s); }
+  function blocked(c, r) { return standableAt(c, r); }
+  function secAt(x, y) { var t = tileAt(x, y); return t.sec && t.sec.alive ? t.sec : null; }
+
+  /* ── 10. 舱段衰变、反冲与碎裂 ───────────────────────────────────── */
+  function collapseSection(s, why) {
+    if (!s || !s.alive) return;
+    s.alive = false; s.voidT = PHYS.VOID_MS / 1000; s.fuse = -1; s.sink = 0; s.sinkV = 0; s.hp = 1;
+    for (var i = 0; i < s.cells.length; i++) {
+      var cx = (s.cells[i][0] + 0.5) * CELL, cy = (s.cells[i][1] + 0.5) * CELL;
+      for (var h = 0; h < G.hazards.length; h++) {
+        var z = G.hazards[h];
+        if (!z.dead && !z.H.ethereal && hyp(z.x - cx, z.y - cy) < CELL * 0.8) { z.hp = -1; killHaz(z, '舱段碎裂'); }
+      }
+      for (var q = 0; q < 6; q++) burst(cx, cy, '#6f8a9c', 36 + q * 13, 48);
+    }
+    if (P.gsec === s.id) { P.onGround = false; P.gsec = -1; P.attuned = false; }
+    led('舱段碎裂', 0, s.note + ' · ' + why);
+    pushLog('舱段碎裂 · ' + s.note + '（' + why + '）→ 不可站立虚空', '#ff8a5c');
+  }
+
+  function updateSections(dt) {
+    var list = G.board.sections;
+    for (var i = 0; i < list.length; i++) {
+      var s = list[i];
+      if (!s.alive) {
+        if (s.voidT > 0) {
+          s.voidT -= dt;
+          if (s.voidT <= 0) {
+            s.alive = true; s.sink = 0; s.sinkV = 0; s.fuse = -1; s.hp = 1; s.impactN = 0;
+            for (var q = 0; q < s.cells.length; q++)
+              for (var k2 = 0; k2 < 3; k2++)
+                burst((s.cells[q][0] + 0.5) * CELL, (s.cells[q][1] + 0.5) * CELL, '#4d8ea8', 26 + k2 * 10, 34);
+            pushLog('沉积重组 · ' + s.note + ' 重新成形', '#7ad7ff');
+          }
+        }
+        continue;
+      }
+      /* 回弹：弹簧 + 阻尼，把冲击位移拉回原位 */
+      s.sinkV += (-PHYS.SINK_SPRING * s.sink - PHYS.SINK_DAMP * s.sinkV) * dt;
+      s.sink += s.sinkV * dt;
+      if (Math.abs(s.sink) < 0.03 && Math.abs(s.sinkV) < 0.5) { s.sink = 0; s.sinkV = 0; }
+      /* 引信：离台后 500 ms 到期即碎裂 */
+      if (s.fuse > 0) {
+        s.fuse -= dt * 1000;
+        if (s.fuse <= 0) collapseSection(s, '引信到期');
+      }
+      if (Math.abs(s.sink) > 30) collapseSection(s, '结构位移越限');
+      if (s.hp <= 0) collapseSection(s, '冲击疲劳解体');
+    }
+  }
+
+  /* ── 11. 冲击波与同调脉冲（一次性结算，环只是可视化） ───────────── */
+  function applyShock(x, y, rad, dmg, vi) {
+    for (var i = 0; i < G.hazards.length; i++) {
+      var h = G.hazards[i];
+      if (h.dead || h.H.ethereal) continue;
+      var d = hyp(h.x - x, h.y - y);
+      if (d > rad) continue;
+      var real = dmg * (h.H.armor ? (vi >= PHYS.ARMOR_BREAK_V ? 1 : 0.12) : 1);
+      h.hp -= real;
+      h.vx += (h.x - x) / (d || 1) * 130; h.vy += (h.y - y) / (d || 1) * 130;
+      if (h.hp <= 0) killHaz(h, vi >= PHYS.ARMOR_BREAK_V ? '击穿冲击波' : '速坠冲击波');
+    }
+  }
+  function applyPulse(x, y, rad, dmg) {
+    var hit = 0;
+    for (var i = 0; i < G.hazards.length; i++) {
+      var h = G.hazards[i];
+      if (h.dead || h.H.ethereal) continue;
+      if (hyp(h.x - x, h.y - y) > rad) continue;
+      h.hp -= dmg; hit++;
+      h.vx += (h.x - x) / (rad || 1) * 190; h.vy += (h.y - y) / (rad || 1) * 190;
+      if (h.hp <= 0) killHaz(h, '同调脉冲');
+    }
+    return hit;
+  }
+
+  /* ── 12. 玩家逐帧解算 ──────────────────────────────────────────── */
+  function onLand(vi) {
+    var t = tileAt(P.x, P.y + 14);
+    var s = t.sec && t.sec.alive ? t.sec : null;
+    G.landN = (G.landN || 0) + 1;
+    if (vi > PHYS.PLUNGE_MIN_V) {
+      var rad = PHYS.SHOCK_R * (0.70 + vi / 700);
+      var dmg = PHYS.SHOCK_DMG * (0.60 + vi / 500);
+      applyShock(P.x, P.y + 10, rad, dmg, vi);
+      G.shocks.push({ x: P.x, y: P.y + 10, r: 6, max: rad, life: 26, maxLife: 26 });
+      if (vi > G.plungeBest) G.plungeBest = vi;
+      led('速坠冲击', Math.round(dmg), '触底 ' + Math.round(vi) + ' px/s · 半径 ' + Math.round(rad));
+      pushLog('速坠冲击波 · ' + Math.round(vi) + ' px/s · 半径 ' + Math.round(rad), '#ff9d6b');
+      for (var i = 0; i < 16; i++) burst(P.x, P.y + 12, '#ffb27a', 40 + i * 11, 34);
+    }
+    if (s) {
+      /* 平台下沉位移：v_sink = 1.2 × (1 + v_impact²/200)，冲击速度以「每帧像素」口径代入 */
+      var vfr = vi / 60;
+      var drop = PHYS.SINK_BASE * (1 + (vfr * vfr) / PHYS.SINK_DIV);
+      s.sink += drop;
+      s.impactN++;
+      s.hp -= 0.06 + vi / 7000;
+      if (vi > PHYS.PLUNGE_MIN_V) s.hp -= 0.16;
+    }
+    /* 结构疲劳随冲击速度平方累积 */
+    G.fatigue = Math.min(100, G.fatigue + PHYS.FATIGUE_IMPACT * vi * vi);
+    if (G.fatigue > (G.fatiguePeak || 0)) G.fatiguePeak = G.fatigue;
+    P.plunging = false;
+    P.attuned = false; P.dwell = 0; P.charge = 0; P.gateWarned = false;
+  }
+
+  function stepPlayer(dt) {
+    var hw = PHYS.HULL_HW, hh = PHYS.HULL_HH;
+    var row = clamp(Math.floor(P.y / CELL), 0, ROWS - 1);
+    var ph = physics(row);
+    var cur = currentAt(row, G.t);
+    var ax = 0, ay = 0;
+
+    /* ① 能量索摆荡：脱离常规动力学，改由单摆方程接管 */
+    if (P.tether >= 0) {
+      var ac = P.tether % COLS, ar = Math.floor(P.tether / COLS);
+      var axp = (ac + 0.5) * CELL, ayp = (ar + 0.5) * CELL;
+      var L = Math.max(34, P.tethLen);
+      var gEff = PHYS.TETHER_G * (1 + 0.09 * row) / L;
+      P.tethW += (-gEff * Math.sin(P.tethA) - PHYS.TETHER_DAMP * P.tethW) * dt;
+      P.tethW += KIN.lat * 0.70 * dt;
+      P.tethA += P.tethW * dt;
+      P.x = axp + Math.sin(P.tethA) * L;
+      P.y = ayp + Math.cos(P.tethA) * L;
+      P.vx = Math.cos(P.tethA) * P.tethW * L;
+      P.vy = -Math.sin(P.tethA) * P.tethW * L;
+      P.onGround = false; P.gsec = -1; P.attuned = false; P.dwell = 0;
+      G.stab = Math.max(0, G.stab - 0.85 * dt);
+      G.polT = Math.max(0, G.polT - dt);
+      return;
+    }
+
+    /* ② 静水压净浮力：画布 +y 向下，净浮力为正表示上浮，故取负号 */
+    ay -= ph.net;
+    if (G.polT > 0) { ay = -ay; G.polT -= dt; }
+
+    /* ③ 蓄能弹射：地面蓄能受接触同调闸门约束 */
+    var chargeRate = PHYS.CAT_FULL / 1.25;
+    if (P.charging && (!P.onGround || P.attuned)) {
+      P.charge = Math.min(PHYS.CAT_FULL, P.charge + chargeRate * dt);
+      G.bladder = Math.max(0, G.bladder - PHYS.CAT_GAS * chargeRate * dt);
+    } else if (P.charging && P.onGround && !P.attuned) {
+      /* 触地后未走完 350 ms 低速驻留，蓄能门不开 —— 输入被吞掉而不是被清空 */
+      if (!P.gateWarned) {
+        P.gateWarned = true;
+        pushLog('接触同调未完成 · 弹射蓄能门未开', '#ff8a5c');
+        led('同调门禁', 0, '触地后低速驻留不足 ' + PHYS.ATTUNE_MS + ' ms，蓄能指令无效');
+      }
+    } else if (!P.charging) {
+      P.charge = Math.max(0, P.charge - 260 * dt);
+    }
+
+    /* ④ 动量下压 */
+    if (P.plunging) {
+      ay += PHYS.PLUNGE_IMPULSE;
+      G.bladder = Math.max(0, G.bladder - PHYS.PLUNGE_GAS * dt);
+    }
+
+    /* ⑤ 气囊补偿注气 / 排气泄压 */
+    if (KEYS['j'] || KEYS['J']) {
+      var c = PHYS.VENT_RATE * dt;
+      if (G.gas >= c) { G.gas -= c; G.gasSpent += c; G.bladder += c; }
+    }
+    if (KEYS['k'] || KEYS['K']) G.bladder = Math.max(0, G.bladder - PHYS.BLEED_RATE * dt);
+    if (G.bladder / ph.P > PHYS.BLADDER_MAX) triggerOverload('气囊容积越过结构上限');
+
+    /* ⑥ 压载水注排与横向推进 */
+    if (KIN.bal > 0) G.ballast = Math.min(1, G.ballast + PHYS.BALLAST_RATE * dt);
+    else if (KIN.bal < 0) G.ballast = Math.max(0, G.ballast - PHYS.BALLAST_RATE * dt);
+    if (KIN.lat) ax += KIN.lat * PHYS.LATERAL;
+
+    /* ⑦ 洋流：顺流阻尼非线性放大；迎流夹角产生垂向升力 */
+    /* ⑦a 船体遮蔽：贴附在残骸上的角色处在背风面，横向洋流被舱体挡掉大半；
+       核心带是舱体正中的静水死区，遮蔽最强。于是「精准踩中核心带」除了回补
+       高压气之外还有第二个收益：站在这里才不会被流推走，350 ms 低速驻留才守得住。 */
+    if (P.onGround) {
+      var shSec = secAt(P.x, P.y + hh + 2);
+      /* 不推进时是完全咬合的静摩擦：舱体把水流整个挡在背风面之外，横向流速置零；
+         一旦点火推进就等于松开咬合、把侧面暴露给剪切流，遮蔽立刻掉到 0.55。 */
+      var shl = KIN.lat ? 0.55 : (shSec && inCore(shSec, P.x) ? 0.00 : 0.26);
+      cur = { x: cur.x * shl, y: cur.y * shl };
+    }
+    var sp = hyp(P.vx, P.vy), cm = hyp(cur.x, cur.y);
+    var dot = (sp > 4 && cm > 3) ? (P.vx * cur.x + P.vy * cur.y) / (sp * cm) : 0;
+    var dk = PHYS.DRAG * (dot > 0.15 ? PHYS.TAIL_DRAG : 1);
+    ax += (cur.x - P.vx) * dk;
+    ay += (cur.y - P.vy) * dk;
+    if (dot < -0.15 && sp > 6 && cm > 3) {
+      var sinT = Math.sqrt(Math.max(0, 1 - dot * dot));
+      ay -= PHYS.LIFT_K * (cm / 100) * sinT;
+    }
+
+    /* ⑧ 积分与逐轴碰撞解算 */
+    P.vx += ax * dt; P.vy += ay * dt;
+    var sd = hyp(P.vx, P.vy);
+    if (sd > PHYS.VMAX) { P.vx *= PHYS.VMAX / sd; P.vy *= PHYS.VMAX / sd; }
+
+    var ny = P.y + P.vy * dt, midC = clamp(Math.floor(P.x / CELL), 0, COLS - 1);
+    var landedAt = null;
+    if (P.vy > 0) {
+      var fr = Math.floor((ny + hh) / CELL);
+      if (standableAt(midC, fr)) { ny = fr * CELL - hh - 0.001; landedAt = P.vy; P.vy = 0; }
+    } else if (P.vy < 0) {
+      var hr = Math.floor((ny - hh) / CELL);
+      if (standableAt(midC, hr)) { ny = (hr + 1) * CELL + hh + 0.001; P.vy = 0; }
+    }
+    if (ny < hh) { ny = hh; P.vy = Math.max(0, P.vy); }
+    if (ny > WORLD_H - hh) { ny = WORLD_H - hh; if (P.vy > 0) { landedAt = P.vy; } P.vy = 0; }
+
+    var nx = P.x + P.vx * dt;
+    var sxc = Math.floor((nx + (P.vx > 0 ? hw : -hw)) / CELL);
+    if (blocked(sxc, Math.floor((ny - 5) / CELL)) || blocked(sxc, Math.floor((ny + 5) / CELL))) {
+      nx = P.x; P.vx = 0;
+    }
+    nx = clamp(nx, hw, WORLD_W - hw);
+
+    P.x = nx; P.y = ny;
+
+    /* ⑨ 触地判定与舱段附着静摩擦 */
+    /* 足底探针只探半个像素：探到两像素会让「还差两像素落地」的那一帧被判定成着地，
+       下落速度被清零、碰撞分支永不触发，冲击波也就永远等不到 land 事件。 */
+    var footSec = null;
+    if (standableAt(clamp(Math.floor(P.x / CELL), 0, COLS - 1), Math.floor((P.y + hh + 0.5) / CELL))) {
+      var tt = tileAt(P.x, P.y + hh + 0.5);
+      footSec = tt.sec && tt.sec.alive ? tt.sec : null;
+    }
+    var wasGround = P.onGround;
+    P.onGround = !!footSec || (P.y >= WORLD_H - hh - 1);
+    /* 正在上浮的那一帧就已经离台了：否则「脚底两格内有格」会把每帧的解算结果
+       重新判定成着地并把 vy 清零，净浮力再大也永远浮不上去。 */
+    if (P.onGround && P.vy < 0) P.onGround = false;
+    if (P.onGround) {
+      /* 船体静摩擦死区：不做这一步，洋流残余永远压不到同调阈值以下 */
+      if (!KIN.lat && Math.abs(P.vx) < 2.6) P.vx = 0;
+      P.vx *= 0.70;
+      if (Math.abs(P.vx) < 0.05) P.vx = 0;
+      if (P.vy > 0) P.vy = 0;
+      if (!wasGround && landedAt) onLand(landedAt);
+    }
+
+    /* ⑩ 离台反冲：舱段沿角色运动的反方向弹起，并挂上 500 ms 引信 */
+    var nowSec = footSec ? footSec.id : -1;
+    if (P.gsec >= 0 && nowSec !== P.gsec) {
+      var old = G.board.sections[P.gsec];
+      if (old && old.alive) {
+        old.sinkV -= PHYS.REBOUND_K * P.vy;
+        old.fuse = PHYS.FUSE_MS;
+        pushLog('离台反冲 · ' + old.note + ' 引信 ' + PHYS.FUSE_MS + ' ms', '#ffd479');
+      }
+    }
+    P.gsec = nowSec;
+
+    /* ⑪ 接触同调：触地后必须维持 |v| 低于阈值满 350 ms 才重新解锁 */
+    if (P.onGround) {
+      if (hyp(P.vx, P.vy) < PHYS.ATTUNE_EPS) {
+        P.dwell += dt;
+        if (!P.attuned && P.dwell * 1000 >= PHYS.ATTUNE_MS) {
+          P.attuned = true;
+          var sNow = footSec;
+          if (sNow && inCore(sNow, P.x)) {
+            G.coreN = (G.coreN || 0) + 1;
+            G.gas = Math.min(G.gasMax, G.gas + 6.5);
+            G.stab = Math.min(G.stabMax, G.stab + 10);
+            led('核心区同调', +6.5, sNow.note + ' 中心 20% · 高压气回补');
+            pushLog('精准踏中核心区 · 高压气 +6.5', '#7fffdc');
+          } else {
+            led('边缘同调', 0, (sNow ? sNow.note : '海床') + ' 非核心区 · 无回补');
+          }
+          for (var q2 = 0; q2 < 8; q2++) burst(P.x, P.y + 10, '#7fffdc', 24 + q2 * 8, 26);
+        }
+      } else { P.dwell = 0; P.attuned = false; }
+    } else { P.dwell = 0; P.attuned = false; }
+  }
+
+  /* ── 13. 深渊生物 ─────────────────────────────────────────────── */
+  function updateHazards(dt) {
+    var arr = G.hazards;
+    for (var i = 0; i < arr.length; i++) {
+      var h = arr[i];
+      if (h.dead) continue;
+      h.t += dt;
+      var row = clamp(Math.floor(h.y / CELL), 0, ROWS - 1);
+      var cur = currentAt(row, G.t);
+      /* 啃噬不是永久的：咬满一个窗口就被母船的放电驱离，重新下潜一段时间。
+         于是脐带是一条会被反复啃咬但不会瞬间崩断的战线，而不是一张死亡倒计时。 */
+      if (h.diveT > 0) { h.diveT -= dt; h.chewing = false; }
+      var ax = cur.x * 0.55, ay = (h.diveT > 0 ? h.spd * 0.85 : -h.spd);
+      var dx = P.x - h.x, dy = P.y - h.y, dd = hyp(dx, dy) || 1;
+      if (dd < PHYS.HOMING_R && !h.H.ethereal) { ax += dx / dd * 62; ay += dy / dd * 46; }
+      ax += Math.sin(h.t * 1.7 + h.ph) * 34;
+      h.vx += (ax - h.vx) * 2.4 * dt;
+      h.vy += (ay - h.vy) * 2.4 * dt;
+      h.x += h.vx * dt; h.y += h.vy * dt;
+      if (h.x < h.r) { h.x = h.r; h.vx = Math.abs(h.vx); }
+      if (h.x > WORLD_W - h.r) { h.x = WORLD_W - h.r; h.vx = -Math.abs(h.vx); }
+      var ceilY = CELL * (PHYS.CHEW_ROW + 0.5);
+      /* 水面层顶棚只挡「来啃脐带的实体」：压力波是穿水而过的行波，不是来啃脐带的。
+         若把它一并钉在 y = ceilY，它就永远越不过水面，而波次清空条件要求
+         场上一条不剩 —— 第 3 波起带 surge 的波次会全部变成无法通关的死局。 */
+      if (!h.H.ethereal && h.y < ceilY) { h.y = ceilY; h.vy = Math.abs(h.vy) * 0.2; }
+      if (h.H.ethereal && h.y < -50) { h.dead = true; continue; }
+      h.chewing = h.y <= ceilY + 1;
+      if (h.chewing && h.H.chew > 0 && h.diveT <= 0) {
+        G.life -= h.H.chew * dt; G.lifeFlash = 0.45;
+        if (!h.logged) { h.logged = true; led('脐带啃噬', -h.H.chew, h.H.n + ' 抵达水面层'); }
+        h.chewT = (h.chewT || 0) + dt;
+        if (h.chewT >= PHYS.CHEW_WINDOW) { h.chewT = 0; h.diveT = PHYS.CHEW_DIVE; h.chewing = false; }
+      } else { h.chewT = 0; }
+      if (G.polT > 0) continue;                       /* 相位翻转期间穿体而过 */
+      if (dd < h.r + 13) {
+        var pw = h.H.boss ? 3.0 : 1.0;
+        P.vx += dx / dd * 210 * pw * dt; P.vy += dy / dd * 210 * pw * dt;
+        G.fatigue = Math.min(100, G.fatigue + (h.H.ethereal ? 7.4 : 2.8) * pw * dt);
+        if (G.fatigue > (G.fatiguePeak || 0)) G.fatiguePeak = G.fatigue;
+        G.stab = Math.max(0, G.stab - 7 * dt);
+        if (P.onGround) { P.attuned = false; P.dwell = 0; }
+      }
+    }
+    if (G.hazards.some(function (h) { return h.dead; }))
+      G.hazards = G.hazards.filter(function (h) { return !h.dead; });
+  }
+
+  /* ── 14. 波次推进 ─────────────────────────────────────────────── */
+  function beginWave() {
+    if (G.wave >= WAVES.length) { settle('十波全清'); return; }
+    G.wave++;
+    var w = WAVES[G.wave - 1];
+    G.pending = [];
+    for (var i = 0; i < w.list.length; i++)
+      for (var k = 0; k < w.list[i][1]; k++) G.pending.push(w.list[i][0]);
+    G.spawnT = 0.35; G.spawned = 0; G.waveState = 'spawning'; G.waveT = 0;
+    led('波次来袭', G.wave, '第 ' + w.n + ' 波 · ' + G.pending.length + ' 个目标');
+    pushLog('第 ' + w.n + ' 波来袭 · ' + G.pending.length + ' 个目标', '#ffd479');
+  }
+
+  function updateWaves(dt) {
+    if (G.settled || G.rollT >= 0) return;
+    G.waveT += dt;
+    if (G.wave === 0) { if (G.revealed >= 1 && G.waveT > 6.0) beginWave(); return; }
+    if (G.waveState === 'spawning') {
+      G.spawnT -= dt;
+      while (G.pending.length && G.spawnT <= 0) {
+        var t = G.pending.shift();
+        var hp = G.board.hatches[G.spawned % G.board.hatches.length];
+        spawnHaz(t, hp.x + ((G.spawned % 3) - 1) * 10, hp.y - 8);
+        G.spawned++; G.spawnT = 0.5;
+      }
+      if (!G.pending.length) G.waveState = 'fighting';
+    } else if (G.waveState === 'fighting') {
+      if (!G.hazards.length) {
+        G.waveState = 'cleared';
+        var bonus = 60 + G.wave * 22;
+        G.score += bonus;
+        led('波次压制', bonus, '第 ' + G.wave + ' 波清空');
+        pushLog('第 ' + WAVES[G.wave - 1].n + ' 波压制完成 · +' + bonus, '#7fffdc');
+        G.waveT = 0; G.combo = 0;
+        if (G.wave >= WAVES.length) { settle('十波全清'); return; }
+      }
+    } else if (G.waveState === 'cleared') {
+      if (G.waveT > 6.5) beginWave();
+    }
+  }
+
+  /* ── 15. 资源、损耗与账本 ─────────────────────────────────────── */
+  function updateResources(dt) {
+    var row = clamp(Math.floor(P.y / CELL), 0, ROWS - 1);
+    var si = strataOf(row), d = row / (ROWS - 1);
+    if (row <= 1) G.o2 = Math.min(G.o2Max, G.o2 + PHYS.O2_REFILL * dt);
+    else G.o2 = Math.max(0, G.o2 - (0.62 + 1.05 * d) * STRATA[si].o2 * DIFFS[G.diff].drain * dt);
+    if (si === STRATA.length - 1) G.fatigue = Math.min(100, G.fatigue + PHYS.FATIGUE_ABYSS * dt);
+    if (row === 0) G.fatigue = Math.max(0, G.fatigue - PHYS.HULL_REPAIR * dt);
+    if (G.fatigue > (G.fatiguePeak || 0)) G.fatiguePeak = G.fatigue;
+
+    /* 浮屿边缘静止：每秒抽走 5% 稳定性储备 */
+    if (P.onGround && !P.plunging) {
+      var t = tileAt(P.x, P.y + 15);
+      var s = t.sec && t.sec.alive ? t.sec : null;
+      if (s && !inCore(s, P.x) && G.attuneVent < 0) {
+        G.stab = Math.max(0, G.stab - PHYS.EDGE_DRAIN * G.stabMax * dt);
+        G.edgeTime += dt;
+      }
+    }
+    /* 零被动恢复审计：高压气只允许在「按 J 注气」或「同调/摆荡回补」时增长，
+       其余任何一帧出现正向增量都记入账本，供黑盒复核 */
+    var venting = !!(KEYS['j'] || KEYS['J']);
+    var gainedGas = G.gas - (G.gasPrev === undefined ? G.gas : G.gasPrev);
+    if (gainedGas > 0.0005 && !venting && !G.attuneGain && !G.tetherGain) {
+      G.passiveAudit = (G.passiveAudit || 0) + 1;
+      if (G.passiveAudit === 1) led('被动增长告警', +gainedGas.toFixed(3), '非踏板来源的高压气增长');
+    } else if (gainedGas <= 0.0005) { G.passiveAudit = 0; }
+    G.attuneGain = false; G.tetherGain = false;
+    G.gasPrev = G.gas;
+    G.depthMax = Math.max(G.depthMax, row);
+    G.timeAtDepth += dt;
+
+    if (G.comboT > 0) { G.comboT -= dt; if (G.comboT <= 0) G.combo = 0; }
+    G.yieldMul = 1 + Math.min(2.4, Math.max(0, G.combo - 1) * 0.13);
+    G.score += (P.plunging ? 2.2 : 0.6) * dt * G.yieldMul;
+    G.lifeFlash = Math.max(0, G.lifeFlash - dt * 2.2);
+  }
+
+  /* ── 16. 共振同调驻留 ─────────────────────────────────────────── */
+  function updateAttunement(dt) {
+    var row = clamp(Math.floor((P.y + 15) / CELL), 0, ROWS - 1);
+    var col = clamp(Math.floor(P.x / CELL), 0, COLS - 1);
+    for (var ci = 0; ci < G.board.vents.length; ci++) {
+      var cv = G.board.vents[ci];
+      if (cv.cool > 0) cv.cool = Math.max(0, cv.cool - dt);
+    }
+    var vi = P.onGround ? G.board.vent[row][col] : -1;
+    var onVentCore = vi >= 0 && Math.abs(P.x - G.board.vents[vi].x) <= CELL * PHYS.CORE_ZONE;
+    if (vi >= 0 && G.board.vents[vi].cool > 0) onVentCore = false;
+    if (onVentCore && P.attuned && !P.plunging) {
+      var v = G.board.vents[vi];
+      G.attuneVent = vi;
+      v.charge = Math.min(1, v.charge + dt / 1.7);
+      v.ready = v.charge >= 1;
+      G.attune = v.charge;
+      G.gas = Math.min(G.gasMax, G.gas + 9.8 * dt); G.attuneGain = true;
+      G.stab = Math.min(G.stabMax, G.stab + 13 * dt);
+      G.score += 7 * dt;
+      v.t += dt;
+      G.gasPrev = G.gas;
+      if (v.charge >= 1 && !v.announced) {
+        v.announced = true;
+        led('同调充盈', 1, '喷口 ' + (vi + 1) + ' 谐振满格 · 可释放脉冲');
+        pushLog('喷口 ' + (vi + 1) + ' 谐振满格 · Enter 释放同调脉冲', '#7ad7ff');
+      }
+      for (var i = 0; i < 2; i++) {
+        var a = G.t * 3.1 + i * 3.1416;
+        G.fx.push({ x: P.x + Math.cos(a) * 16, y: P.y + 8, vx: Math.cos(a) * 22, vy: -70 - i * 20,
+                    r: 1.6, col: '#7ad7ff', life: 30, max: 30 });
+      }
+    } else if (G.attuneVent >= 0) {
+      var vv = G.board.vents[G.attuneVent];
+      if (vv) { vv.charge = Math.max(0, vv.charge - dt * 0.42); vv.announced = vv.charge >= 1; }
+      G.attune = vv ? vv.charge : 0;
+      if (G.attune <= 0.001) G.attuneVent = -1;
+    } else {
+      G.attune = Math.max(0, G.attune - dt * 0.6);
+    }
+  }
+
+  /* ── 17. 特效与判负 ───────────────────────────────────────────── */
+  function stepFx(dt) {
+    for (var i = G.fx.length - 1; i >= 0; i--) {
+      var p = G.fx[i];
+      p.life -= dt * 60;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vx *= 0.955; p.vy = p.vy * 0.955 + 26 * dt;
+      if (p.life <= 0) G.fx.splice(i, 1);
+    }
+    for (var j = G.shocks.length - 1; j >= 0; j--) {
+      var s = G.shocks[j]; s.life -= dt * 60;
+      s.r = s.max * (1 - s.life / s.maxLife);
+      if (s.life <= 0) G.shocks.splice(j, 1);
+    }
+    for (var k = G.pulses.length - 1; k >= 0; k--) {
+      var q = G.pulses[k]; q.life -= dt * 60;
+      q.r = q.max * (1 - q.life / q.maxLife);
+      if (q.life <= 0) G.pulses.splice(k, 1);
+    }
+    for (var m = 0; m < G.board.vents.length; m++) G.board.vents[m].t += dt;
+  }
+
+  function checkFail() {
+    if (G.settled || G.rollT >= 0) return;
+    if (G.life <= 0) { failRun('脐带断裂'); return; }
+    if (G.fatigue >= 100) { failRun('耐压壳失效'); return; }
+    if (G.o2 <= 0) { failRun('氧储备耗尽'); return; }
+    if (G.stab <= 0) { failRun('姿态失稳 · 压载系统崩解'); return; }
+  }
+  function failRun(reason) {
+    if (G.rollT >= 0 || G.settled) return;
+    G.rollT = 1.25; G.rollReason = reason; G.result = reason;
+    led('失败回溯', 0, reason);
+    pushLog('危机 · ' + reason + ' · 因果回溯中', '#ff6b6b');
+    for (var i = 0; i < 30; i++) burst(P.x, P.y, '#ff6b6b', 60 + i * 6, 50);
+  }
+
+  /* ── 18. 主循环 ───────────────────────────────────────────────── */
+  function tick(dt) {
+    if (G.paused) return;
+    G.t += dt; G.f++;
+    readKin();
+    if (G.state === 'TITLE_LOBBY') {
+      G.camT += dt; stepFx(dt); updateSections(dt);
+      fsm(); return;
+    }
+    if (G.revealed < 1) G.revealed = Math.min(1, G.revealed + dt / 1.15);
+    if (G.rollT >= 0) {
+      G.rollT -= dt; stepFx(dt);
+      if (G.rollT <= 0) settle(G.rollReason);
+      fsm(); return;
+    }
+    if (G.settled) { stepFx(dt); updateSections(dt); G.camT += dt; fsm(); return; }
+    if (G.overT > 0) { G.overT -= dt; if (G.overT < 0) G.overT = 0; }
+    stepPlayer(dt);
+    updateSections(dt);
+    updateHazards(dt);
+    updateWaves(dt);
+    updateAttunement(dt);
+    updateResources(dt);
+    stepFx(dt);
+    checkFail();
+    fsm();
+  }
+
+  /* ══════════════ 19. 画布 A · 主视窗剖面 ═════════════════════════ */
+  function rr(x, y, w, h, r) {
+    var c = WC;
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r);
+    c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r);
+    c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y);
+    c.closePath();
+  }
+
+  function paintWorld() {
+    var c = WC, W = WORLD_W, H = WORLD_H;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.clearRect(0, 0, 546, 546);
+
+    c.save();
+    /* 空间相位翻转：300 ms 视差倾角扰动 */
+    var tilt = 0;
+    if (G.polT > 0) {
+      var pr = 1 - G.polT / (PHYS.POL_MS / 1000);
+      tilt = Math.sin(pr * Math.PI) * PHYS.POL_TILT * (G.polCount % 2 ? 1 : -1);
+      c.translate(P.x, P.y); c.rotate(tilt); c.translate(-P.x, -P.y);
+    }
+    G.tilt = tilt;
+
+    /* 层带水体 */
+    for (var s = 0; s < STRATA.length; s++) {
+      var S = STRATA[s], y0 = S.r0 * CELL, y1 = (S.r1 + 1) * CELL;
+      var g = c.createLinearGradient(0, y0, 0, y1);
+      g.addColorStop(0, S.tint);
+      g.addColorStop(1, STRATA[Math.min(STRATA.length - 1, s + 1)].tint);
+      c.globalAlpha = 0.30 + 0.62 * S.light;
+      c.fillStyle = g;
+      c.fillRect(0, y0, W, y1 - y0);
+    }
+    c.globalAlpha = 1;
+    c.globalCompositeOperation = 'lighter';
+    c.globalAlpha = 0.24;
+    c.drawImage(TEX_MARINE, 0, 0);
+    c.globalAlpha = 0.10;
+    c.drawImage(TEX_DUST, ((G.t * 9) % 60) - 60, ((G.t * 4) % 60) - 60);
+    c.globalCompositeOperation = 'source-over';
+    c.globalAlpha = 1;
+
+    /* 层界面（密度跃层最锐） */
+    for (var q = 1; q < STRATA.length; q++) {
+      var yy = STRATA[q].r0 * CELL;
+      c.strokeStyle = q === 2 ? '#7ad7ff' : '#3d7f9c';
+      c.globalAlpha = q === 2 ? 0.42 : 0.20;
+      c.lineWidth = q === 2 ? 1.6 : 1;
+      c.beginPath();
+      for (var xx = 0; xx <= W; xx += 12) {
+        var wy = yy + Math.sin(xx * 0.021 + G.t * (0.7 + q * 0.2)) * (2.5 + q);
+        if (xx === 0) c.moveTo(xx, wy); else c.lineTo(xx, wy);
+      }
+      c.stroke();
+    }
+    c.globalAlpha = 1;
+
+    /* 内波流场：短划线，方向与长度即流速矢量 */
+    c.lineWidth = 1.3;
+    for (var gr = 0; gr < ROWS; gr += 1) {
+      for (var gc = 0; gc < COLS; gc += 1) {
+        var cur = currentAt(gr, G.t);
+        var sp = hyp(cur.x, cur.y);
+        if (sp < 2) continue;
+        var px = (gc + 0.5) * CELL, py = (gr + 0.5) * CELL;
+        var ux = cur.x / sp, uy = cur.y / sp;
+        var ln = clamp(sp * 0.62, 4, 17);
+        c.strokeStyle = cur.x >= 0 ? 'rgba(122,215,255,0.30)' : 'rgba(255,209,102,0.30)';
+        c.beginPath();
+        c.moveTo(px - ux * ln, py - uy * ln);
+        c.lineTo(px + ux * ln, py + uy * ln);
+        c.stroke();
+      }
+    }
+
+    /* 海床 */
+    c.fillStyle = '#0a1c28';
+    c.fillRect(0, H - CELL * 0.5, W, CELL * 0.5);
+    c.strokeStyle = '#1c4a60'; c.lineWidth = 1;
+    c.beginPath();
+    for (var bx = 0; bx <= W; bx += 9) {
+      var by = H - CELL * 0.5 + Math.sin(bx * 0.09) * 3;
+      if (bx === 0) c.moveTo(bx, by); else c.lineTo(bx, by);
+    }
+    c.stroke();
+
+    /* 沉船残骸舱段 */
+    for (var i = 0; i < G.board.sections.length; i++) {
+      var sec = G.board.sections[i];
+      for (var k = 0; k < sec.cells.length; k++) {
+        var cc = sec.cells[k][0], cr = sec.cells[k][1];
+        var x = cc * CELL, y = cr * CELL, off = sec.sink;
+        if (!sec.alive) {
+          var vo = clamp(sec.voidT / (PHYS.VOID_MS / 1000), 0, 1);
+          c.globalAlpha = 0.22 + 0.28 * (1 - vo);
+          c.fillStyle = '#04121b';
+          c.fillRect(x, y, CELL, CELL);
+          c.strokeStyle = '#24506a'; c.lineWidth = 1;
+          c.setLineDash([3, 4]);
+          c.strokeRect(x + 1.5, y + 1.5, CELL - 3, CELL - 3);
+          c.setLineDash([]);
+          c.globalAlpha = 1;
+          /* 虚空回流箭头 */
+          c.fillStyle = 'rgba(122,215,255,' + (0.30 * (1 - vo)).toFixed(3) + ')';
+          c.font = '9px monospace'; c.textAlign = 'center';
+          c.fillText('◌', x + CELL / 2, y + CELL / 2 + 3);
+          c.textAlign = 'left';
+          continue;
+        }
+        var kd = G.board.kind[cr][cc];
+        var gg = c.createLinearGradient(x, y, x, y + CELL);
+        if (kd === 2) { gg.addColorStop(0, '#5a3a20'); gg.addColorStop(1, '#2c1d12'); }
+        else { gg.addColorStop(0, '#2b5062'); gg.addColorStop(1, '#122b38'); }
+        c.fillStyle = gg;
+        c.fillRect(x, y + off, CELL, CELL);
+        c.strokeStyle = kd === 2 ? '#ff9d4a' : (inCore(sec, x + CELL / 2) ? '#7fffdc' : '#3f7e97');
+        c.lineWidth = inCore(sec, x + CELL / 2) ? 1.5 : 1;
+        c.strokeRect(x + 0.5, y + off + 0.5, CELL - 1, CELL - 1);
+        /* 铆钉 */
+        c.fillStyle = 'rgba(160,220,240,0.30)';
+        for (var nx = 0; nx < 2; nx++) for (var ny = 0; ny < 2; ny++)
+          c.fillRect(x + 5 + nx * (CELL - 12), y + off + 5 + ny * (CELL - 12), 2, 2);
+        if (kd === 4) {   /* 打捞物 */
+          c.fillStyle = '#ffd479';
+          c.beginPath();
+          c.moveTo(x + CELL / 2, y + off + 9);
+          c.lineTo(x + CELL - 11, y + off + CELL / 2);
+          c.lineTo(x + CELL / 2, y + off + CELL - 9);
+          c.lineTo(x + 11, y + off + CELL / 2);
+          c.closePath();
+          c.fill();
+          c.fillStyle = '#3a2a06'; c.font = 'bold 9px monospace'; c.textAlign = 'center';
+          c.fillText('T', x + CELL / 2, y + off + CELL / 2 + 3); c.textAlign = 'left';
+        }
+        if (kd === 3) {   /* 桅杆锚点 */
+          c.strokeStyle = '#9fe8ff'; c.lineWidth = 2;
+          c.beginPath();
+          c.moveTo(x + CELL / 2, y + off + 6); c.lineTo(x + CELL / 2, y + off + CELL - 5);
+          c.moveTo(x + CELL / 2 - 7, y + off + 12); c.lineTo(x + CELL / 2 + 7, y + off + 12);
+          c.stroke();
+          c.fillStyle = '#9fe8ff';
+          c.beginPath(); c.arc(x + CELL / 2, y + off + 6, 2.6, 0, 6.2832); c.fill();
+        }
+        /* 冲击位移可视化 */
+        if (Math.abs(sec.sink) > 1.2) {
+          c.strokeStyle = 'rgba(255,157,107,0.55)'; c.lineWidth = 1;
+          c.setLineDash([2, 3]);
+          c.strokeRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
+          c.setLineDash([]);
+        }
+        /* 引信倒计时 */
+        if (sec.fuse > 0) {
+          var fp = sec.fuse / PHYS.FUSE_MS;
+          c.fillStyle = 'rgba(255,90,60,0.85)';
+          c.fillRect(x + 3, y + off + CELL - 6, (CELL - 6) * fp, 3);
+        }
+        if (sec.hp < 1) {
+          c.fillStyle = 'rgba(255,209,102,0.75)';
+          c.fillRect(x + 3, y + off + CELL - 10, (CELL - 6) * clamp(sec.hp, 0, 1), 2);
+        }
+      }
+    }
+
+    /* 热液喷口羽流 */
+    for (var v = 0; v < G.board.vents.length; v++) {
+      var vt = G.board.vents[v];
+      var plx = vt.x, ply = vt.y + CELL * 0.5;
+      var pg = c.createLinearGradient(plx, ply, plx, ply - CELL * 5);
+      pg.addColorStop(0, 'rgba(255,157,74,0.55)');
+      pg.addColorStop(0.5, 'rgba(255,157,74,0.14)');
+      pg.addColorStop(1, 'rgba(255,157,74,0)');
+      c.fillStyle = pg;
+      c.beginPath();
+      c.moveTo(plx - CELL * 0.30, ply);
+      c.quadraticCurveTo(plx - CELL * 0.55, ply - CELL * 2.4, plx - CELL * 0.22, ply - CELL * 5);
+      c.lineTo(plx + CELL * 0.22, ply - CELL * 5);
+      c.quadraticCurveTo(plx + CELL * 0.55, ply - CELL * 2.4, plx + CELL * 0.30, ply);
+      c.closePath();
+      c.fill();
+      c.fillStyle = '#ff9d4a';
+      c.beginPath(); c.arc(plx, ply - 3, 4 + Math.sin(vt.t * 3) * 1.4, 0, 6.2832); c.fill();
+      /* 核心区 20% 高亮带 */
+      c.fillStyle = 'rgba(127,255,220,' + (0.16 + 0.16 * Math.sin(G.t * 4)).toFixed(3) + ')';
+      c.fillRect(vt.x - CELL * PHYS.CORE_ZONE, vt.y, CELL * PHYS.CORE_ZONE * 2, CELL);
+      c.strokeStyle = '#7fffdc'; c.lineWidth = 1;
+      c.strokeRect(vt.x - CELL * PHYS.CORE_ZONE, vt.y, CELL * PHYS.CORE_ZONE * 2, CELL);
+      if (vt.charge > 0.02) {
+        c.strokeStyle = vt.ready ? '#7fffdc' : '#ffd479';
+        c.lineWidth = 2;
+        c.beginPath();
+        c.arc(plx, vt.y + CELL * 0.5, CELL * 0.62, -Math.PI / 2, -Math.PI / 2 + 6.2832 * vt.charge);
+        c.stroke();
+      }
+    }
+
+    /* 深渊出怪舱口 */
+    for (var hh2 = 0; hh2 < G.board.hatches.length; hh2++) {
+      var ht = G.board.hatches[hh2];
+      c.strokeStyle = 'rgba(255,107,107,0.75)'; c.lineWidth = 2;
+      c.beginPath();
+      c.arc(ht.x, ht.y, 11 + Math.sin(G.t * 2.4 + hh2) * 2.2, 0, 6.2832);
+      c.stroke();
+      c.fillStyle = 'rgba(255,107,107,0.16)';
+      c.beginPath(); c.arc(ht.x, ht.y, 11, 0, 6.2832); c.fill();
+    }
+
+    /* 母船与脐带 */
+    var mx = (BOARD_HINT.mother[0] + 0.5) * CELL;
+    c.fillStyle = '#16394c';
+    c.fillRect(mx - 46, 0, 92, CELL * 0.5);
+    c.strokeStyle = '#5fe0c0'; c.lineWidth = 1.4;
+    c.strokeRect(mx - 46, 0.5, 92, CELL * 0.5);
+    c.fillStyle = '#7fffdc'; c.font = 'bold 10px monospace'; c.textAlign = 'center';
+    c.fillText('母船 · 补给区', mx, CELL * 0.5 - 5);
+    c.fillStyle = 'rgba(95,224,192,0.06)';
+    c.fillRect(0, CELL * 0.5, W, CELL * 1.5);
+    c.textAlign = 'left';
+
+    if (G.state !== 'TITLE_LOBBY') {
+      c.strokeStyle = 'rgba(95,224,192,' + (0.30 + 0.28 * (G.life / G.lifeMax)).toFixed(3) + ')';
+      c.lineWidth = 1.6 + G.lifeFlash * 2;
+      c.beginPath();
+      c.moveTo(mx, CELL * 0.5);
+      c.quadraticCurveTo((mx + P.x) / 2 + Math.sin(G.t * 1.4) * 14, (CELL * 0.5 + P.y) / 2, P.x, P.y);
+      c.stroke();
+    }
+
+    /* 能量索 */
+    if (P.tether >= 0) {
+      var tc = P.tether % COLS, tr = Math.floor(P.tether / COLS);
+      c.strokeStyle = '#9fe8ff'; c.lineWidth = 1.6;
+      c.setLineDash([6, 4]);
+      c.beginPath();
+      c.moveTo((tc + 0.5) * CELL, (tr + 0.5) * CELL + G.board.sections[0].sink * 0);
+      c.lineTo(P.x, P.y);
+      c.stroke();
+      c.setLineDash([]);
+    }
+
+    /* 深渊生物 */
+    for (var i2 = 0; i2 < G.hazards.length; i2++) {
+      var hz = G.hazards[i2], HZ = hz.H;
+      c.save();
+      c.translate(hz.x, hz.y);
+      c.globalAlpha = HZ.ethereal ? 0.55 : 1;
+      if (HZ.ethereal) {
+        c.strokeStyle = HZ.col; c.lineWidth = 2.4;
+        c.beginPath(); c.arc(0, 0, hz.r * 0.75, 0, 6.2832); c.stroke();
+        c.globalAlpha = 0.20; c.fillStyle = HZ.col;
+        c.beginPath(); c.arc(0, 0, hz.r, 0, 6.2832); c.fill();
+        c.globalAlpha = 0.9;
+        c.strokeStyle = HZ.col; c.lineWidth = 1;
+        for (var wq = 1; wq <= 2; wq++) { c.beginPath(); c.arc(0, 0, hz.r * (0.75 + wq * 0.42), 0, 6.2832); c.stroke(); }
+      } else {
+        c.fillStyle = HZ.col;
+        c.beginPath();
+        if (HZ.boss) {
+          for (var a2 = 0; a2 < 10; a2++) {
+            var an = a2 / 10 * 6.2832, rr2 = a2 % 2 ? hz.r * 0.62 : hz.r;
+            var xx2 = Math.cos(an) * rr2, yy2 = Math.sin(an) * rr2 * 1.15;
+            if (a2 === 0) c.moveTo(xx2, yy2); else c.lineTo(xx2, yy2);
+          }
+        } else {
+          c.ellipse(0, 0, hz.r * 0.72, hz.r, 0, 0, 6.2832);
+        }
+        c.closePath(); c.fill();
+        if (HZ.armor) { c.strokeStyle = '#ffe6c2'; c.lineWidth = 1.6; c.stroke(); }
+        c.fillStyle = '#04121b';
+        c.beginPath(); c.arc(-hz.r * 0.26, -hz.r * 0.20, 1.7, 0, 6.2832); c.fill();
+        c.beginPath(); c.arc(hz.r * 0.26, -hz.r * 0.20, 1.7, 0, 6.2832); c.fill();
+      }
+      c.restore();
+      if (hz.hp < hz.hpMax) {
+        c.fillStyle = 'rgba(0,0,0,0.55)';
+        c.fillRect(hz.x - hz.r, hz.y - hz.r - 7, hz.r * 2, 3);
+        c.fillStyle = hz.hp / hz.hpMax > 0.4 ? '#7fffdc' : '#ff8a5c';
+        c.fillRect(hz.x - hz.r, hz.y - hz.r - 7, hz.r * 2 * clamp(hz.hp / hz.hpMax, 0, 1), 3);
+      }
+      if (hz.chewing) {
+        c.strokeStyle = '#ff6b6b'; c.lineWidth = 1.4;
+        c.beginPath(); c.arc(hz.x, hz.y, hz.r + 5 + Math.sin(G.t * 9) * 2, 0, 6.2832); c.stroke();
+      }
+    }
+
+    /* 冲击波与同调脉冲 */
+    for (var i3 = 0; i3 < G.shocks.length; i3++) {
+      var sk = G.shocks[i3];
+      c.strokeStyle = 'rgba(255,178,122,' + (sk.life / sk.maxLife * 0.85).toFixed(3) + ')';
+      c.lineWidth = 2.6;
+      c.beginPath(); c.arc(sk.x, sk.y, sk.r, 0, 6.2832); c.stroke();
+    }
+    for (var i4 = 0; i4 < G.pulses.length; i4++) {
+      var pu = G.pulses[i4];
+      c.strokeStyle = 'rgba(122,215,255,' + (pu.life / pu.maxLife * 0.9).toFixed(3) + ')';
+      c.lineWidth = 3;
+      c.beginPath(); c.arc(pu.x, pu.y, pu.r, 0, 6.2832); c.stroke();
+      c.strokeStyle = 'rgba(127,255,220,' + (pu.life / pu.maxLife * 0.5).toFixed(3) + ')';
+      c.lineWidth = 1.2;
+      c.beginPath(); c.arc(pu.x, pu.y, pu.r * 0.74, 0, 6.2832); c.stroke();
+    }
+
+    /* 粒子 */
+    for (var i5 = 0; i5 < G.fx.length; i5++) {
+      var p5 = G.fx[i5];
+      c.globalAlpha = clamp(p5.life / p5.max, 0, 1);
+      c.fillStyle = p5.col;
+      c.beginPath(); c.arc(p5.x, p5.y, p5.r, 0, 6.2832); c.fill();
+    }
+    c.globalAlpha = 1;
+
+    /* 潜航体 */
+    if (G.state !== 'TITLE_LOBBY') {
+      var pv = physics(clamp(Math.floor(P.y / CELL), 0, ROWS - 1));
+      c.save();
+      c.translate(P.x, P.y);
+      /* 速坠尾迹 */
+      if (P.plunging && P.vy > 60) {
+        c.strokeStyle = 'rgba(255,157,107,0.55)'; c.lineWidth = 2;
+        c.setLineDash([4, 3]);
+        c.beginPath(); c.moveTo(0, -14); c.lineTo(0, -14 - Math.min(34, P.vy * 0.08)); c.stroke();
+        c.setLineDash([]);
+      }
+      if (G.polT > 0) {
+        c.strokeStyle = 'rgba(192,139,255,0.85)'; c.lineWidth = 1.4;
+        c.beginPath(); c.arc(0, 0, 17 + Math.sin(G.t * 30) * 2, 0, 6.2832); c.stroke();
+        c.globalAlpha = 0.55;
+      }
+      /* 气囊视觉半径随实际容积变化 —— 深水被压扁，浅水鼓胀 */
+      var vr = clamp(pv.V, 0.1, 1.5);
+      c.fillStyle = 'rgba(127,255,220,0.16)';
+      c.beginPath(); c.ellipse(0, -2, 13 * (0.55 + vr * 0.5), 9 * (0.55 + vr * 0.5), 0, 0, 6.2832); c.fill();
+      c.globalAlpha = 1;
+      /* 耐压壳 */
+      var hg = c.createLinearGradient(0, -12, 0, 12);
+      hg.addColorStop(0, '#bfeeff'); hg.addColorStop(0.5, '#5fa8c4'); hg.addColorStop(1, '#255a72');
+      c.fillStyle = hg;
+      c.beginPath(); c.ellipse(0, 0, 11, 9, 0, 0, 6.2832); c.fill();
+      c.strokeStyle = P.attuned ? '#7fffdc' : '#9fe8ff'; c.lineWidth = 1.6;
+      c.stroke();
+      c.fillStyle = '#0b2632';
+      c.beginPath(); c.ellipse(0, -1.5, 4.4, 3.4, 0, 0, 6.2832); c.fill();
+      c.fillStyle = '#ffd479';
+      c.beginPath(); c.arc(0, -8, 2, 0, 6.2832); c.fill();
+      /* 蓄能环 */
+      if (P.charge > 4) {
+        var cr = P.charge / PHYS.CAT_FULL;
+        c.strokeStyle = cr > 0.82 ? '#ff8a5c' : '#7fffdc';
+        c.lineWidth = 3;
+        c.beginPath(); c.arc(0, 0, 18, -Math.PI / 2, -Math.PI / 2 + 6.2832 * cr); c.stroke();
+      }
+      /* 同调驻留进度 */
+      if (P.onGround && !P.attuned && P.dwell > 0.02) {
+        c.strokeStyle = 'rgba(255,212,121,0.9)'; c.lineWidth = 2;
+        c.beginPath(); c.arc(0, 0, 20, -Math.PI / 2, -Math.PI / 2 + 6.2832 * (P.dwell * 1000 / PHYS.ATTUNE_MS)); c.stroke();
+      }
+      /* 边缘警告 */
+      var tw = tileAt(P.x, P.y + 15);
+      if (P.onGround && tw.sec && tw.sec.alive && !inCore(tw.sec, P.x)) {
+        c.strokeStyle = 'rgba(255,138,92,' + (0.45 + 0.35 * Math.sin(G.t * 7)).toFixed(3) + ')';
+        c.lineWidth = 2;
+        c.beginPath(); c.moveTo(-7, 14); c.lineTo(0, 20); c.lineTo(7, 14); c.stroke();
+      }
+      c.restore();
+    }
+
+    /* 深度刻度 */
+    c.font = '9px monospace'; c.fillStyle = 'rgba(159,232,255,0.55)';
+    for (var dr = 0; dr < ROWS; dr++) {
+      c.fillText((dr * M_PER_ROW) + 'm', 3, dr * CELL + 11);
+    }
+    c.restore();
+
+    paintVeil(c);
+
+    /* 相位翻转时的画布边缘撕裂 */
+    if (G.polT > 0) {
+      c.strokeStyle = 'rgba(192,139,255,0.75)'; c.lineWidth = 2;
+      c.strokeRect(1, 1, 544, 544);
+    }
+  }
+
+  /* ── 19b. 分状态视口叠层 ──────────────────────────────────────────
+     八阶状态机不能只落在顶栏那行文字上：主视窗必须自己把当前状态画出来，
+     否则相邻两态的帧只差几个实体，观感上就是同一张图。
+     每一层都由该状态真正的判据驱动（显影进度 / 充盈度 / 危机度 / 熔断余时 /
+     回溯读条），不是贴上去的装饰。 */
+  function paintVeil(c) {
+    var W = WORLD_W, H = WORLD_H, i;
+
+    /* ① SEEDED_INITIALIZING：固定种子逐格显影，扫线以下的棋盘尚未解算 */
+    if (G.revealed < 1) {
+      var ry = H * clamp(G.revealed, 0, 1);
+      c.fillStyle = 'rgba(2,8,14,0.95)';
+      c.fillRect(0, ry, W, H - ry);
+      c.strokeStyle = 'rgba(95,224,192,0.16)'; c.lineWidth = 1;
+      for (i = 0; i <= COLS; i++) {
+        c.beginPath(); c.moveTo(i * CELL + 0.5, 0); c.lineTo(i * CELL + 0.5, ry); c.stroke();
+      }
+      for (i = 0; i <= ROWS; i++) {
+        if (i * CELL > ry) break;
+        c.beginPath(); c.moveTo(0, i * CELL + 0.5); c.lineTo(W, i * CELL + 0.5); c.stroke();
+      }
+      c.fillStyle = 'rgba(95,224,192,0.10)';
+      c.fillRect(0, Math.max(0, ry - 24), W, 24);
+      c.strokeStyle = '#5fe0c0'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(0, ry); c.lineTo(W, ry); c.stroke();
+      c.fillStyle = '#9ff4ff'; c.font = 'bold 11px monospace'; c.textAlign = 'left';
+      c.fillText('种子 ' + G.seed + ' 逐格解算 ' + Math.round(clamp(G.revealed, 0, 1) * 100) + '%',
+                 8, Math.min(H - 6, ry + 15));
+    }
+
+    /* ② ATTUNEMENT_DWELL：喷口谐振。环半径由驻留时长推进，整体亮度由充盈度给出 */
+    if (G.state === 'ATTUNEMENT_DWELL' || G.attune > 0.02) {
+      var vt = G.board.vents[G.attuneVent];
+      if (vt) {
+        var at = clamp(G.attune, 0, 1);
+        var rg = c.createRadialGradient(vt.x, vt.y, 4, vt.x, vt.y, CELL * 3.4);
+        rg.addColorStop(0, 'rgba(122,215,255,' + (0.30 * at).toFixed(3) + ')');
+        rg.addColorStop(1, 'rgba(122,215,255,0)');
+        c.fillStyle = rg;
+        c.fillRect(vt.x - CELL * 3.4, vt.y - CELL * 3.4, CELL * 6.8, CELL * 6.8);
+        for (i = 0; i < 3; i++) {
+          var ph = (G.t * 0.9 + i / 3) % 1;
+          c.strokeStyle = 'rgba(122,215,255,' + (0.44 * at * (1 - ph)).toFixed(3) + ')';
+          c.lineWidth = 2;
+          c.beginPath();
+          c.arc(vt.x, vt.y + CELL * 0.5, CELL * 0.6 + ph * CELL * 3.2, 0, 6.2832);
+          c.stroke();
+        }
+      }
+    }
+
+    /* ③ DYNAMIC_BRANCHING：危机度取「疲劳越限」与「脐带越限」两者中的较大者 */
+    if (G.state === 'DYNAMIC_BRANCHING') {
+      var dg = Math.max(clamp((G.fatigue - 74) / 26, 0, 1),
+                        clamp(1 - G.life / (G.lifeMax * 0.34), 0, 1));
+      if (dg > 0.001) {
+        var vg = c.createRadialGradient(W / 2, H / 2, W * 0.30, W / 2, H / 2, W * 0.78);
+        vg.addColorStop(0, 'rgba(255,80,80,0)');
+        vg.addColorStop(1, 'rgba(255,80,80,' + (0.46 * dg).toFixed(3) + ')');
+        c.fillStyle = vg; c.fillRect(0, 0, W, H);
+        c.strokeStyle = 'rgba(255,107,107,' + (0.34 + 0.5 * dg).toFixed(3) + ')';
+        c.lineWidth = 2 + 2 * Math.abs(Math.sin(G.t * 6));
+        c.strokeRect(3, 3, W - 6, H - 6);
+      }
+    }
+
+    /* ④ OVERLOAD_PENALTY：气囊越过结构上限，壳体向外溃散出压环 */
+    if (G.overT > 0) {
+      var ot = clamp(G.overT / 1.6, 0, 1);
+      c.fillStyle = 'rgba(255,138,92,' + (0.24 * ot).toFixed(3) + ')';
+      c.fillRect(0, 0, W, H);
+      for (i = 0; i < 3; i++) {
+        var q2 = (1 - ot + i / 3) % 1;
+        c.strokeStyle = 'rgba(255,157,107,' + (0.85 * ot * (1 - q2)).toFixed(3) + ')';
+        c.lineWidth = 3;
+        c.beginPath(); c.arc(P.x, P.y, 20 + q2 * 190, 0, 6.2832); c.stroke();
+      }
+    }
+
+    /* ⑤ CRISIS_FAILED_ROLLBACK：全场回溯读条，扫线自上而下复位 */
+    if (G.rollT >= 0) {
+      var rp = 1 - clamp(G.rollT / 1.25, 0, 1);
+      c.fillStyle = 'rgba(3,10,16,0.62)';
+      c.fillRect(0, 0, W, H * rp);
+      c.strokeStyle = '#ff6b6b'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(0, H * rp); c.lineTo(W, H * rp); c.stroke();
+      /* 通知条钉在视口下沿：扫线会从上往下掠过，而 y≈16 那一行是母船标签的地盘 */
+      c.fillStyle = 'rgba(4,10,16,0.86)';
+      c.fillRect(0, H - 62, W, 44);
+      c.strokeStyle = 'rgba(255,107,107,0.55)'; c.lineWidth = 1;
+      c.strokeRect(0.5, H - 61.5, W - 1, 43);
+      c.fillStyle = '#ff9d9d'; c.font = 'bold 13px monospace'; c.textAlign = 'center';
+      c.fillText('回溯 · ' + (G.rollReason || ''), W / 2, H - 42);
+      c.fillStyle = 'rgba(255,157,157,0.62)'; c.font = '9px monospace';
+      c.fillText('逐帧账本正在撤销本局全部因果 · 剩余 ' + clamp(G.rollT, 0, 9).toFixed(2) + ' s',
+                 W / 2, H - 26);
+      c.textAlign = 'left';
+    }
+  }
+
+  /* ══════════════ 20. 画布 B · 动态仪表组 ════════════════════════ */
+  function bar(c, x, y, w, h, p, colA, colB, label, val) {
+    c.fillStyle = '#08202c';
+    c.fillRect(x, y, w, h);
+    var g = c.createLinearGradient(x, y, x + w, y);
+    g.addColorStop(0, colA); g.addColorStop(1, colB);
+    c.fillStyle = g;
+    c.fillRect(x, y, w * clamp(p, 0, 1), h);
+    c.strokeStyle = '#1c5a75'; c.lineWidth = 1;
+    c.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    c.fillStyle = '#9fd0e4'; c.font = '10px monospace';
+    c.fillText(label, x, y - 3);
+    c.fillStyle = '#dff4ff'; c.font = 'bold 10px monospace'; c.textAlign = 'right';
+    c.fillText(val, x + w, y - 3); c.textAlign = 'left';
+  }
+
+  function paintRig() {
+    var c = RG;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.fillStyle = '#04121b'; c.fillRect(0, 0, 690, 356);
+    c.font = '10px monospace';
+
+    var row = clamp(Math.floor(P.y / CELL), 0, ROWS - 1);
+    var si = strataOf(row), ph = physics(row), cur = currentAt(row, G.t);
+    var cm = hyp(cur.x, cur.y);
+
+    /* ── 模块 1：洋流矢量罗盘 ── */
+    var cx = 74, cy = 74, R = 52;
+    c.strokeStyle = '#164a60'; c.lineWidth = 1;
+    c.beginPath(); c.arc(cx, cy, R, 0, 6.2832); c.stroke();
+    c.beginPath(); c.arc(cx, cy, R * 0.62, 0, 6.2832); c.stroke();
+    c.beginPath(); c.arc(cx, cy, R * 0.30, 0, 6.2832); c.stroke();
+    c.strokeStyle = '#0f3a4d';
+    for (var a3 = 0; a3 < 8; a3++) {
+      var an3 = a3 / 8 * 6.2832;
+      c.beginPath();
+      c.moveTo(cx + Math.cos(an3) * R * 0.86, cy + Math.sin(an3) * R * 0.86);
+      c.lineTo(cx + Math.cos(an3) * R, cy + Math.sin(an3) * R);
+      c.stroke();
+    }
+    /* 层带剪切线：把密度跃层上下的流向反号直观画出来 */
+    c.strokeStyle = 'rgba(122,215,255,0.45)';
+    c.beginPath(); c.moveTo(cx - R, cy); c.lineTo(cx + R, cy); c.stroke();
+    var ca = Math.atan2(cur.y, cur.x);
+    var cl = clamp(cm * 0.95, 8, R - 8);
+    c.strokeStyle = cm > 26 ? '#ffd166' : '#7ad7ff';
+    c.lineWidth = 2.6;
+    c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(ca) * cl, cy + Math.sin(ca) * cl); c.stroke();
+    c.fillStyle = cm > 26 ? '#ffd166' : '#7ad7ff';
+    c.beginPath();
+    c.arc(cx + Math.cos(ca) * cl, cy + Math.sin(ca) * cl, 3.4, 0, 6.2832);
+    c.fill();
+    c.fillStyle = '#9fd0e4'; c.font = '10px monospace';
+    c.fillText('洋流矢量罗盘', 18, 16);
+    c.fillStyle = '#dff4ff'; c.font = 'bold 12px monospace';
+    c.fillText(f1(cm) + ' px/s', cx - 28, cy + R + 16);
+    var sp0 = hyp(P.vx, P.vy);
+    var dotp = (sp0 > 4 && cm > 3) ? (P.vx * cur.x + P.vy * cur.y) / (sp0 * cm) : 0;
+    var tag = dotp > 0.15 ? '顺流 · 阻尼 ×' + f2(PHYS.TAIL_DRAG) : (dotp < -0.15 ? '迎流 · 升力矢量' : '横流');
+    c.fillStyle = dotp > 0.15 ? '#ff8a5c' : (dotp < -0.15 ? '#7fffdc' : '#7fb6cc');
+    c.font = '10px monospace';
+    c.fillText(tag, cx - 34, cy + R + 30);
+    /* 层带色标。罗盘的「px/s」读数与顺/迎流标签一路占到 y≈156，
+       色标必须整体压到它下面，否则两行 10px 字会在 y 140–156 互相盖住。 */
+    for (var s2 = 0; s2 < STRATA.length; s2++) {
+      c.fillStyle = STRATA[s2].tint;
+      c.fillRect(18, 168 + s2 * 13, 10, 9);
+      c.fillStyle = s2 === si ? '#dff4ff' : '#5f96ad';
+      c.font = s2 === si ? 'bold 10px monospace' : '10px monospace';
+      c.fillText(STRATA[s2].n + '  ρ' + f3(STRATA[s2].rho) + '  透光 ' + f2(STRATA[s2].light), 33, 177 + s2 * 13);
+    }
+
+    /* ── 模块 2：深度剖面规 ── */
+    var dx = 250, dy = 20, dh = 176, dw = 40;
+    c.fillStyle = '#062029'; c.fillRect(dx, dy, dw, dh);
+    for (var s3 = 0; s3 < STRATA.length; s3++) {
+      var y0 = dy + dh * STRATA[s3].r0 / ROWS, y1 = dy + dh * (STRATA[s3].r1 + 1) / ROWS;
+      c.fillStyle = STRATA[s3].tint;
+      c.fillRect(dx, y0, dw, y1 - y0);
+    }
+    c.strokeStyle = '#1c5a75'; c.strokeRect(dx + 0.5, dy + 0.5, dw - 1, dh - 1);
+    var my = dy + dh * (P.y / CELL) / ROWS;
+    c.fillStyle = '#7fffdc';
+    c.beginPath();
+    c.moveTo(dx - 6, my); c.lineTo(dx + 2, my - 5); c.lineTo(dx + 2, my + 5);
+    c.closePath(); c.fill();
+    c.strokeStyle = '#7fffdc'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(dx, my); c.lineTo(dx + dw, my); c.stroke();
+    c.fillStyle = '#9fd0e4'; c.font = '10px monospace';
+    c.fillText('深度剖面规', dx - 4, 16);
+    c.fillStyle = '#dff4ff'; c.font = 'bold 11px monospace';
+    c.fillText(Math.round(P.y / CELL * M_PER_ROW) + ' m', dx + dw + 8, my + 4);
+    c.fillStyle = STRATA[si].tint; c.font = '10px monospace';
+    c.fillText(STRATA[si].n, dx + dw + 8, my + 18);
+    c.fillStyle = '#5f96ad';
+    c.fillText('静水压 ' + f2(ph.P) + ' atm', dx + dw + 8, my + 32);
+    c.fillText('气囊容积 ' + f2(ph.V), dx + dw + 8, my + 46);
+    c.fillStyle = ph.net > 0 ? '#7fffdc' : '#ff8a5c';
+    c.fillText('净浮力 ' + (ph.net >= 0 ? '+' : '') + f1(ph.net), dx + dw + 8, my + 60);
+
+    /* ── 模块 3：资源条 ── */
+    var bx = 400, bw = 272;
+    bar(c, bx, 40, bw, 12, G.gas / G.gasMax, '#0b6a8a', '#5fe0c0',
+        '高压气 HP-GAS  (无被动恢复)', Math.round(G.gas) + ' / ' + G.gasMax);
+    bar(c, bx, 82, bw, 12, G.o2 / G.o2Max, '#0b5a8a', '#7ad7ff',
+        '氧气 O₂  (仅水面补给区回充)', Math.round(G.o2) + ' / ' + G.o2Max);
+    bar(c, bx, 124, bw, 12, G.stab / G.stabMax, '#7a5a0b', '#ffd479',
+        '稳定性储备  (边缘静止 −5%/s)', Math.round(G.stab) + ' / ' + G.stabMax);
+    bar(c, bx, 166, bw, 12, G.fatigue / 100, '#5a2a0b', '#ff6b6b',
+        '结构疲劳  (仅水面减压舱可修复)', Math.round(G.fatigue) + ' / 100');
+    bar(c, bx, 208, bw, 12, G.ballast, '#123a5a', '#9fe8ff',
+        '压载水量  (质量 ' + f2(ph.W) + ' · 打捞 ' + G.salvage + ' 件)',
+        Math.round(G.ballast * 100) + '%');
+    /* 这一条必须画「容积 V = 含气量/P」，而不是含气量本身：
+       熔断判据是 V 越过 BLADDER_MAX，画含气量会让条形与熔断条件脱钩 ——
+       浅水处含气量 2.31 看似爆表，实际 V 只有 1.02，远未触发。 */
+    bar(c, bx, 250, bw, 12, ph.V / PHYS.BLADDER_MAX, '#2a4a0b',
+        ph.V > PHYS.BLADDER_SAFE ? '#ff8a5c' : '#8ef0c8',
+        '气囊容积 V = 含气 / P   熔断 ' + f2(PHYS.BLADDER_MAX), f2(ph.V));
+    c.fillStyle = '#5f96ad'; c.font = '9px monospace';
+    c.fillText('含气 ' + f2(G.bladder) + ' · 预警带 ' + f2(PHYS.BLADDER_SAFE) +
+               ' 起 · 越限强制排气并计一次过载', bx, 274);
+
+    /* ── 模块 4：实时损耗率监视器 ── */
+    var lx = 400, ly = 292;
+    c.fillStyle = '#9fd0e4'; c.font = '10px monospace';
+    c.fillText('实时损耗率监视器', lx, ly - 8);
+    if (G.rateT === undefined) { G.rateT = 0; G.rateG = G.gas; G.rateO = G.o2; G.rateF = G.fatigue; G.rateS = G.stab; }
+    G.rateT += G.dt;
+    if (G.rateT > 0.5) {
+      var k4 = 1 / G.rateT;
+      G.rateGv = (G.gas - G.rateG) * k4; G.rateOv = (G.o2 - G.rateO) * k4;
+      G.rateFv = (G.fatigue - G.rateF) * k4; G.rateSv = (G.stab - G.rateS) * k4;
+      G.rateG = G.gas; G.rateO = G.o2; G.rateF = G.fatigue; G.rateS = G.stab; G.rateT = 0;
+    }
+    function rate(v, unit) {
+      var s5 = (v >= 0 ? '+' : '') + f2(v);
+      return s5 + ' ' + unit + '/s';
+    }
+    c.font = 'bold 11px monospace';
+    c.fillStyle = (G.rateGv || 0) > 0.001 ? '#ff8a5c' : '#7fb6cc';
+    c.fillText('气 ' + rate(G.rateGv || 0, ''), lx, ly + 8);
+    c.fillStyle = '#7fb6cc';
+    c.fillText('氧 ' + rate(G.rateOv || 0, ''), lx + 120, ly + 8);
+    c.fillStyle = (G.rateFv || 0) > 0.01 ? '#ff6b6b' : '#7fb6cc';
+    c.fillText('疲 ' + rate(G.rateFv || 0, ''), lx + 240, ly + 8);
+    c.fillStyle = (G.rateSv || 0) < -0.01 ? '#ffd479' : '#7fb6cc';
+    c.fillText('稳 ' + rate(G.rateSv || 0, ''), lx, ly + 24);
+    c.fillStyle = '#5f96ad'; c.font = '10px monospace';
+    c.fillText('边缘暴露 ' + f1(G.edgeTime) + ' s · 已达最深 ' + (G.depthMax * M_PER_ROW) + ' m', lx + 120, ly + 24);
+
+    /* 左侧手势提示 */
+    c.fillStyle = '#5f96ad'; c.font = '10px monospace';
+    var hints = ['Shift 动量下压速坠冲击', 'L 张力蓄能弹射(长按/松开)', 'U 空间相位瞬时翻转',
+                 'Space 能量索抓取/摆荡释放', 'Enter 共振同调脉冲释放', 'J 气囊注气 · K 排气 · W/S 压载'];
+    for (var h4 = 0; h4 < hints.length; h4++) {
+      c.fillStyle = h4 === 4 && G.attune > 0.12 ? '#7ad7ff' : (h4 === 0 && P.plunging ? '#ff9d6b' : '#5f96ad');
+      c.fillText(hints[h4], 18, 246 + h4 * 14);
+    }
+  }
+
+  /* ══════════════ 21. 画布 C · 声呐回波剖面 ══════════════════════ */
+  function paintSonar() {
+    var c = SN;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.fillStyle = '#02121a'; c.fillRect(0, 0, 546, 86);
+    /* 密度界面造成的幻影回波：声呐在跃层处会复制一份假目标 */
+    for (var s = 1; s < STRATA.length; s++) {
+      var yy = 10 + (86 - 20) * STRATA[s].r0 / ROWS;
+      c.strokeStyle = s === 2 ? 'rgba(122,215,255,0.55)' : 'rgba(61,127,156,0.30)';
+      c.lineWidth = s === 2 ? 1.4 : 1;
+      c.beginPath();
+      for (var x = 0; x <= 546; x += 10) {
+        var wy = yy + Math.sin(x * 0.031 + G.t * 1.1) * (s === 2 ? 2.6 : 1.4);
+        if (x === 0) c.moveTo(x, wy); else c.lineTo(x, wy);
+      }
+      c.stroke();
+    }
+    var sx = 546 / COLS, sy = (86 - 20) / ROWS;
+    /* 幻影：真实目标的镜像副本，压暗 40% */
+    c.globalAlpha = 0.38;
+    for (var i = 0; i < G.hazards.length; i++) {
+      var h = G.hazards[i];
+      var hx = h.x / CELL * sx, hy = 10 + (h.y / CELL) * sy;
+      var py = 10 + (2 * STRATA[2].r0 - h.y / CELL) * sy;
+      c.fillStyle = h.H.col;
+      c.beginPath(); c.arc(hx, py, 3.2, 0, 6.2832); c.fill();
+    }
+    c.globalAlpha = 1;
+    for (var j = 0; j < G.hazards.length; j++) {
+      var h2 = G.hazards[j];
+      var hx2 = h2.x / CELL * sx, hy2 = 10 + (h2.y / CELL) * sy;
+      c.strokeStyle = h2.H.col; c.lineWidth = 1.4;
+      c.beginPath(); c.arc(hx2, hy2, 3.4, Math.PI, 0); c.stroke();
+      c.fillStyle = h2.H.col;
+      c.beginPath(); c.arc(hx2, hy2 + 3.4, 1.6, 0, 6.2832); c.fill();
+    }
+    var px2 = P.x / CELL * sx, py2 = 10 + (P.y / CELL) * sy;
+    c.fillStyle = '#7fffdc';
+    c.beginPath();
+    c.moveTo(px2, py2 - 5); c.lineTo(px2 - 4, py2 + 4); c.lineTo(px2 + 4, py2 + 4);
+    c.closePath(); c.fill();
+    c.strokeStyle = 'rgba(127,255,220,0.35)'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(px2, 8); c.lineTo(px2, 82); c.stroke();
+    /* 换能器基线 */
+    c.fillStyle = '#9fd0e4'; c.font = '9px monospace';
+    c.fillText('声呐回波剖面 · 亮目标为实回波，暗目标为密度跃层幻影', 6, 84);
+    /* 脐带张力条 */
+    c.fillStyle = '#123a4a';
+    c.fillRect(360, 4, 180, 6);
+    c.fillStyle = G.life / G.lifeMax > 0.5 ? '#5fe0c0' : (G.life / G.lifeMax > 0.25 ? '#ffd479' : '#ff6b6b');
+    c.fillRect(360, 4, 180 * clamp(G.life / G.lifeMax, 0, 1), 6);
+    c.fillStyle = '#9fd0e4'; c.fillText('脐带 ' + f1(G.life), 360, 20);
+  }
+
+  /* ══════════════ 22. 画布 D · 环形计量 ══════════════════════════ */
+  function ring(c, x, y, r, p, col, bg) {
+    c.strokeStyle = bg || '#0d2f3f'; c.lineWidth = 5;
+    c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.stroke();
+    if (p > 0) {
+      c.strokeStyle = col; c.lineWidth = 5;
+      c.beginPath(); c.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + 6.2832 * clamp(p, 0, 1)); c.stroke();
+    }
+  }
+
+  function paintRings() {
+    var c = RD;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.fillStyle = '#04121b'; c.fillRect(0, 0, 690, 138);
+    /* 690×138 被切成左右两区：左边一列是浮屿寿命环，右边一列是同调环 + 蓄能槽。
+       两区的横向边界取 x=460，环列因此必须收在 34 + (n-1)·stepX < 445 之内。 */
+    c.font = '10px monospace'; c.fillStyle = '#9fd0e4';
+    c.fillText('浮屿寿命环形条 · 离台挂 500 ms 引信', 100, 15);
+
+    var secs = G.board.sections;
+    var y0 = 74;
+    var stepX = Math.min(66, (690 - 68) / Math.max(1, secs.length - 1));
+    for (var i = 0; i < secs.length && i < 8; i++) {
+      var s = secs[i], x = 34 + i * stepX;
+      var hpP = s.alive ? clamp(s.hp, 0, 1) : 0;
+      var col = !s.alive ? '#ff6b6b' : (s.fuse > 0 ? '#ff8a5c' : (hpP > 0.6 ? '#7fffdc' : '#ffd479'));
+      ring(c, x, y0, 15, !s.alive ? clamp(s.voidT / (PHYS.VOID_MS / 1000), 0, 1) : hpP, col);
+      c.fillStyle = col; c.font = 'bold 9px monospace'; c.textAlign = 'center';
+      c.fillText(!s.alive ? (Math.max(0, s.voidT * 1000 / 1000)).toFixed(1) : Math.round(s.fuse > 0 ? s.fuse : hpP * 100) + '', x, y0 + 3);
+      c.fillStyle = '#5f96ad'; c.font = '9px monospace';
+      c.fillText(s.note.replace('舱段 ', 'C').replace('喷口基座 ', 'V'), x, y0 + 26);
+      if (s.fuse > 0) {
+        c.fillStyle = '#ff8a5c';
+        c.fillText('引信', x, y0 + 38);
+      } else if (!s.alive) {
+        c.fillStyle = '#ff6b6b';
+        c.fillText('重组', x, y0 + 38);
+      }
+      c.textAlign = 'left';
+    }
+
+    /* 同调充盈环形条 */
+    var ap = G.attune;
+    ring(c, 500, 46, 20, ap, ap >= 1 ? '#7fffdc' : '#7ad7ff');
+    c.fillStyle = '#dff4ff'; c.font = 'bold 12px monospace'; c.textAlign = 'center';
+    c.fillText(Math.round(ap * 100) + '%', 500, 50);
+    c.fillStyle = '#5f96ad'; c.font = '9px monospace';
+    c.fillText('同调充盈', 500, 78);
+    c.textAlign = 'left';
+
+    /* 多段连击蓄能槽 */
+    c.fillStyle = '#9fd0e4'; c.font = '10px monospace';
+    c.fillText('多段连击蓄能槽', 548, 15);
+    var seg = 12, sx0 = 548, sy0 = 22;
+    for (var k = 0; k < seg; k++) {
+      var on = G.combo > k;
+      c.fillStyle = on ? (k > 8 ? '#ff8a5c' : (k > 5 ? '#ffd479' : '#7fffdc')) : '#0d2f3f';
+      c.fillRect(sx0 + k * 11, sy0, 9, 10);
+      c.strokeStyle = '#164a60'; c.lineWidth = 1;
+      c.strokeRect(sx0 + k * 11 + 0.5, sy0 + 0.5, 8, 9);
+    }
+    c.fillStyle = '#dff4ff'; c.font = 'bold 13px monospace';
+    c.fillText('×' + f2(G.yieldMul), sx0, sy0 + 30);
+    c.fillStyle = '#5f96ad'; c.font = '9px monospace';
+    c.fillText('收益倍率 · 连击 ' + G.combo + '/' + G.bestCombo, sx0, sy0 + 44);
+    c.fillStyle = '#5f96ad';
+    c.fillText('归零 ' + f1(Math.max(0, G.comboT)) + ' s', sx0, sy0 + 56);
+
+    /* 底部统计带：环列的引信标签止于 y=112，这条带从 y=118 起，互不相叠。 */
+    c.fillStyle = '#5f96ad'; c.font = '9px monospace';
+    c.fillText('速坠 ' + G.plungeCount + ' 次 · 峰值 ' + Math.round(G.plungeBest) + ' px/s', 14, 128);
+    c.fillText('相位翻转 ' + G.polCount + ' · 蓄能弹射 ' + G.catCount + ' · 能量索 ' + G.tgCount + ' · 过载 ' + G.overCount, 230, 128);
+  }
+
+  /* ══════════════ 23. 画布 E · 收益倍率账本 ══════════════════════ */
+  function paintLedger() {
+    var c = LG;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.fillStyle = '#04121b'; c.fillRect(0, 0, 690, 130);
+    c.font = '10px monospace';
+    c.fillStyle = '#9fd0e4';
+    c.fillText('历史收益倍率账本 · 逐帧事件溯源（RUNID ' + RUNID + ' · 种子 ' + G.seed + '）', 14, 15);
+    c.fillStyle = '#dff4ff'; c.font = 'bold 13px monospace';
+    c.textAlign = 'right';
+    c.fillText('当前倍率 ×' + f2(G.yieldMul), 676, 15);
+    c.textAlign = 'left';
+    var rows = G.ledger.slice(-7).reverse();
+    if (!rows.length) {
+      c.fillStyle = '#3f6f85';
+      c.fillText('尚无事件 · 账本等待第一条逐帧记录', 14, 40);
+    }
+    for (var i = 0; i < rows.length; i++) {
+      var y = 30 + i * 14;
+      var e = rows[i];
+      c.fillStyle = i === 0 ? '#dff4ff' : '#6ea9c0';
+      c.font = (i === 0 ? 'bold ' : '') + '10px monospace';
+      c.fillText('f' + String(e.f).padStart(5, '0') + '  ' + String(e.t).padStart(7, ' ') + 's', 14, y);
+      var amt = e.amount;
+      c.fillStyle = amt > 0 ? '#7fffdc' : (amt < 0 ? '#ff8a5c' : '#5f96ad');
+      c.textAlign = 'right';
+      c.fillText(amt > 0 ? '+' + amt : (amt < 0 ? String(amt) : '·'), 430, y);
+      c.textAlign = 'left';
+      c.fillStyle = i === 0 ? '#9fe8ff' : '#4d8ea8';
+      c.fillText(String(e.kind).padEnd(10, ' '), 370, y);
+      c.fillStyle = i === 0 ? '#a9cfe0' : '#3f6f85';
+      c.fillText(String(e.note).slice(0, 40), 442, y);
+    }
+    c.fillStyle = '#5f96ad'; c.font = '9px monospace';
+    c.fillText('事件 ' + G.ledger.length + ' 条 · 打捞 ' + G.salvage + ' 件 · 击杀 ' + G.kills + ' · 边缘暴露 ' + f1(G.edgeTime) + 's · 得分 ' + Math.round(G.score), 14, 126);
+  }
+
+  function paint() { paintWorld(); paintRig(); paintSonar(); paintRings(); paintLedger(); }
+
+  /* ══════════════ 24. 覆盖层与结算 ═══════════════════════════════ */
+  function buildDiffCards() {
+    var host = el('ov');
+    var cur = host.querySelector('.diffs');
+    var html = ['shallow', 'normal', 'abyss'].map(function (k) {
+      var d = DIFFS[k];
+      /* 三档一律给满三行同样的三项，否则短的那档会把最后一项挤成孤字换行 */
+      return '<div class="df' + (k === G.diff ? ' on' : '') + '" data-d="' + k + '"><b>' + d.n + '</b><i>' +
+        '脐带 ' + d.life + ' · 氧 ' + d.o2 + ' · 气 ' + d.gas + '<br>' +
+        '洋流 ×' + d.mer.toFixed(2) + ' · 敌速 ×' + d.espd.toFixed(2) + '<br>' +
+        '耗氧 ×' + d.drain.toFixed(2) +
+        '</i></div>';
+    }).join('');
+    if (cur) cur.innerHTML = html;
+  }
+
+  function renderTitle() {
+    var ov = el('ov');
+    ov.classList.remove('hide');
+    el('card').classList.remove('on');
+    ov.innerHTML =
+      '<div id="ovT">静 水 压</div>' +
+      '<div id="ovS">HYDROSTAT · 压载深潜 · RUNID ' + RUNID + ' · 种子 ' + G.seed + '</div>' +
+      '<div id="ovB">' +
+        '五层密度剖面 · 波义耳气囊 · 内波剪切矢量 · 十波深渊涌升<br>' +
+        '高压气 <em>无被动恢复</em> · 舱段离台即挂 <em>500 ms</em> 引信 · 触地后须 <em>350 ms</em> 低速驻留方可重新蓄能<br>' +
+        '<em>1</em>/<em>2</em>/<em>3</em> 切换难度 · <em>Enter</em> 开始 · <em>P</em> 暂停 · <em>R</em> 重开 · <em>Esc</em> 回母船' +
+      '</div>' +
+      '<div class="diffs"></div>' +
+      '<div id="ovS" style="font-size:10px;letter-spacing:2px;color:#3f6f85">TITLE_LOBBY → SEEDED_INITIALIZING → ACTIVE_ENGAGED → ATTUNEMENT_DWELL → DYNAMIC_BRANCHING → OVERLOAD_PENALTY → CRISIS_FAILED_ROLLBACK → RUN_SETTLED_LEDGER</div>';
+    buildDiffCards();
+  }
+
+  function aggregate() {
+    var n = G.ledger.length;
+    if (!n) return null;
+    var lifeP = clamp(G.life / G.lifeMax, 0, 1);
+    var waveP = clamp(G.wave / WAVES.length, 0, 1);
+    var salvP = clamp(G.salvage / 5, 0, 1);
+    var clean = clamp(1 - (G.fatiguePeak || 0) / 100, 0, 1);
+    var chain = clamp(G.bestCombo / 26, 0, 1);
+    /* 精准同调率没有落点样本时无从计算：此时必须判为无定义并整体剔除，
+       绝不能拿 0 或 1 顶替，否则该轴要么是白送的满环、要么是无因的重罚 */
+    var hasCore = (G.landN || 0) > 0;
+    var core = hasCore ? clamp((G.coreN || 0) / G.landN, 0, 1) : null;
+    /* 权重和必须与分子逐项对齐：漏掉 chain 的 0.16 会让分母只有 0.80
+       而分子上限是 0.96，满分制下算出 110+ 的分数。 */
+    var wSum = 0.30 + 0.18 + 0.16 + 0.16 + 0.16 + (hasCore ? 0.20 : 0);
+    var sc = (lifeP * 0.30 + waveP * 0.18 + salvP * 0.16 + clean * 0.16 + chain * 0.16 + (hasCore ? core * 0.20 : 0)) / wSum * 100;
+    var grade = sc >= 78 ? 'A' : sc >= 62 ? 'B' : sc >= 44 ? 'C' : 'D';
+    if (G.result === '十波全清' && lifeP >= 0.72 && (G.fatiguePeak || 0) < 62) grade = 'S';
+    if (G.result !== '十波全清' && G.result !== '主动收炉') grade = 'F';
+    return { n: n, sc: sc, grade: grade, lifeP: lifeP, waveP: waveP, salvP: salvP,
+             clean: clean, chain: chain, core: core, hasCore: hasCore, fatiguePeak: G.fatiguePeak || 0 };
+  }
+
+  function settle(reason) {
+    if (G.settled) return;
+    /* 结束原因必须同时落到 G.result：结算标题与评级都按它取分支，
+       只写一个字段会让真正的十波全清被写成失败回溯 */
+    G.settled = true; G.result = reason; G.rollT = -1;
+    G.score += G.life * 14 + G.o2 * 5 + G.salvage * 90;
+    G.aggCache = aggregate();
+    led('本局结算', Math.round(G.score), reason + ' · 评级 ' + (G.aggCache ? G.aggCache.grade : '-'));
+    pushLog('本局结算 · ' + reason + ' · 评级 ' + (G.aggCache ? G.aggCache.grade : '-'), '#ffc247');
+    renderSettle();
+  }
+
+  function renderSettle() {
+    var a = G.aggCache, card = el('card'), ov = el('ov');
+    ov.classList.add('hide');
+    card.classList.add('on');
+    if (!a) { card.innerHTML = '<h2>数据不足</h2>'; return; }
+    function cell(u, v, cls) {
+      return '<div class="cell"><u>' + u + '</u><b class="' + (cls || '') + '">' + v + '</b></div>';
+    }
+    card.innerHTML =
+      '<h2>' + (G.result === '十波全清' ? '十 波 全 清' : G.result) + '</h2>' +
+      '<div class="sub">RUNID ' + RUNID + ' · 种子 ' + G.seed + ' · 难度 ' + DIFFS[G.diff].n +
+        ' · 仿真 ' + G.f + ' 帧 / ' + f1(G.t) + ' s</div>' +
+      '<div id="cGrid">' +
+        cell('波次压制', G.wave + ' / ' + WAVES.length) +
+        cell('打捞件数', G.salvage + ' 件') +
+        cell('累计得分', Math.round(G.score), 'good') +
+        cell('峰值倍率', '×' + f2(1 + Math.min(2.4, Math.max(0, G.bestCombo - 1) * 0.13))) +
+        cell('脐带余量', f1(G.life) + ' / ' + G.lifeMax, a.lifeP > 0.5 ? 'good' : 'warn') +
+        cell('氧储备余量', f1(G.o2) + ' / ' + G.o2Max, G.o2 > 30 ? 'good' : 'warn') +
+        cell('结构疲劳峰值', f1(a.fatiguePeak) + ' / 100', a.fatiguePeak < 60 ? 'good' : 'warn') +
+        cell('高压气消耗', f1(G.gasSpent)) +
+        cell('速坠冲击次数', G.plungeCount + ' · 峰值 ' + Math.round(G.plungeBest) + ' px/s') +
+        cell('精准核心区同调', (G.coreN || 0) + ' / ' + (G.landN || 0)) +
+        cell('平均落点精准度', a.hasCore ? f3(a.core) : '—') +
+        cell('相位/弹射/索', G.polCount + ' / ' + G.catCount + ' / ' + G.tgCount) +
+        cell('过载熔断', G.overCount + ' 次', G.overCount ? 'warn' : 'good') +
+        cell('舱段碎裂', G.board.sections.filter(function (s) { return !s.alive; }).length + ' 处') +
+        cell('账本事件', a.n) +
+        cell('边缘暴露累计', f1(G.edgeTime) + ' s') +
+      '</div>' +
+      '<div id="cFoot">' +
+        '<div class="grade">' + a.grade + '</div>' +
+        /* 六个归一化分量必须与题面点名的六项一一对上：脐带守护 / 波次 / 打捞 /
+           疲劳抑制 / 连击 / 同调。此前把连击那一轴错标成「同调链」，结果面板上
+           既没有「连击」这一项，又把「同调」提前用掉了，机审据此退回。
+           同调轴由落点精准度归一化而来，无落点样本时整轴剔除，必须在读数处
+           写明并同步重算权重和，不能只留一个破折号。 */
+        '<div>综合评分 ' + f1(a.sc) + ' / 100<br>' +
+          '脐带守护 ' + f2(a.lifeP) + ' · 波次 ' + f2(a.waveP) + ' · 打捞 ' + f2(a.salvP) + '<br>' +
+          '疲劳抑制 ' + f2(a.clean) + ' · 连击 ' + f2(a.chain) + ' · 同调 ' +
+            (a.hasCore ? f2(a.core) + '（落点精准轴）' : '—（无落点样本）') +
+          (a.hasCore ? '' : '<br>同调轴整轴剔除 · 权重和已按剩余五轴重算') +
+        '</div>' +
+        '<div style="margin-left:auto;text-align:right">RUN_SETTLED_LEDGER<br>Enter / R 返回母船</div>' +
+      '</div>';
+  }
+
+  /* ══════════════ 25. 生命周期 ══════════════════════════════════ */
+  function reset(mode) {
+    var d = DIFFS[G.diff];
+    G.t = 0; G.f = 0; G.acc = 0;
+    G.life = d.life; G.lifeMax = d.life; G.lifeFlash = 0;
+    G.o2 = d.o2; G.o2Max = d.o2;
+    G.gas = d.gas; G.gasMax = 100; G.gasSpent = 0;
+    G.stab = 100; G.stabMax = 100;
+    G.fatigue = 0; G.fatiguePeak = 0;
+    G.ballast = 0.80; G.bladder = 0.95;
+    G.salvage = 0; G.salvageMass = 0; G.yieldMul = 1;
+    G.score = 0; G.kills = 0; G.leaks = 0;
+    G.wave = 0; G.waveState = 'idle'; G.waveT = 0; G.spawned = 0; G.pending = []; G.spawnT = 0;
+    G.combo = 0; G.bestCombo = 0; G.comboT = 0;
+    G.attune = 0; G.attuneT = 0; G.attuneVent = -1;
+    G.overT = 0; G.overCount = 0; G.polT = 0; G.polCount = 0; G.catCount = 0; G.tgCount = 0;
+    G.plungeCount = 0; G.plungeBest = 0;
+    G.rollT = -1; G.rollReason = ''; G.result = ''; G.settled = false; G.aggCache = null;
+    G.ledger = []; G.logs = [];
+    G.hazards = []; G.fx = []; G.shocks = []; G.pulses = [];
+    G.revealed = (mode === 'title') ? 1 : 0;
+    G.depthMax = 0; G.timeAtDepth = 0; G.edgeTime = 0;
+    G.landN = 0; G.coreN = 0; G.passiveLeak = 0;
+    G.rateT = 0; G.rateG = G.gas; G.rateO = G.o2; G.rateF = 0; G.rateS = 100;
+    G.camT = 0;
+    P.x = (BOARD_HINT.mother[0] + 0.5) * CELL; P.y = CELL * 1.2;
+    P.vx = 0; P.vy = 0; P.onGround = false; P.gsec = -1; P.dwell = 0; P.attuned = false;
+    P.charging = false; P.charge = 0; P.plunging = false; P.tether = -1; P.tethW = 0;
+    KEYS = {}; KIN.lat = 0; KIN.bal = 0;
+    G.board = genBoard(G.seed);
+    el('card').classList.remove('on');
+  }
+
+  function startRun() {
+    reset('run');
+    G.state = 'SEEDED_INITIALIZING';
+    el('hState').textContent = 'SEEDED_INITIALIZING';
+    el('ov').classList.add('hide');
+    led('种子展开', 0, '棋盘 ' + COLS + '×' + ROWS + ' · 舱段 ' + G.board.sections.length + ' 段');
+    pushLog('种子 ' + G.seed + ' 展开 · ' + G.board.sections.length + ' 段残骸就位', '#9fe8ff');
+    paint();
+  }
+
+  function toTitle() {
+    reset('title');
+    G.state = 'TITLE_LOBBY';
+    el('hState').textContent = 'TITLE_LOBBY';
+    renderTitle();
+    paint();
+  }
+
+  /* ══════════════ 26. 渲染循环与推进 ═════════════════════════════ */
+  var lastT = 0, acc = 0;
+  function advance(now) {
+    if (G.frozen) { lastT = now; return; }
+    if (!lastT) lastT = now;
+    var d = (now - lastT) / 1000; lastT = now;
+    if (d > 0.25) d = 0.25;
+    acc += d;
+    var n = 0;
+    while (acc >= 1 / 60 && n < 8) { tick(1 / 60); acc -= 1 / 60; n++; }
+  }
+  function loopWorld(now) { advance(now); paintWorld(); syncBar(); requestAnimationFrame(loopWorld); }
+  function loopRig() { paintRig(); requestAnimationFrame(loopRig); }
+  function loopSonar() { paintSonar(); requestAnimationFrame(loopSonar); }
+  function loopRings() { paintRings(); requestAnimationFrame(loopRings); }
+  function loopLedger() { paintLedger(); requestAnimationFrame(loopLedger); }
+
+  function syncBar() {
+    if (G.f % 6) return;
+    var row = clamp(Math.floor(P.y / CELL), 0, ROWS - 1);
+    el('dDepth').textContent = Math.round(P.y / CELL * M_PER_ROW);
+    el('dBand').textContent = STRATA[strataOf(row)].n;
+    el('dWave').textContent = G.wave + ' / ' + WAVES.length;
+    el('dLife').textContent = f1(Math.max(0, G.life));
+    el('hDiff').textContent = DIFFS[G.diff].n;
+  }
+
+  /* ══════════════ 27. 探针接口 ══════════════════════════════════ */
+  function freeze() { G.frozen = true; }
+  function unfreeze() { G.frozen = false; }
+  function stepN(n) { for (var i = 0; i < n; i++) tick(1 / 60); }
+
+  window.HYDRO = {
+    /* 生命周期 */
+    seed: function (s) { G.seed = s >>> 0; reset(G.state === 'TITLE_LOBBY' ? 'title' : 'run'); return G.seed; },
+    setDifficulty: function (k) { if (DIFFS[k]) { G.diff = k; buildDiffCards(); } return G.diff; },
+    start: function () { startRun(); },
+    toMenu: function () { toTitle(); },
+    restart: function () { startRun(); },
+    pause: function () { G.paused = true; },
+    resume: function () { G.paused = false; },
+    seek: function (f) { var n = Math.max(0, f - G.f); stepN(n); },
+    step: stepN,
+    fastForward: stepN,
+    finish: function () { settle('主动收炉'); },
+    freeze: freeze, thaw: unfreeze,
+    paint: paint,
+    /* 读数 */
+    state: function () { return G.state; },
+    fsmOrder: function () { return FSM_ORDER.slice(); },
+    consts: function () { return { PHYS: PHYS, HAZ: HAZ, WAVES: WAVES, DIFFS: DIFFS, STRATA: STRATA,
+                                   COLS: COLS, ROWS: ROWS, CELL: CELL, MODES: WAVE_MODES }; },
+    info: function () {
+      return { state: G.state, frames: G.f, t: +G.t.toFixed(2), diff: G.diff, seed: G.seed,
+               wave: G.wave, waveState: G.waveState, pending: G.pending.length,
+               life: +G.life.toFixed(2), lifeMax: G.lifeMax, o2: +G.o2.toFixed(2), gas: +G.gas.toFixed(2),
+               stab: +G.stab.toFixed(2), fatigue: +G.fatigue.toFixed(2), ballast: +G.ballast.toFixed(3),
+               bladder: +G.bladder.toFixed(3), salvage: G.salvage, score: Math.round(G.score),
+               kills: G.kills, hazards: G.hazards.length, combo: G.combo, yieldMul: +G.yieldMul.toFixed(3),
+               attune: +G.attune.toFixed(3), attuneVent: G.attuneVent, overT: +G.overT.toFixed(2),
+               polT: +G.polT.toFixed(3), rollT: +G.rollT.toFixed(2), settled: G.settled, result: G.result,
+               gasSpent: +G.gasSpent.toFixed(2), edgeTime: +G.edgeTime.toFixed(2),
+               sections: G.board.sections.length, alive: G.board.sections.filter(function (s) { return s.alive; }).length,
+               revealed: +G.revealed.toFixed(3), coreN: G.coreN, landN: G.landN };
+    },
+    agg: function () { return G.aggCache || aggregate(); },
+    player: function () {
+      var row = clamp(Math.floor(P.y / CELL), 0, ROWS - 1), ph = physics(row), cur = currentAt(row, G.t);
+      return { x: P.x, y: P.y, vx: P.vx, vy: P.vy, spd: hyp(P.vx, P.vy), row: row,
+               onGround: P.onGround, gsec: P.gsec, dwell: P.dwell, attuned: P.attuned,
+               charge: P.charge, charging: P.charging, plunging: P.plunging, tether: P.tether,
+               tethA: P.tethA, tethW: P.tethW, P: ph.P, V: ph.V, W: ph.W, net: ph.net,
+               cur: cur, curMag: hyp(cur.x, cur.y), depth: Math.round(P.y / CELL * M_PER_ROW),
+               hw: PHYS.HULL_HW, hh: PHYS.HULL_HH };
+    },
+    world: function () {
+      return { cols: COLS, rows: ROWS, cell: CELL, w: WORLD_W, h: WORLD_H,
+               hatches: G.board.hatches, vents: G.board.vents.map(function (v) {
+                 return { id: v.id, c: v.c, r: v.r, x: v.x, y: v.y, charge: v.charge, ready: v.ready }; }),
+               sections: G.board.sections.map(function (s) {
+                 return { id: s.id, note: s.note, alive: s.alive, sink: s.sink, sinkV: s.sinkV,
+                          fuse: s.fuse, hp: s.hp, voidT: s.voidT, core0: s.core0, core1: s.core1,
+                          seedRow: s.seedRow,
+                          coreX: coreXOf(s), coreHalf: coreHalfOf(s), cells: s.cells }; }) };
+    },
+    hazards: function () {
+      return G.hazards.map(function (h) {
+        return { type: h.type, x: h.x, y: h.y, hp: h.hp, hpMax: h.hpMax, spd: h.spd,
+                 r: h.r, chewing: h.chewing, boss: !!h.H.boss, ethereal: !!h.H.ethereal }; });
+    },
+    standableAt: standableAt,
+    currentAt: function (row) { return currentAt(clamp(row, 0, ROWS - 1), G.t); },
+    pressureAt: pressureAt,
+    /* 测试钩子 */
+    setKine: function (lat) { KEYS['a'] = lat < 0; KEYS['d'] = lat > 0; if (lat === 0) { KEYS['a'] = KEYS['d'] = false; } },
+    setBallastInput: function (b) { KEYS['s'] = b > 0; KEYS['w'] = b < 0; },
+    vent: function (on) { KEYS['j'] = !!on; },
+    bleed: function (on) { KEYS['k'] = !!on; },
+    setGas: function (v) { G.gas = clamp(v, 0, G.gasMax); G.gasPrev = G.gas; },
+    setO2: function (v) { G.o2 = clamp(v, 0, G.o2Max); },
+    setStab: function (v) { G.stab = clamp(v, 0, G.stabMax); },
+    setFatigue: function (v) { G.fatigue = clamp(v, 0, 100); if (G.fatigue > (G.fatiguePeak || 0)) G.fatiguePeak = G.fatigue; },
+    setLife: function (v) { G.life = clamp(v, 0, G.lifeMax); },
+    setBallast: function (v) { G.ballast = clamp(v, 0, 1); },
+    setBladder: function (v) { G.bladder = Math.max(0, v); },
+    setSalvage: function (n) { G.salvage = n; G.salvageMass = n * PHYS.M_SALVAGE; },
+    setCombo: function (n) { G.combo = n; G.comboT = 3.4; if (n > G.bestCombo) G.bestCombo = n; },
+    teleport: function (x, y) { P.x = clamp(x, 9, WORLD_W - 9); P.y = clamp(y, 11, WORLD_H - 11); P.tether = -1; },
+    setVel: function (x, y) { P.vx = x; P.vy = y; },
+    clearFx: function () { G.fx = []; G.shocks = []; G.pulses = []; },
+    wave: function (n) { G.wave = clamp(n - 1, 0, WAVES.length - 1); G.waveState = 'cleared'; G.waveT = 99; beginWave(); },
+    spawn: function (t, x, y) {
+      var hp = G.board.hatches[0];
+      return !!spawnHaz(t, x === undefined ? hp.x : x, y === undefined ? hp.y - 8 : y);
+    },
+    clearHazards: function () { G.hazards = []; },
+    killAll: function () { for (var i = 0; i < G.hazards.length; i++) killHaz(G.hazards[i], '审计清场'); G.hazards = []; },
+    plunge: function () { doPlunge(); },
+    /* 只写蓄能槽，不代开同调闸门：同调只能靠真实的 350 ms 低速驻留挣到 */
+    setCharge: function (v) { P.charge = clamp(v, 0, PHYS.CAT_FULL); },
+    charge: function (on) { P.charging = !!on; },
+    polarity: function () { doPolarity(); },
+    tether: function () { doTether(); },
+    release: function () { releaseCatapult(); },
+    pulse: function () { doPulse(); },
+    setAttune: function (v) { G.attune = clamp(v, 0, 1); if (G.attuneVent < 0 && G.board.vents.length) { G.attuneVent = 0; G.board.vents[0].charge = G.attune; } },
+    crisis: function (on) { G.forceCrisis = !!on; },
+    settle: function (r) { settle(r || '十波全清'); },
+    log: function () { return G.logs.slice(); },
+    ledger: function () { return G.ledger.slice(); }
+  };
+
+  /* ══════════════ 28. 启动 ══════════════════════════════════════ */
+  function boot() {
+    reset('title');
+    bindKeys();
+    renderTitle();
+    paint();
+    requestAnimationFrame(loopWorld);
+    requestAnimationFrame(loopRig);
+    requestAnimationFrame(loopSonar);
+    requestAnimationFrame(loopRings);
+    requestAnimationFrame(loopLedger);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+
+})();
+
+</script>
+</body>
+</html>
