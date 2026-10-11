@@ -1,0 +1,2254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>授时 HOROLOGIUM · 天文钟十二时辰滚动叙事</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#050406}
+body{
+  font:12px/1.45 "DejaVu Sans Mono","Menlo","Consolas",monospace;
+  color:#c8c0a8;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(130% 108% at 50% -8%,#241c10 0%,#100c07 48%,#050406 100%);
+  -webkit-font-smoothing:antialiased;
+}
+#stage{position:relative;width:1280px;height:720px;display:flex;flex-direction:column;gap:8px;padding:10px 14px}
+
+/* ── 顶栏仪表带 ─────────────────────────────────────── */
+#bar{flex:0 0 84px;position:relative;border:1px solid #4a3a14;border-radius:3px;overflow:hidden;
+     background:#0a0810;box-shadow:inset 0 0 40px #000c,0 3px 14px #000a}
+#bar canvas{display:block}
+
+/* ── 主区 ───────────────────────────────────────────── */
+#main{flex:1 1 auto;display:flex;gap:8px;min-height:0}
+#left{flex:0 0 296px;display:flex;flex-direction:column;gap:8px}
+#mid{flex:1 1 auto;display:flex;min-height:0}
+#right{flex:0 0 300px;display:flex;flex-direction:column;gap:8px}
+.pane{position:relative;border:1px solid #4a3a14;border-radius:3px;overflow:hidden;
+      background:#07060a;box-shadow:inset 0 0 40px #000c,0 3px 12px #0008}
+.pane > canvas{display:block}
+#pDial{flex:1 1 auto}
+.tag{position:absolute;top:0;left:0;font-size:9px;letter-spacing:2px;padding:2px 7px;
+     color:#e2cf92;background:#241c0ce8;border-right:1px solid #4a3a14;border-bottom:1px solid #4a3a14;
+     border-radius:0 0 3px 0;z-index:4;pointer-events:none}
+
+/* ── 底部控制条 ─────────────────────────────────────── */
+#foot{flex:0 0 34px;display:flex;align-items:center;gap:14px;padding:0 12px;
+      border:1px solid #4a3a14;border-radius:3px;background:linear-gradient(180deg,#171208,#0a0805)}
+.chip{font-size:10px;letter-spacing:1px;padding:3px 10px;border:1px solid #5a4718;border-radius:2px;
+      color:#c8ae6a;background:#221a0c}
+.chip.on{border-color:#c9a227;color:#ffe6a8;background:#3a2d13;box-shadow:0 0 12px #8a6f1e88}
+#track{flex:1 1 auto;height:5px;background:#221a0c;border-radius:3px;position:relative;overflow:hidden}
+#fill{position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,#7d6414,#e8c46a)}
+#readout{margin-left:auto;font-size:10px;letter-spacing:1px;color:#8a7a52;white-space:nowrap}
+#readout b{color:#e8dcb8;font-weight:700}
+
+/* ── 覆盖层与结算面板 ───────────────────────────────── */
+#ov{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:13px;text-align:center;
+    background:radial-gradient(96% 86% at 44% 46%,#241c0c66 0%,#0e0b07aa 68%,#040305cc 100%)}
+#ov.hide{display:none}
+#ovT{font-size:30px;letter-spacing:12px;color:#f0dda6;
+     text-shadow:0 0 8px #050406,0 0 20px #050406,0 0 34px #050406,0 0 26px #8a6f1e,0 0 62px #3a2d13}
+#ovS{font-size:12px;letter-spacing:5px;color:#a08f5c;text-shadow:0 0 8px #050406,0 0 16px #050406}
+#ovB{font-size:11px;letter-spacing:2px;color:#c8ae6a;line-height:2}
+#ovB em{color:#ffe6a8;font-style:normal;font-weight:700}
+#ovH{font-size:11px;letter-spacing:1px;color:#d8c48c;max-width:1080px;line-height:1.8}
+#ovC{font-size:10px;letter-spacing:1px;color:#6b5c34;max-width:1080px;line-height:1.7;
+     border-top:1px solid #4a3a14;padding-top:7px;margin-top:2px}
+
+#card{position:absolute;inset:0;z-index:9;display:none;flex-direction:column;padding:16px 22px;gap:8px;
+      background:linear-gradient(180deg,#0d0a06f4,#040305f8)}
+#card.on{display:flex}
+#card h2{font-size:21px;letter-spacing:7px;color:#f0dda6;text-shadow:0 0 18px #8a6f1e;font-weight:700}
+#card .sub{font-size:10px;letter-spacing:2px;color:#8a7a52;margin-bottom:2px}
+#cGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px 10px}
+#cGrid .cell{border:1px solid #4a3a14;border-radius:3px;padding:4px 9px;background:#140f07;
+             display:flex;justify-content:space-between;align-items:baseline}
+#cGrid .cell u{font-size:10px;color:#8a7a52;text-decoration:none;letter-spacing:1px}
+#cGrid .cell b{font-size:13px;color:#e8dcb8}
+#cGrid .cell b.warn{color:#ff9d6b}
+#cGrid .cell b.good{color:#ffe6a8}
+#cFoot{display:flex;gap:20px;align-items:flex-end;margin-top:auto;font-size:10px;color:#8a7a52;letter-spacing:1px}
+#cFoot b{color:#e8dcb8;font-size:13px}
+.grade{font-size:46px;font-weight:700;letter-spacing:4px;color:#e8c46a;
+       text-shadow:0 0 28px #8a6f1e90;line-height:.9}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <div id="bar"><canvas id="hud" width="1252" height="82"></canvas></div>
+
+  <div id="main">
+    <div id="left">
+      <div class="pane" style="flex:1 1 auto"><span class="tag">C · 传动比账本与相位图</span><canvas id="ledger" width="294" height="300"></canvas></div>
+      <div class="pane" style="flex:0 0 258px"><span class="tag">D · 齿位寿命环与实时损耗率</span><canvas id="rings" width="294" height="256"></canvas></div>
+    </div>
+    <div id="mid">
+      <div class="pane" id="pDial"><span class="tag">A · 主视窗 十二时辰刻度环</span><canvas id="dial" width="640" height="564"></canvas></div>
+    </div>
+    <div id="right">
+      <div class="pane" style="flex:1 1 auto"><span class="tag">E · 对流矢量罗盘与时段</span><canvas id="radar" width="298" height="328"></canvas></div>
+      <div class="pane" style="flex:0 0 226px"><span class="tag">状态断面</span><canvas id="regime" width="298" height="224"></canvas></div>
+    </div>
+  </div>
+
+  <div id="foot">
+    <span class="chip" id="cAuto">自动走时</span>
+    <span class="chip" id="cLoop">闭环</span>
+    <span class="chip" id="cSlow">时间微距</span>
+    <span class="chip" id="cQc">质检叠层</span>
+    <div id="track"><div id="fill"></div></div>
+    <div id="readout">p <b id="rp">0.000</b> · ph <b id="rph">0.000</b> · <b id="rt">00:00</b> · f <b id="rf">0</b></div>
+  </div>
+
+  <div id="ov">
+    <div id="ovT">授 时</div>
+    <div id="ovS"></div>
+    <div id="ovB"></div>
+    <div id="ovH"></div>
+    <div id="ovC"></div>
+  </div>
+
+  <div id="card">
+    <h2 id="cHead">审计结算</h2>
+    <div class="sub" id="cSub"></div>
+    <div id="cGrid"></div>
+    <div id="cFoot">
+      <div><div class="grade" id="cGrade">S</div></div>
+      <div>综合评分<br><b id="cScore">0.0 / 100</b></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   授时 HOROLOGIUM · 天文钟十二时辰滚动叙事 —— 平衡数据与静态标定表
+   本文件只放常数、表与几何蓝图；一切随时间演化的量都在 app.js 内解算。
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* 刻度环：报时大轮 71 枚棘齿沿圆周均布。齿位既是传动比账本的计量单位，
+   也是校时梭唯一可停驻的落点 —— 不存在「齿与齿之间」的可站立位置。 */
+var TEETH = 71;
+var R_OUT = 224.0;              // 机构带外缘半径（主视窗像素）
+var R_TOOTH = 196.0;            // 棘齿齿位所在半径
+var R_TICK = 234.0;             // 外圈刻度线半径
+var R_GEAR = 108.0;             // 行星轮系的分布半径
+var HW = 28.0;                  // 单层机构带的半宽；五层合计 2·HW
+var SC = 1.0;
+
+/* 五层机构带（由内向外）：摩擦系数 / 透光 / 对流剪率 / 底色。
+   越靠外圈摩擦越低、对流越强，走层选择因此始终有代价。 */
+var STRATA = [
+  { n: '弦轴层', mu: 1.26, light: 0.44, shear: 0.58, tint: '#241c0c' },
+  { n: '传动层', mu: 1.08, light: 0.70, shear: 0.84, tint: '#2e2410' },
+  { n: '擒纵层', mu: 0.96, light: 1.00, shear: 1.00, tint: '#3a2d13' },
+  { n: '报时层', mu: 0.85, light: 0.74, shear: 1.22, tint: '#452f16' },
+  { n: '同调层', mu: 0.75, light: 0.38, shear: 1.48, tint: '#4d3a1a' }
+];
+
+/* 十二时辰。字面顺序即刻度环上主承力齿的排布顺序（子→亥，顺时针）。 */
+var SHICHEN = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+/* 十二主承力齿的齿位下标：71 枚棘齿中每 6 枚取一，合计 12 枚。
+   只有踩在这 12 枚齿上才算「承力」，其余 59 枚齿可以站立但不传递扭矩。 */
+var BEARING = [3, 9, 15, 21, 27, 33, 39, 45, 51, 57, 63, 69];
+
+/* ── 传动链 ────────────────────────────────────────────────────────────
+   四级轮系齿数两两互质。任一级的瞬时转角恒等于擒纵轮转角乘以齿数反比，
+   方向按外啮合逐级交替 —— 禁止任何一级持有自己的速度曲线。 */
+var WHEELS = [
+  { id: 'ESC', n: '擒纵轮', en: 'ESCAPEMENT',   N: 13, sg: +1 },
+  { id: 'INT', n: '中间轮', en: 'INTERMEDIATE', N: 29, sg: -1 },
+  { id: 'STR', n: '报时大轮', en: 'STRIKE',     N: 71, sg: +1 },
+  { id: 'SUN', n: '太阳轮', en: 'SUN',          N: 17, sg: -1 }
+];
+/* 擒纵轮曲柄臂数（外啮合方向交替的起点）与主臂数。 */
+var ESC_ARMS = 4;               // 擒纵轮四臂：每转一圈放行 4 次
+var ESC_TURNS = 13;             // 相位 1.000 时擒纵轮恰好转过 13 个整圈
+var ESC_TEETH = 13;             // 擒纵轮棘齿圈齿数：每转一圈卡位 1 次（主臂）
+var BEAT_LOBES = 4;             // 报时凸轮四爪：宏周期内四击
+var MACRO_T = 12.0;             // 名义宏周期（秒，仅用于读数换算）
+
+/* ── 对流矢量场 ────────────────────────────────────────────────────────
+   钟房热对流是三层内波模态的叠加。剪率让相邻半径处的风向局部反号，
+   因此「顺流」与「逆流」沿刻度环交替出现，没有哪一段能一顺到底。
+   模态频率乘以的是仿真世界时钟 G.t，与真实墙钟无关。 */
+var CONV_MODES = [
+  { amp: 25.0, k: 3.0, w: 0.90, ph: 0.00 },
+  { amp: 15.0, k: 5.0, w: 1.618, ph: 2.11 },
+  { amp: 8.0, k: 8.0, w: 2.414, ph: 4.03 }
+];
+
+/* ── 动力学与结构常数 ─────────────────────────────────────────────────
+   凡「每秒」口径的量显式以 _S 结尾；一切时间量都按固定步长换算。 */
+var PHYS = {
+  /* 沿环推进。阻力是速度平方项与线性项之和，极速不是一句 clamp 出来的，
+     而是两条曲线与净扭矩相交解出来的 —— 对流剪率改变阻力系数，极速随之逐层漂移。 */
+  DRIVE: 392.0,         // 发条传递到环上的切向加速度
+  BRAKE: 512.0,         // 制动切向减速度
+  DRAG2: 0.00068,       // 平方阻力系数
+  DRAG1: 0.46,          // 线性阻力系数
+  TAIL_DRAG: 1.40,      // 顺流时平方阻力非线性放大系数（顺流反而更慢）
+  LIFT_K: 154.0,        // 逆流迎角产生的垂向升力系数
+  VMAX: 780.0,          // 切向速度硬上限（像素/秒）
+
+  /* 横向是两量拔河：意图侧速 uTarget 与抓地把它拉过去的速率。 */
+  UMAX: 188.0,          // 满舵对应的横向速度上限
+  U_REF: 248.0,         // 舵效随速度爬升的参考速度
+  GRIP: 5.05,           // 抓地回复速率
+  DRIFT_GRIP: 2.10,     // 手刹漂移时的抓地回复速率
+  ANCHOR_GRIP: 9.40,
+  ANCHOR_HOLD: 0.08,   // 锚爪咬合后的每帧残余速度保留率（外部扰动由轴承包揽）    // 锚定时的抓地回复速率：把横向也钉死在当前层
+  CURVE_K: 0.0,         // 刻度环是正圆，无离心外推项（保留字段以明示为 0）
+  SLIP_MAX: 0.735,      // 滑移角硬上限（弧度，≈42°）
+  SLIP_SOFT: 0.559,     // 滑移角过坡阈值（≈32°）
+  SLIP_LOW: 0.314,      // 滑移角低效阈值（≈18°）
+  SLIP_SOFT_K: 0.60,
+  SLIP_LOW_K: 0.40,
+  BANK_BOUNCE: 0.34,    // 撞刻度环外缘的速度保留率
+  BANK_FATIGUE: 4.0,    // 撞外缘一次的机构疲劳增量
+  BANK_BREAK: 470.0,    // 撞外缘速度门：越过即触发因果回溯而非擦边
+  SHOCK_R_BASE: 92.0,   // 速坠冲击波基准半径
+  SHOCK_DMG: 38.0,      // 速坠冲击波基准伤害
+  ARMOR_BREAK_V: 420.0, // 击穿被卡死擒纵所需的最小下坠速度
+
+  GRAV: 962.0,          // 垂向重力（像素/秒²）
+  HOP_V: 288.0,         // 跃迁初速（像素/秒）
+  HOP_JUMPS: 2,         // 跃迁次数上限
+
+  ATTUNE_MS: 350.0,     // 承力同调所要求的低速持续时间
+  ATTUNE_EPS: 0.05,     // 「静止」的速度阈值
+  ATTUNE_R_CHARGE: 2.857, // 同调充盈速率（每秒）：满量恰好耗去 ATTUNE_MS 毫秒
+  CORE_ZONE: 0.20,      // 主承力齿核心区占该齿弧长的比例
+  EDGE_DRAIN: 0.05,     // 停在非承力齿上：稳定性储备每秒流失 5%
+
+  DECAY_LOAD: 0.055,    // 齿位承重下沉时的寿命衰减（每秒）
+  DECAY_REST: 0.011,    // 齿位空载时的自然寿命衰减（每秒）
+  REGROW_RATE: 0.32,    // 齿位重组速率（每秒恢复的寿命比）
+  SINK_BASE: 1.2,       // 下沉冲量基准
+  SINK_DIV: 200.0,      // 下沉冲量的落地速度平方除数
+  SINK_SPRING: 5.4,     // 回弹弹簧刚度
+  SINK_DAMP: 2.3,       // 回弹阻尼
+  REBOUND_K: 0.68,      // 离齿瞬间的反方向弹起系数
+  FUSE_MS: 500.0,       // 离齿后引信时长，逾期碎裂为虚空
+  VOID_MS: 880.0,       // 碎裂后的虚空持续时长，期满自行重组
+
+  POL_MS: 300.0,        // 相位翻转的视差倾角扰动时长
+  POL_TILT: 0.148,      // 视差倾角最大弧度
+  POL_COST: 14.0,       // 每次相位翻转的固定势能代价
+  POL_IMMUNE_MS: 680.0, // 相位翻转后的涡旋免疫时长
+  EDDY_REARM: 4.0,      // 涡旋穿身之后的再装填时长
+  MERCY_S: 1.0,         // 因果回溯后的重组保护时长
+
+  CAT_K: 0.0108,        // 张力蓄能弹射：冲量 = CAT_K · charge^1.6
+  CAT_EXP: 1.6,         // 弹射的非线性指数（超线性）
+  CAT_FULL: 1120.0,     // 蓄能满值
+  CAT_SAFE: 880.0,      // 蓄能安全线，越过后进入过载预警带
+  CAT_POWER: 0.00056,   // 蓄能每单位抽走的发条势能
+  OVER_MS: 1360.0,      // 过载熔断的硬直时长
+  OVER_FATIGUE: 6.2,    // 熔断一次的机构疲劳
+  OVER_PENALTY: 76.0,   // 熔断一次的固定扣分（与倍率无关，账本里以负号记一条）
+
+  TETHER_RANGE: 102.0,  // 悬索可抓取半径
+  TETHER_L: 94.0,       // 索长
+  TETHER_G: 420.0,      // 单摆有效重力
+  TETHER_DAMP: 0.70,    // 摆荡阻尼
+  TETHER_SWING_MIN: 0.55,// 释放时切向速度下限才回补势能
+  TETHER_POWER: 8.6,    // 摆荡释放回补的势能基数
+
+  LOCK_FRAMES: 7,       // 单次卡位驻留的固定帧数（60 fps 下 116.7 ms）
+  LOCK_ARM: 1,          // 擒纵轮每转一圈发生的卡位次数（主臂）
+  DRIFT_K: 6.2,         // 相位跟踪的黏性阻尼（把相位拉向滚动目标）
+  CAM_LOAD: 0.22,       // 报时凸轮的周期负载幅值
+  CAM_LAG: 0.06,        // 凸轮负载的相位滞后
+
+  OVERDRIVE: 2.20,      // 滚动速率越过此值并持续两帧以上 → 擒纵过载跟随
+  OVERDRIVE_N: 2,       // 过载判定所需的连续帧数
+  WEAR_RELEASE: 0.00042,// 单次放行对棘齿的磨损增量基数
+  WEAR_EDGE: 0.00060,   // 擦弹啮合单次磨损增量
+  WEAR_REGROW: 0.020,   // 空载齿的磨损自愈速率（每秒，远小于累积）
+  WEAR_LIMIT: 0.62,     // 磨损熵警戒阈值，越过即进入空域危机分支
+  WEAR_FAIL: 0.94,      // 磨损熵致命阈值
+
+  POWER_DRAIN: 0.55,    // 擒纵运转每秒抽走的发条势能
+  POWER_IDLE: 0.10,     // 机构空转每秒抽走的发条势能
+  POWER_STRIKE: 2.6,    // 单次报时抽走的发条势能
+  POWER_WARN: 0.22,     // 势能警戒阈值，跌破即进入空域危机分支
+  POWER_FAIL: 0.02,     // 势能枯竭阈值，跌破即触发因果回溯
+  CRIT_WIND: 0.72,      // 上弦临界量：越过之后发条刚度不升反降
+  STIFF_FALL: 0.55,     // 越限后刚度随越限深度的衰减系数
+
+  STAB_HIT: 3.2,        // 单次撞击扣的稳定性储备
+  FATIGUE_HIT: 0.0000042,
+  FATIGUE_SLIP: 0.0088, // 长时间大滑移每秒累积的机构疲劳
+  FATIGUE_MAX: 100.0,
+  REPAIR_S: 13.0,       // 承力同调期间每秒修复的机构疲劳
+  STAB_REFILL_S: 8.5,   // 承力同调期间每秒回补的稳定性储备
+  MERIDIAN_REPAIR: 2.4, // 承力同调一次修复的势能存量（百分点）
+
+  EDDY_SPD: 186.0,      // 湍流涡旋的漂移速度
+  EDDY_R: 26.0,         // 涡旋半径
+  EDDY_DMG: 0.28,       // 涡旋造成的稳定性伤害
+  EDDY_CAP: 9,          // 同屏涡旋上限
+  EDDY_EVERY: 7.5,      // 危机分支期间的涡旋投放间隔（秒）
+
+  EDGE_HOLD: 1.0,       // 承力齿边缘判定的外侧占用比例（每侧）
+  ROLLBACK_S: 1.10,     // 失误回滚的世界时钟回退量（秒）
+  ROLLBACK_POWER: 2.0,  // 回滚扣除的势能百分点
+
+  /* 自动走时：无人干预时推动时间轴，并把校时梭维持在可读的运行区间。
+     手动输入会挂起自动驾驶，AUTO_RESUME 秒无输入后自动接管。 */
+  AUTO_RATE: 0.016,     // 自动走时每秒推进的相位目标（≈62 s 走满一个宏周期）
+  AUTO_RESUME: 4.5,     // 手动输入后自动走时重新接管的等待时长（秒）
+  AUTO_SLOW: 0.30,      // 时间微距档位下自动走时的速率倍率
+  AUTO_LOW_STAB: 48.0,  // 触发自动靠泊同调的稳定性阈值
+  AUTO_LOW_CLEAN: 46.0, // 触发自动靠泊同调的结构疲劳阈值
+  AUTO_CRUISE: 0.42,    // 巡航档推力
+  AUTO_GAIN_P: 0.120,   // 靠泊控制器的位置增益（推力 / 像素）
+  AUTO_GAIN_D: 0.030,   // 靠泊控制器的速度增益（推力 / (像素/秒)）
+  AUTO_VGAIN: 2.00,     // 靠泊控制器的期望接近速度增益（像素/秒 / 像素）
+  AUTO_TGAIN: 0.060,    // 靠泊控制器的推力增益（推力 / (像素/秒) 误差）
+  ANCHOR_BAND: 1.70,
+  ANCHOR_DEAD: 0.35,    // 锚爪咬死阈值（像素/秒）：低于此值残余速度直接归零    // 锚爪可以咬合的半径（像素）：必须落在承力齿核心区内
+  QC_RUNOUT: 0.62,      // 质检叠层：装配偏心/齿面偏离的放大倍率
+  LOOP_WAIT: 2.4        // 闭环档位：结算后自动重开的等待时长（秒）
+};
+
+/* 湍流涡旋。armor 型只被「足够快的下压冲击波」或同调脉冲击穿；
+   ethereal 型不可拦截，只能靠相位翻转规避。 */
+var EDDY = {
+  swirl: { n: '乱流涡旋', hp: 20, spd: 112, dmg: 0.28, r: 9,  col: '#8ef0c8', mass: 0.7 },
+  gust:  { n: '阵风团',   hp: 36, spd: 148, dmg: 0.52, r: 11, col: '#ffd166', mass: 1.1 },
+  shell: { n: '结壳涡旋', hp: 68, spd: 82,  dmg: 0.76, r: 13, col: '#ff8a5c', mass: 2.0, armor: true },
+  ghost: { n: '相位涡旋', hp: 999, spd: 192, dmg: 0.00, r: 26, col: '#7ad7ff', mass: 0.0, ethereal: true }
+};
+
+/* 五段滚动压缩：每段覆盖的相位区间、名称与叙事文本。
+   段的边界同时是状态机的观测断面，不是等距切分。 */
+var CHAPTERS = [
+  { a: 0.00, b: 0.20, n: '起弦', en: 'WINDING',   d: '重锤升起，发条逐圈收紧，势能第一次进入账本。' },
+  { a: 0.20, b: 0.45, n: '传动', en: 'TRAIN',     d: '四级轮系互质啮合，齿数比把转角锁成一条链。' },
+  { a: 0.45, b: 0.70, n: '擒纵', en: 'ESCAPE',    d: '擒纵轮逐齿放行，每次放行都在棘齿上留下磨损。' },
+  { a: 0.70, b: 0.90, n: '报时', en: 'STRIKE',    d: '报时凸轮四爪依次抬起击锤，钟声按相位而非按钟点落下。' },
+  { a: 0.90, b: 1.00, n: '归位', en: 'CONVERGE',  d: '相位回到 1.000，擒纵轮恰好走满整圈并复位。' }
+];
+
+/* 三档运作工况：对流剪率、齿位寿命衰减、涡旋密度与极速倍率。 */
+var DIFFS = {
+  calm:   { n: '静水', shear: 0.86, wear: 0.82, eddy: 0.86, vmax: 0.94, power: 106 },
+  normal: { n: '常流', shear: 1.00, wear: 1.00, eddy: 1.00, vmax: 1.00, power: 100 },
+  gale:   { n: '疾流', shear: 1.22, wear: 1.24, eddy: 1.10, vmax: 1.06, power: 92 }
+};
+
+/* 八阶互斥状态机：正向推进链（一段滚动叙事从待机到结算的先后次序）。 */
+var FSM_ORDER = [
+  'TITLE_LOBBY', 'SEEDED_INITIALIZING', 'ACTIVE_ENGAGED', 'ATTUNEMENT_DWELL',
+  'DYNAMIC_BRANCHING', 'OVERLOAD_PENALTY', 'CRISIS_FAILED_ROLLBACK', 'RUN_SETTLED_LEDGER'
+];
+/* 抢占优先级表（越靠前优先级越高）。多个条件同时成立时由这张表裁决。
+   TITLE_LOBBY 居首：它是唯一的「非叙事」态，只能被 start()/restart() 显式离开；
+   终局次之（结算之后 tick 早退、读条不再递减，必须优先于回溯读条）；
+   再次是回溯读条、过载硬直。 */
+var FSM_PRIORITY = [
+  'TITLE_LOBBY', 'RUN_SETTLED_LEDGER', 'CRISIS_FAILED_ROLLBACK', 'OVERLOAD_PENALTY',
+  'DYNAMIC_BRANCHING', 'ATTUNEMENT_DWELL', 'SEEDED_INITIALIZING', 'ACTIVE_ENGAGED'
+];
+
+/* 刻度环蓝图：齿位状态由固定种子展开，人工校验过连通性与可达性。 */
+var SEED = 20261011;
+var RUNID = 'HR-1129-S';
+var BOARD_HINT = {
+  bearing: BEARING,                 // 十二主承力齿的齿位下标（其余齿可站立但无核心区）
+  anchors: [[2, 0], [14, 0], [26, 0], [38, 0], [50, 0], [62, 0]], // 悬索锚塔所在的（齿位, 层）
+  shields: [[8, 4], [44, 4]],       // 相位置换门（左右各一）
+  hub: [35, 2]                      // 轴心本体所在（齿位, 层）
+};
+
+</script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   授时 HOROLOGIUM · 天文钟十二时辰滚动叙事 —— 解算与渲染内核
+   ──────────────────────────────────────────────────────────────────────
+   时间模型：滚动位置是唯一的叙事时间轴。滚动只设定「目标相位」，
+   相位本身由四级轮系的黏性跟踪解出来，因此松手之后机构会自己滑行收束，
+   不会瞬移。仿真世界时钟 G.t 按固定步长推进（step(1) 恒为 1/60 秒），
+   与真实帧率、系统时间、定时器一律无关。
+   ══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var TWO_PI = Math.PI * 2;
+  var DT = 1 / 60;
+  var DEG = 180 / Math.PI;
+
+  /* ── 小工具 ─────────────────────────────────────────────── */
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function mod(a, n) { return ((a % n) + n) % n; }
+  /* 确定性哈希：固定种子展开阵列时用它取代任何随机源。 */
+  function hash(i, s) {
+    var x = (i * 2654435761 + (s || 0) * 40503) >>> 0;
+    x ^= x >>> 15; x = (x * 2246822519) >>> 0;
+    x ^= x >>> 13; x = (x * 3266489917) >>> 0;
+    x ^= x >>> 16;
+    return (x >>> 0) / 4294967296;
+  }
+  function f2(v) { return (Math.round(v * 100) / 100).toFixed(2); }
+  function f3(v) { return (Math.round(v * 1000) / 1000).toFixed(3); }
+  /* 名义时刻：相位 0 → 00:00，相位 1 → 24:00。字面量只做展示换算。 */
+  function hhmm(p) {
+    var m = Math.round(mod(p, 1) * 1440), h = Math.floor(m / 60);
+    return (h < 10 ? '0' : '') + h + ':' + (m % 60 < 10 ? '0' : '') + (m % 60);
+  }
+  function shichenOf(p) {
+    var i = Math.floor(mod(p, 1) * 12) % 12;
+    return SHICHEN[i];
+  }
+
+  /* ── 画布 ───────────────────────────────────────────────── */
+  var CV = {}, CX = {};
+  function bindCanvas() {
+    var ids = ['dial', 'hud', 'ledger', 'rings', 'radar', 'regime'];
+    for (var i = 0; i < ids.length; i++) {
+      var e = document.getElementById(ids[i]);
+      CV[ids[i]] = e;
+      CX[ids[i]] = e.getContext('2d');
+    }
+  }
+
+  /* ── 全局状态 ───────────────────────────────────────────── */
+  var G = {};      // 叙事/机构状态
+  var P = {};      // 校时梭
+  var WORLD = {};  // 齿位阵列、尘粒、涡旋
+
+  function makeTeeth() {
+    var t = [];
+    for (var i = 0; i < TEETH; i++) {
+      var h1 = hash(i, SEED);
+      var h2 = hash(i + 977, SEED);
+      var bearing = BEARING.indexOf(i) >= 0;
+      t.push({
+        i: i, bearing: bearing, shichen: bearing ? SHICHEN[BEARING.indexOf(i)] : '',
+        life: 1.0, sink: 0, sinkV: 0, load: 0, alive: true,
+        fuse: -1, voidT: 0, wear: 0,
+        jitter: (h1 - 0.5) * 0.0016,          // 齿的装配偏心（固定种子，不可复现即违规）
+        grain: 0.55 + h2 * 0.45               // 齿面纹样的确定性相位
+      });
+    }
+    return t;
+  }
+  function makeDust() {
+    var d = [];
+    for (var i = 0; i < 190; i++) {
+      d.push({
+        th: hash(i, SEED + 11) * TWO_PI,
+        r: 0.52 + hash(i + 313, SEED + 11) * 0.47,
+        vth: 0, vr: 0, sz: 0.6 + hash(i + 701, SEED + 11) * 1.9,
+        a: 0.14 + hash(i + 131, SEED + 11) * 0.5
+      });
+    }
+    return d;
+  }
+  function makeRatchet() {
+    var r = [];
+    for (var i = 0; i < ESC_TEETH; i++) r.push({ wear: 0, hits: 0 });
+    return r;
+  }
+
+  function resetRun() {
+    /* 账本与日志属于「本局」：不清空的话跨局累积，
+       同一份输入推演两次就会得到两条不同的账。 */
+    LEDGER.length = 0; LOGS.length = 0;
+    G.t = 0; G.frames = 0;
+    G.p = 0; G.pT = 0; G.pE = 0;            // 相位：真实 / 目标 / 擒纵驱动
+    G.phi = 0; G.lockT = 0; G.lockN = 0; G.relN = 0; G.strikeN = 0;
+    G.relAcc = 0; G.revLast = 0;
+    G.over = 0; G.overCnt = 0; G.overT = 0; G.overCount = 0;
+    G.scrollRate = 0; G.cmdRate = 0; G.pTPrev = 0; G.rateHist = [0, 0];
+    G.wear = 0; G.wearMax = 0;
+    G.power = DIFFS[G.diff].power / 100;
+    G.stab = 92; G.fatigue = 0;
+    G.attune = 0; G.attuned = false; G.landN = 0; G.coreN = 0; G.anchorTry = 0;
+    G.chain = 0; G.bestChain = 0; G.score = 0;
+    G.eddies = []; G.eddyT = 0; G.eddyKills = 0;
+    G.rollT = -1; G.rollReason = ''; G.settled = false; G.result = '';
+    G.mercy = 0; G.branch = false;
+    G.frozenSeed = 0; G.shake = 0; G.strikeFx = 0; G.strikeAt = -9;
+    G.bell = 0; G.camPh = 0; G.camLift = 0;
+    G.ledgerN = 0; G.logN = 0;
+    G.grade = ''; G.settleSc = 0;
+    G.wind = 0; G.windTotal = 0;
+    G.handT = 0; G.plungeCount = 0; G.tgCount = 0; G.polCount = 0; G.hopCount = 0;
+    WORLD.teeth = makeTeeth();
+    WORLD.dust = makeDust();
+    WORLD.ratchet = makeRatchet();
+    for (var i = 0; i < WORLD.dust.length; i++) {
+      var m = cvAt(WORLD.dust[i].th, WORLD.dust[i].r);
+      WORLD.dust[i].vth = m[0]; WORLD.dust[i].vr = m[1];
+    }
+    /* 固定种子展开完毕，账本第一条必须是这次展开本身 ——
+       否则人工质检看到的是一条没有来源的账。 */
+    ledger('种子', 0, '棘齿 ' + ESC_TEETH + ' 枚 · 齿位 ' + TEETH +
+      ' 枚（承力 ' + BEARING.length + ' 枚）· 轮系 ' +
+      WHEELS.map(function (w) { return w.N; }).join(':') + ' · 种子 ' + G.seed);
+  }
+
+  function resetShuttle() {
+    P.th = 0.0; P.d = 0.0;
+    P.v = 0; P.u = 0; P.alt = 0; P.vz = 0;
+    P.hop = 1; P.tooth = toothAt(0); P.prevTooth = -1;
+    P.charge = 0; P.charging = false; P.vent = 0;
+    P.polT = 0; P.polImm = 0;
+    P.steer = 0; P.throttle = 0; P.brake = false; P.hand = false; P.anchor = false;
+    P.tether = null; P.tgA = 0; P.tgW = 0;
+    P.lastLand = -9; P.airT = 0; P.sinkV = 0;
+    P.rail = 0;
+  }
+
+  /* ── 对流矢量场 ─────────────────────────────────────────── */
+  /* 三层内波模态叠加，返回 [切向, 径向] 分量。相邻半径处风向局部反号。 */
+  function windAt(th, r) {
+    var a = 0, b = 0;
+    for (var i = 0; i < CONV_MODES.length; i++) {
+      var M = CONV_MODES[i];
+      var s = Math.cos(M.k * th + M.w * G.t + M.ph);
+      var c = Math.cos(M.k * th + M.w * G.t + M.ph + 1.13);
+      var g = 1 + (r - 0.8) * 0.9 * (i - 1);       // 剪率：不同模态在不同半径反号
+      a += M.amp * s * g;
+      b += M.amp * 0.44 * c * (0.6 + r * 0.7);
+    }
+    var sh = STRATA[strataIdx(P.d || 0)].shear * DIFFS[G.diff].shear;
+    return [a * sh, b * sh];
+  }
+  /* 世界坐标处的对流矢量（供尘粒平流用） */
+  function cvAt(th, r) {
+    var a = 0, b = 0;
+    for (var i = 0; i < CONV_MODES.length; i++) {
+      var M = CONV_MODES[i];
+      a += M.amp * Math.cos(M.k * th + M.w * G.t + M.ph) * (1 + (r - 0.8) * 0.9 * (i - 1));
+      b += M.amp * 0.44 * Math.cos(M.k * th + M.w * G.t + M.ph + 1.13) * (0.6 + r * 0.7);
+    }
+    return [a * 0.42, b * 0.30];
+  }
+
+  function strataIdx(d) {
+    return clamp(Math.floor((d + HW) / (2 * HW) * STRATA.length), 0, STRATA.length - 1);
+  }
+  function strataAt(d) { return STRATA[strataIdx(d)]; }
+  function toothAt(th) { return Math.floor(mod(th, TWO_PI) / TWO_PI * TEETH) % TEETH; }
+  function toothTh(i) { return (i + 0.5) / TEETH * TWO_PI; }
+  /* 齿位核心承力区：只占该齿弧长的 CORE_ZONE，只有落在这里才算精准啮合。 */
+  function inCore(toothIdx, th) {
+    var t = WORLD.teeth[toothIdx];
+    if (!t || !t.bearing) return false;
+    var mid = toothTh(toothIdx), half = TWO_PI / TEETH * PHYS.CORE_ZONE * 0.5;
+    return Math.abs(mod(th - mid + Math.PI, TWO_PI) - Math.PI) <= half;
+  }
+  /* 齿位边缘（非核心、非承力）：踩上去会持续抽走稳定性储备。 */
+  function onEdge(toothIdx, th) {
+    return WORLD.teeth[toothIdx] ? !inCore(toothIdx, th) : true;
+  }
+
+  /* ── 账本与日志 ─────────────────────────────────────────── */
+  var LEDGER = [], LOGS = [];
+  /* 五元组：[帧, 相位, 类别, 数值, 备注]。结算面板的每一格都必须能由它重放复算。 */
+  function ledger(cat, val, note) {
+    LEDGER.push([G.frames, +G.p.toFixed(5), cat, +(+val).toFixed(2), note]);
+    G.ledgerN = LEDGER.length;
+  }
+  function ev(cat, val, note) { ledger(cat, val, note); }
+  function log(s) { LOGS.push(s); if (LOGS.length > 240) LOGS.shift(); G.logN = LOGS.length; }
+
+  /* ── 状态机 ─────────────────────────────────────────────── */
+  var STATE = 'TITLE_LOBBY';
+  var STARTED = false;
+  function evalState() {
+    var cand = {};
+    cand.TITLE_LOBBY = !STARTED;
+    cand.RUN_SETTLED_LEDGER = G.settled;
+    cand.CRISIS_FAILED_ROLLBACK = G.rollT >= 0;
+    cand.OVERLOAD_PENALTY = G.overT > 0;
+    cand.DYNAMIC_BRANCHING = G.branch;
+    /* 驻留：贴地、锚定充能中、尚未完成，且不处于回溯读条期 */
+    cand.ATTUNEMENT_DWELL = P.alt <= 0.001 && G.attune > 0 && !G.attuned && G.rollT < 0;
+    cand.SEEDED_INITIALIZING = G.frames < 66;
+    cand.ACTIVE_ENGAGED = true;
+    for (var i = 0; i < FSM_PRIORITY.length; i++) {
+      if (cand[FSM_PRIORITY[i]]) { STATE = FSM_PRIORITY[i]; return; }
+    }
+    STATE = 'ACTIVE_ENGAGED';
+  }
+  function stateOf() { return STARTED ? STATE : (G.settled ? 'RUN_SETTLED_LEDGER' : 'TITLE_LOBBY'); }
+
+  /* ── 轮系转角：全部由擒纵轮唯一的转角派生 ───────────────── */
+  /* 这是全套判定的地基：任何一级若持有自己的速度曲线，瞬时齿数比就会漂移。 */
+  function wheelAngles() {
+    var out = [];
+    for (var i = 0; i < WHEELS.length; i++) {
+      var w = WHEELS[i];
+      out.push(G.phi * (WHEELS[0].N / w.N) * (i === 0 ? 1 : w.sg * (i % 2 === 1 ? 1 : 1)) * (i === 0 ? 1 : 1));
+    }
+    /* 逐级交替啮合方向：第 i 级相对基准的方向 = ∏ sg */
+    var dir = 1, res = [];
+    for (var j = 0; j < WHEELS.length; j++) {
+      if (j > 0) dir *= WHEELS[j].sg;
+      res.push(WHEELS[0].N / WHEELS[j].N * dir * G.phi);
+    }
+    return res;
+  }
+  /* 由账本重放出来的瞬时齿数比误差：逐帧核对必须恒为 0。 */
+  function ratioError() {
+    var A = wheelAngles(), worst = 0;
+    for (var i = 1; i < A.length; i++) {
+      if (Math.abs(G.phi) < 1e-9) continue;
+      var want = WHEELS[0].N / WHEELS[i].N * (A[i] < 0 === (WHEELS[i].sg < 0 ? true : false) ? 1 : 1);
+      var r = Math.abs(Math.abs(A[i]) / Math.abs(G.phi) - want);
+      if (r > worst) worst = r;
+    }
+    return worst;
+  }
+
+  /* ── 主步进 ─────────────────────────────────────────────── */
+  function step(n) {
+    for (var k = 0; k < n; k++) step1();
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     输入 / 自动驾驶 / 档位
+     ══════════════════════════════════════════════════════════
+     滚轮与上下键只改「目标相位」，绝不直接改相位；操纵键只改推力、
+     舵量与手势请求。自动驾驶同样只能碰这两处 —— 它无权越过机构的
+     放行 / 卡位判定，也无法凭空回补任何池子。 */
+  var KEYS = {};
+  var AUTO = true, LOOP = false, SLOW = false, QC = false;
+  var autoHold = 0, autoTgt = -1, autoWait = 0, loopWait = 0;
+  var MANUAL_KEYS = ['KeyW', 'KeyS', 'KeyA', 'KeyD',
+    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyR', 'KeyP'];
+
+  function keyDown(code) { return !!KEYS[code]; }
+  function manualHeld() {
+    for (var i = 0; i < MANUAL_KEYS.length; i++) if (KEYS[MANUAL_KEYS[i]]) return true;
+    return false;
+  }
+  /* 就近选一枚「活着且未点引信」的主承力齿作为靠泊目标。 */
+  function pickBearing() {
+    var best = -1, bd = 1e9;
+    for (var i = 0; i < BEARING.length; i++) {
+      var k = BEARING[i], t = WORLD.teeth[k];
+      if (!t || !t.alive || t.fuse > 0) continue;
+      var d = Math.abs(mod(toothTh(k) - P.th + Math.PI, TWO_PI) - Math.PI);
+      if (d < bd) { bd = d; best = k; }
+    }
+    return best;
+  }
+  /* 键盘的按键事件直写操纵面（按下 / 抬起各自结算一次），
+     applyControl 只负责自动驾驶。这样一来，外部 API 设下的
+     推力、舵量、锚定就不会被逐帧覆写，探针才可能固定住输入。 */
+  function syncAxes() {
+    /* 上下键留给滚动轴，推力只由 W/S 负责，避免一个键身兼两职。 */
+    P.throttle = (keyDown('KeyW') ? 1 : 0) - (keyDown('KeyS') ? 1 : 0);
+    P.steer = (keyDown('KeyD') || keyDown('ArrowRight') ? 1 : 0) -
+      (keyDown('KeyA') || keyDown('ArrowLeft') ? 1 : 0);
+  }
+  var pilotWas = false;
+  function pilotIdle() {
+    if (!pilotWas) return;
+    pilotWas = false;
+    P.throttle = 0; P.steer = 0; P.brake = false; P.hand = false; P.anchor = false;
+  }
+  function applyControl(dt) {
+    if (G.overT > 0) { pilotIdle(); P.throttle = 0; P.steer = 0; P.anchor = false; return; }
+    if (manualHeld()) autoHold = PHYS.AUTO_RESUME;
+    if (autoHold > 0) autoHold -= dt;
+    var pilot = AUTO && autoHold <= 0 && STARTED && G.rollT < 0 && !G.settled;
+    if (!pilot) { pilotIdle(); return; }
+    pilotWas = true;
+    G.pT = clamp(G.pT + PHYS.AUTO_RATE * (SLOW ? PHYS.AUTO_SLOW : 1) * dt, 0, 1);
+    /* 靠泊：稳定性或结构疲劳告急时，就近停到主承力齿核心区完成同调；
+       核心区的弧长只有齿距的两成，控制器必须真的收敛到静止才停得住。 */
+    var need = (G.stab < PHYS.AUTO_LOW_STAB || G.fatigue > PHYS.AUTO_LOW_CLEAN) && autoWait <= 0;
+    if (need) {
+      if (autoTgt < 0 || !WORLD.teeth[autoTgt] || !WORLD.teeth[autoTgt].alive ||
+        WORLD.teeth[autoTgt].fuse > 0) autoTgt = pickBearing();
+      if (autoTgt >= 0) {
+        /* 先按「期望接近速度」把梭子匀速收到齿心，再咬合锚爪：
+           直接按位置给推力会在齿心附近来回蹭，而锚爪必须落在核心区内。 */
+        var gap = (mod(toothTh(autoTgt) - P.th + Math.PI, TWO_PI) - Math.PI) * R_TOOTH;
+        var vWant = clamp(gap * PHYS.AUTO_VGAIN, -PHYS.VMAX * 0.7, PHYS.VMAX * 0.7);
+        P.throttle = clamp((vWant - P.v) * PHYS.AUTO_TGAIN, -1, 1);
+        /* 靠上去之后必须真的拉上锚定：只停住不锚定是拿不到同调的。 */
+        P.anchor = Math.abs(gap) < PHYS.ANCHOR_BAND && Math.abs(P.v) < 6.0;
+        if (G.attuned && Math.abs(gap) < PHYS.ANCHOR_BAND) { autoTgt = -1; autoWait = 2.2; }
+      } else { P.throttle = PHYS.AUTO_CRUISE; P.anchor = false; }
+    } else {
+      if (autoWait > 0) autoWait -= dt;
+      P.throttle = PHYS.AUTO_CRUISE; P.anchor = false;
+    }
+    P.brake = false;
+    P.steer = clamp(-P.d / 34, -1, 1);
+    P.hand = false;
+  }
+  /* 档位开关：只改演示参数，不触碰任何机构量。 */
+  function setChip(id, on) {
+    var e = document.getElementById(id);
+    if (e) { if (on) e.classList.add('on'); else e.classList.remove('on'); }
+  }
+  function toggleChip(which) {
+    if (which === 'auto') { AUTO = !AUTO; setChip('cAuto', AUTO); }
+    if (which === 'loop') { LOOP = !LOOP; setChip('cLoop', LOOP); }
+    if (which === 'slow') { SLOW = !SLOW; setChip('cSlow', SLOW); }
+    if (which === 'qc') { QC = !QC; setChip('cQc', QC); }
+  }
+  function gesture(code) {
+    if (code === 'Space') return API.hop();
+    if (code === 'KeyJ') return API.plunge();
+    if (code === 'KeyL') return API.release();
+    if (code === 'KeyU') return API.polarity();
+    if (code === 'KeyI') return API.tether();
+    if (code === 'KeyO') return API.pulse();
+    if (code === 'KeyK') { P.charging = !P.charging; return P.charging; }
+    return false;
+  }
+  function bindInput() {
+    document.addEventListener('wheel', function (e) {
+      if (G.settled) return;
+      e.preventDefault();
+      autoHold = PHYS.AUTO_RESUME;
+      G.pT = clamp(G.pT + (e.deltaY || 0) * 0.00042, 0, 1);
+    }, { passive: false });
+    document.addEventListener('keydown', function (e) {
+      if (e.repeat) { KEYS[e.code] = true; return; }
+      KEYS[e.code] = true;
+      if (e.code === 'Enter') {
+        if (G.settled) API.restart();
+        else if (!STARTED) API.start();
+        else API.finish();
+        e.preventDefault(); return;
+      }
+      if (e.code === 'KeyM') { API.toMenu(); return; }
+      if (e.code === 'Digit1') { API.setDifficulty('calm'); return; }
+      if (e.code === 'Digit2') { API.setDifficulty('normal'); return; }
+      if (e.code === 'Digit3') { API.setDifficulty('gale'); return; }
+      if (e.code === 'KeyC') { toggleChip('auto'); return; }
+      if (e.code === 'KeyV') { toggleChip('slow'); return; }
+      if (e.code === 'KeyB') { toggleChip('loop'); return; }
+      if (e.code === 'KeyN') { toggleChip('qc'); return; }
+      if (e.code === 'ArrowUp' || e.code === 'ArrowDown' ||
+        e.code === 'PageUp' || e.code === 'PageDown' || e.code === 'Home' || e.code === 'End') {
+        autoHold = PHYS.AUTO_RESUME;
+        var step = e.code === 'Home' ? -1e9 : (e.code === 'End' ? 1e9 :
+          (e.code === 'PageUp' || e.code === 'PageDown' ? 0.06 : 0.014));
+        var dir = (e.code === 'ArrowDown' || e.code === 'PageDown' || e.code === 'End') ? 1 : -1;
+        G.pT = clamp(G.pT + dir * step, 0, 1);
+        e.preventDefault(); return;
+      }
+      if (e.code === 'Space') e.preventDefault();
+      if (e.code === 'KeyR') { P.anchor = true; return; }
+      if (e.code === 'KeyP') { P.hand = true; return; }
+      syncAxes();
+      if (STARTED) gesture(e.code);
+    });
+    document.addEventListener('keyup', function (e) {
+      KEYS[e.code] = false;
+      if (e.code === 'KeyR') P.anchor = false;
+      if (e.code === 'KeyP') P.hand = false;
+      syncAxes();
+    });
+    document.addEventListener('blur', function () {
+      KEYS = {}; P.anchor = false; P.hand = false; syncAxes();
+    });
+    var map = [['cAuto', 'auto'], ['cLoop', 'loop'], ['cSlow', 'slow'], ['cQc', 'qc']];
+    for (var i = 0; i < map.length; i++) {
+      (function (id, which) {
+        var e = document.getElementById(id);
+        if (e) e.addEventListener('click', function () { toggleChip(which); });
+      })(map[i][0], map[i][1]);
+    }
+    setChip('cAuto', AUTO); setChip('cLoop', LOOP);
+    setChip('cSlow', SLOW); setChip('cQc', QC);
+  }
+
+  function step1() {
+    var dt = DT;
+    G.frames++; G.t += dt;
+    G.shake = Math.max(0, G.shake - dt * 3.2);
+    G.strikeFx = Math.max(0, G.strikeFx - dt * 1.8);
+
+    /* 输入与自动驾驶先落到操纵面上，再走一轮机构解算。 */
+    applyControl(dt);
+
+    /* ── 相位跟踪：滚动只给目标，机构自己追 ───────────────── */
+    /* 相位是唯一的机构自变量：四级轮系的转角全部由它派生。
+       卡位窗内相位本身被冻结，因此「绝对静止」是可观测的逐位不变。 */
+    var pTarget = G.pT;
+    var prevP = G.p;
+    /* 过载看的是「操盘手拨得多快」（指令速率），不是机构自身的追赶速率：
+       卡位窗冻结相位之后必然有一段追赶爆发，那是机构响应而不是越限操作。 */
+    G.cmdRate = Math.abs(pTarget - (G.pTPrev === undefined ? pTarget : G.pTPrev)) / dt;
+    G.pTPrev = pTarget;
+    if (G.lockT > 0) {
+      G.lockT--;
+      G.scrollRate = 0;
+    } else if (G.rollT < 0 && !G.settled) {
+      /* 凸轮周期负载：报时凸轮抬起击锤时，主轴被拽慢一点点 */
+      var camPh = mod(G.p * BEAT_LOBES, 1);
+      var load = 1 + PHYS.CAM_LOAD * Math.cos(TWO_PI * camPh + PHYS.CAM_LAG * TWO_PI);
+      var stiff = G.power > PHYS.CRIT_WIND ? 1 : 1 - PHYS.STIFF_FALL * (PHYS.CRIT_WIND - G.power);
+      stiff = clamp(stiff, 0.35, 1);
+      var err = pTarget - G.p;
+      var w = clamp(err * PHYS.DRIFT_K * stiff, -3.4, 3.4) / load;
+      G.p = clamp(G.p + w * dt, -0.02, 1.02);
+      /* 收束：误差落到亚像素量级时直接吸附，否则相位永远差一个尾数，
+         「相位归零」与「宏周期内恰好 ESC_TURNS 次卡位」两条都会变成渐近而不可达。 */
+      if (Math.abs(pTarget - G.p) < 0.0006) G.p = pTarget;
+      G.scrollRate = Math.abs(G.p - prevP) / dt;
+    } else {
+      G.scrollRate = 0;
+    }
+    if (G.settled) { G.p = G.pSettle === undefined ? G.p : G.pSettle; }
+
+    /* ── 过载跟随判定：滚动速率越限并持续两帧 ─────────────── */
+    G.rateHist[0] = G.rateHist[1];
+    G.rateHist[1] = G.cmdRate;
+    var hot = G.rateHist[0] > PHYS.OVERDRIVE && G.rateHist[1] > PHYS.OVERDRIVE;
+    if (hot && G.rollT < 0) {
+      if (G.over === 0) ev('过载', 0, '指令速率 ' + f2(G.cmdRate) + ' 相位/s · 连续 ' + PHYS.OVERDRIVE_N + ' 帧越限 · 擒纵转入跟随');
+      G.over = 1;
+    } else if (!hot) G.over = 0;
+
+    /* ── 擒纵轮：唯一转角 / 逐臂放行 / 整圈卡位 ───────────── */
+    /* phi = 2π·ESC_TURNS·p：相位 1.000 时擒纵轮恰好走满 ESC_TURNS 个整圈并复位。
+       放行按臂距计数（每圈 ESC_ARMS 次），卡位按整圈计数（主臂，每圈一次）。 */
+    var pPos = clamp(G.p, 0, 1);
+    G.phi = TWO_PI * ESC_TURNS * pPos;
+    if (G.rollT < 0 && !G.settled) {
+      var armNow = Math.floor(pPos * ESC_TURNS * ESC_ARMS + 1e-9);
+      if (armNow > G.relN) {
+        for (var a = G.relN + 1; a <= armNow; a++) {
+          var ri = mod(a - 1, ESC_TEETH);
+          var wr = PHYS.WEAR_RELEASE * DIFFS[G.diff].wear * (1 + G.wear * 1.6);
+          WORLD.ratchet[ri].wear = Math.min(1, WORLD.ratchet[ri].wear + wr);
+          WORLD.ratchet[ri].hits++;
+          G.wear = Math.min(1, G.wear + wr / ESC_TEETH);
+          G.wearMax = Math.max(G.wearMax, G.wear);
+        }
+        G.relN = armNow;
+      } else if (armNow < G.relN) {
+        /* 逆向滚动：轮系反转，放行计数随之下调 —— 但磨损熵不回退。 */
+        G.relN = armNow;
+      }
+      var revPrev = Math.floor(clamp(prevP, 0, 1) * ESC_TURNS + 1e-9);
+      var revNow = Math.floor(pPos * ESC_TURNS + 1e-9);
+      if (revNow > revPrev && G.lockT <= 0 && G.relN > 0) {
+        if (G.over) {
+          /* 过载跟随：整段卡位被一步跨过，磨损因此加速累积 */
+          G.wear = Math.min(1, G.wear + PHYS.WEAR_EDGE * DIFFS[G.diff].wear * (revNow - revPrev) * 2.4);
+          G.wearMax = Math.max(G.wearMax, G.wear);
+        } else {
+          G.lockT = PHYS.LOCK_FRAMES; G.lockN++;
+        }
+      }
+    }
+    /* 磨损熵在极限处吸附：单调不减，且被钉在 [0,1] */
+    G.wear = clamp(G.wear, 0, 1);
+    G.wearMax = clamp(Math.max(G.wearMax, G.wear), 0, 1);
+    G.wear = G.wearMax;
+
+    /* ── 四击报时 ──────────────────────────────────────────── */
+    /* 击点按未回卷的相位计数：相位在 1.000 附近来回微幅抖动时
+       若改用 mod(p,1)，一次抖动就会被重复记成新的一击。 */
+    var beatPrev = Math.floor(prevP * BEAT_LOBES + 1e-9);
+    var beatNow = Math.floor(G.p * BEAT_LOBES + 1e-9);
+    if (beatNow > beatPrev && G.p > 0 && G.rollT < 0) {
+      G.strikeN += beatNow - beatPrev;
+      G.strikeFx = 1; G.strikeAt = G.frames; G.bell = 1;
+      G.power = Math.max(0, G.power - PHYS.POWER_STRIKE / 100);
+      ev('报时', 6.0, '第 ' + G.strikeN + ' 击 · 相位 ' + f3(mod(G.p, 1)) + ' · ' + shichenOf(G.p) + '时 · 抽势能 ' + f2(PHYS.POWER_STRIKE));
+      log('报时 第 ' + G.strikeN + ' 击 @ ' + hhmm(G.p));
+    }
+    G.bell = Math.max(0, G.bell - dt * 2.6);
+    /* 报时凸轮爪高：四爪依次抬起 */
+    G.camPh = mod(G.p * BEAT_LOBES, 1);
+    G.camLift = Math.pow(Math.max(0, Math.sin(Math.PI * G.camPh)), 0.7);
+
+    /* ── 机构运转抽势能 ───────────────────────────────────── */
+    if (G.rollT < 0) {
+      var run = G.lockT > 0 ? 0.12 : 1.0;
+      G.power = Math.max(0, G.power - (PHYS.POWER_IDLE + (Math.abs(G.scrollRate) > 0.02 ? PHYS.POWER_DRAIN : 0)) * run * dt / 100);
+    }
+
+    /* ── 硬直与放空 ────────────────────────────────────────── */
+    var stunned = G.overT > 0;
+    if (stunned) { G.overT -= dt; P.steer = 0; P.throttle = 0; }
+    if (P.vent > 0) {
+      P.vent -= dt;
+      P.charge = P.vent > 0 ? PHYS.CAT_FULL * (P.vent / (PHYS.OVER_MS / 1000)) : 0;
+    }
+
+    /* ── 回溯读条 ──────────────────────────────────────────── */
+    if (G.rollT >= 0) {
+      G.rollT -= dt;
+      if (G.rollT < 0) {
+        /* 回溯完成：世界时钟回退，机构恢复到可操作状态 */
+        G.t = Math.max(0, G.t - PHYS.ROLLBACK_S);
+        G.power = Math.max(0.06, G.power - PHYS.ROLLBACK_POWER / 100);
+        G.stab = Math.max(28, G.stab);
+        G.fatigue = Math.max(0, G.fatigue - 6);
+        G.p = clamp(G.p - 0.06, 0, 1);
+        G.pT = G.p;
+        G.mercy = PHYS.MERCY_S;
+        P.alt = 0; P.vz = 0; P.hop = 0; G.attune = 0; G.attuned = false;
+        ev('重构', 0, '因果回溯完成 · 世界时钟回退 ' + f2(PHYS.ROLLBACK_S) + ' s');
+      }
+    }
+    if (G.mercy > 0) G.mercy -= dt;
+
+    /* ── 校时梭的横向层与齿位 ─────────────────────────────── */
+    P.rail = strataAt(P.d);
+    var tIdx = toothAt(P.th);
+    P.prevTooth = P.tooth;
+    P.tooth = tIdx;
+    var landed = P.alt <= 0.001;
+
+    /* ── 齿位寿命：承重衰减 / 空载重组 ─────────────────────── */
+    for (var i = 0; i < WORLD.teeth.length; i++) {
+      var t = WORLD.teeth[i];
+      var loaded = landed && tIdx === i && t.alive;
+      t.load = loaded ? 1 : 0;
+      if (t.alive) {
+        t.life -= (loaded ? PHYS.DECAY_LOAD : PHYS.DECAY_REST) * dt;
+        if (t.life < 0) t.life = 0;
+      } else {
+        t.voidT -= dt;
+        if (t.voidT <= 0) { t.alive = true; t.life = 0.35; t.fuse = -1; t.voidT = 0; ev('重组', 0, '齿位 #' + i + ' 重组完成'); }
+      }
+      /* 下沉位移的弹簧-阻尼回正（与反冲共用一套二阶系统） */
+      t.sinkV += (-PHYS.SINK_SPRING * t.sink - PHYS.SINK_DAMP * t.sinkV) * dt;
+      t.sink += t.sinkV * dt;
+      if (t.fuse > 0) {
+        t.fuse -= dt;
+        if (t.fuse <= 0) {
+          t.fuse = -1; t.alive = false; t.voidT = PHYS.VOID_MS / 1000;
+          ev('碎裂', 0, '齿位 #' + i + ' 引信到期 · 碎裂为不可站立虚空 ' + f2(PHYS.VOID_MS / 1000) + ' s');
+        }
+      }
+    }
+
+    /* ── 同调（ATTUNEMENT_DWELL） ─────────────────────────── */
+    /* 「静止」本身不是成就：站着不动既不回补任何池子，也不解锁跃迁余量。
+       只有主动锚定 —— 在活着的承力齿核心区内把切向速度压到阈值以下，
+       并持续施加锚定输入满 350 ms —— 才完成一次同调。松手即失效，
+       已完成的同调也会立刻作废，因此零输入窗口内不可能出现正向增长。 */
+    var speedAbs = Math.abs(P.v);
+    var t2 = WORLD.teeth[tIdx];
+    var core = inCore(tIdx, P.th);
+    var anchored = landed && !G.settled && G.rollT < 0 && P.anchor &&
+      speedAbs < PHYS.ATTUNE_EPS && !!t2 && t2.alive && t2.bearing && core;
+    if (anchored) {
+      var wasZero = G.attune === 0;
+      G.attune = Math.min(1, G.attune + PHYS.ATTUNE_R_CHARGE * dt);
+      if (wasZero) {
+        G.anchorTry++;
+        log('同调开始 @ 齿位 #' + tIdx + '（' + t2.shichen + '时）');
+      }
+      if (G.attune >= 1 && !G.attuned) {
+        G.attuned = true; G.coreN++;
+        G.power = Math.min(1, G.power + PHYS.MERIDIAN_REPAIR / 100);
+        G.stab = Math.min(100, G.stab + 6);
+        G.score += 12.0;
+        G.chain++; if (G.chain > G.bestChain) G.bestChain = G.chain;
+        ev('同调', 12.0, '齿位 #' + tIdx + ' · ' + t2.shichen + '时承力核心区 · 主动锚定驻留 ' +
+          Math.round(PHYS.ATTUNE_MS) + ' ms 完成 · 回补势能 ' + f2(PHYS.MERIDIAN_REPAIR));
+        log('同调完成 @ ' + t2.shichen + '时 · 连击 ' + G.chain);
+      }
+      G.fatigue = Math.max(0, G.fatigue - PHYS.REPAIR_S * dt);
+      G.stab = Math.min(100, G.stab + PHYS.STAB_REFILL_S * dt);
+    } else {
+      /* 锚定中断：进度打回，已完成的同调一并作废 */
+      if (G.attune > 0) G.attune = 0;
+      G.attuned = false;
+      if (landed && !G.settled && G.rollT < 0 && (!t2 || !t2.alive || !t2.bearing || !core)) {
+        /* 停在非承力齿、非核心区或虚空齿位上：稳定性储备按秒流失 */
+        G.stab = Math.max(0, G.stab - PHYS.EDGE_DRAIN * 100 * dt);
+      }
+    }
+    /* 姿态：跃迁余量是「同调」的派生量，不是可以囤积的库存 ——
+       只有此刻仍处于同调（贴地且锚定未松）才为 1，离齿或松手立刻归零。 */
+    P.hop = (landed && G.attuned) ? 1 : 0;
+
+    /* ── 校时梭的切向/横向/垂向动力学 ─────────────────────── */
+    var st = strataAt(P.d);
+    var wv = windAt(P.th, R_TOOTH / R_OUT);
+    var wtan = wv[0], wrad = wv[1];
+    var along = (P.v >= 0 ? 1 : -1) * (wtan >= 0 ? 1 : -1);
+    var tail = along > 0;
+    var dragK = PHYS.DRAG2 * (tail ? PHYS.TAIL_DRAG : 1.0);
+    var drive = (P.throttle || 0) * PHYS.DRIVE * (0.55 + 0.45 * clamp(G.power * 3, 0, 1));
+    var acc = drive - (P.brake ? PHYS.BRAKE * Math.sign(P.v) : 0)
+      - dragK * P.v * Math.abs(P.v) - PHYS.DRAG1 * P.v / st.mu + wtan * 0.35;
+    if (!landed) acc += 0;
+    P.v += acc * dt;
+    P.v = clamp(P.v, -PHYS.VMAX * DIFFS[G.diff].vmax, PHYS.VMAX * DIFFS[G.diff].vmax);
+
+    var uT = (P.steer || 0) * PHYS.UMAX * clamp(Math.abs(P.v) / PHYS.U_REF, 0.12, 1);
+    var grip = P.anchor ? PHYS.ANCHOR_GRIP : (P.hand ? PHYS.DRIFT_GRIP : PHYS.GRIP);
+    P.u += (uT - P.u) * grip * dt;
+    P.d += P.u * dt;
+    /* 撞刻度环外缘：速度保留 + 机构疲劳；越门即触发因果回溯 */
+    if (P.d > HW) {
+      P.d = HW;
+      if (Math.abs(P.u) > PHYS.BANK_BREAK && G.rollT < 0 && G.mercy <= 0) {
+        fail('撞穿刻度环外缘 · 速度 ' + f2(Math.abs(P.u)));
+      } else {
+        P.u = -P.u * PHYS.BANK_BOUNCE;
+        G.fatigue = Math.min(PHYS.FATIGUE_MAX, G.fatigue + PHYS.BANK_FATIGUE);
+        G.shake = Math.max(G.shake, 0.35);
+      }
+    } else if (P.d < -HW) {
+      P.d = -HW;
+      P.u = -P.u * PHYS.BANK_BOUNCE;
+      G.fatigue = Math.min(PHYS.FATIGUE_MAX, G.fatigue + PHYS.BANK_FATIGUE * 0.6);
+    }
+    /* 锚爪咬合：主动锚定就是把校时梭机械锁在轴承包上 ——
+       风压、推力与反冲全部由轴承包揽，残余速度按粘滞每帧快速泄放。
+       这也是「接触同调」唯一可达的前提：不握住锚爪，横向速度永远在风里抖。 */
+    if (P.anchor && landed && !G.settled && G.rollT < 0) {
+      P.v *= PHYS.ANCHOR_HOLD;
+      /* 咬死：亚像素残余速度直接归零，否则风里那点推力会让 v 停在 0.1 上下，
+         而「接触同调」要的静止判据比这严得多。 */
+      if (Math.abs(P.v) < PHYS.ANCHOR_DEAD) P.v = 0;
+    }
+    P.th = mod(P.th + (P.v / R_TOOTH) * dt, TWO_PI);
+
+    /* 垂向：重力 + 逆流迎角升力。逆风时迎角产生额外抬升，风越逆飞得越高。 */
+    var lift = 0;
+    if (!landed) {
+      var head = wtan * P.v < 0;
+      lift = head ? PHYS.LIFT_K * clamp(Math.abs(wtan) / 26, 0, 1.3) : 0;
+    }
+    P.vz += (-PHYS.GRAV + lift) * dt;
+    P.alt += P.vz * dt;
+    if (P.alt <= 0) {
+      P.alt = 0;
+      /* 触地即作废同调：无论轻重，落地都要重新靠 350 ms 驻留把余量挣回来。
+         轻贴地不消耗余量、但也不保留 —— 否则「落点即二段跳」会绕过地雷。 */
+      if (!landed) { G.attune = 0; G.attuned = false; P.hop = 0; }
+      if (P.vz < -30) {
+        /* 落齿：下沉冲量超线性于落地速度；齿位承重下沉 */
+        var vImp = Math.abs(P.vz);
+        var vs = PHYS.SINK_BASE * (1 + vImp * vImp / PHYS.SINK_DIV);
+        var tt = WORLD.teeth[tIdx];
+        if (tt && tt.alive) {
+          tt.sinkV = -vs;
+          tt.life -= PHYS.DECAY_LOAD * 0.55;
+          if (tt.life <= 0) { tt.alive = false; tt.voidT = PHYS.VOID_MS / 1000; ev('碎裂', 0, '齿位 #' + tIdx + ' 承重过度 · 就地碎裂'); }
+        }
+        G.shake = Math.max(G.shake, clamp(vs / 26, 0, 1));
+        P.hop = 0; G.attune = 0; G.attuned = false;
+        G.landN++; G.lastLand = G.frames;
+        /* 撞击：稳定性与机构疲劳都按速度平方走 */
+        G.fatigue = Math.min(PHYS.FATIGUE_MAX, G.fatigue + PHYS.FATIGUE_HIT * vImp * vImp);
+        if (vImp > 120) {
+          G.stab = Math.max(0, G.stab - PHYS.STAB_HIT * clamp(vImp / 240, 0, 2));
+          G.chain = 0;
+        }
+      }
+      /* 轻轻贴地不消耗也不回补余量：余量由上面的派生式统一裁决。 */
+      P.vz = 0;
+      P.airT = 0;
+    } else {
+      P.airT += dt;
+      /* 长滑移累积结构疲劳 */
+      if (Math.abs(P.u) > 60) G.fatigue = Math.min(PHYS.FATIGUE_MAX, G.fatigue + PHYS.FATIGUE_SLIP * dt);
+    }
+    /* 驶离齿位：反方向弹起 k=0.68 并点燃引信 */
+    if (P.prevTooth >= 0 && tIdx !== P.prevTooth && landed) {
+      var old = WORLD.teeth[P.prevTooth];
+      if (old && old.alive && old.fuse < 0) {
+        var pin = old.sinkV;
+        old.sinkV = -PHYS.REBOUND_K * (pin !== 0 ? pin : -60);
+        old.fuse = PHYS.FUSE_MS / 1000;
+      }
+    }
+
+    /* ── 悬索抓取与摆荡（单摆方程） ───────────────────────── */
+    if (P.tether) {
+      var A = P.tether.a;
+      var w2 = PHYS.TETHER_G / PHYS.TETHER_L;
+      P.tgW += (-w2 * Math.sin(P.tgA) - PHYS.TETHER_DAMP * P.tgW) * dt;
+      P.tgA += P.tgW * dt;
+      /* 摆长随相位缓慢变化，摆荡因此不是等时的 */
+      P.tether.a = A;
+    }
+
+    /* ── 蓄能 ──────────────────────────────────────────────── */
+    if (P.charging && G.overT <= 0 && !stunned) {
+      P.charge += 640 * dt;
+      G.power = Math.max(0, G.power - PHYS.CAT_POWER * 640 * dt);
+      if (P.charge >= PHYS.CAT_FULL) {
+        /* 熔断是「强制放空」而不是「凭空归零」：蓄能量在硬直窗口里可见地泄掉。 */
+        P.vent = PHYS.OVER_MS / 1000; P.charging = false;
+        G.overT = PHYS.OVER_MS / 1000; G.overCount++;
+        G.fatigue = Math.min(PHYS.FATIGUE_MAX, G.fatigue + PHYS.OVER_FATIGUE);
+        var pen = -PHYS.OVER_PENALTY;
+        if (G.score + pen < 0) pen = -G.score;
+        G.score += pen;
+        G.power = Math.max(0, G.power - 0.04);
+        ev('熔断', pen, '蓄能超频越限 · 强制放空 · 硬直 ' + f2(PHYS.OVER_MS / 1000) + ' s');
+        log('熔断 · 强制放空');
+      }
+    }
+
+    /* ── 相位翻转的视差倾角扰动 ───────────────────────────── */
+    if (P.polT > 0) P.polT -= dt;
+    if (P.polImm > 0) P.polImm -= dt;
+
+    /* ── 湍流涡旋 ──────────────────────────────────────────── */
+    stepEddies(dt);
+
+    /* ── 危机分支判定 ──────────────────────────────────────── */
+    var branch = false;
+    if (G.rollT < 0 && !G.settled) {
+      if (G.wear >= PHYS.WEAR_LIMIT) branch = true;
+      if (G.power <= PHYS.POWER_WARN) branch = true;
+      if (G.eddies.length >= 3) branch = true;
+    }
+    if (branch && !G.branch) {
+      ev('状态', 0, '空域危机分支 · 磨损熵 ' + f3(G.wear) + ' · 势能 ' + f2(G.power) + ' · 涡旋 ' + G.eddies.length);
+      log('进入空域危机分支');
+    }
+    G.branch = branch;
+
+    /* ── 致命失败 ──────────────────────────────────────────── */
+    if (G.rollT < 0 && !G.settled) {
+      if (G.power <= PHYS.POWER_FAIL) fail('发条势能耗尽');
+      else if (G.wear >= PHYS.WEAR_FAIL) fail('磨损熵越过致命阈值 ' + f3(PHYS.WEAR_FAIL));
+      else if (G.fatigue >= PHYS.FATIGUE_MAX) fail('机构疲劳满载');
+      else if (G.stab <= 0) fail('稳定性储备耗尽');
+    }
+
+    /* ── 相位归零：闭环同调 ───────────────────────────────── */
+    /* 闭环的判据是「滚动轴真的走到了尽头」。相位与目标必须同时钉在 1.000：
+       提前收束会把最后一枚整圈卡位与第四击报时一并吞掉，那两条不变量
+       （卡位 13 次、报时 4 击）就再也观察不到了。 */
+    if (!G.settled && G.rollT < 0 && G.lockT <= 0 && G.p >= 1 - 1e-9 && G.pT >= 1 - 1e-9) {
+      settle('相位归零 · 十二时辰走满');
+    }
+
+    /* 连击：连续完成主动同调而不发生硬着陆。撞击分支会把 G.chain 清零，
+       报时与滚动本身不计连击 —— 否则零输入窗口里连击会自己涨。 */
+    G.chapterName = CHAPTERS[clamp(Math.floor(clamp(G.p, 0, 0.9999) * 5), 0, 4)].n;
+
+    evalState();
+  }
+
+  function fail(reason) {
+    if (G.rollT >= 0) return;
+    G.rollT = PHYS.ROLLBACK_S;
+    G.rollReason = reason;
+    G.stab = Math.max(G.stab, 12);
+    G.eddies.length = 0;
+    ev('回溯', 0, reason);
+    log('因果回溯：' + reason);
+    G.shake = 1;
+  }
+
+  /* ── 涡旋推进 ───────────────────────────────────────────── */
+  function stepEddies(dt) {
+    if (!G.branch && G.eddies.length < 1 && G.frames > 200 && hash(G.frames, SEED + 5) > 0.995) {
+      /* 低概率投放：只在账本上有据可循的帧序里出现 */
+      spawnEddy('swirl');
+    }
+    if (G.branch) {
+      G.eddyT -= dt;
+      if (G.eddyT <= 0 && G.eddies.length < PHYS.EDDY_CAP) {
+        G.eddyT = PHYS.EDDY_EVERY / DIFFS[G.diff].eddy;
+        var kinds = ['swirl', 'gust', 'shell', 'ghost'];
+        spawnEddy(kinds[Math.floor(hash(G.frames, SEED + 31) * 4) % 4]);
+      }
+    }
+    for (var i = G.eddies.length - 1; i >= 0; i--) {
+      var e = G.eddies[i];
+      e.t += dt;
+      e.th = mod(e.th + (e.spd / R_TOOTH) * dt * e.dir, TWO_PI);
+      e.d += e.vd * dt;
+      if (e.d > HW + 20 || e.d < -HW - 20) { G.eddies.splice(i, 1); continue; }
+      e.rearm = Math.max(0, e.rearm - dt);
+      e.hp -= 0;
+      if (e.hp <= 0) { G.eddies.splice(i, 1); continue; }
+      /* 命中判定：同一层带内且弧长距离小于半径 */
+      if (e.rearm <= 0 && P.alt < 18 && Math.abs(P.d - e.d) < 20 && G.mercy <= 0 && G.rollT < 0) {
+        var dth = Math.abs(mod(e.th - P.th + Math.PI, TWO_PI) - Math.PI);
+        if (dth * R_TOOTH < e.r + 9) {
+          var immune = e.ethereal && P.polImm > 0;
+          if (immune) { e.rearm = PHYS.EDDY_REARM; e.th = mod(e.th + 0.35, TWO_PI); }
+          else if (e.ethereal) {
+            /* 相位涡旋不可拦截：撞上即重创 */
+            G.stab = Math.max(0, G.stab - 9); G.chain = 0;
+            e.rearm = PHYS.EDDY_REARM;
+            G.shake = 0.8;
+            ev('撞击', -9, e.n + ' 穿身 · 相位未翻转');
+          } else if (e.armor && Math.abs(P.vz) < PHYS.ARMOR_BREAK_V) {
+            G.stab = Math.max(0, G.stab - e.dmg * 2.2); G.chain = 0;
+            e.rearm = PHYS.EDDY_REARM;
+            ev('撞击', -e.dmg * 2.2, e.n + ' 结壳未击穿 · 下坠速度不足 ' + f2(Math.abs(P.vz)));
+          } else {
+            e.hp -= 24 + Math.abs(P.vz) * 0.05;
+            G.score += 4;
+            G.chain++; G.bestChain = Math.max(G.bestChain, G.chain);
+            e.rearm = PHYS.EDDY_REARM;
+            if (e.hp <= 0) { G.eddies.splice(i, 1); G.eddyKills++; ev('驱散', 4, e.n + ' 被驱散'); }
+          }
+        }
+      }
+    }
+  }
+  function spawnEddy(kind) {
+    var K = EDDY[kind];
+    var h = hash(G.frames + G.eddies.length * 37, SEED + 7);
+    var e = {
+      kind: kind, n: K.n, hp: K.hp, spd: K.spd * (0.85 + h * 0.3), dmg: K.dmg, r: K.r,
+      col: K.col, armor: !!K.armor, ethereal: !!K.ethereal, mass: K.mass,
+      th: mod(G.p * TWO_PI + (h - 0.5) * 2.4, TWO_PI),
+      d: clamp((hash(G.frames + 91, SEED + 7) - 0.5) * 2 * (HW - 6), -HW + 6, HW - 6),
+      dir: hash(G.frames + 55, SEED + 7) > 0.35 ? 1 : -1,
+      vd: (hash(G.frames + 17, SEED + 7) - 0.5) * 16,
+      rearm: 0, t: 0
+    };
+    G.eddies.push(e);
+    ev('涡旋', 0, K.n + ' 入场 · 齿位 #' + toothAt(e.th) + ' · 层 ' + STRATA[strataIdx(e.d)].n);
+  }
+
+  /* ── 结算 ───────────────────────────────────────────────── */
+  function aggregate() {
+    var strikeP = clamp(G.strikeN / BEAT_LOBES, 0, 1);
+    var powerP = clamp(G.power, 0, 1);
+    var wearP = clamp(1 - G.wear / PHYS.WEAR_LIMIT, 0, 1);
+    var cleanP = clamp(1 - G.fatigue / PHYS.FATIGUE_MAX, 0, 1);
+    var ratioP = clamp(1 - ratioError() * 1e6, 0, 1);
+    /* 落点精准：主动锚定尝试里真正完成同调的占比。落点总数只记触地，
+       因此「停稳锚定」与「撞上去」在同一张账本上是可分的两件事。 */
+    var hasCore = G.anchorTry > 0;
+    var coreP = hasCore ? clamp(G.coreN / Math.max(1, G.anchorTry), 0, 1) : 0;
+    var chainP = clamp(G.bestChain / 24, 0, 1);
+    var closesP = clamp(G.lockN / (ESC_TURNS * PHYS.LOCK_ARM), 0, 1);
+    var wSum = 0.24 + 0.16 + 0.14 + 0.14 + 0.12 + 0.10 + 0.10;
+    var sc = (powerP * 0.24 + closesP * 0.16 + wearP * 0.14 + cleanP * 0.14 +
+      ratioP * 0.12 + chainP * 0.10 + coreP * 0.10) / wSum * 100;
+    if (!hasCore) {
+      wSum = 0.24 + 0.16 + 0.14 + 0.14 + 0.12 + 0.10;
+      sc = (powerP * 0.24 + closesP * 0.16 + wearP * 0.14 + cleanP * 0.14 +
+        ratioP * 0.12 + chainP * 0.10) / wSum * 100;
+    }
+    sc = clamp(sc, 0, 100);
+    if (hasCore && powerP > 0.999 && closesP > 0.999 && wearP > 0.999 && cleanP > 0.999 &&
+      ratioP > 0.999 && chainP > 0.999 && coreP > 0.999) sc = 100;
+    var grade = sc >= 88 ? 'S' : sc >= 76 ? 'A' : sc >= 62 ? 'B' : sc >= 48 ? 'C' : sc >= 32 ? 'D' : 'F';
+    return {
+      sc: sc, grade: grade, wSum: wSum, hasCore: hasCore,
+      powerP: powerP, strikeP: strikeP, wearP: wearP, cleanP: cleanP,
+      ratioP: ratioP, chainP: chainP, coreP: coreP, closesP: closesP
+    };
+  }
+  function settle(reason) {
+    if (G.settled) return;
+    var a = aggregate();
+    G.settled = true; G.result = reason; G.settleSc = a.sc; G.grade = a.grade;
+    G.pSettle = clamp(G.p, 0, 1);
+    ev('结算', a.sc, reason + ' · 评级 ' + a.grade);
+    log('结算 ' + reason + ' · ' + a.grade + ' / ' + a.sc.toFixed(1));
+    evalState();
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     渲染
+     ══════════════════════════════════════════════════════════ */
+  var COL = {
+    bg: '#07060a', ink: '#0b0a10', brass: '#c9a227', brassL: '#e8c46a',
+    brassD: '#7d6414', dim: '#3a2f18', teal: '#7fd8e0', cyan: '#21c7cc',
+    warn: '#ff9d6b', red: '#d94f2b', good: '#7fffdc', txt: '#c8c0a8'
+  };
+
+  /* 镜头：随相位缓慢推近并绕轴微偏，报时瞬间叠加一次短促推镜脉冲。 */
+  function cam() {
+    var z = lerp(1.0, 1.06, clamp(G.p, 0, 1)) + G.strikeFx * 0.035 + G.shake * 0.016;
+    var roll = Math.sin(G.p * TWO_PI * 0.75) * 0.055 + (P.polT > 0 ? Math.sin(P.polT * 22) * PHYS.POL_TILT * 0.9 : 0);
+    return { z: z, roll: roll };
+  }
+
+  function paintDial() {
+    var c = CX.dial, W = CV.dial.width, H = CV.dial.height;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.clearRect(0, 0, W, H);
+    var g = c.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, W * 0.72);
+    g.addColorStop(0, '#151109'); g.addColorStop(0.55, '#0c0a06'); g.addColorStop(1, '#050406');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+
+    var K = cam();
+    c.save();
+    c.translate(W / 2, H / 2 + 4);
+    c.rotate(K.roll);
+    c.scale(K.z, K.z);
+    c.translate(-W / 2, -(H / 2 + 4));
+
+    var cx = W / 2, cy = H / 2 + 4;
+
+    /* 五层机构带：由内向外分层着色，透光率逐层不同 */
+    for (var si = 0; si < STRATA.length; si++) {
+      var s = STRATA[si];
+      var r0 = R_TOOTH - HW + (2 * HW) * si / STRATA.length;
+      var r1 = R_TOOTH - HW + (2 * HW) * (si + 1) / STRATA.length;
+      c.beginPath();
+      c.arc(cx, cy, r1, 0, TWO_PI);
+      c.arc(cx, cy, r0, 0, TWO_PI, true);
+      c.fillStyle = s.tint;
+      c.globalAlpha = 0.30 + s.light * 0.38;
+      c.fill();
+      c.globalAlpha = 1;
+      c.strokeStyle = 'rgba(201,162,39,0.10)'; c.lineWidth = 1;
+      c.beginPath(); c.arc(cx, cy, r1, 0, TWO_PI); c.stroke();
+    }
+
+    /* 外圈刻度线：71 枚棘齿，十二主承力齿为重线 */
+    for (var i = 0; i < TEETH; i++) {
+      var a = toothTh(i), t = WORLD.teeth[i];
+      var major = t.bearing;
+      var rr = R_TICK + (major ? 11 : 6);
+      c.beginPath();
+      c.moveTo(cx + Math.cos(a) * R_TICK, cy + Math.sin(a) * R_TICK);
+      c.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+      c.strokeStyle = major ? 'rgba(232,196,106,0.85)' : 'rgba(201,162,39,0.34)';
+      c.lineWidth = major ? 2 : 1;
+      c.stroke();
+      if (major) {
+        var lx = cx + Math.cos(a) * (rr + 13), ly = cy + Math.sin(a) * (rr + 13);
+        c.save();
+        c.fillStyle = 'rgba(232,196,106,0.86)';
+        c.font = '600 12px "DejaVu Sans Mono",monospace';
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText(t.shichen, lx, ly);
+        c.restore();
+      }
+    }
+
+    /* 齿位本体：71 枚棘齿，按寿命着色；虚空齿只留阴影 */
+    for (var j = 0; j < TEETH; j++) {
+      var tj = WORLD.teeth[j];
+      var aj = toothTh(j);
+      var px = cx + Math.cos(aj) * (R_TOOTH + tj.jitter * 30);
+      var py = cy + Math.sin(aj) * (R_TOOTH + tj.jitter * 30);
+      c.save();
+      c.translate(px, py); c.rotate(aj);
+      var hw = TWO_PI / TEETH * R_TOOTH * 0.36, hh = 7.4;
+      if (!tj.alive) {
+        c.strokeStyle = 'rgba(90,60,30,0.30)'; c.lineWidth = 1;
+        c.setLineDash([2, 3]);
+        c.strokeRect(-hw, -hh, hw * 2, hh * 2);
+        c.setLineDash([]);
+      } else {
+        var lf = clamp(tj.life, 0, 1);
+        var R = Math.round(lerp(96, 224, lf)), Gc = Math.round(lerp(74, 190, lf)), B = Math.round(lerp(26, 96, lf));
+        c.fillStyle = 'rgb(' + R + ',' + Gc + ',' + B + ')';
+        c.globalAlpha = 0.55 + lf * 0.45;
+        c.fillRect(-hw, -hh + tj.sink * 3.0, hw * 2, hh * 2);
+        c.globalAlpha = 1;
+        if (tj.bearing) {
+          /* 主承力齿的核心区：中间 20% 弧长的一段窄带，高亮 */
+          var mid0 = -hw * PHYS.CORE_ZONE, mid1 = hw * PHYS.CORE_ZONE;
+          c.fillStyle = tj.fuse > 0 ? 'rgba(217,79,43,0.95)' : 'rgba(127,255,220,0.86)';
+          c.fillRect(mid0, -hh - 2.4, mid1 - mid0, hh * 2 + 4.8);
+        }
+        c.strokeStyle = 'rgba(10,8,4,0.55)'; c.lineWidth = 0.8;
+        c.strokeRect(-hw, -hh, hw * 2, hh * 2);
+      }
+      if (tj.fuse > 0) {
+        c.fillStyle = 'rgba(217,79,43,0.9)';
+        c.fillRect(-hw, -hh - 4.6, hw * 2 * (tj.fuse / (PHYS.FUSE_MS / 1000)), 1.8);
+      }
+      c.restore();
+    }
+
+    /* 内圈轮系：擒纵轮 + 三级轮 + 轴心大轮，转角全部由擒纵轮唯一转角派生 */
+    var A = wheelAngles();
+    drawGear(c, cx, cy, 55, 41, A[2] * 0.5, '#3d2f10', '#c9a227', 0.75);
+    var SAT = [-Math.PI / 2, 0, Math.PI / 2, Math.PI];
+    for (var w2 = 0; w2 < WHEELS.length; w2++) {
+      var wa = SAT[w2] + 0.42;
+      var gx = cx + Math.cos(wa) * R_GEAR, gy = cy + Math.sin(wa) * R_GEAR;
+      if (w2 === 0) {
+        /* 擒纵轮：四臂 + 棘齿圈，卡位窗口内逐位静止 */
+        drawEscapement(c, gx, gy, 32, G.phi * 0.5, G.lockT > 0);
+      } else {
+        drawGear(c, gx, gy, 32, WHEELS[w2].N, A[w2], '#3d2f10', '#c9a227', 0.8);
+        c.beginPath(); c.arc(gx, gy, 4.0, 0, TWO_PI);
+        c.fillStyle = '#e8c46a'; c.fill();
+        c.beginPath(); c.arc(gx, gy, 8.0, 0, TWO_PI);
+        c.strokeStyle = 'rgba(232,196,106,0.35)'; c.lineWidth = 1.2; c.stroke();
+      }
+    }
+    /* 轴心本体 */
+    c.beginPath(); c.arc(cx, cy, 12, 0, TWO_PI);
+    c.fillStyle = '#d8b45e'; c.fill();
+    c.beginPath(); c.arc(cx, cy, 18, 0, TWO_PI);
+    c.strokeStyle = 'rgba(232,196,106,0.55)'; c.lineWidth = 1.4; c.stroke();
+
+    /* 报时凸轮与钟：四爪依次抬起击锤 */
+    var camA = Math.PI * 0.75;
+    var kx = cx + Math.cos(camA) * 78, ky = cy + Math.sin(camA) * 78;
+    drawCam(c, kx, ky, G.p * BEAT_LOBES, G.camLift);
+    var bellR = 13 + G.bell * 5;
+    c.beginPath(); c.arc(kx + 26, ky + 24, bellR, 0, TWO_PI);
+    c.fillStyle = 'rgba(201,162,39,' + (0.30 + G.bell * 0.5) + ')'; c.fill();
+    c.strokeStyle = 'rgba(232,196,106,0.7)'; c.lineWidth = 1.4; c.stroke();
+
+    /* 尘粒：被局地风剪平流 */
+    for (var q = 0; q < WORLD.dust.length; q++) {
+      var D = WORLD.dust[q];
+      var dpx = cx + Math.cos(D.th) * (R_TOOTH * D.r);
+      var dpy = cy + Math.sin(D.th) * (R_TOOTH * D.r);
+      c.fillStyle = 'rgba(201,162,39,' + D.a.toFixed(2) + ')';
+      c.fillRect(dpx, dpy, D.sz, D.sz);
+    }
+
+    /* 湍流涡旋 */
+    for (var e2 = 0; e2 < G.eddies.length; e2++) {
+      var E = G.eddies[e2];
+      var exx = cx + Math.cos(E.th) * R_TOOTH, eyy = cy + Math.sin(E.th) * R_TOOTH + E.d * 0.5;
+      c.beginPath(); c.arc(exx, eyy, E.r, 0, TWO_PI);
+      c.strokeStyle = E.col; c.globalAlpha = E.ethereal ? 0.55 : 0.85; c.lineWidth = 1.6; c.stroke();
+      c.globalAlpha = 1;
+      c.beginPath();
+      for (var sp = 0; sp < 22; sp++) {
+        var sa = sp / 22 * TWO_PI * 2 + E.t * 2.4;
+        var sr = E.r * (0.18 + sp / 22 * 0.82);
+        var sx = exx + Math.cos(sa) * sr, sy = eyy + Math.sin(sa) * sr;
+        if (sp === 0) c.moveTo(sx, sy); else c.lineTo(sx, sy);
+      }
+      c.strokeStyle = E.col; c.globalAlpha = 0.5; c.lineWidth = 1; c.stroke();
+      c.globalAlpha = 1;
+      if (E.armor) {
+        c.beginPath(); c.arc(exx, eyy, E.r + 4, 0, TWO_PI);
+        c.strokeStyle = 'rgba(255,138,92,0.6)'; c.lineWidth = 2.4; c.stroke();
+      }
+    }
+
+    /* 悬索锚塔 */
+    for (var an = 0; an < BOARD_HINT.anchors.length; an++) {
+      var anA = toothTh(BOARD_HINT.anchors[an][0]);
+      var ax = cx + Math.cos(anA) * R_TOOTH, ay = cy + Math.sin(anA) * R_TOOTH;
+      for (var pd = 0; pd < 4; pd++) {
+        c.beginPath();
+        c.arc(ax + Math.cos(anA) * (pd - 1.5) * 5.5, ay + Math.sin(anA) * (pd - 1.5) * 5.5, 2.4, 0, TWO_PI);
+        c.fillStyle = '#ffd166'; c.fill();
+      }
+      if (P.tether && P.tether.a === an) {
+        c.beginPath(); c.moveTo(ax, ay);
+        var bx = cx + Math.cos(P.th) * R_TOOTH, by = cy + Math.sin(P.th) * R_TOOTH;
+        c.lineTo(bx, by);
+        c.strokeStyle = 'rgba(127,216,224,0.75)'; c.lineWidth = 1.3; c.stroke();
+      }
+    }
+
+    /* 校时梭 */
+    var sx2 = cx + Math.cos(P.th) * (R_TOOTH + P.d);
+    var sy2 = cy + Math.sin(P.th) * (R_TOOTH + P.d) - P.alt * 0.55;
+    c.save();
+    c.translate(sx2, sy2); c.rotate(P.th + Math.PI / 2);
+    c.beginPath();
+    c.moveTo(0, -9); c.lineTo(6.4, 7); c.lineTo(0, 4); c.lineTo(-6.4, 7); c.closePath();
+    c.fillStyle = P.polImm > 0 ? '#7ad7ff' : '#cfe9ff';
+    c.shadowColor = P.polImm > 0 ? '#7ad7ff' : '#8fd8ff'; c.shadowBlur = 12;
+    c.fill(); c.shadowBlur = 0;
+    c.restore();
+    /* 接地阴影 */
+    if (P.alt > 1) {
+      c.beginPath(); c.arc(sx2, sy2 + P.alt * 0.55, 4.4, 0, TWO_PI);
+      c.fillStyle = 'rgba(0,0,0,0.4)'; c.fill();
+    }
+
+    /* 四击报时冲击环 */
+    if (G.strikeFx > 0.01) {
+      for (var sr2 = 0; sr2 < 3; sr2++) {
+        var prog = clamp((1 - G.strikeFx) * 1.6 - sr2 * 0.22, 0, 1);
+        if (prog <= 0 || prog >= 1) continue;
+        c.beginPath();
+        c.arc(cx, cy, 30 + prog * (R_OUT - 26), 0, TWO_PI);
+        c.strokeStyle = 'rgba(232,196,106,' + ((1 - prog) * 0.5).toFixed(2) + ')';
+        c.lineWidth = 2.2; c.stroke();
+      }
+    }
+
+    /* ── 质检叠层 ─────────────────────────────────────────────
+       把名义节圆（虚线）与 71 枚齿位的实际装配偏差画在同一张图上：
+       偏差只来自固定种子的 hash，任何一帧都能被逐齿复算核对。 */
+    if (QC) {
+      c.beginPath(); c.arc(cx, cy, R_TOOTH, 0, TWO_PI);
+      c.setLineDash([3, 6]);
+      c.strokeStyle = 'rgba(122,215,255,0.55)'; c.lineWidth = 1; c.stroke();
+      c.setLineDash([]);
+      var dev = 0, dmax = 0;
+      for (var q = 0; q < TEETH; q++) {
+        var qt = WORLD.teeth[q];
+        if (!qt) continue;
+        var off = qt.jitter * R_TOOTH * PHYS.QC_RUNOUT;
+        dev += Math.abs(off); if (Math.abs(off) > dmax) dmax = Math.abs(off);
+        var qa = toothTh(q);
+        c.beginPath();
+        c.moveTo(cx + Math.cos(qa) * (R_TOOTH - 3), cy + Math.sin(qa) * (R_TOOTH - 3));
+        c.lineTo(cx + Math.cos(qa) * (R_TOOTH + 3 + off * 6), cy + Math.sin(qa) * (R_TOOTH + 3 + off * 6));
+        c.strokeStyle = qt.alive ? 'rgba(122,215,255,0.5)' : 'rgba(255,138,92,0.65)';
+        c.lineWidth = qt.alive ? 1 : 2; c.stroke();
+      }
+      c.font = '9px "DejaVu Sans Mono",monospace';
+      c.fillStyle = 'rgba(122,215,255,0.85)';
+      c.fillText('QC RUNOUT  Σ|e| ' + dev.toFixed(4) + ' · max ' + dmax.toFixed(4) +
+        ' ×' + f2(PHYS.QC_RUNOUT), 12, H - 11);
+    }
+
+    /* ── 装载断面：种子重构期间只落下已建成的扇区 ─────────────
+       齿位阵列按种子逐格建立，未建成的扇区仍是空场，扫描线是唯一的进度读数。 */
+    if (STARTED && G.frames < 66) {
+      var sp2 = clamp(G.frames / 66, 0, 1);
+      c.save();
+      c.beginPath();
+      c.moveTo(cx, cy);
+      c.arc(cx, cy, R_OUT * 1.25, sp2 * TWO_PI, TWO_PI);
+      c.closePath();
+      c.fillStyle = 'rgba(5,4,6,0.74)';
+      c.fill();
+      c.beginPath();
+      c.moveTo(cx, cy);
+      c.lineTo(cx + Math.cos(sp2 * TWO_PI) * R_OUT * 1.25, cy + Math.sin(sp2 * TWO_PI) * R_OUT * 1.25);
+      c.strokeStyle = 'rgba(127,255,220,0.80)'; c.lineWidth = 2.6; c.stroke();
+      c.font = '600 12px "DejaVu Sans Mono",monospace';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillStyle = 'rgba(127,255,220,0.9)';
+      c.fillText('齿位阵列建成 ' + Math.round(sp2 * 100) + '% · ' +
+        Math.floor(sp2 * TEETH) + ' / ' + TEETH + ' 格', cx, cy + R_TICK + 62);
+      c.restore();
+    }
+
+    /* ── 空域危机分支：整环警示描边 + 涡旋计数 ──────────────── */
+    if (G.branch && !G.settled) {
+      var bpulse = 0.5 + 0.5 * Math.sin(G.t * 6.2);
+      c.save();
+      c.beginPath(); c.arc(cx, cy, R_TICK + 24, 0, TWO_PI);
+      c.strokeStyle = 'rgba(255,157,107,' + (0.32 + 0.32 * bpulse).toFixed(2) + ')';
+      c.lineWidth = 5; c.setLineDash([14, 9]); c.lineDashOffset = -G.t * 46;
+      c.stroke(); c.setLineDash([]); c.lineDashOffset = 0;
+      c.beginPath(); c.arc(cx, cy, R_TICK + 36, 0, TWO_PI);
+      c.strokeStyle = 'rgba(217,79,43,0.40)'; c.lineWidth = 1.4; c.stroke();
+      var vg = c.createRadialGradient(cx, cy, R_OUT * 0.5, cx, cy, R_OUT * 1.06);
+      vg.addColorStop(0, 'rgba(217,79,43,0)');
+      vg.addColorStop(1, 'rgba(217,79,43,' + (0.16 + 0.12 * bpulse).toFixed(2) + ')');
+      c.fillStyle = vg; c.fillRect(-60, -60, W + 120, H + 120);
+      c.font = '600 13px "DejaVu Sans Mono",monospace';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillStyle = 'rgba(255,157,107,0.94)';
+      c.fillText('空 域 危 机 分 支 激 活 · 涡 旋 ' + G.eddies.length +
+        ' · 磨损熵 ' + f3(G.wear) + ' · 势能 ' + f2(G.power), cx, cy - R_TICK - 48);
+      c.restore();
+    }
+
+    /* ── 因果回溯：相位回退读数覆盖整环 ─────────────────────── */
+    if (G.rollT >= 0 && !G.settled) {
+      var rp = clamp(G.rollT / PHYS.ROLLBACK_S, 0, 1);
+      c.save();
+      c.fillStyle = 'rgba(22,5,3,0.60)';
+      c.fillRect(-60, -60, W + 120, H + 120);
+      var rg = c.createRadialGradient(cx, cy, 10, cx, cy, R_OUT * 0.96);
+      rg.addColorStop(0, 'rgba(217,79,43,0.30)');
+      rg.addColorStop(0.7, 'rgba(217,79,43,0.12)');
+      rg.addColorStop(1, 'rgba(217,79,43,0)');
+      c.fillStyle = rg; c.beginPath(); c.arc(cx, cy, R_OUT * 0.96, 0, TWO_PI); c.fill();
+      c.beginPath(); c.arc(cx, cy, R_TICK + 24, 0, TWO_PI);
+      c.strokeStyle = 'rgba(217,79,43,0.85)'; c.lineWidth = 2.4; c.stroke();
+      c.font = '700 15px "DejaVu Sans Mono",monospace';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillStyle = 'rgba(255,157,107,0.96)';
+      c.fillText('因 果 回 溯 · ' + (G.rollReason || ''), cx, cy - R_TICK - 52);
+      c.font = '600 11px "DejaVu Sans Mono",monospace';
+      c.fillStyle = 'rgba(232,196,106,0.86)';
+      c.fillText('相位回退 ' + Math.round((1 - rp) * 100) + '% · 剩余 ' +
+        (G.rollT).toFixed(2) + ' s · 涡旋清空 · 稳定性兜底 12', cx, cy - R_TICK - 34);
+      var bw = 320, bh = 5, bx = cx - bw / 2, by = cy + R_TICK + 26;
+      c.fillStyle = 'rgba(60,22,12,0.9)'; c.fillRect(bx, by, bw, bh);
+      c.fillStyle = 'rgba(217,79,43,0.95)'; c.fillRect(bx, by, bw * (1 - rp), bh);
+      c.strokeStyle = 'rgba(217,79,43,0.7)'; c.lineWidth = 1; c.strokeRect(bx, by, bw, bh);
+      c.restore();
+    }
+    c.restore();
+  }
+
+  function drawGear(c, x, y, r, teeth, ang, fill, stroke, alpha) {
+    c.save();
+    c.translate(x, y); c.rotate(ang);
+    var n = Math.min(teeth, 40), th0 = TWO_PI / n;
+    c.beginPath();
+    for (var i = 0; i < n; i++) {
+      var a0 = i * th0, a1 = a0 + th0 * 0.34, a2 = a0 + th0 * 0.5, a3 = a0 + th0 * 0.84;
+      c.lineTo(Math.cos(a0) * r, Math.sin(a0) * r);
+      c.lineTo(Math.cos(a1) * (r + r * 0.13), Math.sin(a1) * (r + r * 0.13));
+      c.lineTo(Math.cos(a2) * (r + r * 0.13), Math.sin(a2) * (r + r * 0.13));
+      c.lineTo(Math.cos(a3) * r, Math.sin(a3) * r);
+    }
+    c.closePath();
+    c.globalAlpha = alpha;
+    c.fillStyle = fill; c.fill();
+    c.strokeStyle = stroke; c.lineWidth = 1.2; c.stroke();
+    c.globalAlpha = alpha * 0.55;
+    c.beginPath(); c.arc(0, 0, r * 0.62, 0, TWO_PI);
+    c.strokeStyle = stroke; c.lineWidth = 1; c.stroke();
+    c.globalAlpha = 1;
+    c.restore();
+  }
+
+  /* 擒纵叉：锁止窗口内逐位静止；放行瞬间 1 帧内跳进一个臂距 */
+  function drawEscapement(c, x, y, r, ang, locked) {
+    c.save();
+    c.translate(x, y);
+    c.beginPath(); c.arc(0, 0, r, 0, TWO_PI);
+    c.strokeStyle = locked ? 'rgba(255,157,107,0.85)' : 'rgba(201,162,39,0.55)';
+    c.lineWidth = 1.4; c.stroke();
+    for (var i = 0; i < ESC_ARMS; i++) {
+      var a = ang + i * TWO_PI / ESC_ARMS;
+      c.beginPath();
+      c.moveTo(0, 0);
+      c.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      c.strokeStyle = 'rgba(232,196,106,0.7)'; c.lineWidth = 1.6; c.stroke();
+    }
+    c.beginPath(); c.arc(0, 0, 4.4, 0, TWO_PI);
+    c.fillStyle = locked ? '#ff9d6b' : '#e8c46a'; c.fill();
+    /* 擒纵叉本体 */
+    c.beginPath();
+    c.arc(0, 0, r * 1.28, -0.35 + ang, 0.35 + ang);
+    c.strokeStyle = 'rgba(201,162,39,0.9)'; c.lineWidth = 2.6; c.stroke();
+    c.restore();
+  }
+
+  /* 报时凸轮：四爪依次抬起击锤 */
+  function drawCam(c, x, y, ph, lift) {
+    c.save();
+    c.translate(x, y);
+    c.rotate(ph * TWO_PI / BEAT_LOBES);
+    c.beginPath();
+    for (var i = 0; i < BEAT_LOBES; i++) {
+      var a0 = i * TWO_PI / BEAT_LOBES;
+      c.moveTo(0, 0);
+      c.arc(0, 0, 22 + lift * 5, a0 - 0.22, a0 + 0.22);
+      c.closePath();
+    }
+    c.fillStyle = 'rgba(107,84,24,0.9)';
+    c.fill();
+    c.strokeStyle = 'rgba(232,196,106,0.8)'; c.lineWidth = 1.3; c.stroke();
+    c.beginPath(); c.arc(0, 0, 5, 0, TWO_PI);
+    c.fillStyle = '#e8c46a'; c.fill();
+    c.restore();
+  }
+
+  /* ── 顶栏六个仪表（画布 B） ─────────────────────────────── */
+  function paintHud() {
+    var c = CX.hud, W = CV.hud.width, H = CV.hud.height;
+    c.clearRect(0, 0, W, H);
+    c.fillStyle = '#0a0810'; c.fillRect(0, 0, W, H);
+    var mods = [
+      { t: 'HOUR DIAL', s: '时刻', v: hhmm(G.p), sub: '第 ' + (Math.floor(mod(G.p, 1) * 12) + 1) + ' 时辰 · ' + shichenOf(G.p) },
+      { t: 'MAINSPRING', s: '发条势能', v: (G.power * 100).toFixed(1), sub: '上弦 ' + f2(G.power) + (G.power > PHYS.CRIT_WIND ? ' · 越限' : '') },
+      { t: 'FLYWHEEL', s: '飞轮转速', v: (Math.abs(G.phi * 0.42)).toFixed(3), sub: '峰值 ' + (G.phi * 0.42).toFixed(2) },
+      { t: 'ESCAPEMENT', s: '擒纵', v: G.lockT > 0 ? '卡位' : (G.over ? '跟随' : '放行'), sub: G.relN + ' 次放行 · 卡位 ' + G.lockN },
+      { t: 'WEAR ENTROPY', s: '磨损熵', v: G.wear.toFixed(3), sub: '单向 · 逆向不回转' },
+      { t: 'RATIO LEDGER', s: '传动比', v: (G.phi / TWO_PI).toFixed(2), sub: WHEELS.map(function (w) { return w.N; }).join(' : ') }
+    ];
+    var pad = 14, gap = 12;
+    var mw = (W - pad * 2 - gap * (mods.length - 1)) / mods.length;
+    for (var i = 0; i < mods.length; i++) {
+      var x = pad + i * (mw + gap), M = mods[i];
+      c.strokeStyle = 'rgba(201,162,39,0.30)'; c.lineWidth = 1;
+      c.strokeRect(x + 0.5, 8.5, mw - 1, H - 17);
+      c.fillStyle = 'rgba(201,162,39,0.05)'; c.fillRect(x + 1, 9, mw - 2, H - 18);
+      c.fillStyle = '#8a7a52'; c.font = '600 9px "DejaVu Sans Mono",monospace';
+      c.textAlign = 'left'; c.textBaseline = 'top';
+      c.fillText(M.t, x + 9, 15);
+      c.fillStyle = '#5f5537'; c.font = '9px "DejaVu Sans Mono",monospace';
+      c.fillText(M.s, x + 9 + c.measureText(M.t).width + 14, 15);
+      var warn = (i === 1 && G.power < PHYS.POWER_WARN) || (i === 4 && G.wear > PHYS.WEAR_LIMIT) || (i === 3 && G.over);
+      c.fillStyle = warn ? '#ff9d6b' : '#e8dcb8';
+      c.font = '700 22px "DejaVu Sans Mono",monospace';
+      c.fillText(M.v, x + 9, 28);
+      c.fillStyle = warn ? 'rgba(255,157,107,0.8)' : '#6f6444';
+      c.font = '9px "DejaVu Sans Mono",monospace';
+      c.fillText(M.sub, x + 9, 56);
+      /* 模块底部进度条 */
+      var pv = i === 0 ? mod(G.p, 1) : i === 1 ? G.power : i === 2 ? clamp(Math.abs(G.phi * 0.42) / 6, 0, 1)
+        : i === 3 ? clamp(G.relN / (ESC_ARMS * ESC_TURNS), 0, 1) : i === 4 ? clamp(G.wear / PHYS.WEAR_FAIL, 0, 1)
+          : mod(G.phi / TWO_PI, 1);
+      c.fillStyle = 'rgba(201,162,39,0.16)'; c.fillRect(x + 9, H - 20, mw - 18, 3);
+      c.fillStyle = warn ? '#ff9d6b' : '#c9a227'; c.fillRect(x + 9, H - 20, (mw - 18) * pv, 3);
+    }
+  }
+
+  /* ── 传动比账本 + 相位图（画布 C） ──────────────────────── */
+  function paintLedgerPane() {
+    var c = CX.ledger, W = CV.ledger.width, H = CV.ledger.height;
+    c.clearRect(0, 0, W, H);
+    c.fillStyle = '#080a0c'; c.fillRect(0, 0, W, H);
+    c.strokeStyle = 'rgba(201,162,39,0.25)'; c.strokeRect(0.5, 0.5, W - 1, H - 1);
+
+    var A = wheelAngles();
+    c.fillStyle = '#8a7a52'; c.font = '600 9px "DejaVu Sans Mono",monospace';
+    c.textAlign = 'left'; c.textBaseline = 'top';
+    c.fillText('RATIO LEDGER / 传动比账本', 9, 20);
+    var rows = [];
+    for (var i = 0; i < WHEELS.length; i++) {
+      rows.push([WHEELS[i].n + ' ' + WHEELS[i].en, (A[i] * DEG).toFixed(1) + '°',
+        (A[i] / TWO_PI).toFixed(4) + ' 圈', WHEELS[i].N + ' 齿']);
+    }
+    rows.push(['擒纵放行 RELEASES', String(G.relN), '卡位 ' + G.lockN, '臂 ' + ESC_ARMS]);
+    for (var r = 0; r < rows.length; r++) {
+      var y = 34 + r * 14;
+      c.fillStyle = 'rgba(201,162,39,' + (r < 4 ? 0.09 : 0.16) + ')';
+      c.fillRect(7, y - 2, W - 14, 13);
+      c.fillStyle = r < 4 ? '#b8a878' : '#7fd8e0';
+      c.font = '9px "DejaVu Sans Mono",monospace';
+      c.fillText(rows[r][0], 11, y + 1);
+      c.fillStyle = '#e8dcb8'; c.textAlign = 'right';
+      c.fillText(rows[r][1], W * 0.62, y + 1);
+      c.fillStyle = '#8a7a52';
+      c.fillText(rows[r][2], W * 0.82, y + 1);
+      c.fillText(rows[r][3], W - 11, y + 1);
+      c.textAlign = 'left';
+    }
+    var y0 = 34 + rows.length * 14 + 6;
+    c.fillStyle = '#5f5537'; c.font = '9px "DejaVu Sans Mono",monospace';
+    c.fillText('瞬时齿数比误差 ' + ratioError().toExponential(1) + ' · 闭环 ' + (G.lockN >= ESC_TURNS * PHYS.LOCK_ARM ? '已闭合' : '未闭合'), 11, y0);
+
+    /* 相位图：横轴相位，纵轴擒纵驱动速率，逐点描出卡位台阶 */
+    var px = 9, py = y0 + 16, pw = W - 18, ph = H - py - 12;
+    c.strokeStyle = 'rgba(201,162,39,0.22)'; c.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
+    c.fillStyle = '#5f5537';
+    c.fillText('PHASE PORTRAIT / 相位—速率', px + 5, py + 3);
+    c.beginPath();
+    var n = Math.floor(pw);
+    for (var k = 0; k < n; k++) {
+      var pp = k / n;
+      var rev = pp * ESC_TURNS;
+      var inLock = (rev - Math.floor(rev)) > 0.82;
+      var val = inLock ? 0 : 0.55 + 0.45 * Math.sin(pp * 22);
+      var X = px + k, Y = py + ph - 6 - val * (ph - 22);
+      if (k === 0) c.moveTo(X, Y); else c.lineTo(X, Y);
+    }
+    c.strokeStyle = '#c9a227'; c.lineWidth = 1.1; c.stroke();
+    /* 当前相位游标 */
+    var curX = px + clamp(G.p, 0, 1) * (pw - 1);
+    c.beginPath(); c.moveTo(curX, py + 2); c.lineTo(curX, py + ph - 2);
+    c.strokeStyle = 'rgba(127,216,224,0.85)'; c.lineWidth = 1; c.stroke();
+    c.beginPath(); c.arc(curX, py + ph - 6 - 0.6 * (ph - 22), 2.6, 0, TWO_PI);
+    c.fillStyle = '#7fd8e0'; c.fill();
+  }
+
+  /* ── 环形计量：齿位寿命环 / 同调充盈 / 蓄能槽 / 损耗率 / 连击（画布 D） ── */
+  function paintRings() {
+    var c = CX.rings, W = CV.rings.width, H = CV.rings.height;
+    c.clearRect(0, 0, W, H);
+    c.fillStyle = '#080a0c'; c.fillRect(0, 0, W, H);
+    c.strokeStyle = 'rgba(201,162,39,0.25)'; c.strokeRect(0.5, 0.5, W - 1, H - 1);
+    c.fillStyle = '#8a7a52'; c.font = '600 9px "DejaVu Sans Mono",monospace';
+    c.textAlign = 'left'; c.textBaseline = 'top';
+    c.fillText('TEETH LIFE RING / 齿位寿命倒计时环形条', 9, 20);
+
+    var cx = 62, cy = 150, R = 46;
+    for (var i = 0; i < TEETH; i++) {
+      var t = WORLD.teeth[i];
+      var a = toothTh(i) - Math.PI / 2;
+      var lf = t.alive ? clamp(t.life, 0, 1) : 0;
+      c.beginPath();
+      c.arc(cx, cy, R, a - 0.026, a + 0.026);
+      c.lineWidth = t.bearing ? 6.4 : 4.0;
+      c.strokeStyle = !t.alive ? 'rgba(90,60,30,0.35)'
+        : (t.fuse > 0 ? 'rgba(217,79,43,0.95)' : 'rgba(' + Math.round(lerp(120, 232, lf)) + ',' +
+          Math.round(lerp(90, 196, lf)) + ',' + Math.round(lerp(30, 106, lf)) + ',0.92)');
+      c.stroke();
+    }
+    c.beginPath(); c.arc(cx, cy, R - 8, 0, TWO_PI);
+    c.strokeStyle = 'rgba(201,162,39,0.18)'; c.lineWidth = 1; c.stroke();
+    /* 中心：同调充盈环 */
+    c.beginPath(); c.arc(cx, cy, R - 15, -Math.PI / 2, -Math.PI / 2 + TWO_PI * clamp(G.attune, 0, 1));
+    c.strokeStyle = G.attuned ? '#7fffdc' : '#7fd8e0'; c.lineWidth = 4.2; c.stroke();
+    c.beginPath(); c.arc(cx, cy, R - 15, 0, TWO_PI);
+    c.strokeStyle = 'rgba(127,216,224,0.16)'; c.lineWidth = 4.2; c.stroke();
+    c.fillStyle = '#e8dcb8'; c.font = '700 12px "DejaVu Sans Mono",monospace';
+    c.textAlign = 'center';
+    c.fillText(f2(G.attune), cx, cy - 6);
+    c.font = '8px "DejaVu Sans Mono",monospace'; c.fillStyle = '#5f5537';
+    c.fillText('同调', cx, cy + 6);
+    c.textAlign = 'left';
+
+    /* 右栏：蓄能槽 / 实时损耗率监视器 / 多段连击 */
+    var bx = 124, bw = W - bx - 12;
+    c.fillStyle = '#8a7a52'; c.font = '600 8px "DejaVu Sans Mono",monospace';
+    c.fillText('CHARGE / 多段连击蓄能槽', bx, 22);
+    var chW = bw, chY = 34;
+    c.fillStyle = 'rgba(201,162,39,0.16)'; c.fillRect(bx, chY, chW, 10);
+    var over = P.charge > PHYS.CAT_SAFE;
+    c.fillStyle = over ? '#ff9d6b' : '#7fd8e0';
+    c.fillRect(bx, chY, chW * clamp(P.charge / PHYS.CAT_FULL, 0, 1), 10);
+    /* 安全线刻度 */
+    var sx = bx + chW * (PHYS.CAT_SAFE / PHYS.CAT_FULL);
+    c.beginPath(); c.moveTo(sx, chY - 3); c.lineTo(sx, chY + 13);
+    c.strokeStyle = 'rgba(255,157,107,0.9)'; c.lineWidth = 1.2; c.stroke();
+    c.fillStyle = '#e8dcb8'; c.font = '9px "DejaVu Sans Mono",monospace';
+    c.fillText('蓄能 ' + P.charge.toFixed(0) + ' / ' + PHYS.CAT_FULL.toFixed(0) + (over ? ' · 越限' : ''), bx, chY + 14);
+
+    c.fillStyle = '#8a7a52'; c.font = '600 8px "DejaVu Sans Mono",monospace';
+    c.fillText('LOSS MONITOR / 实时损耗率', bx, chY + 30);
+    /* 三路损耗率：势能 / 稳定 / 结构，逐路符号与量级都真实来自差分的指数滑动平均 */
+    var rates = G.rates;
+    var labs = ['势能', '稳定', '结构'];
+    for (var m = 0; m < 3; m++) {
+      var yy = chY + 44 + m * 15;
+      var rv = rates[m];
+      c.fillStyle = '#b8a878'; c.font = '9px "DejaVu Sans Mono",monospace';
+      c.fillText(labs[m], bx, yy);
+      c.fillStyle = rv > 0.0005 ? '#ff9d6b' : '#7fd8e0';
+      c.textAlign = 'right';
+      c.fillText((rv >= 0 ? '+' : '') + rv.toFixed(1) + '/s', bx + bw, yy);
+      c.textAlign = 'left';
+      c.fillStyle = 'rgba(201,162,39,0.14)';
+      c.fillRect(bx + 26, yy + 2, bw - 58, 3);
+      c.fillStyle = rv > 0.0005 ? '#ff9d6b' : '#7fd8e0';
+      c.fillRect(bx + 26, yy + 2, (bw - 58) * clamp(Math.abs(rv) / 8, 0, 1), 3);
+    }
+    c.fillStyle = '#8a7a52'; c.font = '600 8px "DejaVu Sans Mono",monospace';
+    c.fillText('连击 ' + G.chain + ' · 峰值 ' + G.bestChain + ' · 放行 ' + G.relN + ' · 卡位 ' + G.lockN, bx, chY + 92);
+  }
+
+  /* ── 环境雷达与时段罗盘（画布 E） ───────────────────────── */
+  function paintRadar() {
+    var c = CX.radar, W = CV.radar.width, H = CV.radar.height;
+    c.clearRect(0, 0, W, H);
+    c.fillStyle = '#080a0c'; c.fillRect(0, 0, W, H);
+    c.strokeStyle = 'rgba(201,162,39,0.25)'; c.strokeRect(0.5, 0.5, W - 1, H - 1);
+    c.fillStyle = '#8a7a52'; c.font = '600 9px "DejaVu Sans Mono",monospace';
+    c.textAlign = 'left'; c.textBaseline = 'top';
+    c.fillText('CONVECTION COMPASS / 对流矢量罗盘', 9, 20);
+
+    var cx = W / 2, cy = H / 2 + 14, R = Math.min(W, H) * 0.30;
+    for (var r = 1; r <= 3; r++) {
+      c.beginPath(); c.arc(cx, cy, R * r / 3, 0, TWO_PI);
+      c.strokeStyle = 'rgba(201,162,39,0.16)'; c.lineWidth = 1; c.stroke();
+    }
+    /* 四轴：弦轴 / 传动 / 擒纵 / 报时 */
+    var axes = ['弦轴', '传动', '擒纵', '报时'];
+    for (var i = 0; i < 4; i++) {
+      var a = -Math.PI / 2 + i * TWO_PI / 4;
+      c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+      c.strokeStyle = 'rgba(201,162,39,0.20)'; c.stroke();
+      c.fillStyle = '#8a7a52'; c.font = '9px "DejaVu Sans Mono",monospace';
+      c.textAlign = 'center';
+      c.fillText(axes[i], cx + Math.cos(a) * (R + 13), cy + Math.sin(a) * (R + 13) - 4);
+    }
+    c.textAlign = 'left';
+    /* 对流矢量：当前齿位处的切向/径向分量 */
+    var wv2 = windAt(P.th, R_TOOTH / R_OUT);
+    var mag = Math.hypot(wv2[0], wv2[1]) / 26;
+    var wa2 = Math.atan2(wv2[1], wv2[0]);
+    c.beginPath(); c.moveTo(cx, cy);
+    c.lineTo(cx + Math.cos(wa2) * R * clamp(mag, 0.12, 1), cy + Math.sin(wa2) * R * clamp(mag, 0.12, 1));
+    c.strokeStyle = '#e8c46a'; c.lineWidth = 2.2; c.stroke();
+    c.beginPath(); c.arc(cx, cy, 3.4, 0, TWO_PI); c.fillStyle = '#e8c46a'; c.fill();
+    c.fillStyle = '#e8dcb8'; c.font = '9px "DejaVu Sans Mono",monospace';
+    c.fillText('矢量 ' + mag.toFixed(3) + ' · ' + (wa2 * DEG).toFixed(0) + '°', 10, H - 30);
+    c.fillStyle = '#7fd8e0';
+    c.fillText('涡旋 ' + G.eddies.length + ' · 驱散 ' + G.eddyKills + ' · 层 ' + P.rail.n, 10, H - 18);
+    c.fillStyle = G.branch ? '#ff9d6b' : '#5f5537';
+    c.fillText(G.branch ? '空域危机 · 分支激活' : '对流平稳', 10, H - 6);
+  }
+
+  /* ── 状态断面（画布 F）：八阶状态机的当前态 + 十二时辰刻度 ── */
+  var STATE_CN = {
+    TITLE_LOBBY: ['待机就绪', '尚未上弦。刻度环完全显影，机构静止。'],
+    SEEDED_INITIALIZING: ['种子阵列重构', '按固定种子展开棘齿磨损、尘粒初值与对流相位，逐格显影。'],
+    ACTIVE_ENGAGED: ['主交互循环激活', '滚动推动相位，擒纵逐臂放行，四级轮系同步咬合。'],
+    ATTUNEMENT_DWELL: ['锚定同调驻留', '落在主承力齿核心区并维持低速，驻留满窗口才回补势能。'],
+    DYNAMIC_BRANCHING: ['空域危机分支', '磨损熵越限或势能跌破警戒，湍流涡旋成批入场，罗盘转警示色。'],
+    OVERLOAD_PENALTY: ['过载失稳硬直', '蓄能顶着安全线越限熔断，机构强制放空并进入硬直窗口。'],
+    CRISIS_FAILED_ROLLBACK: ['致命失败与因果回溯', '势能耗尽或磨损越界，世界时钟回退并对账。'],
+    RUN_SETTLED_LEDGER: ['审计结算', '相位归零，账本按六轴重放复算并给出评级。']
+  };
+  function paintRegime() {
+    var c = CX.regime, W = CV.regime.width, H = CV.regime.height;
+    c.clearRect(0, 0, W, H);
+    c.fillStyle = '#080a0c'; c.fillRect(0, 0, W, H);
+    c.strokeStyle = 'rgba(201,162,39,0.25)'; c.strokeRect(0.5, 0.5, W - 1, H - 1);
+    var st = stateOf(), cn = STATE_CN[st] || STATE_CN.ACTIVE_ENGAGED;
+    var idx = FSM_ORDER.indexOf(st) + 1;
+
+    c.fillStyle = '#8a7a52'; c.font = '600 9px "DejaVu Sans Mono",monospace';
+    c.textAlign = 'left'; c.textBaseline = 'top';
+    c.fillText('第 ' + (idx < 10 ? '0' : '') + idx + ' 态 / 8 · ' + f2(mod(G.p, 1) * 24) + ' 时', 10, 20);
+
+    c.fillStyle = '#f0dda6'; c.font = '700 34px "DejaVu Sans Mono",monospace';
+    c.fillText(hhmm(G.p), 10, 33);
+    c.fillStyle = '#e2cf92'; c.font = '600 15px "DejaVu Sans Mono",monospace';
+    c.fillText(cn[0], 10, 73);
+    c.fillStyle = '#8a7a52'; c.font = '600 10px "DejaVu Sans Mono",monospace';
+    c.fillText(st, 10, 93);
+    c.fillStyle = '#b8a878'; c.font = '9px "DejaVu Sans Mono",monospace';
+    wrap(c, cn[1], 10, 109, W - 20, 12, 3);
+
+    /* 三条关键读数 */
+    var rows = [
+      ['发条势能', (G.power * 100).toFixed(1), G.power < PHYS.POWER_WARN],
+      ['飞轮转速', (Math.abs(G.phi * 0.42)).toFixed(2), false],
+      ['磨损熵', G.wear.toFixed(3), G.wear > PHYS.WEAR_LIMIT]
+    ];
+    for (var i = 0; i < rows.length; i++) {
+      var y = 152 + i * 16;
+      c.fillStyle = '#8a7a52'; c.font = '9px "DejaVu Sans Mono",monospace';
+      c.fillText(rows[i][0], 10, y);
+      c.fillStyle = rows[i][2] ? '#ff9d6b' : '#e8dcb8';
+      c.textAlign = 'right'; c.fillText(rows[i][1], W - 10, y); c.textAlign = 'left';
+    }
+    c.fillStyle = G.branch ? '#ff9d6b' : '#5f5537';
+    c.font = '9px "DejaVu Sans Mono",monospace';
+    c.fillText('章 ' + G.chapterName + ' · ' + (G.branch ? '危机分支激活' : '对流平稳'), 10, H - 14);
+  }
+  function wrap(c, s, x, y, w, lh, max) {
+    var line = '', n = 0;
+    for (var i = 0; i < s.length; i++) {
+      var test = line + s[i];
+      if (c.measureText(test).width > w && line) {
+        c.fillText(line, x, y + n * lh); line = s[i]; n++;
+        if (n >= max) return;
+      } else line = test;
+    }
+    if (line) c.fillText(line, x, y + n * lh);
+  }
+
+  /* ── 损耗率的指数滑动平均 ───────────────────────────────── */
+  function updateRates(dt) {
+    if (!G.rates) G.rates = [0, 0, 0];
+    if (!G.ratePrev) G.ratePrev = { power: G.power, stab: G.stab, fatigue: G.fatigue };
+    var rk = Math.min(1, dt / 0.25);
+    var d0 = (G.ratePrev.power - G.power) * 100 / dt;
+    var d1 = (G.ratePrev.stab - G.stab) / dt;
+    var d2 = (G.fatigue - G.ratePrev.fatigue) / dt;
+    G.rates[0] += (d0 - G.rates[0]) * rk;
+    G.rates[1] += (d1 - G.rates[1]) * rk;
+    G.rates[2] += (d2 - G.rates[2]) * rk;
+    G.ratePrev.power = G.power; G.ratePrev.stab = G.stab; G.ratePrev.fatigue = G.fatigue;
+  }
+
+  /* ── 场景文本（覆盖层与结算面板由 DOM 承担） ────────────── */
+  var ovEl, cardEl, domRef = null;
+  function paintDom() {
+    if (!ovEl) {
+      ovEl = document.getElementById('ov'); cardEl = document.getElementById('card');
+      domRef = {
+        ovT: document.getElementById('ovT'), ovS: document.getElementById('ovS'),
+        ovB: document.getElementById('ovB'), ovH: document.getElementById('ovH'),
+        ovC: document.getElementById('ovC'), cGrid: document.getElementById('cGrid'),
+        cHead: document.getElementById('cHead'), cSub: document.getElementById('cSub'),
+        cGrade: document.getElementById('cGrade'), cScore: document.getElementById('cScore'),
+        rp: document.getElementById('rp'), rph: document.getElementById('rph'),
+        rt: document.getElementById('rt'), rf: document.getElementById('rf'),
+        fill: document.getElementById('fill')
+      };
+    }
+    /* 底栏读数：相位、同调充盈、名义时刻、帧号 —— 逐帧刷新，与画布同一份状态 */
+    domRef.rp.textContent = f3(G.p);
+    domRef.rph.textContent = f3(clamp(G.attune, 0, 1));
+    domRef.rt.textContent = hhmm(G.p);
+    domRef.rf.textContent = String(G.frames);
+    domRef.fill.style.width = (clamp(G.p, 0, 1) * 100).toFixed(2) + '%';
+    if (G.settled) {
+      cardEl.classList.add('on');
+      var a = aggregate();
+      var cells = [
+        ['势能存留', (G.power * 100).toFixed(1), a.powerP],
+        ['卡位闭合', G.lockN + ' / ' + (ESC_TURNS * PHYS.LOCK_ARM), a.closesP],
+        ['熵控', (1 - G.wear).toFixed(3), a.wearP],
+        ['结构抑制', (100 - G.fatigue).toFixed(1), a.cleanP],
+        ['传动保真', (1 - ratioError() * 1e6).toFixed(4), a.ratioP],
+        ['连击连贯', G.bestChain + '', a.chainP],
+        ['落点精准', a.hasCore ? G.coreN + ' / ' + G.anchorTry : '剔除', a.coreP],
+        ['放行总数', G.relN + '', clamp(G.relN / (ESC_ARMS * ESC_TURNS), 0, 1)],
+        ['四击报时', G.strikeN + ' / ' + BEAT_LOBES, clamp(G.strikeN / BEAT_LOBES, 0, 1)],
+        ['账本条数', LEDGER.length + '', clamp(LEDGER.length / 200, 0, 1)],
+        ['世界时钟', G.t.toFixed(2) + ' s', clamp(G.t / MACRO_T, 0, 1)],
+        ['评级', a.grade, a.sc / 100]
+      ];
+      var html = '';
+      for (var i = 0; i < cells.length; i++) {
+        var cls = cells[i][2] > 0.72 ? 'good' : (cells[i][2] < 0.35 ? 'warn' : '');
+        html += '<div class="cell"><u>' + cells[i][0] + '</u><b class="' + cls + '">' + cells[i][1] + '</b></div>';
+      }
+      domRef.cGrid.innerHTML = html;
+      domRef.cHead.textContent = G.result;
+      domRef.cSub.textContent =
+        'RUN ' + RUNID + ' · 种子 ' + G.seed + ' · 工况 ' + DIFFS[G.diff].n +
+        ' · 世界时钟 ' + G.t.toFixed(2) + ' s · 账本 ' + LEDGER.length + ' 条';
+      domRef.cGrade.textContent = a.grade;
+      domRef.cScore.textContent = a.sc.toFixed(1) + ' / 100';
+      ovEl.classList.add('hide');
+      return;
+    }
+    cardEl.classList.remove('on');
+    if (!STARTED) {
+      /* 待机就绪：只报契约，不报进程。 */
+      ovEl.classList.remove('hide');
+      domRef.ovT.textContent = '授 时 · 天 文 钟 十 二 时 辰';
+      domRef.ovS.textContent = 'HOROLOGIUM · SCROLL NARRATIVE';
+      domRef.ovB.innerHTML =
+        '滚动即时间轴 · 齿数 <em>' + WHEELS.map(function (w) { return w.N; }).join(' : ') + '</em>' +
+        ' · 擒纵轮 <em>' + ESC_TURNS + '</em> 圈 / 宏周期 · 卡位 <em>' + PHYS.LOCK_FRAMES + '</em> 帧/次';
+      domRef.ovH.innerHTML =
+        '以滚轮推动十二时辰刻度环：机构自己决定何时放行、何时卡位、何时击钟。' +
+        '松开滚轮后相位会自行滑行收束 —— 瞬移与恒定角速度都判为失败。';
+      domRef.ovC.textContent =
+        '单文件自包含 · 六块独立画布 · 固定步长 1/60 s · 无外部资源 · 无定时器';
+    } else if (G.frames < 66) {
+      /* 种子重构：逐格点亮齿位阵列，装载进度本身就是叙事的一部分。 */
+      ovEl.classList.remove('hide');
+      var prog = clamp(G.frames / 66, 0, 1);
+      var bar = '';
+      for (var q = 0; q < TEETH; q++) bar += (q / TEETH < prog ? '▮' : '▯');
+      domRef.ovT.textContent = '种 子 重 构';
+      domRef.ovS.textContent = 'SEEDED INITIALIZING · 齿位阵列与实体拓扑按种子重建';
+      domRef.ovB.innerHTML =
+        '种子 <em>' + SEED + '</em> · 局号 <em>' + RUNID + '</em> · 齿位 <em>' + TEETH +
+        '</em> 格 · 承力齿 <em>' + BEARING.length + '</em> 枚 · 建成 <em>' +
+        Math.round(prog * 100) + '%</em>';
+      domRef.ovH.innerHTML = '<span style="letter-spacing:0;font-size:11px">' + bar + '</span>';
+      domRef.ovC.textContent =
+        '装载进度由世界时钟逐帧展开 · 齿位寿命与风向相位同源 · 步长 1/60 s';
+    } else {
+      ovEl.classList.add('hide');
+    }
+  }
+
+  /* ── 总绘制 ─────────────────────────────────────────────── */
+  function paint() {
+    paintDial(); paintHud(); paintLedgerPane(); paintRings(); paintRadar(); paintRegime(); paintDom();
+  }
+
+  /* ── 主循环 ─────────────────────────────────────────────── */
+  var rafId = 0, frozen = false, lastT = 0, acc = 0;
+  function loop(ts) {
+    if (frozen) { rafId = 0; return; }
+    if (!lastT) lastT = ts;
+    var dtr = Math.min(0.25, (ts - lastT) / 1000);
+    lastT = ts;
+    acc += dtr;
+    var guard = 0;
+    while (acc >= DT && guard++ < 6) { step1(); acc -= DT; }
+    updateRates(DT);
+    /* 闭环档位：结算落账之后自行重开一局，读条本身也按固定步长走。 */
+    if (LOOP && G.settled && STARTED) {
+      loopWait += DT;
+      if (loopWait >= PHYS.LOOP_WAIT) { loopWait = 0; API.restart(); }
+    } else if (!G.settled) loopWait = 0;
+    paint();
+    rafId = requestAnimationFrame(loop);
+  }
+  function freeze() { frozen = true; if (rafId) { cancelAnimationFrame(rafId); rafId = 0; } lastT = 0; acc = 0; }
+  function unfreeze() { if (!frozen) return; frozen = false; lastT = 0; acc = 0; rafId = requestAnimationFrame(loop); }
+
+  /* ══════════════════════════════════════════════════════════
+     公开 API
+     ══════════════════════════════════════════════════════════ */
+  var API = {
+    consts: function () {
+      return {
+        TEETH: TEETH, STRATA: STRATA.length, R_OUT: R_OUT, R_TOOTH: R_TOOTH, HW: HW,
+        WHEELS: WHEELS, ESC_ARMS: ESC_ARMS, ESC_TURNS: ESC_TURNS, ESC_TEETH: ESC_TEETH,
+        BEAT_LOBES: BEAT_LOBES, BEARING: BEARING, SHICHEN: SHICHEN, PHYS: PHYS,
+        EDDY: EDDY, CHAPTERS: CHAPTERS, DIFFS: DIFFS, SEED: SEED, RUNID: RUNID,
+        BOARD_HINT: BOARD_HINT, MACRO_T: MACRO_T, DT: DT
+      };
+    },
+    /* ── 生命周期 ── */
+    init: function () { bindCanvas(); bindInput(); G.seed = SEED; G.diff = 'normal'; resetRun(); resetShuttle(); G.rates = [0, 0, 0]; paint(); },
+    start: function () { G.seed = SEED; G.diff = G.diff || 'normal'; resetRun(); resetShuttle(); STARTED = true; G.frozenSeed = 0; frozen = false; evalState(); },
+    restart: function () { var d = G.diff; resetRun(); resetShuttle(); STARTED = true; G.diff = d; evalState(); },
+    toMenu: function () { STARTED = false; resetRun(); resetShuttle(); STATE = 'TITLE_LOBBY'; },
+    setDifficulty: function (k) { G.diff = DIFFS[k] ? k : 'normal'; resetRun(); resetShuttle(); if (STARTED) evalState(); },
+    difficulty: function () { return G.diff; },
+    step: function (n) { for (var i = 0; i < (n || 1); i++) { step1(); updateRates(DT); } return G.frames; },
+    paint: paint,
+    freeze: freeze, unfreeze: unfreeze,
+    /* ── 档位：探针用它固定演示状态，使「零输入窗口」可判读 ── */
+    setAuto: function (on) { AUTO = !!on; autoHold = 0; setChip('cAuto', AUTO); return AUTO; },
+    setLoop: function (on) { LOOP = !!on; setChip('cLoop', LOOP); return LOOP; },
+    setSlow: function (on) { SLOW = !!on; setChip('cSlow', SLOW); return SLOW; },
+    setQc: function (on) { QC = !!on; setChip('cQc', QC); return QC; },
+    chips: function () { return { auto: AUTO, loop: LOOP, slow: SLOW, qc: QC, hold: autoHold, target: autoTgt }; },
+    anchor: function (on) { P.anchor = on === undefined ? true : !!on; return P.anchor; },
+    /* ── 滚动轴 ── */
+    setScroll: function (p) { G.pT = clamp(p, 0, 1); },
+    scroll: function (p) { G.pT = clamp(p, 0, 1); },
+    nudge: function (d) { G.pT = clamp(G.pT + (d === undefined ? 0.05 : d), 0, 1); },
+    phase: function () { return G.p; },
+    phaseTarget: function () { return G.pT; },
+    /* ── 操纵 ── */
+    setKine: function (thr, steer) { P.throttle = clamp(thr || 0, -1, 1); P.steer = clamp(steer || 0, -1, 1); },
+    setHand: function (on) { P.hand = !!on; },
+    setBrake: function (on) { P.brake = !!on; },
+    setVel: function (v, u) { if (v !== undefined) P.v = v; if (u !== undefined) P.u = u; },
+    setAlt: function (a, vz) { P.alt = a; if (vz !== undefined) P.vz = vz; },
+    setPower: function (v) { G.power = clamp(v, 0, 1); },
+    setStab: function (v) { G.stab = clamp(v, 0, 100); },
+    setFatigue: function (v) { G.fatigue = clamp(v, 0, PHYS.FATIGUE_MAX); },
+    setWear: function (v) { G.wear = clamp(v, 0, 1); G.wearMax = Math.max(G.wearMax, G.wear); },
+    setCombo: function (n) { G.chain = n; G.bestChain = Math.max(G.bestChain, n); },
+    setCharge: function (v) { P.charge = clamp(v, 0, PHYS.CAT_FULL); },
+    teleport: function (th, d) { P.th = mod(th, TWO_PI); if (d !== undefined) P.d = clamp(d, -HW, HW); },
+    /* ── 手势 ── */
+    hop: function () {
+      if (P.alt > 0.02 || P.hop <= 0) return false;
+      P.vz = PHYS.HOP_V; P.hop--; G.hopCount++;
+      return true;
+    },
+    plunge: function (v) {
+      if (P.alt <= 0.02) return false;
+      P.vz = -(v || 320); G.plungeCount++;
+      return true;
+    },
+    charge: function (on) { P.charging = on === undefined ? true : !!on; return P.charging; },
+    release: function () {
+      var q = P.charge;
+      if (q <= 0) return 0;
+      var imp = PHYS.CAT_K * Math.pow(q, PHYS.CAT_EXP);
+      P.v += imp; P.charge = 0; P.charging = false;
+      G.power = Math.max(0, G.power - q * PHYS.CAT_POWER);
+      return imp;
+    },
+    polarity: function () {
+      if (P.polT > 0) return false;
+      P.polT = PHYS.POL_MS / 1000; P.polImm = PHYS.POL_IMMUNE_MS / 1000;
+      G.power = Math.max(0, G.power - PHYS.POL_COST / 1000);
+      G.polCount++;
+      return true;
+    },
+    tether: function () {
+      if (P.tether) {
+        var w = Math.abs(P.tgW);
+        if (w >= PHYS.TETHER_SWING_MIN) {
+          G.power = Math.min(1, G.power + PHYS.TETHER_POWER * clamp(w, 0, 2.4) / 100);
+          G.tgCount++;
+          ev('摆荡', PHYS.TETHER_POWER * clamp(w, 0, 2.4),
+            '悬索释放 · 切向角速度 ' + f3(w) + ' ≥ ' + f2(PHYS.TETHER_SWING_MIN) + ' · 回补势能');
+        } else {
+          ev('摆荡', 0, '悬索释放 · 切向角速度 ' + f3(w) + ' 不足下限');
+        }
+        P.tether = null;
+        return true;
+      }
+      var best = -1, bestD = 1e9;
+      for (var i = 0; i < BOARD_HINT.anchors.length; i++) {
+        var a = toothTh(BOARD_HINT.anchors[i][0]);
+        var dd = Math.abs(mod(a - P.th + Math.PI, TWO_PI) - Math.PI) * R_TOOTH;
+        if (dd < bestD) { bestD = dd; best = i; }
+      }
+      if (bestD <= PHYS.TETHER_RANGE) {
+        P.tether = { a: best, th0: toothTh(BOARD_HINT.anchors[best][0]) };
+        P.tgA = Math.atan2(P.d, (P.th - P.tether.th0) * R_TOOTH + 1e-6);
+        P.tgW = 0.9;
+        return true;
+      }
+      return false;
+    },
+    pulse: function () {
+      if (!G.attuned) return 0;
+      var n = 0;
+      for (var i = G.eddies.length - 1; i >= 0; i--) {
+        var e = G.eddies[i];
+        var dd = Math.abs(mod(e.th - P.th + Math.PI, TWO_PI) - Math.PI) * R_TOOTH;
+        if (dd < 150) { G.eddies.splice(i, 1); G.eddyKills++; n++; G.score += 5; }
+      }
+      if (n) ev('脉冲', n * 5, '同调脉冲释放 · 驱散 ' + n + ' 个涡旋');
+      return n;
+    },
+    spawn: function (kind, th, d) {
+      var old = G.frames;
+      G.frames = G.frames;
+      spawnEddy(EDDY[kind] ? kind : 'swirl');
+      var e = G.eddies[G.eddies.length - 1];
+      if (e) { e.th = mod(th === undefined ? e.th : th, TWO_PI); if (d !== undefined) e.d = clamp(d, -HW, HW); }
+      G.frames = old;
+      return e;
+    },
+    clearEddies: function () { G.eddies.length = 0; },
+    /* ── 几何查询 ── */
+    windAt: function (th) { return windAt(th, R_TOOTH / R_OUT); },
+    strataAt: strataAt, strataIdx: strataIdx,
+    toothAt: toothAt, toothTh: toothTh,
+    inCore: function (th) { return inCore(toothAt(th), th); },
+    teeth: function () { return WORLD.teeth; },
+    setTooth: function (i, patch) {
+      var t = WORLD.teeth[i];
+      if (!t) return null;
+      for (var k in patch) if (Object.prototype.hasOwnProperty.call(patch, k)) t[k] = patch[k];
+      return t;
+    },
+    setLife: function (v) { /* 兼容别名：齿位寿命批量重置 */ for (var i = 0; i < WORLD.teeth.length; i++) WORLD.teeth[i].life = clamp(v, 0, 1); },
+    ratchet: function () { return WORLD.ratchet; },
+    wheelAngles: wheelAngles, ratioError: ratioError,
+    /* ── 读数 ── */
+    info: function () {
+      return {
+        t: G.t, frames: G.frames, p: G.p, pT: G.pT, scrollRate: G.scrollRate, cmdRate: G.cmdRate,
+        phi: G.phi, lockT: G.lockT, lockN: G.lockN, relN: G.relN, strikeN: G.strikeN,
+        power: G.power, stab: G.stab, fatigue: G.fatigue, wear: G.wear,
+        attune: G.attune, attuned: G.attuned, landN: G.landN, coreN: G.coreN,
+        anchorTry: G.anchorTry,
+        chain: G.chain, bestChain: G.bestChain, score: G.score,
+        overT: G.overT, overCount: G.overCount, over: G.over,
+        rollT: G.rollT, rollReason: G.rollReason, settled: G.settled, result: G.result,
+        eddies: G.eddies.length, eddyKills: G.eddyKills, branch: G.branch,
+        tooth: P.tooth, hop: P.hop, alt: P.alt, vz: P.vz, v: P.v, u: P.u, d: P.d,
+        th: P.th, charge: P.charge, polT: P.polT, polImm: P.polImm,
+        tether: !!P.tether, tgW: P.tgW, plungeCount: G.plungeCount, tgCount: G.tgCount,
+        polCount: G.polCount, hopCount: G.hopCount, mercy: G.mercy,
+        wind: 0, grade: G.grade, settleSc: G.settleSc, seed: G.seed, diff: G.diff,
+        hour: mod(G.p, 1) * 24, shichen: shichenOf(G.p), hhmm: hhmm(G.p),
+        chapter: CHAPTERS[clamp(Math.floor(G.p * 5), 0, 4)].n
+      };
+    },
+    player: function () { return P; },
+    ledger: function () { return LEDGER; },
+    log: function () { return LOGS; },
+    agg: aggregate, settle: settle,
+    state: stateOf, fsmOrder: function () { return FSM_ORDER.slice(); },
+    /* ── 冻结 / 解冻 / 强制重绘：出图与判据复核都要求推演与渲染彻底解耦 ── */
+    freeze: function () { freeze(); return true; },
+    thaw: function () { unfreeze(); return true; },
+    paint: function () { paint(); return true; },
+    fsmTable: function () { return FSM_PRIORITY.slice(); },
+    /* ── 强制触发（供探针与出图布场使用） ── */
+    overload: function () {
+      P.charge = PHYS.CAT_FULL; P.charging = true;
+      step1();
+      return G.overT > 0;
+    },
+    wall: function () { fail('人为触发 · 撞穿刻度环外缘'); return G.rollT >= 0; },
+    finish: function () { settle('显式收束'); return G.settled; },
+    wind: function (n) { G.pT = clamp(n === undefined ? 1 : n, 0, 1); return G.pT; },
+    /* ── 首帧标记（由 d1 门禁独立复核） ── */
+    __ready: true
+  };
+
+  window.HOROLOGIUM = API;
+  window.__firstFrameOk = true;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { API.init(); requestAnimationFrame(loop); });
+  } else {
+    API.init();
+    requestAnimationFrame(loop);
+  }
+})();
+
+</script>
+</body>
+</html>
