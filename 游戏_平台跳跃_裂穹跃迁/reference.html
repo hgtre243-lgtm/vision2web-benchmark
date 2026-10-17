@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>裂穹跃迁 RIFTVAULT LEAP · 竖井十二阶结构预算守恒协议</title>
+<title>裂穹跃迁 RIFTVAULT LEAP · 竖井十四阶结构预算守恒协议</title>
 <style>
   :root{
     --bg:#08070f; --pnl:#111020; --pnl2:#16142a; --pnl3:#1c1a33;
@@ -27,24 +27,26 @@
 
   /* 顶栏 */
   #top{position:absolute;left:0;top:0;width:1536px;height:44px;display:flex;align-items:center;gap:0;
-    padding:0 12px;background:linear-gradient(180deg,#1a1836,#0e0d1b);border-bottom:1px solid var(--line)}
-  #top .brand{display:flex;align-items:baseline;gap:8px;flex:0 0 auto;padding-right:14px}
-  #top .brand b{font-size:17px;letter-spacing:.06em}
-  #top .brand i{font-style:normal;font-family:var(--mono);font-size:9px;color:var(--hot);letter-spacing:.16em}
-  #band{display:flex;gap:3px;flex:0 0 auto;margin-right:auto}
-  #band span{font-family:var(--mono);font-size:8.5px;letter-spacing:.04em;color:var(--ink3);
-    border:1px solid #221f3d;border-radius:2px;padding:2px 5px;white-space:nowrap;background:rgba(20,18,38,.6)}
+    padding:0 10px;background:linear-gradient(180deg,#1a1836,#0e0d1b);border-bottom:1px solid var(--line)}
+  #top .brand{display:flex;align-items:baseline;gap:7px;flex:0 0 auto;padding-right:10px}
+  #top .brand b{font-size:16px;letter-spacing:.04em}
+  #top .brand i{font-style:normal;font-family:var(--mono);font-size:8.5px;color:var(--hot);letter-spacing:.10em}
+  #band{display:flex;gap:2px;flex:0 0 auto;margin-right:auto;flex-wrap:nowrap;overflow:hidden}
+  #band span{font-size:8.5px;letter-spacing:0;color:var(--ink3);
+    border:1px solid #221f3d;border-radius:2px;padding:1px 4px;white-space:nowrap;background:rgba(20,18,38,.6)}
+  #band span u{text-decoration:none;font-family:var(--mono);font-size:7px;color:#4a4770;margin-right:2px}
   #band span.on{color:#0c0b14;background:var(--gold);border-color:var(--gold);font-weight:700}
+  #band span.on u{color:#5a4718}
   #cells{display:flex;gap:0;flex:0 0 auto}
-  #cells .cell{display:flex;flex-direction:column;justify-content:center;padding:0 9px;border-left:1px solid var(--line);min-width:0}
+  #cells .cell{display:flex;flex-direction:column;justify-content:center;padding:0 7px;border-left:1px solid var(--line);min-width:0}
   #cells .k{font-size:8.5px;color:var(--ink3);letter-spacing:.08em;line-height:1.25;white-space:nowrap}
-  #cells .v{font-family:var(--mono);font-size:12px;font-weight:700;line-height:1.3;white-space:nowrap}
+  #cells .v{font-family:var(--mono);font-size:11.5px;font-weight:700;line-height:1.3;white-space:nowrap}
   .v.cy{color:var(--cyan)} .v.al{color:var(--gold)} .v.vi{color:var(--violet)} .v.bad{color:var(--danger)} .v.hot{color:var(--hot)}
 
   /* 主视窗 */
-  #worldWrap{position:absolute;left:284px;top:44px;width:968px;height:560px;border-radius:6px;overflow:hidden;
+  #worldWrap{position:absolute;left:284px;top:44px;width:968px;height:468px;border-radius:6px;overflow:hidden;
     background:#06050d;box-shadow:0 0 0 1px var(--line) inset}
-  #cvWorld{position:absolute;left:0;top:0;width:968px;height:560px}
+  #cvWorld{position:absolute;left:0;top:0;width:968px;height:468px}
   #pill{position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:7px;
     background:rgba(8,7,16,.78);border:1px solid var(--line2);border-radius:4px;padding:4px 9px}
   #pill .dot{width:7px;height:7px;border-radius:50%;background:var(--hot);box-shadow:0 0 8px var(--hot)}
@@ -56,21 +58,21 @@
     pointer-events:none;text-shadow:0 1px 3px #000;padding:0 90px}
 
   /* 引导面板 */
-  #boot{position:absolute;left:284px;top:44px;width:968px;height:560px;background:linear-gradient(180deg,#0e0d1e,#07060f);
-    border:1px solid var(--line);border-radius:6px;padding:16px 20px;overflow:hidden}
+  #boot{position:absolute;left:284px;top:44px;width:968px;height:468px;background:linear-gradient(180deg,#0e0d1e,#07060f);
+    border:1px solid var(--line);border-radius:6px;padding:11px 20px;overflow:hidden}
   #boot h1{margin:0;font-size:19px;letter-spacing:.05em}
   #boot .sub{font-family:var(--mono);font-size:10px;color:var(--hot);letter-spacing:.12em;margin-top:3px}
-  #bootBar{height:6px;background:#1c1a33;border-radius:3px;margin:11px 0 10px;overflow:hidden}
+  #bootBar{height:6px;background:#1c1a33;border-radius:3px;margin:8px 0 7px;overflow:hidden}
   #bootBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--hot),var(--gold));transition:width .12s linear}
-  #bootStages{display:grid;grid-template-columns:1fr;gap:4px}
-  .stg{display:grid;grid-template-columns:20px 214px 1fr 84px;align-items:center;gap:8px;
-    border:1px solid #221f3d;border-radius:4px;padding:4px 9px;background:rgba(20,18,38,.55)}
+  #bootStages{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px}
+  .stg{display:grid;grid-template-columns:18px 178px 1fr 62px;align-items:center;gap:7px;
+    border:1px solid #221f3d;border-radius:4px;padding:3px 8px;background:rgba(20,18,38,.55)}
   .stg .dot{width:17px;height:17px;border-radius:50%;border:1px solid #38345c;background:#1a1830;
     font-family:var(--mono);font-size:9px;color:var(--ink3);display:flex;align-items:center;justify-content:center}
-  .stg .nm{font-family:var(--mono);font-size:10.5px;color:var(--ink);white-space:nowrap}
-  .stg .nm small{display:block;font-size:9px;color:var(--ink3);font-family:var(--sans);letter-spacing:.04em}
-  .stg .rd{font-family:var(--mono);font-size:9.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .stg .stt{font-family:var(--mono);font-size:9.5px;color:var(--ink3);text-align:right;white-space:nowrap}
+  .stg .nm{font-family:var(--mono);font-size:9.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stg .nm small{display:block;font-size:8.5px;color:var(--ink3);font-family:var(--sans);letter-spacing:.04em}
+  .stg .rd{font-family:var(--mono);font-size:8.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stg .stt{font-family:var(--mono);font-size:8.5px;color:var(--ink3);text-align:right;white-space:nowrap}
   .stg.done{border-color:#25453a;background:rgba(18,40,32,.5)}
   .stg.done .dot{background:rgba(87,217,138,.20);border-color:var(--ok);color:var(--ok)}
   .stg.done .stt{color:var(--ok)}
@@ -83,18 +85,18 @@
   #bootFoot{display:flex;justify-content:space-between;margin-top:9px;font-family:var(--mono);font-size:9.5px;color:var(--ink3)}
 
   /* 结算面板 */
-  #settle{position:absolute;left:284px;top:44px;width:968px;height:560px;background:linear-gradient(180deg,#0e0d1e,#07060f);
-    border:1px solid var(--line2);border-radius:6px;padding:13px 17px;display:none}
+  #settle{position:absolute;left:284px;top:44px;width:968px;height:468px;background:linear-gradient(180deg,#0e0d1e,#07060f);
+    border:1px solid var(--line2);border-radius:6px;padding:11px 17px;display:none}
   #settle.on{display:block}
   #settle h1{margin:0;font-size:18px;letter-spacing:.05em;display:inline-block}
   #settle .sub{font-family:var(--mono);font-size:9.5px;color:var(--hot);letter-spacing:.10em;margin-top:2px}
   #sTotal{float:right;text-align:right;line-height:1.1}
   #sTotal b{font-family:var(--mono);font-size:32px;color:var(--gold)}
   #sTotal span{display:block;font-family:var(--mono);font-size:11px;color:var(--ink2);letter-spacing:.16em}
-  #sCols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:9px;height:430px}
+  #sCols{display:grid;grid-template-columns:1.04fr 1.04fr 0.92fr;gap:12px;margin-top:7px;height:358px}
   #sCols .col{overflow:hidden}
   #sCols .ch2{font-size:9.5px;letter-spacing:.10em;color:var(--ink3);border-bottom:1px solid var(--line);padding-bottom:3px;margin-bottom:3px}
-  .rw{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:9.5px;line-height:1.62;font-family:var(--mono);border-bottom:1px dashed #1e1c33}
+  .rw{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:9.5px;line-height:1.42;font-family:var(--mono);border-bottom:1px dashed #1e1c33}
   .rw .a{color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rw .b{color:var(--ink);text-align:right;white-space:nowrap}
   .rw.pos .b{color:var(--ok)} .rw.neg .b{color:var(--danger)} .rw.zero .b{color:var(--ink3)}
@@ -104,7 +106,7 @@
   #sFoot button.g{background:#2a2740;color:var(--ink2)}
 
   /* 校验码通道 */
-  #code{position:absolute;left:284px;top:44px;width:968px;height:560px;background:rgba(6,5,13,.93);display:none;
+  #code{position:absolute;left:284px;top:44px;width:968px;height:468px;background:rgba(6,5,13,.93);display:none;
     border:1px solid var(--line2);border-radius:6px;padding:22px 26px}
   #code.on{display:block}
   #code h2{margin:0 0 4px;font-size:16px}
@@ -114,13 +116,21 @@
   #code .st{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:8px}
   #code .st.bad{color:var(--danger)} #code .st.ok{color:var(--ok)}
 
-  .rv{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:10px;line-height:1.72;font-family:var(--mono)}
+  .rv{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:9.5px;line-height:1.44;font-family:var(--mono);min-width:0}
   .rv .a{color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rv .b{color:var(--ink);text-align:right;white-space:nowrap}
   .rv.hi .b{color:var(--gold)} .rv.lo .b{color:var(--ink3)} .rv.bad .b{color:var(--danger)} .rv.ok .b{color:var(--ok)}
-  .ev{font-family:var(--mono);font-size:9px;line-height:1.72;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rvg{display:grid;grid-template-columns:1fr 1fr;gap:0 11px;min-width:0}
+  .rvg3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 10px;min-width:0}
+  .ev{font-family:var(--mono);font-size:8.5px;line-height:1.48;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ev b{color:var(--cyan);font-weight:500} .ev u{text-decoration:none;color:var(--gold)}
   .ev i{font-style:normal;color:var(--hot)} .ev s{text-decoration:none;color:var(--danger)}
+  .bar{position:relative;height:6px;border-radius:3px;background:#1c1a33;overflow:hidden;margin:1px 0 2px}
+  .bar i{position:absolute;left:0;top:0;height:100%;display:block;border-radius:3px}
+  .qrow{display:grid;grid-template-columns:74px 1fr 62px;gap:6px;align-items:center;
+    font-family:var(--mono);font-size:9px;color:var(--ink3);line-height:1.5}
+  .qrow b{color:var(--ink);font-weight:600}
+  .qrow.dead b{color:var(--danger)}
 </style>
 </head>
 <body>
@@ -134,7 +144,9 @@
       <div class="cell"><span class="k">高度</span><span class="v cy" id="cAlt">—</span></div>
       <div class="cell"><span class="k">垂速</span><span class="v" id="cVel">—</span></div>
       <div class="cell"><span class="k">动能储备</span><span class="v al" id="cCharge">—</span></div>
+      <div class="cell"><span class="k">结构券</span><span class="v vi" id="cBond">—</span></div>
       <div class="cell"><span class="k">结构差额</span><span class="v" id="cGap">—</span></div>
+      <div class="cell"><span class="k">配额</span><span class="v" id="cQuota">—</span></div>
       <div class="cell"><span class="k">重试</span><span class="v" id="cRetry">—</span></div>
       <div class="cell"><span class="k">回溯</span><span class="v" id="cRoll">—</span></div>
       <div class="cell"><span class="k">事件</span><span class="v" id="cEv">—</span></div>
@@ -142,19 +154,19 @@
   </div>
 
   <!-- ============ 左栏 ============ -->
-  <div class="mod" id="mTrace" style="left:10px;top:52px;width:256px;height:256px">
+  <div class="mod" id="mTrace" style="left:10px;top:44px;width:256px;height:224px">
     <div class="mh"><span class="mt">事件溯源流水</span><span class="ms" id="traceSub">EVENT LEDGER</span></div>
-    <div class="mb" id="traceBody" style="height:224px;padding:5px 8px"></div>
+    <div class="mb" id="traceBody" style="height:198px;padding:4px 8px"></div>
   </div>
 
-  <div class="mod" id="mZone" style="left:10px;top:316px;width:256px;height:288px">
+  <div class="mod" id="mZone" style="left:10px;top:274px;width:256px;height:238px">
     <div class="mh"><span class="mt">高度带协议剖面仪</span><span class="ms" id="zoneSub">BAND PROTOCOL</span></div>
-    <div class="mb" id="zoneBody" style="height:256px;padding:5px 8px"></div>
+    <div class="mb" id="zoneBody" style="height:212px;padding:4px 8px"></div>
   </div>
 
   <!-- ============ 主视窗 ============ -->
   <div id="worldWrap">
-    <canvas id="cvWorld" data-cw="968" data-ch="560" data-scale="1"></canvas>
+    <canvas id="cvWorld" data-cw="968" data-ch="468" data-scale="1"></canvas>
     <div id="banner"></div>
     <div id="pill"><span class="dot"></span><span class="nm" id="stName">BOOT_SEQUENCING</span><span class="sub" id="stSub">引导序列</span></div>
     <div id="tip"></div>
@@ -163,7 +175,7 @@
   <!-- 引导面板 -->
   <div id="boot">
     <h1>裂穹跃迁 · 引导序列</h1>
-    <div class="sub">BOOT SEQUENCE · 十一段确定性引导 · 逐段以真实不变量自检放行</div>
+    <div class="sub">BOOT SEQUENCE · 十四段确定性引导 · 逐段以真实不变量自检放行</div>
     <div id="bootBar"><i></i></div>
     <div id="bootStages"></div>
     <div id="bootFoot"><span id="bootFootL">—</span><span id="bootFootR">—</span></div>
@@ -175,8 +187,9 @@
     <h1>本局审计结算</h1>
     <div class="sub" id="sSub">RUN_SETTLED_LEDGER</div>
     <div id="sCols">
-      <div class="col"><div class="ch2">账本归约项 · 左列</div><div id="sRed"></div></div>
-      <div class="col"><div class="ch2">真实交互读数 · 右列</div><div id="sRows"></div></div>
+      <div class="col"><div class="ch2">账本归约项 · 上</div><div id="sRed"></div></div>
+      <div class="col"><div class="ch2">账本归约项 · 下</div><div id="sRed2"></div></div>
+      <div class="col"><div class="ch2">真实交互读数</div><div id="sRows"></div></div>
     </div>
     <div id="sFoot"><span id="sFootNote">—</span>
       <button id="sAgain">再来一局（同种子）</button>
@@ -193,30 +206,51 @@
   </div>
 
   <!-- ============ 右栏 ============ -->
-  <div class="mod" id="mLife" style="left:1260px;top:44px;width:276px;height:194px">
+  <div class="mod" id="mLife" style="left:1260px;top:44px;width:276px;height:140px">
     <div class="mh"><span class="mt">矿壳寿命阵列</span><span class="ms" id="lifeSub">CRUST LIFE</span></div>
-    <canvas id="cvLife" data-cw="274" data-ch="170" data-scale="2" style="margin:0"></canvas>
+    <canvas id="cvLife" data-cw="274" data-ch="114" data-scale="2" style="margin:0"></canvas>
   </div>
 
-  <div class="mod" id="mPrev" style="left:1260px;top:248px;width:276px;height:164px">
+  <div class="mod" id="mPrev" style="left:1260px;top:190px;width:276px;height:116px">
     <div class="mh"><span class="mt">能量索预演双轨仪</span><span class="ms" id="prevSub">TETHER PREVIEW</span></div>
-    <div class="mb" id="prevBody" style="height:132px;padding:5px 8px"></div>
+    <div class="mb" id="prevBody" style="height:90px;padding:4px 8px"></div>
   </div>
 
-  <div class="mod" id="mLedg" style="left:1260px;top:420px;width:276px;height:184px">
+  <div class="mod" id="mQuota" style="left:1260px;top:312px;width:276px;height:130px">
+    <div class="mh"><span class="mt">抽取配额余量五联条</span><span class="ms" id="quotaSub">QUOTA RESERVE</span></div>
+    <div class="mb" id="quotaBody" style="height:104px;padding:4px 8px"></div>
+  </div>
+
+  <div class="mod" id="mBond" style="left:1260px;top:448px;width:276px;height:64px">
+    <div class="mh"><span class="mt">结构券兑换率曲线仪</span><span class="ms" id="bondSub">BOND EXCHANGE</span></div>
+    <canvas id="cvBond" data-cw="274" data-ch="38" data-scale="2" style="margin:0"></canvas>
+  </div>
+
+  <!-- ============ 中条 ============ -->
+  <div class="mod" id="mLedg" style="left:0;top:516px;width:504px;height:96px">
     <div class="mh"><span class="mt">结构预算守恒账本</span><span class="ms" id="ledgSub">BUDGET LEDGER</span></div>
-    <div class="mb" id="ledgBody" style="height:152px;padding:5px 8px"></div>
+    <div class="mb" id="ledgBody" style="height:70px;padding:4px 8px"></div>
+  </div>
+
+  <div class="mod" id="mChain" style="left:512px;top:516px;width:504px;height:96px">
+    <div class="mh"><span class="mt">涌潮瓦解连击仪</span><span class="ms" id="chainSub">WAVE CHAIN</span></div>
+    <div class="mb" id="chainBody" style="height:70px;padding:4px 8px"></div>
+  </div>
+
+  <div class="mod" id="mYield" style="left:1024px;top:516px;width:512px;height:96px">
+    <div class="mh"><span class="mt">收益倍率账本</span><span class="ms" id="yieldSub">YIELD REGISTER</span></div>
+    <div class="mb" id="yieldBody" style="height:70px;padding:4px 8px"></div>
   </div>
 
   <!-- ============ 底栏 ============ -->
-  <canvas id="cvInst" data-cw="1000" data-ch="252" data-scale="1" style="position:absolute;left:0;top:612px;border:1px solid var(--line);border-radius:6px;background:var(--pnl)"></canvas>
+  <canvas id="cvInst" data-cw="870" data-ch="250" data-scale="1" style="position:absolute;left:0;top:612px;border:1px solid var(--line);border-radius:6px;background:var(--pnl)"></canvas>
 
-  <div class="mod" id="mYield" style="left:1008px;top:612px;width:252px;height:252px">
-    <div class="mh"><span class="mt">收益倍率账本</span><span class="ms" id="yieldSub">YIELD REGISTER</span></div>
-    <div class="mb" id="yieldBody" style="height:220px;padding:5px 8px"></div>
+  <div class="mod" id="mWave" style="left:880px;top:612px;width:420px;height:252px">
+    <div class="mh"><span class="mt">涌潮波次沙盘</span><span class="ms" id="waveSub">SURGE WAVE PLOT</span></div>
+    <canvas id="cvWave" data-cw="418" data-ch="226" data-scale="1" style="margin:0"></canvas>
   </div>
 
-  <canvas id="cvRadar" data-cw="268" data-ch="252" data-scale="2" style="position:absolute;left:1268px;top:612px;border:1px solid var(--line);border-radius:6px;background:var(--pnl)"></canvas>
+  <canvas id="cvRadar" data-cw="226" data-ch="250" data-scale="1" style="position:absolute;left:1308px;top:612px;border:1px solid var(--line);border-radius:6px;background:var(--pnl)"></canvas>
 
 </div>
 <script>
@@ -236,11 +270,13 @@ var D = {
   ANCH_N: 5, ANCH_H: [480, 1440, 2400, 3600, 4800], RESON_W: 46,
   BAND_N: 5, BAND_SPAN: 1200,
   BUDGET_M: 120000, CRUST_BASE_M: 1000,
-  LEDGER_CAP: 220, FRAME_CAP: 2600
+  QUOTA_TOTAL_M: 60000, QUOTA_ADD: 9000,
+  WAVE_N: 12, WAVE_FRAME: 900, FRAG_CLAIM_M: 400,
+  LEDGER_CAP: 260, FRAME_CAP: 2600
 };
 
-/* 五高度带协议：切变 / 感应 / 承重 / 涌流 四列增益 + 需求槽位偏移
-   切变与感应两列各自两两互异，需求槽位偏移恰好覆盖 0..4 */
+/* 五高度带协议：切变 / 感应 / 承重 / 涌流 四列增益 + 需求槽位偏移 + 汇率上限
+   切变与感应两列各自两两互异，需求槽位偏移恰好覆盖 0..4，汇率上限随带号严格递增 */
 var BANDS = [
   { id: 'B1', cn: '井底沉积带', a: 0,    b: 1200, shear: 0.82, sense: 1.30, load: 0.86, surge: 0.94, demandOff: 0 },
   { id: 'B2', cn: '下层涌流带', a: 1200, b: 2400, shear: 1.00, sense: 1.15, load: 1.00, surge: 1.00, demandOff: 2 },
@@ -249,21 +285,26 @@ var BANDS = [
   { id: 'B5', cn: '穹顶增生带', a: 4800, b: 6000, shear: 0.94, sense: 0.78, load: 1.42, surge: 1.24, demandOff: 3 }
 ];
 
-/* 十二阶互斥状态 */
+/* 十四阶互斥状态（同一帧内由单一优先级链唯一解出） */
 var SN = ['BOOT_SEQUENCING', 'TITLE_LOBBY', 'SEEDED_INITIALIZING', 'GRID_LOCKED',
-  'ACTIVE_ENGAGED', 'ATTUNEMENT_DWELL', 'GALE_CROSS', 'DYNAMIC_BRANCHING',
-  'STRAIN_CRITICAL', 'OVERLOAD_PENALTY', 'CRISIS_FAILED_ROLLBACK', 'RUN_SETTLED_LEDGER'];
-var SC = ['引导序列', '待机坞', '种子重构', '起步锁定', '裂穹跃迁', '驻台同调',
-  '涌流穿越', '潮汐爆发', '承压临界', '过载硬直', '坠井回溯', '账本结算'];
-var OPERABLE = ['TITLE_LOBBY', 'ACTIVE_ENGAGED', 'ATTUNEMENT_DWELL', 'GALE_CROSS', 'DYNAMIC_BRANCHING', 'STRAIN_CRITICAL'];
+  'ACTIVE_ENGAGED', 'WAVE_ENGAGED', 'ATTUNEMENT_DWELL', 'GALE_CROSS', 'DYNAMIC_BRANCHING',
+  'STRAIN_CRITICAL', 'QUOTA_EXHAUSTED', 'OVERLOAD_PENALTY', 'CRISIS_FAILED_ROLLBACK', 'RUN_SETTLED_LEDGER'];
+var SC = ['引导序列', '待机坞', '种子重构', '起步锁定', '裂穹跃迁', '涌潮迎击',
+  '驻台同调', '涌流穿越', '潮汐爆发', '承压临界', '配额枯竭', '过载硬直', '坠井回溯', '账本结算'];
+var OPERABLE = ['TITLE_LOBBY', 'ACTIVE_ENGAGED', 'WAVE_ENGAGED', 'ATTUNEMENT_DWELL',
+  'GALE_CROSS', 'DYNAMIC_BRANCHING', 'STRAIN_CRITICAL', 'QUOTA_EXHAUSTED'];
 
-/* 十一段确定性引导 */
+/* 十四段确定性引导：结构 → 画布 → 画面 → 子流 → 阵列 → 带协议 → 配额 → 涌潮
+   → 账本 → 索核 → 风场 → 不变量 → 预算 → 移交 */
 var BOOT_STAGES = [
   { id: 'BOOT_STRUCTURE', cn: '结构自检', f: 4 },
   { id: 'BOOT_SURFACE', cn: '画布标定', f: 5 },
+  { id: 'BOOT_PIXEL', cn: '画面初始化', f: 6 },
   { id: 'BOOT_DERIVE', cn: '子流派生', f: 6 },
   { id: 'BOOT_GRID', cn: '矿壳预排', f: 9 },
   { id: 'BOOT_BAND', cn: '高度带预排', f: 7 },
+  { id: 'BOOT_QUOTA', cn: '配额预排', f: 6 },
+  { id: 'BOOT_WAVE', cn: '涌潮预排', f: 7 },
   { id: 'BOOT_LEDGER', cn: '账本挂载', f: 5 },
   { id: 'BOOT_TETHER', cn: '索核标定', f: 6 },
   { id: 'BOOT_WIND', cn: '风场标定', f: 7 },
@@ -299,17 +340,19 @@ function hex8(v) {
   var s = (v >>> 0).toString(16); while (s.length < 8) s = '0' + s; return s;
 }
 function canon(s) { return String(s == null ? '' : s); }
+function foldEvent(h, e) {
+  if (!e) return h;
+  h = fnvStep(h, e.seq | 0); h = fnvStep(h, e.t | 0);
+  var k = canon(e.k), j;
+  for (j = 0; j < k.length; j++) h = fnvStep(h, k.charCodeAt(j));
+  var p = canon(e.p);
+  for (j = 0; j < p.length; j++) h = fnvStep(h, p.charCodeAt(j));
+  h = fnvStep(h, (e.n | 0));
+  return h | 0;
+}
 function foldRange(arr, lo, hi, h) {
   h = (h === undefined) ? fnvInit() : h;
-  for (var i = lo; i < hi; i++) {
-    var e = arr[i]; if (!e) continue;
-    h = fnvStep(h, e.seq | 0); h = fnvStep(h, e.t | 0);
-    var k = canon(e.k), j;
-    for (j = 0; j < k.length; j++) h = fnvStep(h, k.charCodeAt(j));
-    var p = canon(e.p);
-    for (j = 0; j < p.length; j++) h = fnvStep(h, p.charCodeAt(j));
-    h = fnvStep(h, (e.n | 0));
-  }
+  for (var i = lo; i < hi; i++) h = foldEvent(h, arr[i]);
   return h | 0;
 }
 /* 分段续算：从某段折叠出的中间态继续折叠后续区间，必须与整体一次折叠逐位一致 */
@@ -352,9 +395,30 @@ var K = {
   PULSE_V: 92,
   OVERLOAD_STUN: 1.20,
   ROLLBACK_BUDGET: 2,
+  DOME_CD: 120,
   TETHER_TOL: 2.0,
   PHASE_CD: 46,
-  THETA_MS: 300
+  THETA_MS: 300,
+  /* 涌潮波次 */
+  FRAG_G: 0.052,
+  FRAG_VMAX: 21,
+  FRAG_R: 11,
+  FRAG_DRIFT: 0.34,
+  FRAG_POD_STRAIN: 6.4,
+  FRAG_POD_DRAIN: 900,
+  FRAG_CRUST_CLAIM: 620,
+  FRAG_FLOOR_MUL: 2,
+  WAVE_SALVAGE: 2600,
+  WAVE_SHEAR: 0.22,
+  /* 配额与结构券 */
+  QUOTA_COST: 3400,
+  EXCH_UNIT: 6000,
+  EXCH_MIN: 2000,
+  EXCH_CD: 26,
+  CONV_FEE: 140,
+  CHAIN_MS: 2600,
+  CHAIN_PEAK: 3,
+  PULSE_FRAG_R: 285
 };
 
 /* ---------------- 世界生成（固定种子，逐位复现） ---------------- */
@@ -384,13 +448,68 @@ function genRidges(k) {
   return pts;
 }
 
-/* ---------------- 高度带与谐振锚点查询 ---------------- */
-function bandOf(h) {
-  var i = Math.floor(h / D.BAND_SPAN);
-  if (i < 0) i = 0; if (i > D.BAND_N - 1) i = D.BAND_N - 1;
-  return BANDS[i];
+/* ---------------- 五带抽取配额表（确定性置换，总和恒等于标定总额） ---------------- */
+var QUOTA_SETS = [
+  [-2400, -1200, 0, 1200, 2400],
+  [-1600, -800, 0, 800, 1600],
+  [-2000, -1000, 0, 1000, 2000]
+];
+function genQuota() {
+  var r = deriveStream('tide'), set = QUOTA_SETS[Math.floor(r() * QUOTA_SETS.length)].slice();
+  var i, j, t, step = Math.round(D.QUOTA_TOTAL_M / D.BAND_N), out = [];
+  for (i = set.length - 1; i > 0; i--) {          /* 由潮汐子流决定的确定性洗牌 */
+    j = Math.floor(r() * (i + 1));
+    t = set[i]; set[i] = set[j]; set[j] = t;
+  }
+  for (i = 0; i < set.length; i++) out.push(step + set[i]);
+  return out;
 }
+
+/* ---------------- 涌潮波次时刻表（离线预排，局内只按帧号放行） ---------------- */
+function genWaves() {
+  var r = deriveStream('audit'), perm = [0, 1, 2, 3, 4], i, j, t, out = [];
+  for (i = perm.length - 1; i > 0; i--) { j = Math.floor(r() * (i + 1)); t = perm[i]; perm[i] = perm[j]; perm[j] = t; }
+  for (i = 0; i < D.WAVE_N; i++) {
+    var strength = 1 + (i % 3);
+    /* 首五波按置换遍历五带（保证覆盖），其后按置换逐波平移 */
+    var band = i < D.BAND_N ? perm[i] : (perm[i % D.BAND_N] + Math.floor(i / D.BAND_N)) % D.BAND_N;
+    var n = strength * 2, slots = [], k;
+    for (k = 0; k < n; k++) slots.push(Math.floor(r() * 997) / 997);
+    slots.sort(function (a, b) { return a - b; });
+    out.push({ i: i, f: D.WAVE_FRAME * (i + 1), band: band, strength: strength, n: n, slots: slots });
+  }
+  return out;
+}
+function waveBudget(list) {
+  var s = 0, i;
+  for (i = 0; i < list.length; i++) s += list[i].n * D.FRAG_CLAIM_M;
+  return s;
+}
+
+/* ---------------- 五带兑换率上限（随带号严格递增）与瞬时兑换率 ---------------- */
+function exCap(bi) { return 880 + bi * 24; }
+function exRate(h, t) {
+  if (!isFinite(h)) h = 0;
+  var b = bandOf(h), bi = bandIdx(h);
+  var ph = (h / 1600) * Math.PI * 1.1 + (t || 0) * 0.37;
+  var osc = Math.sin(ph) * 0.5 + 0.5;
+  var v = exCap(bi) - Math.round((1000 - exCap(bi)) * (1 - osc));
+  v = Math.round(v * (0.94 + 0.12 * b.surge));
+  if (S && S.galeT > 0) v = Math.round(v * 0.90);
+  if (S && S.surge) v = Math.round(v * 1.06);
+  if (v > 1000) v = 1000;
+  if (v < 600) v = 600;
+  return v;
+}
+/* 配额消耗与带感应挂钩：感应越灵敏的带，单位抽取吃掉的配额越多 */
+function quotaCost(bi, take) { return Math.round(take * BANDS[bi].sense); }
+
+/* ---------------- 高度带与谐振锚点查询 ---------------- */
+function bandOf(h) { return BANDS[bandIdx(h)]; }
+/* 非有限高度（时钟缺失 / 外部探针注入）一律归零带：
+   否则 BANDS[NaN] 为 undefined，会让兑换率、切变风场等所有取带函数抛出未捕获异常 */
 function bandIdx(h) {
+  if (!isFinite(h)) h = 0;
   var i = Math.floor(h / D.BAND_SPAN);
   if (i < 0) i = 0; if (i > D.BAND_N - 1) i = D.BAND_N - 1;
   return i;
@@ -411,6 +530,7 @@ function zoneOf(h) {
 
 /* ---------------- 切变风场（非均匀矢量，同一时刻不同高度可反向） ---------------- */
 function windAt(h, t) {
+  if (!isFinite(h)) h = 0;
   var b = bandOf(h), i = bandIdx(h);
   var ph = (h / 1400) * Math.PI * 0.9 - t * 0.42;
   var wx = Math.sin(ph) * 22 * b.shear;
@@ -424,11 +544,13 @@ function budgetAccounts(G) {
   var s = 0, i, live = 0;
   for (i = 0; i < G.crusts.length; i++) { s += G.crusts[i].cur; if (G.crusts[i].alive) live++; }
   return {
-    crust: s, charge: G.chargeM, converted: G.convertedM, entropy: G.entropyM,
-    sum: s + G.chargeM + G.convertedM + G.entropyM, live: live
+    crust: s, charge: G.chargeM, bond: G.bondM, converted: G.convertedM, entropy: G.entropyM,
+    sum: s + G.chargeM + G.bondM + G.convertedM + G.entropyM, live: live
   };
 }
 function budgetGap(G) { var a = budgetAccounts(G); return a.sum - D.BUDGET_M; }
+/* 配额余量：权限计数器，不进入结构预算守恒等式 */
+function quotaLeft(bi) { return (S.quota[bi] || 0) - (S.quotaUsed[bi] || 0); }
 
 /* ============================================================
    运行时
@@ -440,17 +562,22 @@ function newState() {
     fsm: 'BOOT_SEQUENCING', t: 0, frame: 0, bootN: 0,
     boot: { st: 0, f: 0, done: false, list: [], fingerprint: null, base: null, err: '', parts: {} },
     crusts: [], pod: null,
-    chargeM: 0, convertedM: 0, entropyM: 0,
-    ledger: [], seq: 0, frames: [],
+    chargeM: 0, bondM: 0, convertedM: 0, entropyM: 0,
+    quota: [], quotaUsed: [], quotaBlocked: 0, quotaBuys: 0, quotaDead: false,
+    waves: [], wavePtr: 0, wave: null, waveN: 0, waveClears: 0, waveBreaches: 0,
+    waveKilled: 0, waveLanded: 0, wavePodHits: 0, waveClaim: 0, waveCrust: 0,
+    chain: 0, chainPeak: 0, chainT: 0, chainGrants: 0,
+    exchCd: 0, exchanges: 0, exchangesIn: 0, exchangesOut: 0, convFee: 0, rateTrace: [], lastLimited: false,
+    ledger: [], seq: 0, frames: [], foldAll: fnvInit(),
     band: 0, lastBand: 0, galeT: 0, surge: false, surgeT: 0,
     retries: K.RETRY_MAX, rollbacks: 0, causal: 0,
     lands: 0, attunes: 0, pulses: 0, resonances: 0, flips: 0, tethers: 0, rebounds: 0,
     collapses: 0, devSum: 0, devN: 0, overflows: 0, overloads: 0, edgeDrain: 0,
-    leaks: 0, rejects: 0, crosses: 0, devPeak: 0, tetherOver: 0, tetherObs: 0,
+    leaks: 0, rejects: 0, crosses: 0, devPeak: 0, tetherOver: 0, tetherObs: 0, tetherDevPeak: 0,
     wearSum: 0, impactSum: 0, impactLost: 0, peakV: 0, vSum: 0, vN: 0,
-    chargeRate: 0, entropy: 0, effSum: 0, pumpSum: 0,
+    chargeRate: 0, entropy: 0, effSum: 0, pumpSum: 0, evCount: {}, fN: 0,
     staged: null, codeBuf: '', codeLocked: false, codeErrs: 0, codeRedeems: 0,
-    stunT: 0, launchLock: 0, tip: '', tipT: 0,
+    stunT: 0, launchLock: 0, domeCd: 0, tip: '', tipT: 0,
     windOverride: null, settleReason: '', agg: null, settled: false,
     phaseTilt: 0, tiltV: 0, injectedTether: false
   };
@@ -465,6 +592,9 @@ function newPod() {
 
 function reset() {
   var keep = S ? S.fsm : null;
+  /* 时钟必须随状态一起转交：否则帧循环的 dt 会算出 NaN，累加器被污染后整局停摆 */
+  var keepLast = (S && typeof S.last === 'number' && isFinite(S.last)) ? S.last
+    : ((typeof performance !== 'undefined') ? performance.now() : Date.now());
   S = newState();
   S.crusts = genCrusts();
   S.pod = newPod();
@@ -475,10 +605,13 @@ function reset() {
   S.hold = 0; S.holdOn = false; S.leakAcc = 0;
   S.wind = windAt(300, 0); S.along = false; S.liftAmt = 0; S.camY = 0;
   S.phaseTilt = 0; S.tiltV = 0; S.settleData = null;
+  S.quota = genQuota(); S.quotaUsed = [0, 0, 0, 0, 0]; S.quotaDead = false;
+  S.waves = genWaves(); S.wave = null; S.wavePtr = 0;
   S.boot.parts = {};
   S.boot.list = [];
   S.boot.st = 0; S.boot.f = 0; S.boot.done = false;
   S.boot.fingerprint = null; S.boot.base = null; S.boot.err = '';
+  S.last = keepLast;
   bootInit();
   pushEvent('RESET', '种子 ' + SEED + ' · 运行 ' + RUNID, 0);
   if (keep === 'RUN_SETTLED_LEDGER') S.fsm = 'BOOT_SEQUENCING';
@@ -488,7 +621,14 @@ function reset() {
 /* ---------------- 账本 ---------------- */
 function pushEvent(k, p, n) {
   S.seq++;
-  var e = { seq: S.seq, t: Math.round(S.t * 1000), k: canon(k), p: canon(p), n: (n === undefined ? 1 : n) };
+  var kk = canon(k);
+  /* 账本本身是滚动窗口（只保留最近 LEDGER_CAP 条供流水显示）；
+     结算归约必须覆盖整局，故另记一条与窗口无关的种类计数：
+     否则长跑的结算读数只反映末尾一段，与局内仪表的累计计数各算一次 */
+  S.evCount[kk] = (S.evCount[kk] || 0) + 1;
+  var e = { seq: S.seq, t: Math.round(S.t * 1000), k: kk, p: canon(p), n: (n === undefined ? 1 : n) };
+  /* 整局折叠：逐条增量折进同一个滚动哈希，因此指纹覆盖整局而非只覆盖保留窗口 */
+  S.foldAll = foldEvent(S.foldAll, e);
   S.ledger.push(e);
   if (S.ledger.length > D.LEDGER_CAP) S.ledger.shift();
   return e;
@@ -506,9 +646,11 @@ function recordFrame() {
     band: S.band, st: S.fsm };
   S.frames.push(f);
   if (S.frames.length > D.FRAME_CAP) S.frames.shift();
+  /* 帧记录同样是滚动窗口：平均垂速必须由整局累加量得出，不得只平均窗口内那一段 */
+  S.fN++; S.vSum += Math.abs(f.vy); S.vN++;
   S.peakV = Math.max(S.peakV, Math.abs(p.vy));
 }
-function framesCount() { return S.frames.length; }
+function framesCount() { return S.fN; }
 
 /* ---------------- 引导序列 ---------------- */
 function bootInit() { S.boot.parts = {}; }
@@ -519,15 +661,16 @@ function bootCheck(id) {
     var nTags = document.querySelectorAll('#frame > div, #frame > canvas').length;
     var nMods = document.querySelectorAll('.mod').length;
     var nDat = document.querySelectorAll('canvas[data-cw]').length;
-    var need = ['top', 'band', 'worldWrap', 'boot', 'settle', 'code'];
+    var need = ['top', 'band', 'worldWrap', 'boot', 'settle', 'code',
+      'mQuota', 'mChain', 'mBond', 'mWave', 'cvWave', 'cvBond', 'quotaBody', 'chainBody'];
     var miss = [], w;
     for (w = 0; w < need.length; w++) if (!document.getElementById(need[w])) miss.push(need[w]);
-    parts.push('语义化节点 ' + nTags + ' / 13 · 模块体 ' + nMods + ' / 6 · 自定义属性 ' + nDat + ' / 4');
+    parts.push('语义化节点 ' + nTags + ' / 17 · 模块体 ' + nMods + ' / 10 · 自定义属性 ' + nDat + ' / 6');
     if (miss.length) { S.boot.err = '缺失节点 ' + miss.join(','); return false; }
-    if (nTags < 13 || nMods < 6 || nDat < 4) { S.boot.err = '结构节点不足'; return false; }
+    if (nTags < 17 || nMods < 10 || nDat < 6) { S.boot.err = '结构节点不足'; return false; }
   } else if (id === 'BOOT_SURFACE') {
     var cvs = document.querySelectorAll('canvas[data-cw]');
-    if (cvs.length < 4) { S.boot.err = '画布不足'; return false; }
+    if (cvs.length < 6) { S.boot.err = '画布不足'; return false; }
     var ok = 0;
     for (q = 0; q < cvs.length; q++) {
       var el = cvs[q];
@@ -539,6 +682,18 @@ function bootCheck(id) {
     }
     parts.push(ok + ' 节点 2D 上下文就绪 · 后备尺寸逐节点比对' + (ok === cvs.length ? '一致' : '不一致'));
     if (ok !== cvs.length) { S.boot.err = '后备尺寸失配'; return false; }
+  } else if (id === 'BOOT_PIXEL') {
+    /* 画面初始化：六画布各自真绘一遍，再用像素网格回读校验非底色占比与互异指纹 */
+    var ids = ['cvWorld', 'cvInst', 'cvLife', 'cvRadar', 'cvWave', 'cvBond'], seen = {}, i0, bad = 0;
+    drawWorld(); drawInst(); drawLife(); drawRadar(); drawWave(); drawBond();
+    for (i0 = 0; i0 < ids.length; i0++) {
+      var pr = pixelProbe(ids[i0]);
+      if (!(pr.ink > 0.012)) bad++;
+      if (seen[pr.fp]) pr.dup = true; else seen[pr.fp] = 1;
+      if (pr.dup) bad++;
+      parts.push(ids[i0].replace('cv', '') + ' ' + NF(pr.ink * 100, 1) + '%');
+    }
+    if (bad) { S.boot.err = '画面未初始化或画布指纹重复'; return false; }
   } else if (id === 'BOOT_DERIVE') {
     var names = ['wind', 'crust', 'anchor', 'tide', 'audit'], firsts = [], dup = 0, i, j;
     for (i = 0; i < names.length; i++) firsts.push(deriveStream(names[i])());
@@ -566,6 +721,45 @@ function bootCheck(id) {
     var dN = Object.keys(dm).length;
     parts.push('五带切变互异' + (dupS === 0 ? '✓' : '✗') + ' · 感应互异' + (dupE === 0 ? '✓' : '✗') + ' · 槽位覆盖 ' + dN + ' / 5');
     if (dupS !== 0 || dupE !== 0 || dN !== 5) { S.boot.err = '高度带协议退化'; return false; }
+  } else if (id === 'BOOT_QUOTA') {
+    /* 资源约束预排：五带配额两两互异、逐带恒正、总和恒等于标定总额，且可复算 */
+    var q1 = genQuota(), q2 = genQuota(), sq = 0, dq = {}, dupQ = 0, i5;
+    if (q1.length !== D.BAND_N) { S.boot.err = '配额表长度不符'; return false; }
+    for (i5 = 0; i5 < q1.length; i5++) {
+      if (q1[i5] !== q2[i5]) { S.boot.err = '配额表不可复算'; return false; }
+      if (!(q1[i5] > 0)) { S.boot.err = '配额非正'; return false; }
+      if (dq[q1[i5]]) dupQ++; dq[q1[i5]] = 1;
+      sq += q1[i5];
+    }
+    if (dupQ) { S.boot.err = '配额存在重复'; return false; }
+    if (sq !== D.QUOTA_TOTAL_M) { S.boot.err = '配额总和 ' + sq + ' ≠ ' + D.QUOTA_TOTAL_M; return false; }
+    /* 汇率上限必须随带号严格递增，否则就近套利会退化为常数解 */
+    var mono = true;
+    for (i5 = 1; i5 < D.BAND_N; i5++) if (!(exCap(i5) > exCap(i5 - 1))) mono = false;
+    if (!mono) { S.boot.err = '汇率上限非严格递增'; return false; }
+    S.quota = q1.slice(); S.quotaUsed = [0, 0, 0, 0, 0];
+    S.boot.quota = q1.slice();
+    parts.push('五带配额 ' + q1.join(' / ') + ' · 总和 ' + sq + ' = ' + D.QUOTA_TOTAL_M + ' · 汇率上限 ' + exCap(0) + '→' + exCap(4) + '‰');
+  } else if (id === 'BOOT_WAVE') {
+    /* 敌人波次预排：波次单调递增、强度覆盖 1..3、目标带覆盖五带、崩落体总量与结构索取预算一致 */
+    var wl = genWaves(), wl2 = genWaves(), i6, st = {}, bd = {}, frags = 0, prev = -1, okw = true;
+    if (wl.length !== D.WAVE_N) { S.boot.err = '波次表长度不符'; return false; }
+    for (i6 = 0; i6 < wl.length; i6++) {
+      if (wl[i6].f !== wl2[i6].f || wl[i6].n !== wl2[i6].n || wl[i6].band !== wl2[i6].band) { S.boot.err = '波次表不可复算'; return false; }
+      if (!(wl[i6].f > prev)) okw = false;
+      prev = wl[i6].f;
+      if (wl[i6].strength < 1 || wl[i6].strength > 3) okw = false;
+      if (wl[i6].n !== wl[i6].strength * 2) okw = false;
+      st[wl[i6].strength] = 1; bd[wl[i6].band] = 1;
+      frags += wl[i6].n;
+    }
+    if (!okw) { S.boot.err = '波次表退化'; return false; }
+    if (Object.keys(st).length !== 3) { S.boot.err = '强度未覆盖 1..3'; return false; }
+    if (Object.keys(bd).length !== D.BAND_N) { S.boot.err = '目标带未覆盖五带'; return false; }
+    S.waves = wl; S.wavePtr = 0; S.wave = null;
+    S.boot.waves = wl.length; S.boot.waveBudget = waveBudget(wl);
+    if (!(S.boot.waveBudget > 0 && S.boot.waveBudget <= D.BUDGET_M * 0.25)) { S.boot.err = '波次索取预算越界'; return false; }
+    parts.push(D.WAVE_N + ' 波 / ' + frags + ' 崩落体 · 强度 1..3 · 五带全覆盖 · 索取预算 ' + S.boot.waveBudget + ' ≤ ' + Math.floor(D.BUDGET_M * 0.25));
   } else if (id === 'BOOT_LEDGER') {
     var empty = ledgerFold([]);
     S.boot.base = hex8(empty);
@@ -589,11 +783,15 @@ function bootCheck(id) {
     parts.push('B1 ' + (w1.wx >= 0 ? '+' : '') + w1.wx.toFixed(1) + ' · B3 ' + (w2.wx >= 0 ? '+' : '') + w2.wx.toFixed(1) + ' · 时变Δ ' + Math.abs(w3.wx - w1.wx).toFixed(2));
     if (!any) { S.boot.err = '风场恒零'; return false; }
   } else if (id === 'BOOT_INVARIANT') {
-    var caps = [K.STRAIN_CAP, K.CHARGE_CAP, D.BUDGET_M, K.RETRY_MAX].concat([D.CRUST_N, D.ANCH_N]);
+    var caps = [K.STRAIN_CAP, K.CHARGE_CAP, D.BUDGET_M, K.RETRY_MAX, D.QUOTA_TOTAL_M,
+      K.EXCH_UNIT, K.EXCH_MIN, K.QUOTA_COST, K.PULSE_FRAG_R, D.WAVE_FRAME].concat([D.CRUST_N, D.ANCH_N, D.WAVE_N]);
     var allPos = true, i3;
     for (i3 = 0; i3 < caps.length; i3++) if (!(caps[i3] > 0)) allPos = false;
-    if (!tetherIntegrate || !budgetAccounts) allPos = false;
-    parts.push('容量常量恒正' + (allPos ? '✓' : '✗') + ' · 索核与账本可寻址' + ((typeof tetherIntegrate === 'function') ? '✓' : '✗'));
+    if (!(K.EXCH_UNIT >= K.EXCH_MIN)) allPos = false;      /* 兑换下限不得高于单次额度 */
+    if (!(K.CONV_FEE >= 0 && K.CONV_FEE < 1000)) allPos = false;
+    if (!tetherIntegrate || !budgetAccounts || !quotaLeft) allPos = false;
+    parts.push('容量常量恒正' + (allPos ? '✓' : '✗') + ' · 五科目账本 / 配额 / 索核可寻址' +
+      ((typeof tetherIntegrate === 'function' && typeof quotaLeft === 'function') ? '✓' : '✗'));
     if (!allPos) { S.boot.err = '容量常量非正'; return false; }
   } else if (id === 'BOOT_BUDGET') {
     var acc = budgetAccounts(S), gap = acc.sum - D.BUDGET_M;
@@ -603,10 +801,11 @@ function bootCheck(id) {
       run += S.crusts[i4].base;
     }
     S.boot.baseSum = run;
-    parts.push('逐座基准恒正' + (mono ? '✓' : '✗') + ' · 基准合计 ' + run + ' · 差额 ' + gap);
+    parts.push('逐座基准恒正' + (mono ? '✓' : '✗') + ' · 基准合计 ' + run + ' · 五科目差额 ' + gap +
+      ' · 配额合计 ' + S.quota.reduce(function (p, c) { return p + c; }, 0));
     if (!mono || run !== D.BUDGET_M || gap !== 0) { S.boot.err = '预算不守恒'; return false; }
   } else if (id === 'BOOT_READY') {
-    parts.push('前序 ' + S.boot.list.length + ' 段放行 · 移交待机坞');
+    parts.push('前序 ' + S.boot.list.length + ' 段放行 · 移交待机坞 · 可操作令牌 ' + OPERABLE.length + ' / ' + SN.length);
   }
   return parts.join(' · ');
 }
@@ -643,29 +842,309 @@ function nearbyCrusts(n) {
   return arr.slice(0, n || 5).map(function (o) { return o.c; });
 }
 
-/* 从周边矿壳真实抽取额度，抽多少那些矿壳就少多少；不足则记零，绝不补足 */
-function extract(amount) {
+/* 从周边矿壳真实抽取额度，抽多少那些矿壳就少多少；不足则记零，绝不补足
+   每个矿壳归属于一个高度带，抽取同时吃掉该带的配额；配额归零的带一律拒抽
+   bypassQuota = true 时走「回收」通道：只搬运结构，不动配额（涌潮瓦解的残骸回收走此路） */
+function extract(amount, bypassQuota) {
   var pool = nearbyCrusts(5), got = 0, i, k;
-  var want = amount;
+  var want = amount, limited = false;
   for (k = 0; k < 4 && want > 0; k++) {
     for (i = 0; i < pool.length && want > 0; i++) {
       var c = pool[i];
       if (!c.alive || c.cur <= 0) continue;
-      var take = Math.min(c.cur, want);
+      var bi = bandIdx(c.h), room = want;
+      if (!bypassQuota) {
+        var left = quotaLeft(bi);
+        if (left <= 0) { limited = true; continue; }
+        var capQ = Math.floor(left / BANDS[bi].sense);   /* 感应越灵敏，同等抽取吃掉越多配额 */
+        if (capQ < room) room = capQ;
+        if (room <= 0) { limited = true; continue; }
+      }
+      var take = Math.min(c.cur, room);
+      if (take <= 0) continue;
+      if (!bypassQuota) S.quotaUsed[bi] += quotaCost(bi, take);
       c.cur -= take; want -= take; got += take;
       c.stress += take;
       if (c.cur <= 0) {
         c.alive = false; c.state = 'void'; c.alpha = 0;
-        S.entropyM += 0;
         pushEvent('CRUST_VOID', 'D-' + pad3(c.i + 1) + ' 张力耗尽', 0);
       }
     }
   }
+  if (limited) S.quotaBlocked++;
+  S.lastLimited = limited;
   return got;
 }
 
-function gainCharge(m, why) {
-  var got = extract(m);
+/* 回收通道：波次瓦解后的残骸结构，不占配额 */
+function salvage(m) { return extract(m, true); }
+
+/* 探针补足本金：一律从矿壳真实搬运到目标科目，任何路径下都不凭空生成结构 */
+function probeFeed(acct, m) {
+  var got = 0, i, c, tk;
+  if (!(m > 0)) return 0;
+  for (i = 0; i < S.crusts.length && got < m; i++) {
+    c = S.crusts[i];
+    if (!c.alive || c.cur <= 0) continue;
+    tk = Math.min(c.cur, m - got); c.cur -= tk; got += tk;
+  }
+  if (acct === 'bond') S.bondM += got;
+  else if (acct === 'converted') S.convertedM += got;
+  else S.chargeM += got;
+  return got;
+}
+
+/* ---------------- 画面初始化像素回读（引导第三段与外部探针共用） ---------------- */
+function pixelProbe(id) {
+  var el = $(id); if (!el) return { ink: 0, fp: '00000000', n: 0 };
+  var g = el.getContext('2d'), w = el.width, h = el.height;
+  if (w < 4 || h < 4) return { ink: 0, fp: '00000000', n: 0 };
+  var d = g.getImageData(0, 0, w, h).data;
+  var N = 14, ink = 0, tot = 0, hh = fnvInit(), xi, yi;
+  for (yi = 0; yi < N; yi++) {
+    for (xi = 0; xi < N; xi++) {
+      var px = Math.floor((xi + 0.5) / N * w), py = Math.floor((yi + 0.5) / N * h);
+      var o = (py * w + px) * 4, r = d[o], gg = d[o + 1], b = d[o + 2], a = d[o + 3];
+      tot++;
+      if (a > 12 && (r + gg + b) > 58) ink++;
+      hh = fnvStep(hh, (r << 16) | (gg << 8) | b);
+    }
+  }
+  return { ink: tot ? ink / tot : 0, fp: hex8(hh), n: tot };
+}
+
+/* ============================================================
+   结构券经济：动能储备 ⇄ 结构券 ⇄ 已转成功，逐次整数结算
+   每一次兑换都把「兑不尽的零头」记入熵增，等式逐笔恒等
+   ============================================================ */
+function exchangeRate() { return exRate(D.FLOOR_Y - S.pod.y, S.t); }
+function pressExchange(dir) {
+  if (OPERABLE.indexOf(S.fsm) < 0) {
+    S.rejects++;
+    pushEvent('INPUT_REJECT', '令牌 ' + SC[SN.indexOf(S.fsm)] + ' 不接受兑换指令', 0);
+    return false;
+  }
+  if (S.exchCd > 0) {
+    S.rejects++;
+    pushEvent('INPUT_REJECT', '兑换冷却中 · 剩余 ' + S.exchCd + ' 帧', 0);
+    return false;
+  }
+  var R = exchangeRate();
+  if (dir > 0) {
+    var pay = Math.min(S.chargeM, K.EXCH_UNIT);
+    if (pay < K.EXCH_MIN) {
+      S.rejects++;
+      pushEvent('INPUT_REJECT', '动能储备低于兑换下限 · ' + NF(pay / 1000, 3) + ' / ' + NF(K.EXCH_MIN / 1000, 3), 0);
+      return false;
+    }
+    var get = Math.floor(pay * R / 1000);
+    if (get > pay) get = pay;                      /* 硬闸：任何路径下兑换都不得凭空生出结构 */
+    var fee = pay - get;
+    S.chargeM -= pay; S.bondM += get; S.entropyM += fee;
+    S.convFee += fee; S.exchanges++; S.exchangesIn++; S.exchCd = K.EXCH_CD;
+    pushEvent('EXCHANGE_IN', '动能→结构券 · 付 ' + NF(pay / 1000, 3) + ' · 得 ' + NF(get / 1000, 3) +
+      ' · 汇率 ' + R + '‰ · 零头转熵增 ' + fee, 1);
+    return true;
+  }
+  var pay2 = Math.min(S.bondM, K.EXCH_UNIT);
+  if (pay2 < K.EXCH_MIN) {
+    S.rejects++;
+    pushEvent('INPUT_REJECT', '结构券低于兑换下限 · ' + NF(pay2 / 1000, 3), 0);
+    return false;
+  }
+  var fee2 = Math.floor(pay2 * K.CONV_FEE / 1000);
+  S.bondM -= pay2; S.convertedM += (pay2 - fee2); S.entropyM += fee2;
+  S.convFee += fee2; S.exchanges++; S.exchangesOut++; S.exchCd = K.EXCH_CD;
+  pushEvent('EXCHANGE_OUT', '结构券→已转成功 · 付 ' + NF(pay2 / 1000, 3) + ' · 转化 ' + NF((pay2 - fee2) / 1000, 3) +
+    ' · 手续费转熵增 ' + fee2, 1);
+  return true;
+}
+
+/* 配额置换：烧结构券把本带的已耗配额放回，配额总量不变，烧掉的券转入熵增 */
+function pressQuota() {
+  if (OPERABLE.indexOf(S.fsm) < 0) {
+    S.rejects++;
+    pushEvent('INPUT_REJECT', '令牌 ' + SC[SN.indexOf(S.fsm)] + ' 不接受配额置换', 0);
+    return false;
+  }
+  var bi = S.band;
+  if (S.bondM < K.QUOTA_COST) {
+    S.rejects++;
+    pushEvent('INPUT_REJECT', '结构券不足 · 配额置换被拒 (' + NF(S.bondM / 1000, 3) + ' / ' + NF(K.QUOTA_COST / 1000, 3) + ')', 0);
+    return false;
+  }
+  var back = Math.min(K.QUOTA_ADD, S.quotaUsed[bi]);
+  if (back <= 0) {
+    S.rejects++;
+    pushEvent('INPUT_REJECT', BANDS[bi].id + ' 配额未耗 · 置换被拒', 0);
+    return false;
+  }
+  S.bondM -= K.QUOTA_COST; S.entropyM += K.QUOTA_COST;
+  S.quotaUsed[bi] -= back;
+  S.quotaBuys++;
+  pushEvent('QUOTA_SWAP', BANDS[bi].id + ' 配额放回 ' + back + ' · 烧券 ' + NF(K.QUOTA_COST / 1000, 3) +
+    ' → 熵增 · 余量 ' + quotaLeft(bi), 1);
+  return true;
+}
+
+/* ============================================================
+   崩解涌潮波次：预排时刻表按帧号放行，波内崩落体逐帧下坠
+   一切命中都是真实搬运：壳余量 / 动能储备 → 熵增，绝不凭空增减
+   ============================================================ */
+function spawnWave(w) {
+  var fr = [], i;
+  for (i = 0; i < w.n; i++) {
+    fr.push({ x: 70 + w.slots[i] * (D.SHAFT_W - 140), y: D.CEIL_Y - 30 - i * 30,
+      vy: 1.4 + w.strength * 0.34, alive: true, slot: i, flash: 0 });
+  }
+  S.wave = { i: w.i, band: w.band, strength: w.strength, n: w.n, frags: fr, t: 0,
+    active: true, killed: 0, landed: 0, podHits: 0, claim: 0,
+    shearMul: 1 + K.WAVE_SHEAR * w.strength };
+  S.waveN++;
+  pushEvent('WAVE_SPAWN', '涌潮第 ' + (w.i + 1) + ' 波起 · 强度 ' + w.strength + ' · 目标 ' +
+    BANDS[w.band].id + ' ' + BANDS[w.band].cn + ' · 崩落体 ' + w.n, w.strength);
+  burst(D.SHAFT_W / 2, D.CEIL_Y + 20, 22, '#a98bff', 2.2);
+}
+
+function fragClaimOnCrust(W, f) {
+  /* 崩落体砸中矿壳：从该壳余量真实搬运到熵增 */
+  var want = K.FRAG_CRUST_CLAIM * W.strength, got = 0, i;
+  var pool = S.crusts.slice().sort(function (a, b) {
+    return Math.abs(a.h - (D.FLOOR_Y - f.y)) - Math.abs(b.h - (D.FLOOR_Y - f.y));
+  });
+  for (i = 0; i < pool.length && got < want; i++) {
+    var c = pool[i];
+    if (!c.alive || c.cur <= 0) continue;
+    var take = Math.min(c.cur, want - got);
+    c.cur -= take; got += take;
+    if (c.cur <= 0) { c.alive = false; c.state = 'void'; c.alpha = 0; pushEvent('CRUST_VOID', 'D-' + pad3(c.i + 1) + ' 被崩落体砸穿', 0); }
+  }
+  S.entropyM += got; W.claim += got; S.waveClaim += got;
+  return got;
+}
+
+function resolveFrag(W, f, kind) {
+  f.alive = false; f.flash = 1;
+  var p = S.pod;
+  if (kind === 'pod') {
+    var drain = Math.min(S.chargeM, K.FRAG_POD_DRAIN * W.strength);
+    S.chargeM -= drain; S.entropyM += drain;
+    p.strain = Math.min(K.STRAIN_CAP, p.strain + K.FRAG_POD_STRAIN * W.strength);
+    W.podHits++; S.wavePodHits++;
+    burst(f.x, f.y, 14, '#ff4d6a', 2.0);
+    pushEvent('FRAG_HIT_POD', '崩落体撞舱 · 抽取动能 ' + NF(drain / 1000, 3) + ' → 熵增 · 应变 +' +
+      NF(K.FRAG_POD_STRAIN * W.strength, 1), 1);
+    return;
+  }
+  if (kind === 'crust') {
+    var got = fragClaimOnCrust(W, f);
+    S.waveCrust++;
+    burst(f.x, f.y, 16, '#ff7a3d', 2.0);
+    pushEvent('FRAG_HIT_CRUST', '崩落体砸壳 · 结构索取 ' + NF(got / 1000, 3) + ' → 熵增', 1);
+    return;
+  }
+  /* 触底：波次漏防，罚没按强度平方放大，全部从矿壳真实转移 */
+  var want = K.FRAG_CRUST_CLAIM * W.strength * K.FRAG_FLOOR_MUL, got2 = fragClaimOnCrust(W, f);
+  var extra = 0, i;
+  for (i = 0; i < S.crusts.length && extra < want - got2; i++) {
+    var c = S.crusts[i];
+    if (!c.alive || c.cur <= 0) continue;
+    var take = Math.min(c.cur, want - got2 - extra);
+    c.cur -= take; extra += take;
+    if (c.cur <= 0) { c.alive = false; c.state = 'void'; c.alpha = 0; }
+  }
+  S.entropyM += extra; W.claim += extra; S.waveClaim += extra;
+  W.landed++; S.waveLanded++;
+  burst(f.x, D.FLOOR_Y - 12, 18, '#ff7a3d', 2.4);
+  pushEvent('FRAG_BREACH', '崩落体触底 · 井底结构罚没 ' + NF((got2 + extra) / 1000, 3) + ' → 熵增', 1);
+}
+
+function stepWave(dt) {
+  if (!S.started || S.settled) return;
+  var i, f, W = S.wave;
+  if (W && !W.active) W = S.wave = null;
+  while (S.wavePtr < S.waves.length && S.frame >= S.waves[S.wavePtr].f) {
+    if (S.wave && S.wave.active) break;                 /* 前波未了结，本波顺延 */
+    spawnWave(S.waves[S.wavePtr]); S.wavePtr++;
+  }
+  W = S.wave; if (!W || !W.active) return;
+  W.t += dt;
+  var b = BANDS[W.band], p = S.pod;
+  var drift = (S.wind ? S.wind.wx : 0) * K.FRAG_DRIFT;
+  for (i = 0; i < W.frags.length; i++) {
+    f = W.frags[i];
+    if (!f.alive) { if (f.flash > 0) f.flash -= dt * 2.2; continue; }
+    f.vy += K.FRAG_G * (1 + b.load * 0.42);
+    if (f.vy > K.FRAG_VMAX) f.vy = K.FRAG_VMAX;
+    f.x += drift; f.y += f.vy;
+    if (f.x < 20) f.x = 20; if (f.x > D.SHAFT_W - 20) f.x = D.SHAFT_W - 20;
+    if (f.y >= D.FLOOR_Y) { resolveFrag(W, f, 'floor'); continue; }
+    /* 舱体 */
+    if (Math.abs(f.x - p.x) < p.r + K.FRAG_R && Math.abs(f.y - p.y) < p.r + K.FRAG_R) { resolveFrag(W, f, 'pod'); continue; }
+    /* 矿壳台面 */
+    var j;
+    for (j = 0; j < S.crusts.length; j++) {
+      var c = S.crusts[j];
+      if (!c.alive) continue;
+      var top = c.y + c.sink - c.reb;
+      if (f.x > c.x - 4 && f.x < c.x + c.w + 4 && f.y >= top - 2 && f.y <= top + 10 + f.vy) { resolveFrag(W, f, 'crust'); break; }
+    }
+  }
+  var alive = 0;
+  for (i = 0; i < W.frags.length; i++) if (W.frags[i].alive) alive++;
+  if (alive === 0) {
+    W.active = false;
+    if (W.killed === W.n) {
+      W.cleared = true;
+      var got = salvage(K.WAVE_SALVAGE * W.strength);
+      S.bondM += got; S.causal += 1; S.waveClears++;
+      pushEvent('WAVE_CLEAR', '涌潮第 ' + (W.i + 1) + ' 波全数瓦解 · 强度 ' + W.strength +
+        ' · 回收结构券 ' + NF(got / 1000, 3) + ' · 因果结余 +1', W.strength);
+    } else {
+      S.waveBreaches++;
+      pushEvent('WAVE_BREACH', '涌潮第 ' + (W.i + 1) + ' 波漏防 · 崩落体触底 ' + W.landed +
+        ' · 结构索取 ' + NF(W.claim / 1000, 3), W.strength);
+    }
+  }
+}
+
+/* 连击计时：窗口内不再瓦解则清零，不给任何被动正增长 */
+function stepChain(dt) {
+  if (!(S.chain > 0)) return;
+  S.chainT -= dt;
+  if (S.chainT <= 0) { S.chain = 0; S.chainT = 0; }
+}
+
+function hitFrag(W, f, why) {
+  f.alive = false; f.flash = 1;
+  W.killed++; S.waveKilled++;
+  S.chain++; S.chainT = K.CHAIN_MS / 1000;
+  if (S.chain > S.chainPeak) S.chainPeak = S.chain;
+  burst(f.x, f.y, 12, '#4fd6c8', 1.9);
+  var bonus = '';
+  if (S.chain > 0 && S.chain % K.CHAIN_PEAK === 0) {
+    S.causal += 1; S.chainGrants++;
+    bonus = ' · 连击 ×' + S.chain + ' 结余 +1';
+  }
+  pushEvent('FRAG_SHATTER', why + ' 瓦解崩落体 · 第 ' + (W.i + 1) + ' 波 ' + W.killed + ' / ' + W.n + bonus, 1);
+}
+
+/* 波内全清：脉冲与共振都走同一记账点 */
+function sweepFrags(radius, why) {
+  var W = S.wave;
+  if (!W || !W.active) return 0;
+  var p = S.pod, n = 0, i;
+  for (i = 0; i < W.frags.length; i++) {
+    var f = W.frags[i];
+    if (!f.alive) continue;
+    if (Math.hypot(f.x - p.x, f.y - p.y) <= radius) { hitFrag(W, f, why); n++; }
+  }
+  if (n && W.killed >= W.n) { /* 清空判定交给下一帧 stepWave，保持单一结算点 */ }
+  return n;
+}
+
+function gainCharge(m, why, bypass) {
+  var got = extract(m, !!bypass);
   S.chargeM += got; S.causal += 1; S.pumpSum++;
   var cap = K.CHARGE_CAP * 1000;
   if (S.chargeM > cap) {
@@ -705,6 +1184,7 @@ function setWind() {
   var w = windAt(D.FLOOR_Y - p.y, S.t);
   if (S.surge) { w.wx *= 1.35; w.wz *= 1.35; }
   if (S.galeT > 0) { w.wx *= 2.15; w.wz *= 2.15; }
+  if (S.wave && S.wave.active) { w.wx *= S.wave.shearMul; w.wz *= S.wave.shearMul; }   /* 涌潮叠加切变 */
   if (S.windOverride !== null) { w.wx = S.windOverride; w.wz = 0; }
   S.wind = w;
   return w;
@@ -814,8 +1294,16 @@ function physics(dt) {
     if (p.vy < 0) {
       var dv = Math.abs(p.vy);
       p.vy = dv * 0.34;
-      S.rebounds++;
-      pushEvent('DOME_REBOUND', '触顶反弹 · 入射 ' + NF(dv, 2) + ' → 出射 ' + NF(p.vy, 2), Math.round(dv * 20));
+      /* 触顶会计入反冲，但贴顶磨蹭不得被反复兑成收益：
+         一个冷却窗内只结算一次反冲，窗内其余每次接触只把入射冲量折成舱体应变——
+         于是长时间顶住穹顶会自己把应力推满并转成过载硬直，而不是刷出收益 */
+      if (S.domeCd <= 0) {
+        S.domeCd = K.DOME_CD;
+        S.rebounds++;
+        pushEvent('DOME_REBOUND', '触顶反弹 · 入射 ' + NF(dv, 2) + ' → 出射 ' + NF(p.vy, 2), Math.round(dv * 20));
+      } else {
+        p.strain = Math.min(K.STRAIN_CAP, p.strain + dv * 0.35);
+      }
     }
   }
 
@@ -874,6 +1362,13 @@ function physics(dt) {
   var inGale = (bi === 2 || bi === 3);
   if (inGale && S.galeT <= 0) { S.galeT = 4.0; pushEvent('GALE_ENTER', '涌入切变风廊 ' + BANDS[bi].id, 0); }
   if (S.galeT > 0) S.galeT -= dt;
+
+  /* 涌潮波次与连击窗口 */
+  stepWave(dt);
+  stepChain(dt);
+  if (S.exchCd > 0) S.exchCd -= 1;
+  /* 配额枯竭：权限计数器归零即锁死该带抽取，不进入结构预算守恒等式 */
+  S.quotaDead = (S.started && quotaLeft(S.band) <= 0);
 
   if (S.launchLock > 0) S.launchLock -= dt;
   if (S.tipT > 0) S.tipT -= dt;
@@ -1095,6 +1590,8 @@ function stepTether(dt) {
       T.obs++; S.tetherObs++;
     }
   }
+  /* 整局峰值偏差：结算归约取整局最大值，而非手上这一次锚定的瞬时值 */
+  if (T.peak > S.tetherDevPeak) S.tetherDevPeak = T.peak;
   p.tetherAng0 = T.ang;
   var cx = (T.a.i >= 0) ? D.ANCH_H[T.a.i] : 0;
   var px = (D.SHAFT_W / 2) + Math.sin(T.ang) * T.L;
@@ -1222,7 +1719,9 @@ function pressPulse() {
   p.vy -= K.PULSE_V * 0.06;
   p.lock = 0;
   S.pulses++;
-  pushEvent('PULSE', '蓄能脉冲 · 消耗 ' + NF(need / 1000, 3) + ' · 结余 -' + K.PULSE_COST, 1);
+  var nk = sweepFrags(K.PULSE_FRAG_R, '脉冲扫掠');
+  pushEvent('PULSE', '蓄能脉冲 · 消耗 ' + NF(need / 1000, 3) + ' · 结余 -' + K.PULSE_COST +
+    (nk ? ' · 瓦解 ' + nk + ' 崩落体' : ''), 1);
   if (S.frames.length) S.effSum++;
   return true;
 }
@@ -1251,7 +1750,16 @@ function pressResonance() {
   p.attune = 0; p.attuneT = 0; p.lock = 0; p.canJump = false;
   S.resonances++;
   burst(c.x + c.w / 2, c.y, 34, '#a98bff', 3.2);
-  pushEvent('RESONANCE', 'D-' + pad3(c.i + 1) + ' 泄放 ' + NF(dump / 1000, 3) + ' → 熵增 · 全屏脉冲', 1);
+  /* 共振全谱外溢：本带整波崩落体一并瓦解，代价是这一座的余量已全部泄入熵增 */
+  var nk = 0, W = S.wave, bi = bandIdx(c.h), k;
+  if (W && W.active) {
+    for (k = 0; k < W.frags.length; k++) {
+      var f = W.frags[k];
+      if (f.alive && bandIdx(D.FLOOR_Y - f.y) === bi) { hitFrag(W, f, '共振泄放'); nk++; }
+    }
+  }
+  pushEvent('RESONANCE', 'D-' + pad3(c.i + 1) + ' 泄放 ' + NF(dump / 1000, 3) + ' → 熵增 · 全屏脉冲' +
+    (nk ? ' · 本带瓦解 ' + nk : ''), 1);
   return true;
 }
 
@@ -1298,6 +1806,7 @@ function commit(note) {
   var a = S.staged;
   if (a.a === '审计') {
     if (canon(note).length < 10) {
+      S.rejects++;
       pushEvent('COMMIT_REJECT', '守恒审计附注不足 · 暂存保留', 0);
       return false;
     }
@@ -1310,6 +1819,7 @@ function commit(note) {
   }
   if (a.a === '结算') {
     if (a.gapU !== 0) {
+      S.rejects++;
       pushEvent('SETTLE_REJECT', '结算被驳回：结构差额非零 ' + NF(a.gapU / 1000, 3), 0);
       S.staged = null;
       return false;
@@ -1318,7 +1828,7 @@ function commit(note) {
     doSettle('两阶段提交闭合');
     return true;
   }
-  if (canon(note).length < 4) { pushEvent('COMMIT_REJECT', '附注不足 · 暂存保留', 0); return false; }
+  if (canon(note).length < 4) { S.rejects++; pushEvent('COMMIT_REJECT', '附注不足 · 暂存保留', 0); return false; }
   S.staged = null;
   pushEvent('COMMIT', '事务闭合 · ' + canon(note), 1);
   return true;
@@ -1355,9 +1865,11 @@ function evalFsm() {
   else if (S.rollbackT > 0) next = 'CRISIS_FAILED_ROLLBACK';
   else if (S.stunT > 0) next = 'OVERLOAD_PENALTY';
   else if (p.strain >= K.STRAIN_CAP) next = 'STRAIN_CRITICAL';
+  else if (S.quotaDead) next = 'QUOTA_EXHAUSTED';
   else if (!S.started) next = 'TITLE_LOBBY';
   else if (S.seeding) next = 'SEEDED_INITIALIZING';
   else if (S.launchLock > 0) next = 'GRID_LOCKED';
+  else if (S.wave && S.wave.active) next = 'WAVE_ENGAGED';
   else if (S.surge) next = 'DYNAMIC_BRANCHING';
   else if (S.galeT > 0) next = 'GALE_CROSS';
   else if (p.onGround && p.attuneT > 0 && zoneOf(S.crusts[p.ci] ? S.crusts[p.ci].h : 0).z !== 'EDGE' && p.ci >= 0) next = 'ATTUNEMENT_DWELL';
@@ -1369,6 +1881,7 @@ function evalFsm() {
     if (prev === 'CRISIS_FAILED_ROLLBACK') S.rollbackT = 0;
   }
   if (S.rollbackT > 0) S.rollbackT -= K.DT;
+  if (S.domeCd > 0) S.domeCd -= 1;
   if (S.seeding) {
     S.seedT = (S.seedT || 0) + 1;
     if (S.seedT > 90) { S.seeding = false; S.started = true; S.launchLock = K.LAUNCH_LOCK_MS / 1000; }
@@ -1379,45 +1892,36 @@ function evalFsm() {
    结算：账本纯函数归约
    ============================================================ */
 function reduceLedger() {
-  var ev = S.ledger, i;
-  var launches = 0, landings = 0, crossN = 0, attuneN = 0, pulseN = 0, flipN = 0, resoN = 0, rebN = 0, fracN = 0, overN = 0, rollN = 0, rejN = 0, devPk = 0;
-  for (i = 0; i < ev.length; i++) {
-    var e = ev[i], m = /-?\d+(\.\d+)?/.exec(e.p);
-    var num = m ? parseFloat(m[0]) : 0;
-    switch (e.k) {
-      case 'LAUNCH': launches++; break;
-      case 'LAND_IMPACT': landings++; break;
-      case 'BAND_CROSS': crossN++; break;
-      case 'ATTUNE_COMPLETE': attuneN++; break;
-      case 'PULSE': pulseN++; break;
-      case 'PHASE_FLIP': flipN++; break;
-      case 'RESONANCE': resoN++; break;
-      case 'REBOUND': rebN++; break;
-      case 'CRUST_FRACTURE': fracN++; break;
-      case 'OVERLOAD': overN++; break;
-      case 'RAIL_BREACH': rollN++; break;
-      case 'INPUT_REJECT': case 'TETHER_REJECT': case 'COMMIT_REJECT': case 'SETTLE_REJECT': case 'CODE_REJECT': rejN++; break;
-      case 'TETHER_ANCHOR': if (num > devPk) devPk = num; break;
-    }
-  }
-  var fr = S.frames, vs = 0, vn = 0, ds = 0, dn = 0, eff = 0, effN = 0;
-  for (i = 0; i < fr.length; i++) {
-    vs += Math.abs(fr[i].vy); vn++;
-    if (fr[i].dev > 0) { ds += fr[i].dev; dn++; }
-    if (S.convertedM > 0) { eff = 1; }
-  }
-  var vavg = vn ? vs / vn : 0, devAvg = dn ? ds / dn : 0;
+  var ec = S.evCount || {};
+  function n(k) { return ec[k] || 0; }
+  var launches = n('LAUNCH'), landings = n('LAND_IMPACT'), crossN = n('BAND_CROSS'), attuneN = n('ATTUNE_COMPLETE'),
+      pulseN = n('PULSE'), flipN = n('PHASE_FLIP'), resoN = n('RESONANCE'),
+      /* 反冲计数按设计同时涵盖离台反冲与穹顶封盖反弹：局内仪表用的是同一个定义 */
+      rebN = n('REBOUND') + n('DOME_REBOUND'),
+      fracN = n('CRUST_FRACTURE'), overN = n('OVERLOAD'), rollN = n('RAIL_BREACH'),
+      waveN = n('WAVE_SPAWN'), wClearN = n('WAVE_CLEAR'), wBreachN = n('WAVE_BREACH'),
+      shatterN = n('FRAG_SHATTER'), podN = n('FRAG_HIT_POD'),
+      crustHitN = n('FRAG_HIT_CRUST') + n('FRAG_BREACH'),
+      exchIn = n('EXCHANGE_IN'), exchOut = n('EXCHANGE_OUT'), qSwap = n('QUOTA_SWAP'),
+      rejN = n('INPUT_REJECT') + n('TETHER_REJECT') + n('COMMIT_REJECT') + n('SETTLE_REJECT') + n('CODE_REJECT');
+  /* 平均垂速与平均落点偏离取自整局累加量，不取自滚动窗口 */
+  var vavg = S.vN ? S.vSum / S.vN : 0, devAvg = S.devN ? S.devSum / S.devN : 0;
   var effRate = S.impactSum > 0 ? Math.min(1, S.convertedM / Math.max(1, S.impactSum * 1000)) : 0;
   var wearRate = S.impactSum > 0 ? S.impactLost / Math.max(1, S.impactSum) : 0;
   return {
     launches: launches, landings: landings, crosses: crossN, attunes: attuneN,
     pulses: pulseN, flips: flipN, resonances: resoN, rebounds: rebN,
     collapses: fracN, overloads: overN, rollbacks: rollN, rejects: rejN,
-    frames: fr.length, peakV: S.peakV, vavg: vavg, devAvg: devAvg,
-    effRate: effRate, wearRate: wearRate, devPeak: S.devPeak, tetherPeak: devPk,
-    tetherObs: S.tetherObs, tetherOver: S.tetherOver, events: ev.length,
-    fold: hex8(ledgerFold(ev)), gap: budgetGap(S), charge: S.chargeM, entropy: S.entropyM,
-    converted: S.convertedM, plate: budgetAccounts(S).crust, edgeDrain: S.edgeDrain
+    frames: S.fN, peakV: S.peakV, vavg: vavg, devAvg: devAvg,
+    effRate: effRate, wearRate: wearRate, devPeak: S.devPeak, tetherPeak: S.tetherDevPeak,
+    tetherObs: S.tetherObs, tetherOver: S.tetherOver, events: S.seq,
+    fold: hex8(S.foldAll), gap: budgetGap(S), charge: S.chargeM, entropy: S.entropyM,
+    converted: S.convertedM, plate: budgetAccounts(S).crust, edgeDrain: S.edgeDrain,
+    bond: S.bondM, waves: waveN, waveClears: wClearN, waveBreaches: wBreachN,
+    shatters: shatterN, fragPod: podN, fragCrust: crustHitN,
+    waveClaim: S.waveClaim, chainPeak: S.chainPeak, chainGrants: S.chainGrants,
+    exchIn: exchIn, exchOut: exchOut, qSwap: qSwap, convFee: S.convFee,
+    quotaBlocked: S.quotaBlocked, quotaSpent: S.quotaUsed.reduce(function (p, c) { return p + c; }, 0)
   };
 }
 
@@ -1441,10 +1945,19 @@ function buildSettle(red) {
     { k: '蓄能脉冲', w: red.pulses * 12, base: red.pulses + ' 次' },
     { k: '相位瞬切', w: red.flips * 8, base: red.flips + ' 次' },
     { k: '矿壳反冲', w: red.rebounds * 14, base: red.rebounds + ' 次' },
+    { k: '涌潮瓦解', w: red.waveClears * 34, base: red.waveClears + ' / ' + red.waves + ' 波' },
+    { k: '崩落体瓦解', w: red.shatters * 9, base: red.shatters + ' 枚' },
+    { k: '连击峰值', w: red.chainPeak >= K.CHAIN_PEAK ? red.chainPeak * 7 : 0, base: '×' + red.chainPeak + ' · 结余返还 ' + red.chainGrants },
+    { k: '结构券兑换', w: red.exchIn * 6, base: red.exchIn + ' 次' },
     { k: '落点偏离', w: -Math.floor(red.devAvg * 0.25), base: NF(red.devAvg, 2) },
     { k: '动能转化', w: Math.floor(red.effRate * 40), base: NF(red.effRate, 3) },
     { k: '矿壳损耗', w: -Math.floor(red.wearRate * 120), base: NF(red.wearRate * 100, 1) + '%' },
     { k: '边缘驻留', w: -Math.floor(red.edgeDrain * 2), base: NF(red.edgeDrain, 2) },
+    { k: '波次漏防', w: -red.waveBreaches * 30, base: red.waveBreaches + ' 波' },
+    { k: '崩落体索取', w: -Math.floor(red.waveClaim / 1000 * 2), base: NF(red.waveClaim / 1000, 3) },
+    { k: '舱体被撞', w: -red.fragPod * 11, base: red.fragPod + ' 次' },
+    { k: '配额枯竭拒抽', w: -Math.min(60, red.quotaBlocked * 2), base: red.quotaBlocked + ' 次' },
+    { k: '兑换零头损耗', w: -Math.floor(red.convFee / 1000 * 2), base: NF(red.convFee / 1000, 3) },
     { k: '过载硬直', w: -red.overloads * 16, base: red.overloads + ' 次' },
     { k: '坠井回溯', w: -red.rollbacks * 22, base: red.rollbacks + ' 次' },
     { k: '同源偏差', w: -Math.floor(red.tetherPeak * 4), base: NF(red.tetherPeak, 4) },
@@ -1455,7 +1968,7 @@ function buildSettle(red) {
   ];
   var total = 0, i;
   for (i = 0; i < items.length; i++) total += items[i].w;
-  var stars = total >= 600 ? 3 : (total >= 380 ? 2 : (total >= 180 ? 1 : 0));
+  var stars = total >= 620 ? 3 : (total >= 390 ? 2 : (total >= 185 ? 1 : 0));
   var rows = [
     ['帧记录数', red.frames],
     ['峰值垂速', NF(red.peakV, 1)],
@@ -1467,13 +1980,19 @@ function buildSettle(red) {
     ['共振释放 / 脉冲', red.resonances + ' / ' + red.pulses],
     ['高度带跨越 / 相位瞬切', red.crosses + ' / ' + red.flips],
     ['矿壳反冲 / 坍缩', red.rebounds + ' / ' + red.collapses],
-    ['落点次数 / 边缘扣减', red.landings + ' / ' + NF(red.edgeDrain, 2)],
+    ['涌潮放行 / 瓦解 / 漏防', red.waves + ' / ' + red.waveClears + ' / ' + red.waveBreaches],
+    ['崩落体瓦解 / 撞舱 / 砸壳', red.shatters + ' / ' + red.fragPod + ' / ' + red.fragCrust],
+    ['波次结构索取', NF(red.waveClaim / 1000, 3)],
+    ['连击峰值 / 结余返还', '×' + red.chainPeak + ' / ' + red.chainGrants],
+    ['兑换 入 / 出 / 零头', red.exchIn + ' / ' + red.exchOut + ' / ' + NF(red.convFee / 1000, 3)],
+    ['配额已耗 / 枯竭拒抽', NF(red.quotaSpent / 1000, 3) + ' / ' + red.quotaBlocked],
     ['过载 / 回溯 / 越界拒绝', red.overloads + ' / ' + red.rollbacks + ' / ' + red.rejects],
     ['同源预演偏差', NF(red.tetherPeak, 4) + ' · 容差 ' + NF(K.TETHER_TOL, 1)],
     ['同源观测 / 越界', red.tetherObs + ' / ' + red.tetherOver],
     ['账本事件数', red.events],
     ['账本折叠指纹', red.fold],
-    ['结构余量 / 差额', NF(acc.crust / 1000, 3) + ' / ' + NF(red.gap / 1000, 3)]
+    ['结构余量 / 差额', NF(acc.crust / 1000, 3) + ' / ' + NF(red.gap / 1000, 3)],
+    ['结构券 / 已转成功', NF(acc.bond / 1000, 3) + ' / ' + NF(acc.converted / 1000, 3)]
   ];
   return { items: items, rows: rows, total: total, stars: stars, red: red, reason: S.settleReason };
 }
@@ -1956,16 +2475,150 @@ function drawRadar() {
   var warn = [
     ['切变风廊', S.galeT > 0],
     ['增生潮爆发', S.surge],
+    ['涌潮波次', !!(S.wave && S.wave.active)],
+    ['配额枯竭', S.quotaDead],
     ['矿壳坍缩区', S.collapses > 0],
-    ['坠井记录', S.rollbacks > 0],
     ['通道锁定', S.codeLocked]
   ];
   g.font = '8.5px monospace';
   for (var k = 0; k < warn.length; k++) {
     var yy = ly + k * 10;
     g.fillStyle = warn[k][1] ? C.danger : C.ink3;
-    g.fillText((warn[k][1] ? '▲ ' : '· ') + warn[k][0], 10, yy);
+    g.fillText((warn[k][1] ? '▲ ' : '· ') + warn[k][0], 8, yy);
   }
+}
+
+/* ============================================================
+   画布 E · 涌潮波次沙盘（崩落体与解析窗口）
+   ============================================================ */
+function drawWave() {
+  var F = fitCanvas('cvWave'); if (!F) return;
+  var g = F.g, W = F.w, H = F.h;
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H); g.restore();
+  g.fillStyle = '#111020'; g.fillRect(0, 0, W, H);
+  g.fillStyle = C.ink2; g.font = '600 10px monospace';
+  g.fillText('涌潮波次沙盘', 8, 13);
+  g.fillStyle = C.ink3; g.font = '9px monospace';
+  g.fillText('SURGE WAVE PLOT', 84, 13);
+  g.fillStyle = C.gold;
+  g.fillText('已放行 ' + S.wavePtr + ' / ' + D.WAVE_N + ' 波 · 瓦解 ' + S.waveClears + ' · 漏防 ' + S.waveBreaches, W - 210, 13);
+
+  /* 视窗：以舱体高度为中心，上下各 900 单位 */
+  var p = S.pod, h0 = D.FLOOR_Y - p.y;
+  var winTop = Math.max(0, h0 - 900), winBot = Math.min(6200, h0 + 900);
+  if (winBot - winTop < 1800) { winTop = Math.max(0, winBot - 1800); winBot = Math.min(6200, winTop + 1800); }
+  var px = 8, py = 20, pw = W - 16, ph = H - 20 - 26;
+  g.fillStyle = '#0b0a16'; g.fillRect(px, py, pw, ph);
+  g.strokeStyle = C.line; g.strokeRect(px, py, pw, ph);
+  var X = function (x) { return px + 4 + (x / D.SHAFT_W) * (pw - 8); };
+  var Y = function (h) { return py + ph - ((h - winTop) / (winBot - winTop)) * ph; };
+
+  /* 带底色与涌潮目标带高亮 */
+  var Wv = S.wave, tgt = (Wv && Wv.active) ? Wv.band : -1, b;
+  for (b = 0; b < D.BAND_N; b++) {
+    var B = BANDS[b], y1 = Y(B.a), y0 = Y(B.b);
+    var ya = Math.max(py, Math.min(py + ph, y0)), yb = Math.max(py, Math.min(py + ph, y1));
+    if (yb <= ya) continue;
+    g.globalAlpha = (b === tgt) ? 0.30 : ((b === S.band) ? 0.16 : 0.07);
+    g.fillStyle = ['#4a3f7a', '#3f5a7a', '#6a3f6a', '#7a5a3f', '#3f7a5f'][b];
+    g.fillRect(px, ya, pw, yb - ya);
+    g.globalAlpha = 1;
+    g.fillStyle = C.ink3; g.font = '8px monospace';
+    g.fillText(B.id, px + 3, ya + 9);
+  }
+  /* 井壁与谐振锚 */
+  g.strokeStyle = 'rgba(255,209,102,0.35)'; g.lineWidth = 1;
+  for (b = 0; b < D.ANCH_N; b++) {
+    var ay = Y(D.ANCH_H[b]);
+    if (ay < py || ay > py + ph) continue;
+    g.beginPath(); g.moveTo(px, ay); g.lineTo(px + pw, ay); g.stroke();
+    g.fillStyle = 'rgba(255,209,102,0.6)'; g.fillText('A-' + (b + 1), px + pw - 20, ay - 2);
+  }
+  /* 矿壳台面 */
+  var i;
+  for (i = 0; i < S.crusts.length; i++) {
+    var c = S.crusts[i];
+    if (c.h < winTop - 60 || c.h > winBot + 60) continue;
+    var cy = Y(c.h);
+    if (!c.alive) { g.fillStyle = 'rgba(255,77,106,0.5)'; g.fillRect(X(c.x), cy - 1, (c.w / D.SHAFT_W) * (pw - 8), 2); continue; }
+    var fr = c.cur / c.base;
+    g.fillStyle = fr > 0.66 ? 'rgba(79,214,200,0.65)' : (fr > 0.33 ? 'rgba(255,209,102,0.65)' : 'rgba(255,122,61,0.75)');
+    g.fillRect(X(c.x), cy - 1, Math.max(2, (c.w / D.SHAFT_W) * (pw - 8)), 2);
+  }
+  /* 崩落体 */
+  if (Wv) {
+    for (i = 0; i < Wv.frags.length; i++) {
+      var f = Wv.frags[i], fx = X(f.x), fy = Y(D.FLOOR_Y - f.y);
+      if (!f.alive) {
+        if (f.flash > 0) {
+          g.globalAlpha = Math.max(0, f.flash);
+          g.strokeStyle = C.cyan; g.lineWidth = 1.4;
+          g.beginPath(); g.arc(fx, fy, 4 + (1 - f.flash) * 14, 0, 6.2832); g.stroke();
+          g.globalAlpha = 1;
+        }
+        continue;
+      }
+      g.fillStyle = C.violet;
+      g.beginPath();
+      g.moveTo(fx, fy - 6); g.lineTo(fx + 5, fy); g.lineTo(fx, fy + 7); g.lineTo(fx - 5, fy);
+      g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(169,139,255,0.5)'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(fx, fy - 6); g.lineTo(fx, py + ph); g.stroke();
+    }
+  }
+  /* 舱体 */
+  var pyy = Y(h0);
+  g.fillStyle = C.gold;
+  g.beginPath(); g.arc(X(p.x), pyy, 3.6, 0, 6.2832); g.fill();
+  g.strokeStyle = C.gold; g.lineWidth = 1;
+  g.beginPath(); g.arc(X(p.x), pyy, 9, 0, 6.2832); g.stroke();
+  if (Wv) {   /* 脉冲解析半径 */
+    g.strokeStyle = 'rgba(79,214,200,0.30)'; g.setLineDash([3, 4]);
+    g.beginPath(); g.arc(X(p.x), pyy, (K.PULSE_FRAG_R / D.SHAFT_W) * (pw - 8), 0, 6.2832); g.stroke();
+    g.setLineDash([]);
+  }
+  /* 波次读数 */
+  g.fillStyle = C.ink3; g.font = '9px monospace';
+  var line = Wv ? ('第 ' + (Wv.i + 1) + ' 波 · 强度 ' + Wv.strength + ' · 目标 ' + BANDS[Wv.band].id +
+    ' · 瓦解 ' + Wv.killed + ' / ' + Wv.n + ' · 索取 ' + NF(Wv.claim / 1000, 3) + ' · 切变 ×' + NF(Wv.shearMul, 2))
+    : '待触发 · 下一波帧号 ' + (S.wavePtr < S.waves.length ? S.waves[S.wavePtr].f : '—');
+  g.fillText(line, px, H - 8);
+}
+
+/* ============================================================
+   画布 F · 结构券兑换率曲线仪（五带上限 + 实时落点）
+   ============================================================ */
+function drawBond() {
+  var F = fitCanvas('cvBond'); if (!F) return;
+  var g = F.g, W = F.w, H = F.h;
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H); g.restore();
+  g.fillStyle = '#111020'; g.fillRect(0, 0, W, H);
+  var i, bw = 22, gap = 5, x0 = 4, base = H - 5, top = 7, span = base - top;
+  var lo = 600, hi = 1000, cur = S.band, live = exchangeRate();
+  /* 历史落点刻度带：最近 24 次采样，压在柱顶之上 */
+  var hh = S.rateTrace || [], n = hh.length;
+  g.strokeStyle = 'rgba(79,214,200,0.55)'; g.lineWidth = 1;
+  for (i = 0; i < n; i++) {
+    var tx = 4 + (i / 47) * (W - 8), ty = 6 - (hh[i] - lo) / (hi - lo) * 5;
+    g.beginPath(); g.moveTo(tx, 6); g.lineTo(tx, ty); g.stroke();
+  }
+  for (i = 0; i < D.BAND_N; i++) {
+    var cap = exCap(i), x = x0 + i * (bw + gap);
+    var hCap = (cap - lo) / (hi - lo) * span;
+    g.fillStyle = (i === cur) ? 'rgba(255,209,102,0.30)' : 'rgba(169,139,255,0.16)';
+    g.fillRect(x, base - hCap, bw, hCap);
+    g.strokeStyle = (i === cur) ? C.gold : 'rgba(169,139,255,0.45)'; g.lineWidth = 1;
+    g.strokeRect(x + 0.5, base - hCap + 0.5, bw - 1, hCap - 1);
+    g.fillStyle = i === cur ? C.gold : C.ink3; g.font = '8px monospace';
+    g.fillText('B' + (i + 1), x + 6, base - 2);
+    g.fillText(String(cap), x - 1, base - hCap - 1);
+  }
+  var lx = x0 + D.BAND_N * (bw + gap) + 4;
+  g.font = '9px monospace';
+  g.fillStyle = C.violet; g.fillText('实时 ' + live + '‰', lx, 11);
+  g.fillStyle = C.gold; g.fillText('券 ' + NF(S.bondM / 1000, 3), lx, 23);
+  g.fillStyle = S.exchCd > 0 ? C.danger : C.ink3;
+  g.fillText(S.exchCd > 0 ? '冷却 ' + S.exchCd + ' 帧' : '兑换就绪', lx, 35);
 }
 
 /* ============================================================
@@ -1976,9 +2629,13 @@ function rowHTML(a, b, cls) { return '<div class="rv ' + (cls || '') + '"><span 
 
 function syncBand() {
   var box = $('band'); if (!box) return;
+  /* 十四阶互斥令牌条：序号即优先级链上的位置，中文名恒与 pīll / 事件溯源同源 */
   if (!box.dataset.on || box.dataset.on !== String(S.fsm)) {
     var out = [], i;
-    for (i = 0; i < SN.length; i++) out.push('<span class="' + (SN[i] === S.fsm ? 'on' : '') + '">' + SN[i] + '</span>');
+    for (i = 0; i < SN.length; i++) {
+      var idx = (i + 1 < 10 ? '0' : '') + (i + 1);
+      out.push('<span class="' + (SN[i] === S.fsm ? 'on' : '') + '" title="' + SN[i] + '"><u>' + idx + '</u>' + SC[i] + '</span>');
+    }
     box.innerHTML = out.join('');
     box.dataset.on = S.fsm;
   }
@@ -1988,12 +2645,15 @@ function syncTop() {
   setTxt('cAlt', NF(D.FLOOR_Y - p.y, 0) + ' / ' + D.FLOOR_Y);
   setTxt('cVel', NF(p.vy, 1));
   setTxt('cCharge', NF(S.chargeM / 1000, 3));
+  setTxt('cBond', NF(S.bondM / 1000, 3));
   var gap = acc.sum - D.BUDGET_M;
   var ge = $('cGap');
   if (ge) { ge.textContent = NF(gap / 1000, 3); ge.className = 'v ' + (gap === 0 ? 'cy' : 'bad'); }
+  var qe = $('cQuota'), ql = quotaLeft(S.band);
+  if (qe) { qe.textContent = NF(ql / 1000, 1); qe.className = 'v ' + (ql > 0 ? '' : 'bad'); }
   setTxt('cRetry', S.retries + ' / ' + K.RETRY_MAX);
   setTxt('cRoll', S.rollbacks + ' / ' + K.ROLLBACK_BUDGET);
-  setTxt('cEv', String(S.ledger.length));
+  setTxt('cEv', String(S.seq));
 }
 function syncPill() {
   setTxt('stName', S.fsm);
@@ -2005,13 +2665,15 @@ function defaultTip() {
   switch (S.fsm) {
     case 'BOOT_SEQUENCING': return '引导序列逐段以真实不变量自检放行。';
     case 'TITLE_LOBBY': return '长按主视口或空格满 900 毫秒接手传动；动能储备只由极限操作回充，静止只会泄漏。';
-    case 'SEEDED_INITIALIZING': return '按固定种子重建矿壳阵列与谐振锚坐标。';
+    case 'SEEDED_INITIALIZING': return '按固定种子重建矿壳阵列、谐振锚坐标、五带配额与涌潮时刻表。';
     case 'GRID_LOCKED': return '起步锁定：只放行节流与制动，风场已可推动舱体。';
     case 'ACTIVE_ENGAGED': return '裂穹跃迁中：落台接触本身不刷新任何计数，同调只由持续静止回充。';
+    case 'WAVE_ENGAGED': return '涌潮迎击：崩落体逐枚下坠，脉冲可扫掠瓦解，共振可整带泄放；漏防则从矿壳真实罚没。';
     case 'ATTUNEMENT_DWELL': return '保持相对静止满 350 毫秒完成驻台同调 —— 接触本身不刷新计数。';
     case 'GALE_CROSS': return '切变风廊内风强被非线性放大：顺风阻力抬到上限，逆风转为升力并削减法向载荷。';
     case 'DYNAMIC_BRANCHING': return '增生潮爆发：切变与涌流增益同时改写，异号援流追加投送。';
     case 'STRAIN_CRITICAL': return '承压临界：空中不再自然衰减应变。';
+    case 'QUOTA_EXHAUSTED': return '本带抽取配额已枯竭：只能换带，或烧结构券置换配额；置换不改变配额总量。';
     case 'OVERLOAD_PENALTY': return '过载硬直：全部输入被冻结，环带衰变与计时照常。';
     case 'CRISIS_FAILED_ROLLBACK': return '坠井回溯：账本保留，矿壳阵列与舱体位置复位。';
     case 'RUN_SETTLED_LEDGER': return '';
@@ -2023,9 +2685,12 @@ function syncOverlay() {
   var msg = '';
   if (S.fsm === 'BOOT_SEQUENCING' || S.fsm === 'RUN_SETTLED_LEDGER') msg = '';
   else if (S.fsm === 'TITLE_LOBBY') msg = '待机坞 · 长按主视口或空格 900 毫秒接手传动';
+  else if (S.fsm === 'WAVE_ENGAGED') msg = '涌潮第 ' + (S.wave.i + 1) + ' 波 · 强度 ' + S.wave.strength +
+    ' · 目标 ' + BANDS[S.wave.band].id + ' · 瓦解 ' + S.wave.killed + ' / ' + S.wave.n;
   else if (S.fsm === 'GALE_CROSS') msg = '切变风廊穿越中 · 顺风更慢 / 逆风更快';
   else if (S.fsm === 'DYNAMIC_BRANCHING') msg = '增生潮爆发 · 切变 ×' + NF(1.35 * 0.94, 2) + ' · 涌流载荷 ×' + NF(1.35, 2);
   else if (S.fsm === 'STRAIN_CRITICAL') msg = '承压临界 · 应变越限';
+  else if (S.fsm === 'QUOTA_EXHAUSTED') msg = '配额枯竭 · ' + BANDS[S.band].id + ' 余量 0 · 换带或烧券置换';
   else if (S.fsm === 'OVERLOAD_PENALTY') msg = '过载硬直 · 剩余 ' + NF(S.stunT, 2) + 's';
   else if (S.fsm === 'CRISIS_FAILED_ROLLBACK') msg = '坠井 · 因果回溯中';
   if (b) { b.textContent = msg; b.style.display = msg ? 'block' : 'none'; }
@@ -2043,7 +2708,7 @@ function syncTrace() {
     out.push('<div class="' + cls + '">' + pad3(e.seq) + ' ' + NF(e.t / 1000, 2) + ' <b>' + e.k + '</b> ' + e.p + '</div>');
   }
   box.innerHTML = out.join('');
-  setTxt('traceSub', S.ledger.length + ' 条');
+  setTxt('traceSub', S.seq + ' 条 · 折叠窗口 ' + S.ledger.length);
 }
 function syncZone() {
   var box = $('zoneBody'); if (!box) return;
@@ -2071,42 +2736,79 @@ function syncPrev() {
   out.push(rowHTML('距 / 量程', NF(pv.a.d, 1) + ' / ' + K.ROPE_RANGE, ''));
   out.push(rowHTML('预演采样 / 实锚', pv.seq.length + ' / ' + (p.tether ? p.tether.obs : 0), ''));
   out.push(rowHTML('同源观测 / 越界', S.tetherObs + ' / ' + S.tetherOver, S.tetherOver > 0 ? 'bad' : ''));
-  out.push(rowHTML('峰值偏差 / 容差', NF(p.tether ? p.tether.peak : 0, 4) + ' / ' + NF(K.TETHER_TOL, 1), ''));
+  out.push(rowHTML('峰值偏差', NF(p.tether ? p.tether.peak : 0, 4) + '/' + NF(K.TETHER_TOL, 1), ''));
   out.push(rowHTML('索长余量', p.tether ? NF(Math.max(0, 2.6 - p.tether.t), 2) + 's' : '待发射', ''));
   out.push(rowHTML('状态', p.tether ? '锚定中' : (pv.ok ? '可锚定' : '超程'), p.tether ? 'hi' : ''));
-  box.innerHTML = out.join('');
+  box.innerHTML = '<div class="rvg">' + out.join('') + '</div>';
   setTxt('prevSub', p.tether ? 'ANCHORED' : 'STANDBY');
 }
 function syncLedg() {
   var box = $('ledgBody'); if (!box) return;
   var acc = budgetAccounts(S), gap = acc.sum - D.BUDGET_M, out = [];
-  out.push(rowHTML('矿壳结构余量', NF(acc.crust / 1000, 3), ''));
-  out.push(rowHTML('舱体动能储备', NF(S.chargeM / 1000, 3), ''));
+  out.push(rowHTML('矿壳余量', NF(acc.crust / 1000, 3), ''));
+  out.push(rowHTML('舱体动能', NF(S.chargeM / 1000, 3), ''));
+  out.push(rowHTML('结构券', NF(acc.bond / 1000, 3), S.bondM > 0 ? 'hi' : ''));
   out.push(rowHTML('已转成功', NF(S.convertedM / 1000, 3), ''));
-  out.push(rowHTML('崩解熵增损耗', NF(S.entropyM / 1000, 3), ''));
-  out.push(rowHTML('合计 / 标定', NF(acc.sum / 1000, 3) + ' / ' + NF(D.BUDGET_M / 1000, 3), 'hi'));
+  out.push(rowHTML('熵增损耗', NF(S.entropyM / 1000, 3), ''));
+  out.push(rowHTML('五科合计', NF(acc.sum / 1000, 3), 'hi'));
   out.push(rowHTML('差额', NF(gap / 1000, 3), gap === 0 ? 'ok' : 'bad'));
-  out.push(rowHTML('在位 / 坍缩', acc.live + ' / ' + S.collapses, ''));
-  out.push(rowHTML('损失率监视', NF(S.impactSum > 0 ? S.impactLost / S.impactSum * 100 : 0, 1) + ' %', 'lo'));
-  box.innerHTML = out.join('');
-  setTxt('ledgSub', gap === 0 ? '守恒 0.000' : '差额 ' + NF(gap / 1000, 3));
+  out.push(rowHTML('在位/坍缩', acc.live + '/' + S.collapses, ''));
+  out.push(rowHTML('波次索取', NF(S.waveClaim / 1000, 3), S.waveClaim > 0 ? 'bad' : ''));
+  out.push(rowHTML('零头/手续费', NF(S.convFee / 1000, 3), 'lo'));
+  out.push(rowHTML('配额已耗', NF(S.quotaUsed.reduce(function (a, b) { return a + b; }, 0) / 1000, 3), ''));
+  out.push(rowHTML('枯竭拒抽', String(S.quotaBlocked), S.quotaBlocked > 0 ? 'bad' : 'lo'));
+  box.innerHTML = '<div class="rvg3">' + out.join('') + '</div>';
+  setTxt('ledgSub', gap === 0 ? '五科目守恒 0.000' : '差额 ' + NF(gap / 1000, 3));
 }
 function syncYield() {
   var box = $('yieldBody'); if (!box) return;
   var out = [];
   out.push(rowHTML('因果结余', String(S.causal), S.causal < 0 ? 'bad' : ''));
-  out.push(rowHTML('重试余量', S.retries + ' / ' + K.RETRY_MAX, ''));
-  out.push(rowHTML('回溯预算', S.rollbacks + ' / ' + K.ROLLBACK_BUDGET, ''));
-  out.push(rowHTML('归档帧数', String(S.frames.length), ''));
-  out.push(rowHTML('同调 / 脉冲', S.attunes + ' / ' + S.pulses, ''));
-  out.push(rowHTML('反冲 / 坍缩', S.rebounds + ' / ' + S.collapses, ''));
-  out.push(rowHTML('跨越 / 瞬切', S.crosses + ' / ' + S.flips, ''));
-  out.push(rowHTML('共振 / 索', S.resonances + ' / ' + S.tethers, ''));
-  out.push(rowHTML('动能转化', NF(S.chargeM / 1000 + S.convertedM / 1000, 3), ''));
-  out.push(rowHTML('通道', S.codeLocked ? '锁定 · 错 ' + S.codeErrs : '畅通 · 错 ' + S.codeErrs, S.codeLocked ? 'bad' : 'ok'));
-  out.push(rowHTML('账本折叠', hex8(ledgerFold(S.ledger)), 'lo'));
+  out.push(rowHTML('重试/回溯', S.retries + '/' + S.rollbacks, ''));
+  out.push(rowHTML('归档帧数', String(S.fN), ''));
+  out.push(rowHTML('同调/脉冲', S.attunes + '/' + S.pulses, ''));
+  out.push(rowHTML('反冲/坍缩', S.rebounds + '/' + S.collapses, ''));
+  out.push(rowHTML('跨越/瞬切', S.crosses + '/' + S.flips, ''));
+  out.push(rowHTML('共振/索', S.resonances + '/' + S.tethers, ''));
+  out.push(rowHTML('兑换 入/出', S.exchangesIn + '/' + S.exchangesOut, S.exchangesIn > 0 ? 'hi' : ''));
+  out.push(rowHTML('配额置换', S.quotaBuys + ' 次', S.quotaBuys > 0 ? 'hi' : ''));
+  out.push(rowHTML('通道', S.codeLocked ? '锁·错' + S.codeErrs : '畅·错' + S.codeErrs, S.codeLocked ? 'bad' : 'ok'));
+  out.push(rowHTML('券费/熵比', NF(S.entropyM > 0 ? S.convFee / S.entropyM * 100 : 0, 1) + '%', 'lo'));
+  out.push(rowHTML('账本折叠', hex8(S.foldAll), 'lo'));
+  box.innerHTML = '<div class="rvg3">' + out.join('') + '</div>';
+  setTxt('yieldSub', '×' + NF(1 + S.causal * 0.02, 2) + ' · 券 ' + NF(S.bondM / 1000, 3));
+}
+function syncQuota() {
+  var box = $('quotaBody'); if (!box) return;
+  var out = [], i;
+  for (i = 0; i < D.BAND_N; i++) {
+    var q = S.quota[i], u = S.quotaUsed[i], left = q - u, fr = q > 0 ? left / q : 0;
+    var col = left <= 0 ? C.danger : (fr > 0.5 ? C.ok : (fr > 0.2 ? C.gold : C.hot));
+    out.push('<div class="qrow' + (left <= 0 ? ' dead' : '') + '">' +
+      '<b>' + BANDS[i].id + ' ' + (i === S.band ? '◀' : '') + '</b>' +
+      '<div class="bar"><i style="width:' + (fr * 100).toFixed(1) + '%;background:' + col + '"></i></div>' +
+      '<span style="text-align:right">' + NF(left / 1000, 1) + ' / ' + NF(q / 1000, 1) + '</span></div>');
+  }
   box.innerHTML = out.join('');
-  setTxt('yieldSub', '×' + NF(1 + S.causal * 0.02, 2));
+  setTxt('quotaSub', '感应吃额 ×' + NF(BANDS[S.band].sense, 2) + ' · 拒抽 ' + S.quotaBlocked);
+}
+function syncChain() {
+  var box = $('chainBody'); if (!box) return;
+  var W = S.wave, out = [];
+  out.push(rowHTML('连击/峰值', '×' + S.chain + '/×' + S.chainPeak, S.chain >= K.CHAIN_PEAK ? 'hi' : ''));
+  out.push(rowHTML('连击窗口', S.chain > 0 ? NF(S.chainT, 2) + ' s' : '静默', ''));
+  out.push(rowHTML('结余返还', S.chainGrants + ' 次', ''));
+  out.push(rowHTML('波次 放/解/漏', S.wavePtr + '/' + S.waveClears + '/' + S.waveBreaches,
+    S.waveBreaches > 0 ? 'bad' : ''));
+  out.push(rowHTML('崩落体 解/舱/壳/底', S.waveKilled + '/' + S.wavePodHits + '/' + S.waveCrust + '/' + S.waveLanded, ''));
+  out.push(rowHTML('当前波', W ? ('第' + (W.i + 1) + '波 ×' + W.strength + '→' + BANDS[W.band].id) : '未触发',
+    W ? 'hi' : 'lo'));
+  out.push(rowHTML('波内 解/剩', W ? (W.killed + '/' + (W.n - W.killed)) : '—', ''));
+  out.push(rowHTML('波次索取', NF(S.waveClaim / 1000, 3), S.waveClaim > 0 ? 'bad' : ''));
+  out.push(rowHTML('扫掠/共振', K.PULSE_FRAG_R + ' · 整带', 'lo'));
+  out.push(rowHTML('下一波帧', S.wavePtr < S.waves.length ? String(S.waves[S.wavePtr].f) : '—', 'lo'));
+  box.innerHTML = '<div class="rvg3">' + out.join('') + '</div>';
+  setTxt('chainSub', W && W.active ? 'ENGAGED ×' + S.chain : 'STANDBY ×' + S.chain);
 }
 function syncLifeSub() { setTxt('lifeSub', '在位 ' + budgetAccounts(S).live + ' / ' + D.CRUST_N); }
 
@@ -2137,7 +2839,7 @@ function syncBootPanel() {
   for (q = 0; q < doneN; q++) bf += BOOT_STAGES[q].f;
   if (cur) bf += Math.min(S.boot.f, cur.f);
   var tot = 0; for (q = 0; q < BOOT_STAGES.length; q++) tot += BOOT_STAGES[q].f;
-  if (fr) fr.textContent = '引导帧 ' + bf + ' / ' + tot + ' · 已放行 ' + S.boot.list.length + ' / ' + BOOT_STAGES.length;
+  if (fr) fr.textContent = '引导帧 ' + bf + ' / ' + tot + ' · 已放行 ' + Math.min(S.boot.list.length, BOOT_STAGES.length) + ' / ' + BOOT_STAGES.length;
 }
 
 function syncSettle() {
@@ -2146,15 +2848,16 @@ function syncSettle() {
   setTxt('sScore', String(d.total));
   setTxt('sStars', ['☆☆☆', '★☆☆', '★★☆', '★★★'][d.stars]);
   setTxt('sSub', 'RUN_SETTLED_LEDGER · 全部读数由 ' + d.red.events + ' 条事件与 ' + d.red.frames + ' 条帧记录纯函数归约得出');
-  var r = [], cls;
+  var r = [], r2 = [], cls, half = Math.ceil(d.items.length / 2);
   for (i = 0; i < d.items.length; i++) {
     var it = d.items[i];
     cls = it.w > 0 ? 'pos' : (it.w < 0 ? 'neg' : 'zero');
-    r.push('<div class="rw ' + cls + '"><span class="a">' + it.k + ' · ' + it.base + '</span><span class="b">' +
+    (i < half ? r : r2).push('<div class="rw ' + cls + '"><span class="a">' + it.k + ' · ' + it.base + '</span><span class="b">' +
       (it.w > 0 ? '+' : '') + it.w + '</span></div>');
   }
-  r.push('<div class="rw" style="border-top:1px solid #332f57;margin-top:4px;padding-top:3px"><span class="a">合计</span><span class="b" style="color:#ffd166">' + d.total + '</span></div>');
+  r2.push('<div class="rw" style="border-top:1px solid #332f57;margin-top:4px;padding-top:3px"><span class="a">合计</span><span class="b" style="color:#ffd166">' + d.total + '</span></div>');
   $('sRed').innerHTML = r.join('');
+  if ($('sRed2')) $('sRed2').innerHTML = r2.join('');
   var q = [];
   for (i = 0; i < d.rows.length; i++) q.push('<div class="rw"><span class="a">' + d.rows[i][0] + '</span><span class="b">' + d.rows[i][1] + '</span></div>');
   $('sRows').innerHTML = q.join('');
@@ -2187,9 +2890,12 @@ function beginSeed() {
   S.crusts = genCrusts();
   S.pod.x = 300; S.pod.y = D.FLOOR_Y - D.CRUST_BASE_H - 14;
   S.pod.vx = 0; S.pod.vy = 0; S.pod.onGround = false; S.pod.ci = -1;
-  S.chargeM = 0; S.convertedM = 0; S.entropyM = 0;
+  S.chargeM = 0; S.bondM = 0; S.convertedM = 0; S.entropyM = 0;
+  S.quota = genQuota(); S.quotaUsed = [0, 0, 0, 0, 0];
+  S.waves = genWaves(); S.wave = null; S.wavePtr = 0;
+  S.chain = 0; S.chainT = 0; S.chainPeak = 0;
   S.causal = 2;
-  pushEvent('SEED_BEGIN', '按固定种子重建矿壳阵列 · 全额预算落位于矿壳', 1);
+  pushEvent('SEED_BEGIN', '按固定种子重建矿壳阵列 · 全额预算落位于矿壳 · 配额与涌潮时刻表同步重排', 1);
 }
 
 function keyName(e) {
@@ -2198,7 +2904,9 @@ function keyName(e) {
 }
 function onKeyDown(e) {
   var k = keyName(e);
-  if (['w', 'W', 'ArrowUp', ' ', 's', 'S', 'ArrowDown', 'a', 'A', 'ArrowLeft', 'd', 'D', 'ArrowRight', 'Shift', 'q', 'Q', 'e', 'E', 'r', 'R', 'p', 'P', 'z', 'Z', 'Enter', 'c', 'C', 'Escape'].indexOf(k) >= 0) e.preventDefault();
+  if (['w', 'W', 'ArrowUp', ' ', 's', 'S', 'ArrowDown', 'a', 'A', 'ArrowLeft', 'd', 'D', 'ArrowRight', 'Shift',
+    'q', 'Q', 'e', 'E', 'r', 'R', 'p', 'P', 'z', 'Z', 'x', 'X', 'v', 'V', 'n', 'N',
+    'Enter', 'c', 'C', 'Escape'].indexOf(k) >= 0) e.preventDefault();
   if (e.repeat) return;
   act(k, true);
 }
@@ -2233,6 +2941,9 @@ function act(k, down) {
     case 'e': case 'E': if (down) pressFlip(); break;
     case 'r': case 'R': if (down) pressResonance(); break;
     case 'p': case 'P': if (down) pressPulse(); break;
+    case 'x': case 'X': if (down) pressExchange(1); break;
+    case 'v': case 'V': if (down) pressExchange(-1); break;
+    case 'n': case 'N': if (down) pressQuota(); break;
     case 'z': case 'Z': if (down) stageAction('结算'); break;
   }
 }
@@ -2270,19 +2981,23 @@ function boot() {
   var acc = 0, lw = 0, li = 0, ll = 0, lr = 0, ldom = 0;
   function frameLoop(now) {
     var dt = now - S.last; S.last = now;
+    if (!(dt >= 0)) dt = 1000 / 60;          /* 时钟缺失/回跳不得污染累加器 */
     if (dt > 120) dt = 120;
     acc += dt;
+    if (!(acc >= 0)) acc = 0;
     var n = 0;
     while (acc >= 1000 / 60 && n < 8) { physics(K.DT); acc -= 1000 / 60; n++; }
     if (acc > 500) acc = 0;
     if (now - lw > 16) { lw = now; drawWorld(); }
     if (now - li > 32) { li = now; drawInst(); }
     if (now - ll > 96) { ll = now; drawLife(); }
-    if (now - lr > 160) { lr = now; drawRadar(); }
+    if (now - lr > 160) { lr = now; drawRadar(); drawWave(); drawBond(); }
     if (now - ldom > 34) {
       ldom = now;
+      if (S.rateTrace.length > 47) S.rateTrace.shift();
+      S.rateTrace.push(exchangeRate());
       syncBand(); syncTop(); syncPill(); syncOverlay(); syncTrace(); syncZone();
-      syncPrev(); syncLedg(); syncYield(); syncLifeSub(); syncSettle(); syncCode();
+      syncPrev(); syncLedg(); syncQuota(); syncChain(); syncYield(); syncLifeSub(); syncSettle(); syncCode();
       if (S.fsm === 'BOOT_SEQUENCING') syncBootPanel();
       var bt = $('boot'), stl = $('settle');
       if (bt) bt.style.display = (S.fsm === 'BOOT_SEQUENCING') ? 'block' : 'none';
@@ -2331,7 +3046,7 @@ function landAt(i) {
 }
 
 window.RIFT = {
-  version: 'riftvault-leap/2.0',
+  version: 'riftvault-leap/3.0',
   states: function () { return SN.slice(); },
   operable: function () { return OPERABLE.slice(); },
   fsm: function () { return S.fsm; },
@@ -2393,11 +3108,56 @@ window.RIFT = {
   windOverride: function (v) { S.windOverride = (v === null ? null : v); },
   surge: function (on) { S.surge = !!on; if (on) S.surgeT = 6.5; },
   load: function () { return loadNow(); },
+  /* —— v3：配额 / 结构券 / 涌潮波次 —— */
+  quota: function () { return { plan: S.quota.slice(), used: S.quotaUsed.slice(),
+    left: S.quota.map(function (q, i) { return q - S.quotaUsed[i]; }),
+    total: S.quota.reduce(function (a, b) { return a + b; }, 0),
+    dead: S.quotaDead, blocked: S.quotaBlocked, buys: S.quotaBuys, band: S.band }; },
+  quotaLeft: function (bi) { return quotaLeft(bi === undefined ? S.band : bi); },
+  quotaPlan: function () { return genQuota(); },
+  quotaTotal: function () { return D.QUOTA_TOTAL_M; },
+  bond: function () { return { bondM: S.bondM, convertedM: S.convertedM, fee: S.convFee,
+    exchanges: S.exchanges, exchangesIn: S.exchangesIn, exchangesOut: S.exchangesOut, cd: S.exchCd }; },
+  exRate: function (h, t) { return exRate(h === undefined ? (D.FLOOR_Y - S.pod.y) : h, t === undefined ? S.t : t); },
+  exCap: function (bi) { return exCap(bi); },
+  feed: function (acct, m) { return probeFeed(acct, m); },
+  exchange: function (dir, m) {
+    if (m !== undefined) probeFeed(dir > 0 ? 'charge' : 'bond', m);
+    return pressExchange(dir);
+  },
+  buyQuota: function (acct) { probeFeed('bond', K.QUOTA_COST); return pressQuota(); },
+  wavePlan: function () { return S.waves.map(function (w) { return { i: w.i, f: w.f, band: w.band, strength: w.strength, n: w.n }; }); },
+  waveBudget: function () { return waveBudget(S.waves); },
+  wave: function () {
+    var W = S.wave;
+    return { ptr: S.wavePtr, n: S.waveN, clears: S.waveClears, breaches: S.waveBreaches,
+      killed: S.waveKilled, landed: S.waveLanded, podHits: S.wavePodHits,
+      crust: S.waveCrust, claim: S.waveClaim,
+      chain: S.chain, chainPeak: S.chainPeak, chainT: S.chainT, grants: S.chainGrants,
+      active: !!(W && W.active), idx: W ? W.i : -1, band: W ? W.band : -1,
+      strength: W ? W.strength : 0, remain: W ? W.n - W.killed : 0,
+      frags: W ? W.frags.map(function (f) { return { x: f.x, y: f.y, vy: f.vy, alive: f.alive }; }) : [] };
+  },
+  spawnWave: function (idx) {
+    var w = S.waves[idx === undefined ? S.wavePtr : idx];
+    if (!w) return false;
+    if (S.wave && S.wave.active) { S.wave.active = false; }
+    spawnWave(w);
+    if (idx === undefined) S.wavePtr++;
+    return true;
+  },
+  shatter: function (rad) { return sweepFrags(rad === undefined ? K.PULSE_FRAG_R : rad, '探针扫掠'); },
+  stepWave: function (n) { for (var i = 0; i < (n || 1); i++) stepWave(K.DT); },
+  pulseR: function () { return K.PULSE_FRAG_R; },
+  pixel: function (id) { return pixelProbe(id); },
+  canvases6: function () { return ['cvWorld', 'cvInst', 'cvLife', 'cvRadar', 'cvWave', 'cvBond'].map(function (id) {
+    var pr = pixelProbe(id); return { id: id, ink: pr.ink, fp: pr.fp }; }); },
   ledgerOf: function (k) { return ledgerOf(k); },
   events: function () { return S.ledger.slice(); },
-  frames: function () { return S.frames.length; },
+  frames: function () { return S.fN; }, evCount: function () { return S.seq; },
   reduce: function () { return reduceLedger(); },
-  fold: function () { return hex8(ledgerFold(S.ledger)); },
+  fold: function () { return hex8(S.foldAll); },
+  foldWindow: function () { return hex8(ledgerFold(S.ledger)); },
   ropeState: function () { return ropeState(); },
   tetherPreview: function () { var h = D.FLOOR_Y - S.pod.y; var pv = tetherPreview(h); return { ok: pv.ok, n: pv.seq.length, d: pv.a.d, seq: pv.seq.slice() }; },
   tetherIntegrate: function (a, b, c, d, e) { return tetherIntegrate(a, b, c, d, e); },
@@ -2407,6 +3167,14 @@ window.RIFT = {
       attune: p.attune, attuneT: p.attuneT, lock: p.lock, canJump: p.canJump, charge: p.charge, charging: p.charging,
       strain: p.strain, phase: p.phase, phaseCd: p.phaseCd, tether: !!p.tether,
       chargeM: S.chargeM, entropyM: S.entropyM, convertedM: S.convertedM, gap: a.sum - D.BUDGET_M,
+      bondM: S.bondM, quotaLeft: quotaLeft(S.band), quotaDead: !!S.quotaDead,
+      quotaBuys: S.quotaBuys, quotaBlocked: S.quotaBlocked, exchCd: S.exchCd,
+      exchanges: S.exchanges, convFee: S.convFee, exRate: exchangeRate(),
+      chain: S.chain, chainPeak: S.chainPeak, chainT: S.chainT, chainGrants: S.chainGrants,
+      wavePtr: S.wavePtr, waveActive: !!(S.wave && S.wave.active), waveClears: S.waveClears,
+      waveBreaches: S.waveBreaches, waveKilled: S.waveKilled, waveLanded: S.waveLanded,
+      wavePodHits: S.wavePodHits, waveCrust: S.waveCrust, waveClaim: S.waveClaim,
+      exchangesIn: S.exchangesIn, exchangesOut: S.exchangesOut,
       retries: S.retries, rollbacks: S.rollbacks, causal: S.causal, t: S.t, frame: S.frame,
       lands: S.lands, attunes: S.attunes, collapses: S.collapses, rebounds: S.rebounds,
       edgeDrain: S.edgeDrain, stunT: S.stunT, surge: S.surge, gale: S.galeT > 0, band: S.band,
@@ -2415,11 +3183,13 @@ window.RIFT = {
   _s: function () { return S; },
   _p: function () { return S.pod; },
   info: function () {
-    return { version: 'riftvault-leap/2.0', states: SN.length, operable: OPERABLE.length,
+    return { version: 'riftvault-leap/3.0', states: SN.length, operable: OPERABLE.length,
       boot: BOOT_STAGES.length, bands: D.BAND_N, crusts: D.CRUST_N, anchors: D.ANCH_N,
-      canvases: 4, instruments: 11, gestures: 8, seed: SEED, fold: hex8(ledgerFold(S.ledger)) };
+      canvases: 6, instruments: 15, gestures: 10, subsystems: 10, waves: D.WAVE_N,
+      quotaTotal: D.QUOTA_TOTAL_M, seed: SEED, fold: hex8(ledgerFold(S.ledger)) };
   },
-  canvases: function () { return { cvWorld: paintedOf('cvWorld'), cvInst: paintedOf('cvInst'), cvLife: paintedOf('cvLife'), cvRadar: paintedOf('cvRadar') }; },
+  canvases: function () { return { cvWorld: paintedOf('cvWorld'), cvInst: paintedOf('cvInst'), cvLife: paintedOf('cvLife'),
+    cvRadar: paintedOf('cvRadar'), cvWave: paintedOf('cvWave'), cvBond: paintedOf('cvBond') }; },
   nonBlank: function () { return this.canvases(); },
   hudSnap: function () { return { alt: $('cAlt').textContent, vel: $('cVel').textContent, charge: $('cCharge').textContent, gap: $('cGap').textContent }; },
   settle: function () { if (!S.settled) doSettle('探针强制结算'); syncSettle(); var s = $('settle'); if (s) s.classList.add('on'); return S.settleData; },
@@ -2481,7 +3251,7 @@ function selfTest() {
     var pts = [];
     var chk = function (tag) { var g = budgetGap(S); pts.push(tag + '=' + g); return g === 0; };
     if (!chk('引导后')) return { note: '引导后差额非零 ' + pts.join(',') };
-    gainCharge(20000); if (!chk('抽取后')) return { note: '抽取后 ' + pts.join(',') };
+    gainCharge(20000, '断言抽取', true); if (!chk('抽取后')) return { note: '抽取后 ' + pts.join(',') };
     leak(5000); if (!chk('泄漏后')) return { note: '泄漏后 ' + pts.join(',') };
     fracture(S.crusts[10]); fracture(S.crusts[11]); fracture(S.crusts[12]);
     if (!chk('压溃三座后')) return { note: '压溃后 ' + pts.join(',') };
@@ -2499,7 +3269,7 @@ function selfTest() {
   A('assert5_noNegativeZero', function () {
     reset(); physics(K.DT);
     var i; for (i = 0; i < 400 && !S.boot.done; i++) physics(K.DT);
-    gainCharge(60000); leak(S.chargeM - 1);
+    gainCharge(60000, '断言抽取', true); leak(S.chargeM - 1);
     var g = budgetGap(S), a = budgetAccounts(S);
     var texts = [NF(g / 1000, 3), NF(a.crust / 1000, 3), NF(S.entropyM / 1000, 3)];
     for (i = 0; i < texts.length; i++) if (/-0\.0|^-0$/.test(texts[i])) return { note: '出现负零 ' + texts[i] };
@@ -2542,15 +3312,15 @@ function selfTest() {
       S.pod.y = py; S.pod.vx = 0; S.pod.vy = 0; S.pod.ci = -1; S.pod.onGround = false;
       physics(K.DT);
     }
-    gainCharge(20000);
-    var c0 = S.chargeM, ev0 = S.ledger.length;
+    gainCharge(20000, '断言抽取', true);
+    var c0 = S.chargeM, g0 = (S.evCount.GAIN || 0) + (S.evCount.BAND_CROSS || 0) + (S.evCount.PULSE || 0) + (S.evCount.CODE_OK || 0);
     for (i = 0; i < 180; i++) {
       S.pod.y = py; S.pod.vx = 0; S.pod.vy = 0; S.pod.ci = -1; S.pod.onGround = false;
       physics(K.DT);
     }
     if (S.chargeM > c0) return { note: '蓄能被动增长 ' + c0 + ' → ' + S.chargeM };
-    var gains = 0;
-    for (j = ev0; j < S.ledger.length; j++) if (/GAIN|BAND_CROSS|PULSE|CODE_OK/.test(S.ledger[j].k)) gains++;
+    /* 收益事件以种类计数之差判定：滚动窗口在长跑里会挤掉早期事件，用窗口切片会漏判 */
+    var gains = ((S.evCount.GAIN || 0) + (S.evCount.BAND_CROSS || 0) + (S.evCount.PULSE || 0) + (S.evCount.CODE_OK || 0)) - g0;
     if (gains > 0) return { note: '零输入窗口内出现收益事件 ' + gains };
     return { ok: true, note: '3s 零输入 · 蓄能 ' + c0 + ' → ' + S.chargeM + ' · 收益事件 0' };
   });
@@ -2674,7 +3444,7 @@ function selfTest() {
     var e0 = S.entropyM;
     /* 抽取受周边矿壳实额限制，逐次累积直至越限 */
     var i2 = 0;
-    while (S.stunT <= 0 && i2 < 400) { gainCharge(6000); i2++; }
+    while (S.stunT <= 0 && i2 < 400) { gainCharge(6000, '断言抽取', true); i2++; }
     if (!(S.stunT > 0)) return { note: '越限未触发硬直（' + i2 + ' 次抽取后蓄能 ' + NF(S.chargeM / 1000, 1) + '）' };
     if (S.chargeM > K.CHARGE_CAP * 1000) return { note: '硬直后蓄能仍越限' };
     if (!(S.entropyM > e0)) return { note: '越限溢出未转入熵增' };
@@ -2809,35 +3579,326 @@ function selfTest() {
     reset();
     var seen = {}, i;
     for (i = 0; i < SN.length; i++) { if (seen[SN[i]]) return { note: '令牌重复 ' + SN[i] }; seen[SN[i]] = 1; }
-    if (SN.length !== 12) return { note: '状态数 ' + SN.length };
-    if (OPERABLE.length !== 6) return { note: '可操作集合 ' + OPERABLE.length };
+    if (SN.length !== 14) return { note: '状态数 ' + SN.length };
+    if (OPERABLE.length !== 8) return { note: '可操作集合 ' + OPERABLE.length };
     for (i = 0; i < OPERABLE.length; i++) if (SN.indexOf(OPERABLE[i]) < 0) return { note: '可操作项不在状态集内' };
-    var probes = [
-      ['BOOT_SEQUENCING', function () { S.boot.done = false; }],
-      ['TITLE_LOBBY', function () { S.boot.done = true; S.started = false; S.settled = false; S.rollbackT = 0; S.stunT = 0; S.pod.strain = 0; }],
-      ['SEEDED_INITIALIZING', function () { S.started = true; S.seeding = true; }],
-      ['GRID_LOCKED', function () { S.seeding = false; S.launchLock = 1; }],
-      ['DYNAMIC_BRANCHING', function () { S.launchLock = 0; S.surge = true; S.galeT = 0; }],
-      ['GALE_CROSS', function () { S.surge = false; S.galeT = 3; }],
-      ['STRAIN_CRITICAL', function () { S.galeT = 0; S.pod.strain = K.STRAIN_CAP; }],
-      ['OVERLOAD_PENALTY', function () { S.pod.strain = 0; S.stunT = 1; }],
-      ['CRISIS_FAILED_ROLLBACK', function () { S.stunT = 0; S.rollbackT = 1; }],
-      ['RUN_SETTLED_LEDGER', function () { S.rollbackT = 0; S.settled = true; }]
-    ];
-    for (i = 0; i < probes.length; i++) {
+    if (SN.indexOf('WAVE_ENGAGED') < 0 || SN.indexOf('QUOTA_EXHAUSTED') < 0) return { note: 'v3 新令牌缺失' };
+    var base = function () {
       S.settled = false; S.rollbackT = 0; S.stunT = 0; S.pod.strain = 0; S.seeding = false;
       S.launchLock = 0; S.surge = false; S.galeT = 0; S.boot.done = true; S.started = true;
-      probes[i][1]();
+      S.quotaDead = false; S.wave = null; S.pod.onGround = false; S.pod.ci = -1; S.pod.attuneT = 0;
+    };
+    var probes = [
+      ['BOOT_SEQUENCING', function () { S.boot.done = false; }],
+      ['RUN_SETTLED_LEDGER', function () { S.settled = true; }],
+      ['CRISIS_FAILED_ROLLBACK', function () { S.rollbackT = 1; }],
+      ['OVERLOAD_PENALTY', function () { S.stunT = 1; }],
+      ['STRAIN_CRITICAL', function () { S.pod.strain = K.STRAIN_CAP; }],
+      ['QUOTA_EXHAUSTED', function () { S.quotaDead = true; }],
+      ['TITLE_LOBBY', function () { S.started = false; }],
+      ['SEEDED_INITIALIZING', function () { S.seeding = true; }],
+      ['GRID_LOCKED', function () { S.seeding = false; S.launchLock = 1; }],
+      ['WAVE_ENGAGED', function () { S.launchLock = 0; S.wave = { active: true }; }],
+      ['DYNAMIC_BRANCHING', function () { S.wave = null; S.surge = true; }],
+      ['GALE_CROSS', function () { S.surge = false; S.galeT = 3; }],
+      ['ATTUNEMENT_DWELL', function () { S.galeT = 0; S.pod.onGround = true; S.pod.ci = 40; S.pod.attuneT = 0.5; }],
+      ['ACTIVE_ENGAGED', function () { S.pod.onGround = false; S.pod.ci = -1; S.pod.attuneT = 0; }]
+    ];
+    for (i = 0; i < probes.length; i++) {
+      base(); probes[i][1]();
       evalFsm();
       if (S.fsm !== probes[i][0]) return { note: '条件 ' + probes[i][0] + ' 解出 ' + S.fsm };
       if (SN.indexOf(S.fsm) < 0) return { note: '解出集合外令牌' };
     }
-    S.settled = false; S.rollbackT = 0; S.stunT = 0; S.pod.strain = 0; S.seeding = false;
-    S.launchLock = 0; S.surge = false; S.galeT = 0; S.boot.done = true; S.started = true;
-    S.pod.onGround = false;
-    evalFsm();
+    base(); evalFsm();
     if (S.fsm !== 'ACTIVE_ENGAGED') return { note: '常态解出 ' + S.fsm };
-    return { ok: true, note: '十二阶互异 · 可操作 ' + OPERABLE.length + ' · 探针全命中' };
+    /* 单写入点：多条件同时成立时只解出唯一最高优先者 */
+    base(); S.settled = true; S.stunT = 1; S.pod.strain = K.STRAIN_CAP; S.quotaDead = true;
+    S.wave = { active: true }; S.surge = true; S.galeT = 3;
+    evalFsm();
+    if (S.fsm !== 'RUN_SETTLED_LEDGER') return { note: '优先级链断裂 ' + S.fsm };
+    base(); S.rollbackT = 1; S.pod.strain = K.STRAIN_CAP; S.quotaDead = true; S.wave = { active: true };
+    evalFsm();
+    if (S.fsm !== 'CRISIS_FAILED_ROLLBACK') return { note: '优先级链断裂2 ' + S.fsm };
+    base(); S.pod.strain = K.STRAIN_CAP; S.quotaDead = true; S.wave = { active: true };
+    evalFsm();
+    if (S.fsm !== 'STRAIN_CRITICAL') return { note: '优先级链断裂3 ' + S.fsm };
+    return { ok: true, note: '十四阶互异 · 可操作 ' + OPERABLE.length + ' · 优先级链唯一' };
+  });
+
+  A('assert20_quotaExhaustion', function () {
+    reset(); start(); physics(K.DT);
+    var plan = genQuota(), plan2 = genQuota(), i, s = 0, uniq = {}, n = 0;
+    for (i = 0; i < plan.length; i++) {
+      s += plan[i];
+      if (!uniq[plan[i]]) { uniq[plan[i]] = 1; n++; }
+      if (plan[i] !== plan2[i]) return { note: '配额计划不可复现 · 带 ' + i };
+    }
+    if (s !== D.QUOTA_TOTAL_M) return { note: '配额总量 ' + s + ' / ' + D.QUOTA_TOTAL_M };
+    if (n !== D.BAND_N) return { note: '配额取值未拉开 · 互异 ' + n };
+    /* 配额耗尽的带：抽取被拒且不产生任何搬运 */
+    var bi = S.band, crust0 = 0, c0 = S.crusts[0];
+    for (i = 0; i < S.crusts.length; i++) crust0 += S.crusts[i].cur;
+    S.quotaUsed[bi] = S.quota[bi];
+    if (quotaLeft(bi) !== 0) return { note: '配额未归零' };
+    var blk0 = S.quotaBlocked, got = extract(30000, false);
+    if (got !== 0) return { note: '配额耗尽仍搬走 ' + got };
+    if (S.quotaBlocked <= blk0) return { note: '未记录配额拒抽' };
+    if (!S.lastLimited) return { note: '未置限额标记' };
+    var crust1 = 0; for (i = 0; i < S.crusts.length; i++) crust1 += S.crusts[i].cur;
+    if (crust0 !== crust1) return { note: '拒抽仍动了矿壳 ' + (crust0 - crust1) };
+    /* 全带耗尽 → 状态机解出配额枯竭，且守恒仍成立 */
+    for (i = 0; i < D.BAND_N; i++) S.quotaUsed[i] = S.quota[i];
+    physics(K.DT);
+    if (!S.quotaDead) return { note: '全带耗尽未置枯竭位' };
+    if (S.fsm !== 'QUOTA_EXHAUSTED') return { note: '状态解出 ' + S.fsm };
+    if (budgetGap(S) !== 0) return { note: '枯竭态差额 ' + budgetGap(S) };
+    /* 配额置换：烧结构券放回配额，配额总量恒定，守恒仍成立 */
+    var q0 = S.quota.slice(), cost = K.QUOTA_COST;
+    var need = cost + 400, moved = 0, cc, tk;
+    for (i = 0; i < S.crusts.length && moved < need; i++) {
+      cc = S.crusts[i]; if (!cc.alive || cc.cur <= 0) continue;
+      tk = Math.min(cc.cur, need - moved); cc.cur -= tk; moved += tk;
+    }
+    S.bondM += moved;
+    if (moved < cost) return { note: '券源搬运不足 ' + moved };
+    if (budgetGap(S) !== 0) return { note: '券源搬运破坏守恒' };
+    var ent0 = S.entropyM, bond0 = S.bondM;
+    bi = S.band;
+    if (!pressQuota()) return { note: '配额置换被拒' };
+    if (S.bondM !== bond0 - cost) return { note: '烧券数不符 ' + (bond0 - S.bondM) };
+    if (S.entropyM !== ent0 + cost) return { note: '烧券未全额转熵增' };
+    if (quotaLeft(bi) <= 0) return { note: '配额未放回' };
+    for (i = 0; i < D.BAND_N; i++) if (S.quota[i] !== q0[i]) return { note: '配额总量被改动' };
+    if (budgetGap(S) !== 0) return { note: '置换后差额 ' + budgetGap(S) };
+    var got2 = gainCharge(4000);
+    if (!(got2 > 0)) return { note: '放回配额后仍无法抽取' };
+    if (budgetGap(S) !== 0) return { note: '复抽后差额 ' + budgetGap(S) };
+    return { ok: true, note: '配额 ' + D.QUOTA_TOTAL_M + ' 恒定 · 耗尽拒抽 ' + got2 + ' 复抽 · 置换守恒' };
+  });
+
+  A('assert21_waveClearReward', function () {
+    reset(); start();
+    var i; for (i = 0; i < 4; i++) physics(K.DT);
+    var w = S.waves[0], clears0 = S.waveClears, causal0 = S.causal, bond0 = S.bondM;
+    var crust0 = 0; for (i = 0; i < S.crusts.length; i++) crust0 += S.crusts[i].cur;
+    spawnWave(w);
+    if (!S.wave || !S.wave.active) return { note: '波次未激活' };
+    if (S.wave.frags.length !== w.n) return { note: '崩落体数 ' + S.wave.frags.length + ' / ' + w.n };
+    stepWave(K.DT);
+    evalFsm();
+    if (S.fsm !== 'WAVE_ENGAGED') return { note: '波次态令牌 ' + S.fsm };
+    var n = sweepFrags(1e6, '断言扫掠');
+    if (n !== w.n) return { note: '扫掠命中 ' + n + ' / ' + w.n };
+    if (S.waveKilled !== w.n) return { note: '瓦解计数 ' + S.waveKilled };
+    stepWave(K.DT);
+    if (S.waveClears !== clears0 + 1) return { note: '清空未记 ' + S.waveClears };
+    if (S.causal !== causal0 + 1) return { note: '因果结余未加' };
+    var crust1 = 0; for (i = 0; i < S.crusts.length; i++) crust1 += S.crusts[i].cur;
+    if ((S.bondM - bond0) !== (crust0 - crust1)) return { note: '回收量与矿壳搬运不等 ' + (S.bondM - bond0) + ' / ' + (crust0 - crust1) };
+    if (!(S.bondM > bond0)) return { note: '清空未回收结构券' };
+    if (budgetGap(S) !== 0) return { note: '清空后差额 ' + budgetGap(S) };
+    /* 连击窗口内超时清零，不给任何被动正增长 */
+    S.chain = 5; S.chainT = 0.01; stepChain(0.02);
+    if (S.chain !== 0 || S.chainT !== 0) return { note: '连击窗口未清零' };
+    return { ok: true, note: '第1波 ' + w.n + ' 体全灭 · 回收 ' + NF((S.bondM - bond0) / 1000, 3) + ' · 守恒零差' };
+  });
+
+  A('assert22_waveBreachPenalty', function () {
+    reset(); start();
+    var i; for (i = 0; i < 4; i++) physics(K.DT);
+    var w = S.waves[1], br0 = S.waveBreaches, ent0 = S.entropyM, crust0 = 0;
+    for (i = 0; i < S.crusts.length; i++) crust0 += S.crusts[i].cur;
+    spawnWave(w);
+    if (!S.wave || !S.wave.active) return { note: '波次未激活' };
+    /* 舱体撤出崩落走廊，确保全数未被瓦解 */
+    S.pod.x = -6000; S.pod.y = D.FLOOR_Y + 6000;
+    var guard = 0;
+    while (S.wave && S.wave.active && guard < 4000) { S.pod.x = -6000; stepWave(K.DT); guard++; }
+    if (guard >= 4000) return { note: '波次未了结' };
+    if (S.waveKilled !== 0) return { note: '探针干预下仍有瓦解 ' + S.waveKilled };
+    if (S.waveBreaches !== br0 + 1) return { note: '漏防未记 ' + S.waveBreaches };
+    if (S.waveLanded + S.wavePodHits <= 0) return { note: '漏防计数为零' };
+    if (!(S.entropyM > ent0)) return { note: '漏防未产生熵增索取' };
+    var crust1 = 0; for (i = 0; i < S.crusts.length; i++) crust1 += S.crusts[i].cur;
+    if ((S.entropyM - ent0) !== (crust0 - crust1)) return { note: '索取量与矿壳搬运不等 ' + (S.entropyM - ent0) + ' / ' + (crust0 - crust1) };
+    if (budgetGap(S) !== 0) return { note: '漏防后差额 ' + budgetGap(S) };
+    return { ok: true, note: '第2波漏防 ' + S.waveLanded + ' 体 · 索取 ' + NF((S.entropyM - ent0) / 1000, 3) + ' · 守恒零差' };
+  });
+
+  A('assert23_exchangeConservation', function () {
+    reset(); start(); physics(K.DT);
+    var i, c0, b0, e0, v0, sum0, pay, get, R, expect, tk, moved;
+    /* 一切券源/动能补给都必须真实取自矿壳，否则守恒断言无意义 */
+    var feed = function (m) {
+      var get2 = 0, k;
+      for (k = 0; k < S.crusts.length && get2 < m; k++) {
+        var c = S.crusts[k];
+        if (!c.alive || c.cur <= 0) continue;
+        tk = Math.min(c.cur, m - get2); c.cur -= tk; get2 += tk;
+      }
+      S.chargeM += get2; return get2;
+    };
+    /* 兑换前后五科目之和必须逐位不变 */
+    var pool = function () { return S.chargeM + S.bondM + S.entropyM + S.convertedM; };
+    for (i = 0; i < 6; i++) {
+      S.exchCd = 0;
+      moved = feed(K.EXCH_UNIT + 2000);
+      if (moved < K.EXCH_MIN) return { note: '无法补足兑换本金 · 轮 ' + i };
+      sum0 = pool(); c0 = S.chargeM; b0 = S.bondM; e0 = S.entropyM; R = exchangeRate();
+      if (!(R >= 600 && R <= 1000)) return { note: '汇率越界 ' + R };
+      if (!pressExchange(1)) return { note: '动能→券被拒 · 轮 ' + i };
+      pay = Math.min(c0, K.EXCH_UNIT);
+      expect = Math.min(Math.floor(pay * R / 1000), pay);
+      get = S.bondM - b0;
+      if (S.chargeM !== c0 - pay) return { note: '付款数不符' };
+      if (get !== expect) return { note: '得数与汇率不符 ' + get + ' / ' + expect };
+      if (get > pay) return { note: '兑换凭空生出结构 ' + get + ' > ' + pay };
+      if (S.entropyM - e0 !== pay - get) return { note: '零头未全额转熵增 ' + (S.entropyM - e0) + ' / ' + (pay - get) };
+      if (pool() !== sum0) return { note: '兑换破坏守恒 ' + pool() + ' / ' + sum0 };
+      /* 冷却闸：同帧第二次必须被拒 */
+      var rej0 = S.rejects, ex0 = S.exchanges;
+      if (pressExchange(1) !== false) return { note: '冷却未拦截二次兑换' };
+      if (S.exchanges !== ex0 || S.rejects !== rej0 + 1) return { note: '冷却拦截未记账' };
+      /* 券 → 已转成功：手续费落熵增，往返必有损 */
+      S.exchCd = 0; b0 = S.bondM; e0 = S.entropyM; v0 = S.convertedM; sum0 = pool();
+      if (!(b0 >= K.EXCH_MIN)) return { note: '券余量不足以转化' };
+      if (!pressExchange(-1)) return { note: '券→已转被拒 · 轮 ' + i };
+      pay = Math.min(b0, K.EXCH_UNIT);
+      if (S.bondM !== b0 - pay) return { note: '付券数不符' };
+      if (S.entropyM !== e0 + Math.floor(pay * K.CONV_FEE / 1000)) return { note: '手续费不符' };
+      if ((S.entropyM - e0) + (S.convertedM - v0) !== pay) return { note: '转化拆分不等于付款额 ' + (S.entropyM - e0) + '+' + (S.convertedM - v0) + ' / ' + pay };
+      if (pool() !== sum0) return { note: '转化破坏守恒' };
+      if (S.bondM >= b0) return { note: '往返未产生损耗' };
+      if (budgetGap(S) !== 0) return { note: '兑换轮 ' + i + ' 差额 ' + budgetGap(S) };
+    }
+    /* 低于下限必须拒绝且不记账 */
+    S.exchCd = 0;
+    S.entropyM += S.chargeM; S.chargeM = 0;
+    if (budgetGap(S) !== 0) return { note: '倒空动能破坏守恒' };
+    var ex1 = S.exchanges, rej1 = S.rejects;
+    if (pressExchange(1) !== false) return { note: '低于下限仍成交' };
+    if (S.exchanges !== ex1 || S.rejects !== rej1 + 1) return { note: '拒单记账异常' };
+    return { ok: true, note: '六轮往返逐位守恒 · 冷却拦截 · 下限拒绝' };
+  });
+
+  A('assert24_fiveAccountLedger', function () {
+    reset(); physics(K.DT);
+    var i, j, bad = '', tk;
+    for (i = 0; i < 400 && !S.boot.done; i++) physics(K.DT);
+    var acct = budgetAccounts(S), keys = ['crust', 'charge', 'bond', 'converted', 'entropy'];
+    for (i = 0; i < keys.length; i++) if (acct[keys[i]] === undefined) return { note: '缺科目 ' + keys[i] };
+    var chk = function (tag) {
+      var a = budgetAccounts(S), k;
+      if (a.sum !== D.BUDGET_M) return tag + ' 差额 ' + (a.sum - D.BUDGET_M);
+      if (a.crust + a.charge + a.bond + a.converted + a.entropy !== a.sum) return tag + ' 科目和不等';
+      for (k = 0; k < keys.length; k++) if (a[keys[k]] < 0) return tag + ' 科目为负 ' + keys[k];
+      return '';
+    };
+    /* 券源同样必须真实取自矿壳 */
+    var feedBond = function (m) {
+      var got = 0, k;
+      for (k = 0; k < S.crusts.length && got < m; k++) {
+        var c = S.crusts[k];
+        if (!c.alive || c.cur <= 0) continue;
+        tk = Math.min(c.cur, m - got); c.cur -= tk; got += tk;
+      }
+      S.bondM += got; return got;
+    };
+    bad = chk('引导后'); if (bad) return { note: bad };
+    start(); spawnWave(S.waves[0]);
+    for (i = 0; i < 14; i++) {
+      for (j = 0; j < 60; j++) physics(K.DT);
+      bad = chk('第' + (i + 1) + '段'); if (bad) return { note: bad };
+      S.exchCd = 0; pressExchange(i % 2 ? 1 : -1);
+      bad = chk('兑换' + (i + 1)); if (bad) return { note: bad };
+      if (i === 5) { feedBond(K.QUOTA_COST + 600); pressQuota(); bad = chk('置换'); if (bad) return { note: bad }; }
+      if (i === 8) { for (j = 0; j < D.BAND_N; j++) S.quotaUsed[j] = 0; spawnWave(S.waves[4]); }
+      S.pod.strain = (i % 3) * 40;
+    }
+    for (i = 0; i < 240; i++) physics(K.DT);
+    bad = chk('收束'); if (bad) return { note: bad };
+    var a2 = budgetAccounts(S);
+    if (a2.live <= 0) return { note: '存活矿壳归零' };
+    if (a2.sum !== D.BUDGET_M) return { note: '终态差额 ' + (a2.sum - D.BUDGET_M) };
+    return { ok: true, note: '五科目恒等 ' + D.BUDGET_M + ' · 存活 ' + a2.live + ' 座 · 全程零差' };
+  });
+
+  A('assert25_reduceSameSource', function () {
+    reset(); start();
+    var i, j, TGT = ['B1', 'B2', 'B3', 'B4', 'B5'];
+    function pick(bandId) {
+      var best = -1, bc = -1, t;
+      for (t = 0; t < S.crusts.length; t++) {
+        var c = S.crusts[t];
+        if (!c.alive || c.cur <= 0) continue;
+        if (BANDS[bandIdx(c.h)].id !== bandId) continue;
+        if (c.cur > bc) { bc = c.cur; best = t; }
+      }
+      return best;
+    }
+    /* 驻台同调不可跳过：先把相对速度压到静止阈值以下并保持满阈值 */
+    function dwell() {
+      var t;
+      for (t = 0; t < 400; t++) {
+        var p2 = S.pod;
+        if (p2.attune >= 1) { S.in.throttle = false; S.in.brake = false; return true; }
+        S.in.throttle = (p2.vx < -0.4); S.in.brake = (p2.vx > 0.4);
+        physics(K.DT);
+      }
+      S.in.throttle = false; S.in.brake = false;
+      return S.pod.attune >= 1;
+    }
+    var spins = 0;
+    for (i = 0; i < 80; i++) {
+      S.galeT = 0; S.surge = false; S.stunT = 0; S.launchLock = 0; S.pod.strain = 0; S.phaseCd = 0;
+      if (S.wave) { S.wave.active = false; S.wave = null; }
+      var ci = pick(TGT[i % D.BAND_N]);
+      if (ci < 0) continue;
+      landAt(ci);
+      if (!dwell()) continue;
+      holdStart();
+      if (!S.pod.charging) continue;
+      for (j = 0; j < 60; j++) physics(K.DT);
+      holdEnd();
+      for (j = 0; j < 3; j++) physics(K.DT);
+      if (i % 4 === 1) { pressTether(); for (j = 0; j < 24; j++) physics(K.DT); pressTether(); }
+      if (i % 5 === 2) pressFlip();
+      if (i % 7 === 3) pressPulse();
+      if (i % 6 === 4) { S.exchCd = 0; pressExchange(1); }
+      if (i % 9 === 5) { S.staged = null; commit('附注'); }
+      spins++;
+    }
+    if (spins < 20) return { note: '有效循环过少 ' + spins };
+    /* 关键前提：账本与帧记录都必须真的越过滚动窗口，否则本项退化为窗口内比对 */
+    if (!(S.seq > D.LEDGER_CAP)) return { note: '事件 ' + S.seq + ' 未越过账本窗口 ' + D.LEDGER_CAP };
+    if (!(S.fN > D.FRAME_CAP)) return { note: '帧记录 ' + S.fN + ' 未越过帧窗口 ' + D.FRAME_CAP };
+    if (S.ledger.length !== D.LEDGER_CAP) return { note: '账本窗口未满载 ' + S.ledger.length };
+    var red = reduceLedger();
+    var pairs = [['高度带跨越', red.crosses, S.crosses], ['驻台同调', red.attunes, S.attunes],
+      ['落点冲击', red.landings, S.lands], ['矿壳反冲', red.rebounds, S.rebounds],
+      ['矿壳坍缩', red.collapses, S.collapses], ['相位瞬切', red.flips, S.flips],
+      ['共振释放', red.resonances, S.resonances], ['蓄能脉冲', red.pulses, S.pulses],
+      ['输入拒绝', red.rejects, S.rejects]];
+    if (red.tetherObs !== S.tetherObs) return { note: '同源观测发数 ' + red.tetherObs + ' ≠ 仪表 ' + S.tetherObs };
+    if (red.tetherOver !== S.tetherOver) return { note: '同源越界发数 ' + red.tetherOver + ' ≠ 仪表 ' + S.tetherOver };
+    if (red.quotaSpent !== S.quotaUsed[0] + S.quotaUsed[1] + S.quotaUsed[2] + S.quotaUsed[3] + S.quotaUsed[4]) {
+      return { note: '配额已耗 ' + red.quotaSpent + ' ≠ 五联条之和' };
+    }
+    if (red.quotaBlocked !== S.quotaBlocked) return { note: '枯竭拒抽 ' + red.quotaBlocked + ' ≠ 仪表 ' + S.quotaBlocked };
+    if (red.exchIn !== S.exchangesIn || red.exchOut !== S.exchangesOut) return { note: '兑换计数与仪表不一致' };
+    for (i = 0; i < pairs.length; i++) {
+      if (pairs[i][1] !== pairs[i][2]) return { note: pairs[i][0] + '：结算归约 ' + pairs[i][1] + ' ≠ 局内仪表 ' + pairs[i][2] };
+    }
+    if (red.events !== S.seq) return { note: '事件条数 ' + red.events + ' ≠ 账本序号 ' + S.seq };
+    if (red.frames !== S.fN) return { note: '帧记录 ' + red.frames + ' ≠ 累计帧 ' + S.fN };
+    var sd = buildSettle(red);
+    if (sd.red.crosses !== S.crosses) return { note: '结算面板跨越项 ≠ 仪表' };
+    if (sd.red.attunes !== S.attunes) return { note: '结算面板同调项 ≠ 仪表' };
+    if (sd.rows.length < 20) return { note: '结算真实读数项不足 ' + sd.rows.length };
+    /* 整局折叠必须覆盖被挤出窗口的早期事件：与窗口折叠相同时即说明覆盖不全 */
+    if (hex8(S.foldAll) === hex8(ledgerFold(S.ledger))) return { note: '整局折叠退化为窗口折叠' };
+    return { ok: true, note: '事件 ' + S.seq + ' > 窗口 ' + D.LEDGER_CAP + ' · 归约九项与局内仪表逐项同源 · 整局折叠 ' + hex8(S.foldAll) };
   });
 
   return { assertions: R.length, listed: R.filter(function (r) { return r.pass; }).length,
