@@ -266,6 +266,9 @@
   #ttl{font:600 15px/1 ui-monospace,monospace;color:#e8f0f4;letter-spacing:.30em}
   #ttl small{display:block;font-size:10px;color:#547e92;letter-spacing:.20em;margin-top:5px}
   #read{font:11px ui-monospace,monospace;color:#5f7e8e;margin-right:8px}
+  @media (prefers-reduced-motion: reduce){
+    #L1,#L5,#L2,#L3,#L4,#bandlab *,#stage .part{transition:none!important;animation:none!important}
+  }
 </style>
 </head>
 <body>
@@ -824,7 +827,7 @@
     <g id="L7" data-layer="L7" data-name="拾取面"><path class="hit" data-i="5" data-part="cliff" d="M-322 -129H669V1206H-322Z"/><path class="hit" data-i="9" data-part="tower" d="M-193 -35H795V751H-193Z"/><path class="hit" data-i="10" data-part="band" d="M-32 -24H790V685H-32Z"/><path class="hit" data-i="11" data-part="window" d="M-12 -12H775V617H-12Z"/><path class="hit" data-i="23" data-part="shaft" d="M-26 -27H722V566H-26Z"/><path class="hit" data-i="30" data-part="beam" d="M-74 -70H740V191H-74Z"/><path class="hit" data-i="14" data-part="gallery" d="M-30 -12H794V231H-30Z"/><path class="hit" data-i="22" data-part="gear" d="M-7 -9H743V241H-7Z"/><path class="hit" data-i="17" data-part="glazing" d="M-9 -27H766V202H-9Z"/><path class="hit" data-i="21" data-part="lens" d="M-11 -8H749V197H-11Z"/><path class="hit" data-i="18" data-part="dome" d="M-35 -13H769V122H-35Z"/><path class="hit" data-i="24" data-part="cottage" d="M350 444H463V535H350Z"/></g>
   </svg>
 </div>
-<div id="bar">
+<div id="bar" role="toolbar" aria-label="视图切换">
   <span id="ttl">TIDAL · LH<small>潮汐灯塔 · 矢量插画</small></span>
   <span class="sp"></span>
   <span id="read">—</span>
@@ -892,17 +895,31 @@
     explode(v === 'explode');
     stage.setAttribute('viewBox', v === 'tower' ? TOWER : (v === 'cliff' ? CLIFF : FULL));
     [].forEach.call(document.querySelectorAll('#bar button'), function(b){
-      b.classList.toggle('on', b.getAttribute('data-v') === v);
+      var on = b.getAttribute('data-v') === v;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
     read();
   }
   [].forEach.call(document.querySelectorAll('#bar button'), function(b){
+    b.setAttribute('aria-pressed', b.classList.contains('on') ? 'true' : 'false');
     b.addEventListener('click', function(){ apply(b.getAttribute('data-v')); });
   });
+  function exitFocus(){
+    stage.classList.remove('hasfocus');
+    parts.forEach(function(p){ p.classList.remove('focused'); });
+    read();
+  }
   window.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){ exitFocus(); return; }
     var k = {Digit1:'overall',Digit2:'warm',Digit3:'tower',Digit4:'cliff',
              Digit5:'bp',Digit6:'explode',Digit7:'annot'}[e.code];
     if (k) apply(k);
+  });
+  stage.addEventListener('click', function(e){
+    if (!stage.classList.contains('hasfocus')) return;
+    if (e.target.closest && e.target.closest('.hit')) return;
+    exitFocus();
   });
 
   /* ── 微交互 1：悬停外层壳体沿透视法线外移（微爆炸展开） ── */
@@ -915,9 +932,18 @@
   }
   hits.forEach(function(h){
     var i = h.getAttribute('data-i');
+    h.setAttribute('tabindex', '0');
+    h.setAttribute('role', 'button');
+    h.setAttribute('aria-label', '聚焦 ' + (h.getAttribute('data-part') || ''));
+    h.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        h.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      }
+    });
     h.addEventListener('mouseenter', function(){
       if (view === 'explode') return;
-      shellOf(i).forEach(function(p){ p.setAttribute('transform', tf(18)); });
+      shellOf(i).forEach(function(p){ p.setAttribute('transform', tf(8)); });
     });
     h.addEventListener('mouseleave', function(){
       if (view === 'explode') return;
@@ -935,6 +961,7 @@
 
   /* ── 微交互 2：视差光斑——高光层与背景层反向微幅位移 ──── */
   var px = 0, py = 0, tx = 0, ty = 0, lw = -1, lh = -1;
+  var RM = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
   window.addEventListener('mousemove', function(e){
     tx = (e.clientX / window.innerWidth  - .5) * 2;
     ty = (e.clientY / window.innerHeight - .5) * 2;
@@ -942,9 +969,13 @@
   var gL5 = document.getElementById('L5'), gL1 = document.getElementById('L1');
   function tick(){
     refit();
-    px += (tx - px) * .09; py += (ty - py) * .09;
+    if (RM && RM.matches){ px = 0; py = 0; }
+    else { px += (tx - px) * .09; py += (ty - py) * .09; }
     gL5.setAttribute('transform', layerTf(5));
     gL1.setAttribute('transform', layerTf(1));
+    if (expl) [].forEach.call(document.querySelectorAll('#bandlab > g'), function(e){
+      e.setAttribute('transform', layerTf(+e.getAttribute('data-l')));
+    });
   }
   window.LH_TICK = tick;
   setInterval(tick, 16);
@@ -971,15 +1002,90 @@
     if (cw !== lw || ch !== lh){ lw = cw; lh = ch; fit(); read(); }
   }
 
+  var DEFKINDS = ['linearGradient', 'radialGradient', 'clipPath', 'mask', 'filter'];
+  function effective(el){
+    var v = 1;
+    for (var n = el; n && n.nodeType === 1; n = n.parentElement)
+      v *= parseFloat(getComputedStyle(n).opacity);
+    return v;
+  }
+  function painted(el){
+    if (el.classList && el.classList.contains('hit')) return false;
+    var cs = getComputedStyle(el);
+    var f = cs.fill, s = cs.stroke;
+    var hf = f && f !== 'none' && f !== 'transparent' && f !== 'rgba(0, 0, 0, 0)';
+    var hs = s && s !== 'none' && parseFloat(cs.strokeWidth) > 0;
+    return hf || hs;
+  }
+  function audit(){
+    var S = '#stage ';
+    var layers = {}, prims = {}, defs = {}, ds = [];
+    for (var L = 1; L <= 5; L++){
+      var g = document.getElementById('L' + L);
+      layers['L' + L] = g ? g.querySelectorAll('*').length : 0;
+    }
+    [].forEach.call(document.querySelectorAll(S + '[data-prim]'), function(e){
+      var k = e.getAttribute('data-prim');
+      prims[k] = (prims[k] || 0) + 1;
+    });
+    var HTML = document.documentElement.outerHTML;
+    DEFKINDS.forEach(function(k){
+      var all = document.querySelectorAll(S + k), used = 0;
+      [].forEach.call(all, function(d){
+        if (d.id && HTML.indexOf('url(#' + d.id + ')') >= 0) used++;
+      });
+      defs[k] = { total: all.length, used: used };
+    });
+    [].forEach.call(document.querySelectorAll('#stage path'), function(e){
+      ds.push(e.getAttribute('d') || '');
+    });
+    var focusMax = 0, focusIds = [];
+    if (stage.classList.contains('hasfocus')){
+      [].forEach.call(document.querySelectorAll('.part.focused'), function(p){
+        focusIds.push(p.getAttribute('data-i') || p.id || '');
+      });
+      [].forEach.call(document.querySelectorAll(
+        '#stage path,#stage rect,#stage circle,#stage ellipse,#stage text,#stage line,#stage polygon,#stage polyline'),
+        function(el){
+          if (!el.getClientRects().length || !painted(el)) return;
+          if (el.closest('.part.focused')) return;
+          var v = effective(el);
+          if (v > focusMax) focusMax = v;
+        });
+    }
+    var offs = [1,2,3,4,5].map(function(L){ return EXPL[L]; });
+    var mono = true;
+    for (var i = 1; i < offs.length; i++) if (!(offs[i] > offs[i - 1])) mono = false;
+    return {
+      view: view,
+      path: document.querySelectorAll(S + 'path').length,
+      uniquePath: new Set(ds).size,
+      lin: document.querySelectorAll(S + 'linearGradient').length,
+      rad: document.querySelectorAll(S + 'radialGradient').length,
+      stop: document.querySelectorAll(S + 'stop').length,
+      clip: document.querySelectorAll(S + 'clipPath').length,
+      mask: document.querySelectorAll(S + 'mask').length,
+      filt: document.querySelectorAll(S + 'filter').length,
+      layer: document.querySelectorAll(S + '[data-layer]').length,
+      viewBox: stage.getAttribute('viewBox'),
+      layers: layers,
+      prims: prims,
+      defs: defs,
+      explode: { active: expl, offsets: offs, monotonic: mono },
+      focus: { active: stage.classList.contains('hasfocus'), ids: focusIds,
+               maxOther: +focusMax.toFixed(2) }
+    };
+  }
   function read(){
-    var n = document.querySelectorAll('#stage path').length;
+    var a = audit();
     document.getElementById('read').textContent =
-      'view=' + view + '  path=' + n + '  layers=' +
-      document.querySelectorAll('#stage [data-layer]').length +
-      '  viewBox=' + stage.getAttribute('viewBox');
+      'view=' + a.view + '  p=' + a.path + '  lg=' + a.lin + '  rg=' + a.rad +
+      '  st=' + a.stop + '  cp=' + a.clip + '  mk=' + a.mask +
+      '  fl=' + a.filt + '  ly=' + a.layer + '  vb=' + a.viewBox;
   }
   read();
   window.LH = { apply: apply, fit: fit, tick: tick, stage: stage,
+    audit: audit,
     pathCount: function(){ return document.querySelectorAll('#stage path').length; } };
 })();
 </script>

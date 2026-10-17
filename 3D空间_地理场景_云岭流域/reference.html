@@ -105,7 +105,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .togs button.on{color:#0a1410;background:linear-gradient(180deg,#e8c477,#c99a3c);border-color:#c99a3c;font-weight:600}
 
 /* ---------- 台账 ---------- */
-.lgrid{display:grid;grid-template-columns:repeat(4,1fr);height:calc(100% - 25px)}
+.lgrid{display:grid;grid-template-columns:repeat(5,1fr);height:calc(100% - 25px)}
 .lc{padding:10px 13px;border-right:1px solid var(--line)}
 .lc:last-child{border-right:0}
 .lc u{display:block;text-decoration:none;font-size:9.5px;letter-spacing:.13em;color:var(--dim)}
@@ -136,6 +136,27 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
   font-size:9.5px;color:var(--dim);letter-spacing:.04em;line-height:1.55;text-align:right}
 .pick b{color:var(--gold);font-weight:600}
 .pick em{font-style:normal;color:var(--cyan)}
+
+/* ---------- 启动自检控制台 ---------- */
+.boot{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;
+  background:#05080a;
+  border:1px solid #1b2b31;padding:14px 18px;font:10px/1.35 ui-monospace,Menlo,Consolas,monospace;
+  color:#8fa8af;overflow:hidden}
+.boot.off{display:none}
+.boot .bh{display:flex;justify-content:space-between;align-items:baseline;
+  padding-bottom:7px;border-bottom:1px solid #1c2a30;color:#cfe0e3;letter-spacing:.12em;font-size:10.5px}
+.boot .bh i{font-style:normal;color:var(--gold);letter-spacing:.08em}
+.boot .brows{flex:1;padding-top:7px;min-height:0;overflow:hidden}
+.boot .br{display:grid;grid-template-columns:24px 152px 42px minmax(0,1fr);
+  gap:7px;align-items:baseline;padding:2.5px 0;border-bottom:1px dashed #122026}
+.boot .br u{text-decoration:none;color:#42575e;font-size:9px}
+.boot .br b{font-weight:600;color:#9fb7bd;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.boot .br em{font-style:normal;font-weight:700;color:var(--lime)}
+.boot .br em.bad{color:var(--rose)}
+.boot .br s{text-decoration:none;color:#5d747c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.boot .bf{padding-top:6px;border-top:1px solid #1c2a30;color:#5d747c;display:flex;justify-content:space-between;gap:10px}
+.boot .bf b{color:var(--cyan);font-weight:600}
+.boot .bf i{font-style:normal;color:#42575e}
 
 @media (max-width:1400px){
   .app{grid-template-columns:262px minmax(0,1fr) 300px}
@@ -214,6 +235,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
     <canvas id="gl"></canvas>
     <div class="sband"><i id="stDot"></i><b id="stName">INIT_BUFFER_ALLOCATED</b><s id="stSub">缓冲装配标定</s></div>
     <div class="pick" id="pickBox">射线拾取 —<br>地表落点 —</div>
+    <div class="boot" id="boot">
+      <div class="bh"><span>启动自检链 · BUFFER BOOTSTRAP</span><i id="bootT">0 / 12</i></div>
+      <div class="brows" id="bootRows"></div>
+      <div class="bf"><span id="bootFoot">逐级实测 · 任一级失败则整链重跑</span><b id="bootMs">0 ms</b></div>
+    </div>
     <div class="tip">
       <span>左键拖拽<b>球面环绕</b></span>
       <span>滚轮<b>非线性缩放</b></span>
@@ -272,7 +298,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
       <div class="lc"><u>平均帧间隔</u><b id="lB">0.0<small>ms</small></b><s id="lBd">全时段帧间隔算术均值</s></div>
       <div class="lc"><u>拾取命中率</u><b id="lC">0.0<small>%</small></b><s id="lCd">命中帧 / 有效拾取帧</s></div>
       <div class="lc"><u>状态驻留分布</u><b class="sm" id="lD">—</b>
-        <div class="hist" id="hist"></div></div>
+        <div class="hist" id="hist"></div><s id="lDd">Σ 0 / 0 帧</s></div>
+      <div class="lc"><u>最小包围盒间隙</u><b id="lE">0.00<small>u</small></b>
+        <s id="lEd">安全阈值 0.50 单位</s></div>
     </div>
   </section>
 
@@ -442,9 +470,12 @@ function buildTerrain() {
       var nl = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
       nrm[k * 3] = nx / nl; nrm[k * 3 + 1] = ny / nl; nrm[k * 3 + 2] = nz / nl;
 
-      /* 切线沿参数域 u 方向（后半段接缝处退化为 z 向，避免奇异） */
+      /* 切线沿参数域 u 方向；接缝退化为 z 向，并统一对法线做正交化 */
       var tx = 2 * step, ty = hAt(i + 1, j) - hAt(i - 1, j), tz = 0;
       if (i === 0 || i === N - 1) { tx = 0; ty = 0; tz = 2 * step; }
+      var nnx = nx / nl, nny = ny / nl, nnz = nz / nl;
+      var td = tx * nnx + ty * nny + tz * nnz;
+      tx -= td * nnx; ty -= td * nny; tz -= td * nnz;
       var tl = Math.sqrt(tx * tx + ty * ty + tz * tz) || 1;
       tan[k * 3] = tx / tl; tan[k * 3 + 1] = ty / tl; tan[k * 3 + 2] = tz / tl;
 
@@ -610,6 +641,10 @@ var TRAPS = [
 ];
 
 /* ---------- 遥测账本字段 ---------- */
+/* 每帧一条十六列样本：时间 / 帧间隔 / 状态枚举 / 命中 / 有效拾取 / 方位角 / 极角 / 视距 /
+   靶点三轴 / 角速度 / 包围盒间隙 / 主光相位 / 副光相位 / 三角面数 */
+var LEDGER_COLS = ['t', 'dt', 'state', 'hit', 'valid', 'az', 'el', 'd',
+  'tgtX', 'tgtY', 'tgtZ', 'omega', 'clear', 'l0az', 'l1az', 'tris'];
 var LEDGER_DEF = [
   { k: '帧样本数', u: '帧', d: '逐帧累积的遥测样本条数，结算时刻由该数组长度回溯得出' },
   { k: '平均帧间隔', u: 'ms', d: '回溯全时段帧间隔的算术均值' },
@@ -701,7 +736,9 @@ var FOCUS = { on: false, ent: -1, t: 0, dwell: 0, from: null, to: null };
 var HOME = { on: false, t: 0, from: null, to: null };
 var OVR = { t: 0, k: 0, spec0: -1, bump0: -1 };
 var WIR = { t: 0 };
-var BOOT = { n: 3 };
+var BOOT = { on: true, stage: 0, rows: [], acc: 0, t0: 0, tEnd: 0, tries: 0,
+             bad: 0, hold: 0, done: false, ready: false };
+var BOOT_STEP = 0.0667, BOOT_HOLD = 0.40;
 
 /* ---------------- 双动态点光源 ---------------- */
 var L0 = { az: 0.90, el: 0.78, r: 3600, col: [1.00, 0.80, 0.50], i: 1.42, p: [0, 0, 0] };
@@ -713,7 +750,7 @@ var SF = { bump: 0.85, spec: 0.62, cont: 34, uvScale: 41 };
 /* ---------------- 交互 ---------------- */
 var MODE = null, PX = 0, PY = 0, LT = 0, PMX = 0, PMY = 0, PMT = 0;
 var HOVER = { on: false, ent: -1, t: 0 };
-var PICK = { ent: -1, ground: null, hit: false, valid: false, sx: 0, sy: 0 };
+var PICK = { ent: -1, ground: null, hit: false, valid: false, sx: 0, sy: 0, t: 0 };
 
 /* ---------------- 时间与统计 ---------------- */
 var T = 0, FR = 0, FPS = 60, ACC = { n: 0, dt: 0, hit: 0, valid: 0, hist: [0, 0, 0, 0, 0, 0, 0, 0], top: -1 };
@@ -999,6 +1036,7 @@ function pickAt(px, py) {
   }
   var g = hitTerrain(r);
   PICK.ent = bi; PICK.hit = bi >= 0; PICK.ground = g.hit ? g : null;
+  PICK.t = bi >= 0 ? bt : (g.hit ? g.t : 0);
   PICK.valid = true; PICK.sx = px; PICK.sy = py;
   return { ent: bi, t: bt, ground: g };
 }
@@ -1067,6 +1105,7 @@ var FS = [
   'uniform float uUvS;',
   'uniform float uOver;',
   'uniform float uWire;',
+  'uniform float uHi;',
   'uniform float uAmb;',
   'uniform float uFog;',
   'vec3 lambert(vec3 n, vec3 v, vec3 lp, vec3 lc, float li, float sh){',
@@ -1089,8 +1128,8 @@ var FS = [
   '  vec3 n = normalize(N + (T * nt.x + B * nt.y) * uBump);',
   '  vec3 V = normalize(uEye - vW);',
   '  if (uWire > 1.5) {',
-  '    float fw = clamp(1.0 - length(uEye - vW) / 6200.0, 0.10, 1.0);',
-  '    gl_FragColor = vec4(vec3(0.15, 0.84, 0.82) * fw * 0.88, 1.0);',
+  '    float fw = clamp(1.0 - length(uEye - vW) / 14000.0, 0.50, 1.0);',
+  '    gl_FragColor = vec4(vec3(0.12, 0.90, 0.86) * fw, 1.0);',
   '    return;',
   '  }',
   '  float sh = 22.0 + 118.0 * uSpec;',
@@ -1104,6 +1143,7 @@ var FS = [
   '  }',
   '  float rim = pow(1.0 - max(dot(n, V), 0.0), 2.6);',
   '  acc += vec3(1.0, 0.62, 0.30) * rim * uOver * 1.5;',
+  '  acc += vec3(0.10, 0.92, 0.84) * uHi * (0.30 + 1.55 * rim);',
   '  acc *= 1.0 + 0.55 * uOver;',
   '  acc = mix(acc, acc * 0.60 + vec3(0.026, 0.072, 0.076), min(uWire, 1.0));',
   '  float fg = 1.0 - exp(-pow(length(uEye - vW) / 21000.0, 2.3));',
@@ -1163,6 +1203,8 @@ function buf(data, target) {
   var b = gl.createBuffer();
   gl.bindBuffer(target, b);
   gl.bufferData(target, data, gl.STATIC_DRAW);
+  if (target === gl.ARRAY_BUFFER) NBUF.vbo = (NBUF.vbo || 0) + 1;
+  else NBUF.ebo = (NBUF.ebo || 0) + 1;
   return b;
 }
 
@@ -1188,7 +1230,7 @@ function initGL() {
   var i;
   for (i = 0; i < attrs.length; i++) U[attrs[i]] = gl.getAttribLocation(PROG, attrs[i]);
   var un = ['uProj', 'uView', 'uModel', 'uPush', 'uBumpTex', 'uEye', 'uL0', 'uL1', 'uC0', 'uC1',
-            'uI0', 'uI1', 'uBump', 'uSpec', 'uCont', 'uUvS', 'uOver', 'uWire', 'uAmb', 'uFog'];
+            'uI0', 'uI1', 'uBump', 'uSpec', 'uCont', 'uUvS', 'uOver', 'uWire', 'uHi', 'uAmb', 'uFog'];
   for (i = 0; i < un.length; i++) U[un[i]] = gl.getUniformLocation(PROG, un[i]);
   U.aQ = gl.getAttribLocation(SKY, 'aQ');
   US.uInvPV = gl.getUniformLocation(SKY, 'uInvPV');
@@ -1294,7 +1336,7 @@ function evalState() {
   if (HOVER.on) return 3;                      /* TARGET_ENTITY_HOVER */
   if (OVR.t > 0) return 5;                     /* LIGHTING_OVERDRIVE */
   if (WIR.t > 0) return 6;                     /* SHADING_WIREFRAME_HYBRID */
-  if (BOOT.n > 0) return 0;                    /* INIT_BUFFER_ALLOCATED */
+  if (BOOT.on) return 0;                       /* INIT_BUFFER_ALLOCATED */
   return 1;                                    /* ORBIT_IDLE_SPINNING */
 }
 var STCH = -1;
@@ -1306,7 +1348,7 @@ var sm = function (t) { return t * t * (3 - 2 * t); };
 
 function stepCam(dt) {
   /* 巡航自转：仅在非拖拽、无惯性、无聚焦/归位时推进 */
-  if (MODE === null && !GLIDE.on && !FOCUS.on && !HOME.on) cam.az += 0.115 * dt;
+  if (MODE === null && !GLIDE.on && !FOCUS.on && !HOME.on && !BOOT.on) cam.az += 0.115 * dt;
 
   /* 惯性滑行（松手后指数阻尼衰减） */
   if (GLIDE.on) {
@@ -1349,7 +1391,6 @@ function stepCam(dt) {
 
   if (OVR.t > 0) { OVR.t = Math.max(0, OVR.t - dt); if (OVR.t === 0) overRelease(); }
   if (WIR.t > 0) WIR.t = Math.max(0, WIR.t - dt);
-  if (BOOT.n > 0) BOOT.n--;
 
   /* 极角硬限位 */
   if (cam.el < 0.055) { cam.el = 0.055; cam.wEl = 0; }
@@ -1374,14 +1415,18 @@ function stepLights(dt) {
     SF.bump = OVR.bump0 * (1 + 0.55 * OVR.k);
   }
 }
-function tick(dt) {
+function stepSim(dt) {
   T += dt;
   stepLights(dt);
   stepCam(dt);
   S = evalState();
-  render();
   record(dt);
+  bootTick(dt);
   DRAWC++;
+}
+function tick(dt) {
+  stepSim(dt);
+  render();
 }
 
 /* ==========================================================================
@@ -1401,7 +1446,7 @@ function resize() {
 function render() {
   resize();
   var b = buildPV();
-  gl.viewport(0, 0, VW, VH);
+  gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   /* --- 天空 --- */
@@ -1445,7 +1490,8 @@ function render() {
   gl.uniform1f(U.uBump, SF.bump * 0.60);
   gl.uniform1f(U.uUvS, SF.uvScale * 0.55);
   gl.uniform1f(U.uOver, o);
-  gl.uniform1f(U.uWire, wm);
+  gl.uniform1f(U.uWire, 0);
+  gl.uniform1f(U.uHi, 0);
   gl.uniform1f(U.uPush, 0);
   m4I(MX.model);
   gl.uniformMatrix4fv(U.uModel, false, MX.model);
@@ -1471,8 +1517,10 @@ function render() {
     var e = ENT[i], sc = 5.5 * e.sc;
     m4TR(MX.model, e.x, e.y - 58 * sc, e.z, sc);
     gl.uniformMatrix4fv(U.uModel, false, MX.model);
+    gl.uniform1f(U.uHi, (i === PICK.ent || (FOCUS.on && FOCUS.ent === i)) ? 1 : 0);
     gl.drawElements(gl.TRIANGLES, BUF.bea.n, gl.UNSIGNED_SHORT, 0);
   }
+  gl.uniform1f(U.uHi, 0);
 
   /* 线框混合叠加 */
   if (wm) {
@@ -1503,28 +1551,46 @@ function render() {
    九、逐帧遥测账本（回溯聚合，无任何常量指标）
    ========================================================================== */
 function record(dt) {
-  var f = [T, dt * 1000, S, PICK.hit ? 1 : 0, PICK.valid ? 1 : 0, cam.az, cam.el, cam.d];
+  var w = Math.sqrt(cam.wAz * cam.wAz + cam.wEl * cam.wEl);
+  var hit = (PICK.valid && PICK.hit) ? 1 : 0;
+  var valid = PICK.valid ? 1 : 0;
+  var f = [T, dt * 1000, S, hit, valid, cam.az, cam.el, cam.d,
+           cam.tgt[0], cam.tgt[1], cam.tgt[2], w, clearanceAt(eyeOf(cam.d)),
+           L0.az, L1.az, BUF.ter.tris + BUF.skt.tris + BUF.bea.tris * ENT.length];
+  PICK.valid = false;
   FRH.push(f);
   FR++;
   if (FRH.length > 3600) FRH.splice(0, 900);
 }
 function aggregate() {
   var n = FRH.length;
-  var a = { n: n, dt: 0, fps: 0, hit: 0, valid: 0, hist: [0, 0, 0, 0, 0, 0, 0, 0], top: -1, topN: 0 };
+  var a = { n: n, dt: 0, fps: 0, hit: 0, valid: 0, hitRate: null, defined: false,
+            hist: [0, 0, 0, 0, 0, 0, 0, 0], sumHist: 0, top: -1, topN: 0,
+            minClear: 0, meanClear: 0, meanOmega: 0, trans: 0, unique: 0, tris: 0 };
   if (!n) return a;
-  var s = 0, hits = 0, valid = 0, i, f, mx = -1, mi = -1;
+  var s = 0, hits = 0, valid = 0, i, f, mx = -1, mi = -1, prev = -1;
+  var mc = 1e12, sc = 0, so = 0, seen = {};
   for (i = 0; i < n; i++) {
     f = FRH[i];
     s += f[1];
     a.hist[f[2]]++;
+    a.sumHist++;
     if (f[4]) { valid++; if (f[3]) hits++; }
+    if (f[12] < mc) mc = f[12];
+    sc += f[12]; so += f[11];
+    if (prev >= 0 && f[2] !== prev) a.trans++;
+    prev = f[2];
+    if (!seen[f[2]]) { seen[f[2]] = 1; a.unique++; }
+    a.tris = f[15];
   }
   for (i = 0; i < 8; i++) if (a.hist[i] > mx) { mx = a.hist[i]; mi = i; }
   a.dt = s / n;
   a.fps = a.dt > 0 ? 1000 / a.dt : 0;
   a.valid = valid; a.hit = hits;
-  a.hitRate = valid > 0 ? hits / valid * 100 : 0;
+  a.defined = valid > 0;
+  a.hitRate = valid > 0 ? hits / valid * 100 : null;
   a.top = mi; a.topN = mx;
+  a.minClear = mc; a.meanClear = sc / n; a.meanOmega = so / n;
   return a;
 }
 
@@ -1559,7 +1625,10 @@ function initHUD() {
   H.orbTxA = grab('orbTxA'); H.orbTxB = grab('orbTxB');
   H.lA = grab('lA'); H.lB = grab('lB'); H.lC = grab('lC'); H.lD = grab('lD');
   H.lAd = grab('lAd'); H.lBd = grab('lBd'); H.lCd = grab('lCd'); H.ledN = grab('ledN');
+  H.lDd = grab('lDd'); H.lE = grab('lE'); H.lEd = grab('lEd');
   H.hist = grab('hist');
+  H.boot = grab('boot'); H.bootRows = grab('bootRows'); H.bootT = grab('bootT');
+  H.bootMs = grab('bootMs'); H.bootFoot = grab('bootFoot');
   H.vBump = grab('vBump'); H.vSpec = grab('vSpec'); H.vCont = grab('vCont');
   H.sBump = grab('sBump'); H.sSpec = grab('sSpec'); H.sCont = grab('sCont');
   H.tWire = grab('tWire'); H.tOver = grab('tOver');
@@ -1668,23 +1737,23 @@ function domHUD() {
   H.fCull.textContent = cl >= CLEAR ? (inF ? '视锥内 · 无剔除' : '视锥内') : '越界';
   H.fCull.className = cl >= CLEAR ? 'li' : 'ro';
 
-  H.gFps.textContent = FPS.toFixed(0);
+  H.gFps.textContent = RFPS.toFixed(0);
   H.gTris.textContent = (BUF.ter.tris + BUF.skt.tris + BUF.bea.tris * ENT.length).toLocaleString();
   H.gDist.textContent = cam.d.toFixed(0);
   H.gPrim.textContent = WIR.t > 0 ? 'TRI+LN' : 'TRI';
 
   H.pipe[0].textContent = WIR.t > 0 ? 'TRIANGLES + LINES' : 'TRIANGLES';
-  H.pipe[1].textContent = '8 × STATIC_DRAW';
-  H.pipe[2].textContent = '3 × Uint16Array';
-  H.pipe[3].textContent = 'pos/nrm/tan/col/uv';
+  H.pipe[1].textContent = (NBUF.vbo || 0) + ' × STATIC_DRAW';
+  H.pipe[2].textContent = (NBUF.ebo || 0) + ' × Uint16Array';
+  H.pipe[3].textContent = 'pos/nrm/tan/col/uv + sky';
   H.pipe[4].textContent = (BUF.ter.verts + BUF.skt.verts + BUF.bea.verts * ENT.length).toLocaleString();
   H.pipe[5].textContent = (BUF.ter.tris + BUF.skt.tris + BUF.bea.tris * ENT.length).toLocaleString();
   H.pipe[6].textContent = String(2 + ENT.length + (WIR.t > 0 ? 2 + ENT.length : 0));
   H.pipe[7].textContent = '自定义 GLSL ×2';
   H.pipe[8].textContent = 'TEXTURE0 · 法线摄动';
   H.pipe[9].textContent = 'DEPTH LEQUAL / CULL BACK';
-  H.pipe[10].textContent = FPS.toFixed(1) + ' fps';
-  H.pipe[11].textContent = (ACC.dt || 0).toFixed(2) + ' ms';
+  H.pipe[10].textContent = RFPS.toFixed(1) + ' fps';
+  H.pipe[11].textContent = (1000 / RFPS).toFixed(2) + ' ms';
 
   H.light[0].textContent = L0.p[0].toFixed(0) + ', ' + L0.p[1].toFixed(0) + ', ' + L0.p[2].toFixed(0);
   H.light[1].textContent = (L0.i * (1 + 1.15 * (OVR.k || 0))).toFixed(2);
@@ -1725,11 +1794,19 @@ function domLedger() {
   H.lA.innerHTML = ACC.n + '<small>帧</small>';
   H.lAd.textContent = '逐帧遥测样本条数';
   H.lB.innerHTML = ACC.dt.toFixed(2) + '<small>ms</small>';
-  H.lBd.textContent = '等价 ' + ACC.fps.toFixed(1) + ' 帧/秒';
-  H.lC.innerHTML = ACC.hitRate.toFixed(1) + '<small>%</small>';
-  H.lCd.textContent = '命中 ' + ACC.hit + ' / 有效 ' + ACC.valid + ' 帧';
+  H.lBd.textContent = '定长步长 60Hz · 渲染 ' + RFPS.toFixed(0) + ' fps';
+  if (ACC.defined) {
+    H.lC.innerHTML = ACC.hitRate.toFixed(1) + '<small>%</small>';
+    H.lCd.textContent = '命中 ' + ACC.hit + ' / 有效 ' + ACC.valid + ' 帧';
+  } else {
+    H.lC.innerHTML = '无定义<small>—</small>';
+    H.lCd.textContent = '有效拾取 0 帧 · 判无定义';
+  }
   H.lD.textContent = ACC.top >= 0 ? SN[ACC.top] + ' · ' + ACC.topN + ' 帧' : '—';
-  H.ledN.textContent = ACC.n;
+  H.lDd.textContent = 'Σ ' + ACC.sumHist + ' / ' + ACC.n + ' 帧 · 转移 ' + ACC.trans;
+  H.lE.innerHTML = ACC.minClear.toFixed(2) + '<small>u</small>';
+  H.lEd.textContent = '全时段最小 · 阈值 0.50 / 均值 ' + ACC.meanClear.toFixed(2);
+  H.ledN.textContent = ACC.n + ' · 16 列';
   var mx = 1;
   for (var i = 0; i < 8; i++) if (ACC.hist[i] > mx) mx = ACC.hist[i];
   for (var k = 0; k < 8; k++) {
@@ -1861,21 +1938,206 @@ function overRelease() {
 function pulseWire(sec) { WIR.t = Math.max(WIR.t, sec); }
 
 /* ==========================================================================
+   十一·五、启动自检链（十二级 · 逐级实测留痕）
+   ========================================================================== */
+function pixelStats() {
+  var w = gl.drawingBufferWidth, h = gl.drawingBufferHeight, n = w * h;
+  var px = new Uint8Array(n * 4);
+  gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  var cnt = 0, s = 0, s2 = 0, uniq = 0, seen = {}, mx = 0, mn = 255;
+  for (var i = 0; i < n; i += 7) {
+    var r = px[i * 4], g2 = px[i * 4 + 1], b = px[i * 4 + 2];
+    var v = r * 0.299 + g2 * 0.587 + b * 0.114;
+    s += v; s2 += v * v; cnt++;
+    if (v > mx) mx = v; if (v < mn) mn = v;
+    var k = ((r >> 3) << 10) | ((g2 >> 3) << 5) | (b >> 3);
+    if (!seen[k]) { seen[k] = 1; uniq++; }
+  }
+  var m = s / cnt;
+  return { w: w, h: h, mean: m, std: Math.sqrt(Math.max(0, s2 / cnt - m * m)),
+           uniq: uniq, min: mn, max: mx, samples: cnt };
+}
+function attOf(d) { return 1 / (1 + 0.09 * d + 0.032 * d * d); }
+var BOOT_STAGES = [
+  { k: 'DOM_PROBE', f: function () {
+      var ids = ['gl', 'bootRows', 'cX', 'fFov', 'pipeRows', 'lightRows', 'teleRows', 'lA', 'hist'];
+      var ok = 0;
+      for (var i = 0; i < ids.length; i++) if (document.getElementById(ids[i])) ok++;
+      return { pass: ok === ids.length, note: ok + ' / ' + ids.length + ' 节点绑定' };
+    } },
+  { k: 'CANVAS_CONTEXT', f: function () {
+      var n = document.querySelectorAll('canvas').length;
+      return { pass: (ctxType === 'webgl' || ctxType === 'webgl2') && n === 1,
+               note: ctxType + ' · ' + n + ' canvas' };
+    } },
+  { k: 'BUFFER_ASSEMBLY', f: function () {
+      var v = BUF.ter.verts + BUF.skt.verts + BUF.bea.verts * ENT.length;
+      return { pass: v >= 1500, note: BUF.ter.verts + ' + ' + BUF.skt.verts + ' + ' +
+               (BUF.bea.verts * ENT.length) + ' = ' + v + ' v' };
+    } },
+  { k: 'SURFACE_TOPOLOGY', f: function () {
+      var G = TER.nrm, N = TER.N, mind = 1;
+      for (var j = 0; j < N; j += 2) for (var i = 0; i < N - 1; i += 2) {
+        var a = (j * N + i) * 3, b = a + 3;
+        var d = G[a] * G[b] + G[a + 1] * G[b + 1] + G[a + 2] * G[b + 2];
+        if (d < mind) mind = d;
+      }
+      return { pass: mind > 0.5, note: '相邻法线最小点积 ' + mind.toFixed(4) };
+    } },
+  { k: 'TANGENT_FRAME', f: function () {
+      var N = TER.N, P = TER.nrm, T = TER.tan, md = 0;
+      for (var k = 0; k < N * N; k += 5) {
+        var o = k * 3;
+        var d = Math.abs(P[o] * T[o] + P[o + 1] * T[o + 1] + P[o + 2] * T[o + 2]);
+        if (d > md) md = d;
+      }
+      return { pass: md < 0.02, note: '|N·T| 上界 ' + md.toExponential(2) };
+    } },
+  { k: 'MATRIX_CORE', f: function () {
+      buildPV();
+      var tmp = new Float32Array(16);
+      m4M(tmp, MX.pv, MX.inv);
+      var err = 0;
+      for (var k = 0; k < 16; k++) {
+        var want = (k % 5 === 0) ? 1 : 0;
+        var e = Math.abs(tmp[k] - want);
+        if (e > err) err = e;
+      }
+      return { pass: err < 1e-3, note: 'PV·PV⁻¹ 最大偏差 ' + err.toExponential(2) };
+    } },
+  { k: 'CLIP_RANGE', f: function () {
+      buildPV();
+      xf4(MX.pv, 0, 600, 0, 1, TMP4);
+      var w = TMP4[3], z = TMP4[2] / (w || 1e-9);
+      return { pass: w > 0 && z > -1 && z < 1,
+               note: '靶点 NDC z ' + z.toFixed(3) + ' · w ' + w.toFixed(0) };
+    } },
+  { k: 'LIGHT_LAW', f: function () {
+      var a1 = attOf(120), a2 = attOf(900), a3 = attOf(2400);
+      var d0 = Math.sqrt(L0.p[0] * L0.p[0] + L0.p[1] * L0.p[1] + L0.p[2] * L0.p[2]);
+      var d1 = Math.sqrt(L1.p[0] * L1.p[0] + L1.p[1] * L1.p[1] + L1.p[2] * L1.p[2]);
+      var cs = (L0.p[0] * L1.p[0] + L0.p[1] * L1.p[1] + L0.p[2] * L1.p[2]) / ((d0 * d1) || 1);
+      var ang = Math.acos(Math.max(-1, Math.min(1, cs))) / DEG;
+      return { pass: a1 > a2 && a2 > a3 && ang >= 30,
+               note: 'A(120) ' + a1.toFixed(4) + ' > A(900) ' + a2.toFixed(4) + ' · 张角 ' + ang.toFixed(1) + '°' };
+    } },
+  { k: 'ENTITY_MOORING', f: function () {
+      var err = 0;
+      for (var i = 0; i < ENT.length; i++) {
+        var e = ENT[i], d = Math.abs(e.y - hAtW(e.x, e.z));
+        if (d > err) err = d;
+      }
+      return { pass: ENT.length === 7 && err < 2,
+               note: ENT.length + ' 座 · 最大落面误差 ' + err.toFixed(2) + ' u' };
+    } },
+  { k: 'RAY_PICK', f: function () {
+      var s = screenOf(0);
+      var r = pickAt(s.x, s.y);
+      return { pass: r.ent === 0, note: '实体回投 ' + (r.ent === 0 ? ENT[0].name : 'MISS') +
+               ' · t ' + (r.t > 0 ? r.t.toFixed(0) : '—') };
+    } },
+  { k: 'LEDGER_SCHEMA', f: function () {
+      var seen = {}, dup = 0;
+      for (var i = 0; i < LEDGER_COLS.length; i++) {
+        if (seen[LEDGER_COLS[i]]) dup++;
+        seen[LEDGER_COLS[i]] = 1;
+      }
+      return { pass: LEDGER_COLS.length === 16 && dup === 0,
+               note: LEDGER_COLS.length + ' 列 · 重名 ' + dup };
+    } },
+  { k: 'PIXEL_HANDSHAKE', f: function () {
+      var p = pixelStats();
+      return { pass: p.std > 3 && p.uniq > 24,
+               note: 'μ ' + p.mean.toFixed(1) + ' · σ ' + p.std.toFixed(1) + ' · ' + p.uniq + ' 色' };
+    } }
+];
+function bootRowsHTML() {
+  var s = '';
+  for (var i = 0; i < BOOT.rows.length; i++) {
+    var r = BOOT.rows[i];
+    s += '<div class="br"><u>' + (i < 9 ? '0' : '') + (i + 1) + '</u><b>' + r.k +
+         '</b><em class="' + (r.pass ? '' : 'bad') + '">' + (r.pass ? 'PASS' : 'FAIL') +
+         '</em><s>' + r.note + '</s></div>';
+  }
+  return s;
+}
+function bootPaint() {
+  if (!H.bootRows) return;
+  H.bootRows.innerHTML = bootRowsHTML();
+  H.bootT.textContent = BOOT.stage + ' / 12';
+  H.bootMs.textContent = Math.round((T - BOOT.startT) * 1000) + ' ms';
+  H.bootFoot.textContent = BOOT.stage < BOOT_STAGES.length
+    ? '逐级实测 · 任一级失败则整链重跑'
+    : (BOOT.bad ? '存在失败级 · 重跑计数 ' + BOOT.tries : '全链闭合 · 交接渲染循环');
+}
+function restartBoot() {
+  BOOT.on = true; BOOT.stage = 0; BOOT.rows = []; BOOT.acc = 0; BOOT.hold = 0;
+  BOOT.bad = 0; BOOT.done = false; BOOT.startT = T;
+  if (H.boot) H.boot.className = 'boot';
+  if (H.bootFoot) H.bootFoot.textContent = '逐级实测 · 任一级失败则整链重跑';
+  bootPaint();
+}
+function bootTick(dt) {
+  if (!BOOT.on) return;
+  if (BOOT.stage < BOOT_STAGES.length) {
+    BOOT.acc += dt;
+    while (BOOT.acc >= BOOT_STEP && BOOT.stage < BOOT_STAGES.length) {
+      BOOT.acc -= BOOT_STEP;
+      var st = BOOT_STAGES[BOOT.stage], res;
+      try { res = st.f(); } catch (e) { res = { pass: false, note: 'EX ' + (e && e.message || e) }; }
+      if (!res.pass) BOOT.bad++;
+      BOOT.rows.push({ k: st.k, pass: res.pass, note: res.note });
+      BOOT.stage++;
+      bootPaint();
+    }
+    if (BOOT.stage === BOOT_STAGES.length) BOOT.hold = 0;
+  } else {
+    BOOT.hold += dt;
+    if (BOOT.bad > 0 && BOOT.tries < 2 && BOOT.hold < 0.5) {
+      bootPaint();
+      return;
+    }
+    if (BOOT.bad > 0 && BOOT.tries < 2) {
+      BOOT.tries++;
+      restartBoot();
+      return;
+    }
+    if (BOOT.hold >= BOOT_HOLD) {
+      BOOT.on = false; BOOT.done = true;
+      BOOT.tEnd = (T - BOOT.startT) * 1000;
+      if (H.boot) H.boot.className = 'boot off';
+      /* 自检样本不入正式账本：闭合后从零开始累积 */
+      FRH.length = 0; FR = 0;
+      PICK.ent = -1; PICK.ground = null; PICK.hit = false; PICK.valid = false; PICK.t = 0;
+      ACC = aggregate();
+    }
+    bootPaint();
+  }
+}
+
+/* ==========================================================================
    十二、主循环
    ========================================================================== */
-var LAST = 0;
+var LAST = 0, SIMACC = 0, RFPS = 60, RFDT = 1 / 60;
+var SIMSTEP = 1 / 60;
 function loop(now) {
   requestAnimationFrame(loop);
-  if (FROZEN) { LAST = now; return; }
+  if (FROZEN) { LAST = now; SIMACC = 0; return; }
   if (!LAST) LAST = now;
-  var dt = (now - LAST) / 1000;
+  var real = (now - LAST) / 1000;
   LAST = now;
-  if (dt > 0.05) dt = 0.05;
-  if (dt < 0.0005) dt = 0.0005;
-  tick(dt);
-  AGGT += dt;
+  if (real > 0.25) real = 0.25;
+  if (real < 0.0005) real = 0.0005;
+  RFDT = RFDT * 0.90 + real * 0.10;
+  RFPS = 1 / RFDT;
+  SIMACC += real;
+  var steps = 0;
+  while (SIMACC >= SIMSTEP && steps < 6) { stepSim(SIMSTEP); SIMACC -= SIMSTEP; steps++; }
+  if (steps >= 6) SIMACC = 0;
+  render();
+  AGGT += real;
   if (AGGT > 0.26) { AGGT = 0; domLedger(); domHUD(); }
-  ORBT += dt;
+  ORBT += real;
   if (ORBT > 0.05) { ORBT = 0; pushOrbit(); }
 }
 
@@ -1891,6 +2153,7 @@ function boot() {
     bindInput();
     resize();
     READY = true;
+    restartBoot();
     S = evalState();
     render();
     record(1 / 60);
@@ -1984,7 +2247,44 @@ window.YL = {
   pulseWire: function (s) { pulseWire(s || 3.2); S = evalState(); },
   overT: function () { return OVR.t; },
   wireT: function () { return WIR.t; },
-  bootState: function () { BOOT.n = 3; FOCUS.on = false; HOME.on = false; OVR.t = 0; overRelease(); WIR.t = 0; S = evalState(); },
+  bootState: function () {
+    FOCUS.on = false; HOME.on = false; OVR.t = 0; overRelease(); WIR.t = 0;
+    restartBoot(); S = evalState();
+  },
+  boot: function () {
+    return { on: BOOT.on, done: BOOT.done, stage: BOOT.stage, bad: BOOT.bad,
+             tries: BOOT.tries, tEnd: BOOT.tEnd, rows: BOOT.rows.slice() };
+  },
+  ledgerCols: function () { return LEDGER_COLS.slice(); },
+  audit: function () {
+    buildPV();
+    var tmp = new Float32Array(16), err = 0;
+    m4M(tmp, MX.pv, MX.inv);
+    for (var k = 0; k < 16; k++) {
+      var e = Math.abs(tmp[k] - ((k % 5 === 0) ? 1 : 0));
+      if (e > err) err = e;
+    }
+    var d0 = Math.sqrt(L0.p[0] * L0.p[0] + L0.p[1] * L0.p[1] + L0.p[2] * L0.p[2]);
+    var d1 = Math.sqrt(L1.p[0] * L1.p[0] + L1.p[1] * L1.p[1] + L1.p[2] * L1.p[2]);
+    var cs2 = (L0.p[0] * L1.p[0] + L0.p[1] * L1.p[1] + L0.p[2] * L1.p[2]) / ((d0 * d1) || 1);
+    return {
+      invErr: err,
+      verts: BUF.ter.verts + BUF.skt.verts + BUF.bea.verts * ENT.length,
+      tris: BUF.ter.tris + BUF.skt.tris + BUF.bea.tris * ENT.length,
+      lightSep: Math.acos(Math.max(-1, Math.min(1, cs2))) / DEG,
+      attenuation: [attOf(120), attOf(900), attOf(2400)],
+      entities: ENT.length,
+      ledgerCols: LEDGER_COLS.length
+    };
+  },
+  matrixRotProbe: function () {
+    var a0 = cam.az, s0 = screenOf(0);
+    cam.az = a0 + Math.PI / 2;
+    var s1 = screenOf(0);
+    cam.az = a0;
+    buildPV();
+    return { ax: s0.x, ay: s0.y, bx: s1.x, by: s1.y, dx: s1.x - s0.x, dy: s1.y - s0.y };
+  },
   shading: function () { return { bump: SF.bump, spec: SF.spec, cont: SF.cont, uvScale: SF.uvScale }; },
   setShading: function (k, v) {
     if (k === 'bump') SF.bump = v; else if (k === 'spec') SF.spec = v; else if (k === 'cont') SF.cont = v;
@@ -1992,7 +2292,7 @@ window.YL = {
     S = evalState();
   },
   freeze: function () { FROZEN = true; },
-  unfreeze: function () { FROZEN = false; LAST = 0; },
+  unfreeze: function () { FROZEN = false; LAST = 0; SIMACC = 0; },
   step: function (n) {
     n = n || 1;
     for (var i = 0; i < n; i++) tick(1 / 60);
@@ -2003,32 +2303,18 @@ window.YL = {
   terrainVerts: function () { return BUF.ter.verts; },
   tris: function () { return BUF.ter.tris + BUF.skt.tris + BUF.bea.tris * ENT.length; },
   buffers: function () {
-    return { vbo: 8, vao: 0, ibo: 3, attribs: 5, prog: 2, textures: 1 };
+    return { vbo: NBUF.vbo || 0, vao: 0, ibo: NBUF.ebo || 0, attribs: 6, prog: 2, textures: 1 };
   },
   drawCalls: function () { return 2 + ENT.length + (WIR.t > 0 ? 2 + ENT.length : 0); },
   prim: function () { return WIR.t > 0 ? 'TRIANGLES+LINES' : 'TRIANGLES'; },
-  fps: function () { return FPS; },
+  fps: function () { return RFPS; },
+  simFps: function () { return FPS; },
+  renderFps: function () { return RFPS; },
   agg: function () { return aggregate(); },
   zeroLedger: function () { FRH.length = 0; FR = 0; ACC = aggregate(); },
   framesN: function () { return FRH.length; },
   frameAt: function (i) { return FRH[i] ? FRH[i].slice() : null; },
-  pixels: function () {
-    var w = VW, h = VH, n = w * h;
-    var px = new Uint8Array(n * 4);
-    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
-    var cnt = 0, s = 0, s2 = 0, uniq = 0, seen = {}, mx = 0, mn = 255;
-    for (var i = 0; i < n; i += 7) {
-      var r = px[i * 4], g2 = px[i * 4 + 1], b = px[i * 4 + 2];
-      var v = r * 0.299 + g2 * 0.587 + b * 0.114;
-      s += v; s2 += v * v; cnt++;
-      if (v > mx) mx = v; if (v < mn) mn = v;
-      var k = ((r >> 3) << 10) | ((g2 >> 3) << 5) | (b >> 3);
-      if (!seen[k]) { seen[k] = 1; uniq++; }
-    }
-    var m = s / cnt;
-    return { w: w, h: h, mean: m, std: Math.sqrt(Math.max(0, s2 / cnt - m * m)),
-             uniq: uniq, min: mn, max: mx, samples: cnt };
-  },
+  pixels: pixelStats,
   canvas: function () {
     var cv = document.getElementById('gl');
     return { w: cv.width, h: cv.height, cssW: VW, cssH: VH, dpr: DPR };

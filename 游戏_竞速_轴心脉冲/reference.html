@@ -2667,9 +2667,11 @@ var BOARD_HINT = {
     c.arc(262, 76, 44, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(P.attune, 0, 1));
     c.strokeStyle = P.attuned ? '#7fffdc' : '#ffd479'; c.lineWidth = 8; c.stroke();
     c.fillStyle = '#dff0ff'; c.font = 'bold 12px monospace'; c.textAlign = 'center';
-    c.fillText(Math.round(P.attuneT) + '', 262, 74);
+    /* 分子只到窗口目标为止：驻留达标之后读数继续累加会让「8217 ms / 350」
+       读成越限，与「同调已确立」自相矛盾。封顶后分子恒 ≤ 分母。 */
+    c.fillText(Math.round(Math.min(P.attuneT, PHYS.ATTUNE_MS)) + '', 262, 74);
     c.fillStyle = '#8b93cf'; c.font = '9px monospace';
-    c.fillText('ms / ' + f0(PHYS.ATTUNE_MS), 262, 86);
+    c.fillText('ms · 窗口 ' + f0(PHYS.ATTUNE_MS), 262, 86);
     c.fillStyle = '#8b93cf'; c.font = '10px monospace';
     c.fillText('⑬ 同调充盈环', 262, 134 - 4);
     c.textAlign = 'left';

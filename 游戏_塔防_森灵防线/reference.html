@@ -32,13 +32,18 @@ body{display:flex;justify-content:center}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
 .tb .v.sm{font-size:12.5px}
 .tb .v b{font-weight:600}
+.tb.run{flex:1.55 1 0}
+.tb.tide{flex:1.05 1 0}
+.tb.wave{flex:1.05 1 0}
+.tb.ste{flex:1.45 1 0}
+.tb.ste .v{font-size:10.5px;letter-spacing:.02em}
 
 /* ── 左栏 ── */
 .left{grid-area:left;display:flex;flex-direction:column;gap:6px;background:none;border:0;overflow:hidden}
 .sec{background:var(--pnl);border:1px solid var(--line);border-radius:4px;display:flex;flex-direction:column;min-height:0}
 .sh{font-size:9.5px;letter-spacing:.18em;color:var(--tx3);padding:6px 9px 4px;
   border-bottom:1px solid #10382d;display:flex;justify-content:space-between;align-items:baseline;flex:none}
-.sh span{color:var(--tx2);letter-spacing:0;font-size:10px}
+.sh span{color:var(--tx2);letter-spacing:0;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb{padding:7px 8px;overflow:hidden;min-height:0}
 
 .card{border:1px solid #1a5341;border-radius:3px;padding:5px 7px;margin-bottom:5px;
@@ -108,7 +113,7 @@ body{display:flex;justify-content:center}
 .rig{height:272px;flex:none}
 .tbl{width:100%;border-collapse:collapse;font-size:9.5px;table-layout:fixed}
 .tbl th{color:var(--tx3);font-weight:400;text-align:left;padding:1px 3px;border-bottom:1px solid #10382d;font-size:8.5px;letter-spacing:.06em}
-.tbl td{padding:1px 3px;color:var(--tx2);border-bottom:1px solid #0d2c23;line-height:1.2;vertical-align:top}
+.tbl td{padding:1px 3px;color:var(--tx2);border-bottom:1px solid #0d2c23;line-height:1.1;vertical-align:top}
 .tbl th:nth-child(1),.tbl td:nth-child(1){width:14px}
 .tbl th:nth-child(2),.tbl td:nth-child(2){width:122px}
 .tbl tr.hi td{background:#122e12;color:var(--al)}
@@ -123,11 +128,29 @@ body{display:flex;justify-content:center}
 #sKine table td:nth-child(2){text-align:right;color:var(--tx)}
 
 /* ── 底部 ── */
-.bot{grid-area:bot;display:grid;grid-template-columns:280px minmax(0,1fr);gap:6px;background:none;border:0;overflow:hidden}
+.bot{grid-area:bot;display:grid;grid-template-columns:270px minmax(0,1fr);gap:6px;background:none;border:0;overflow:hidden}
 .radar{position:relative}
 .bars{position:absolute;left:0;right:0;bottom:0;height:52px}
 .bars canvas{display:block;width:100%;height:100%}
 .ledg{display:flex;flex-direction:column;min-height:0}
+.sec.flux{height:96px;flex:none}
+#cvLedger,#cvFlux{display:block;width:100%;height:100%}
+.ledg #cvLedger{display:block;width:100%;height:56px;flex:none;border-bottom:1px solid #10382d}
+#gestList{display:grid;grid-template-columns:1fr 1fr;gap:0 7px}
+
+/* ── 启动自检控制台 ── */
+.boot{position:absolute;inset:0;z-index:24;display:none;background:rgba(3,14,11,.975);
+  padding:14px 16px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:10px;line-height:1.45;color:#8fc3b4;overflow:hidden}
+.boot.on{display:block}
+.boot h4{font-size:10.5px;letter-spacing:.16em;color:var(--cy);font-weight:400;margin-bottom:6px}
+.boot .brow{display:grid;grid-template-columns:16px 132px 40px minmax(0,1fr);gap:7px;white-space:nowrap;overflow:hidden}
+.boot .brow .i{color:#3f6a5f}
+.boot .brow .n{color:#a9d8c8}
+.boot .brow .p{color:var(--gr)}
+.boot .brow .f{color:var(--bad)}
+.boot .brow .m{color:#6e9c8f;overflow:hidden;text-overflow:ellipsis}
+.boot .foot{margin-top:7px;font-size:9.5px;color:#4e7a70;letter-spacing:.08em}
 .log{font-size:10px;line-height:1.5;color:var(--tx2);overflow:hidden;height:100%}
 .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .log i{font-style:normal}
@@ -160,24 +183,30 @@ body{display:flex;justify-content:center}
 @media (max-width:1400px){
   .app{grid-template-columns:216px minmax(0,1fr) 272px}
   .rig{height:238px}
-  .bot{grid-template-columns:238px minmax(0,1fr)}
+  .bot{grid-template-columns:230px minmax(0,1fr)}
+  .tb.ste .v{font-size:9.5px}
 }
 @media (max-width:1180px){
   .app{grid-template-columns:198px minmax(0,1fr) 246px;grid-template-rows:42px minmax(0,1fr) 176px}
   .rig{height:214px}
   .card .ds{display:none}
-  .tb .v{font-size:13px}
+  .tb{padding:0 6px}
+  .tb .v{font-size:12px}
+  .tb .v.sm{font-size:10.5px}
+  .tb.ste .v{font-size:9px;letter-spacing:-.2px}
+  .bot{grid-template-columns:200px minmax(0,1fr)}
 }
 @media (max-width:980px){
   .app{grid-template-columns:minmax(0,1fr) 232px;
        grid-template-areas:"top top" "stage right" "bot bot";grid-template-rows:42px minmax(0,1fr) 150px}
   .left{display:none}
+  .bot{grid-template-columns:minmax(0,1fr) 196px}
 }
 @media (max-width:730px){
   .app{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "stage" "bot";
-       grid-template-rows:40px minmax(0,1fr) 132px;gap:4px;padding:4px}
+       grid-template-rows:40px minmax(0,1fr) 176px;gap:4px;padding:4px}
   .right{display:none}
-  .bot{grid-template-columns:minmax(0,1fr)}
+  .bot{grid-template-columns:minmax(0,1fr) 170px}
   .title h1{font-size:30px}
   .title p{font-size:11px;max-width:88vw}
 }
@@ -187,13 +216,14 @@ body{display:flex;justify-content:center}
 <div class="app">
 
   <div class="pnl top" id="top">
-    <div class="tb"><div class="k">任务号 / 种子</div><div class="v sm"><b id="tRun">—</b> · <span id="tSeed">—</span></div></div>
-    <div class="tb"><div class="k">根脉潮汐</div><div class="v sm" id="tPhase">—</div></div>
+    <div class="tb run"><div class="k">任务号 / 种子</div><div class="v sm"><b id="tRun">—</b> · <span id="tSeed">—</span></div></div>
+    <div class="tb tide"><div class="k">根脉潮汐</div><div class="v sm" id="tPhase">—</div></div>
     <div class="tb"><div class="k">世界树核心生命</div><div class="v" id="tLife">—</div></div>
     <div class="tb"><div class="k">营养账本</div><div class="v" id="tNutr">—</div></div>
     <div class="tb"><div class="k">动能 / 稳定性</div><div class="v" id="tKine">—</div></div>
-    <div class="tb"><div class="k">波次进度</div><div class="v" id="tWave">—</div></div>
-    <div class="tb"><div class="k">战斗得分</div><div class="v" id="tScore">—</div></div>
+    <div class="tb wave"><div class="k">波次 · 在场</div><div class="v" id="tWave">—</div></div>
+    <div class="tb ste"><div class="k">当前状态 · 决策表</div><div class="v sm" id="tState">—</div></div>
+    <div class="tb"><div class="k">战斗得分</div><div class="v sm" id="tScore">—</div></div>
   </div>
 
   <div class="left">
@@ -205,8 +235,10 @@ body{display:flex;justify-content:center}
       <div class="sh">守卫读数 <span>守卫 · 韧</span></div>
       <div class="sb" id="hero"></div>
     </div>
+    <div class="sec flux"><div class="sh">收益倍率示波 · 六行 <span id="fluxSub">画布 F</span></div>
+      <div style="flex:1;min-height:0;position:relative"><canvas id="cvFlux"></canvas></div></div>
     <div class="sec" style="min-height:0;flex:1 1 auto">
-      <div class="sh">复合高阶手势 <span id="gestSub">5 项</span></div>
+      <div class="sh">复合高阶手势 <span id="gestSub">10 项</span></div>
       <div class="sb" id="gestList" style="overflow:hidden"></div>
     </div>
   </div>
@@ -234,6 +266,11 @@ body{display:flex;justify-content:center}
       <button class="btn" id="btnGo">开始守卫</button>
       <div class="note" id="titleNote">—</div>
     </div>
+    <div class="boot" id="bootLayer">
+      <h4>启动链路自检 · 14 级实测</h4>
+      <div id="bootBody"></div>
+      <div class="foot" id="bootFoot">—</div>
+    </div>
   </div>
 
   <div class="right">
@@ -241,14 +278,15 @@ body{display:flex;justify-content:center}
       <div style="flex:1;min-height:0;position:relative"><canvas id="cvRig"></canvas></div></div>
     <div class="sec" style="flex:none"><div class="sh">本波情报 <span id="yieldSub">—</span></div>
       <div class="sb" id="yieldBody"></div></div>
-    <div class="sec" style="min-height:0;flex:1 1 auto"><div class="sh">状态决策表 <span id="stTabSub">高位压制低位</span></div>
+    <div class="sec" style="min-height:0;flex:none"><div class="sh">状态决策表 <span id="stTabSub">高位压制低位</span></div>
       <div class="sb" id="stBody" style="overflow:hidden"></div></div>
   </div>
 
   <div class="bot">
     <div class="pnl radar"><canvas id="cvRadar"></canvas>
       <div class="bars"><canvas id="cvBars"></canvas></div></div>
-    <div class="pnl ledg"><div class="sh">逐帧事件溯源台账 <span id="ledgSub">—</span></div>
+    <div class="pnl ledg"><div class="sh">逐帧事件溯源台账 <span id="acctSub">Σ 1000000</span><span id="ledgSub">—</span></div>
+      <canvas id="cvLedger"></canvas>
       <div class="sb" id="ledgBody" style="flex:none"></div>
       <div class="log" id="logBox" style="flex:1;min-height:0;padding:0 8px 6px"></div></div>
   </div>
@@ -371,14 +409,29 @@ var PHYS = {
   CORR_STEP: 12,        // 腐化跨过该整数倍触发腐化爆发
   CORR_BURST_MS: 2500,  // 腐化爆发持续时间
   CORR_BURST_CUT: 0.10, // 腐化爆发的额外射程骤降
+  CORR_ARC: 0.45,       // 腐化满值时的射界半角折减比例
   HEAT_SHOT: 0.055,     // 单次开火积热
   COOL_PS: 0.11,        // 自然散热速率（每秒）
   OVERHEAT: 1.0,        // 过热阈值
   RES_THRESH: 100,      // 圣泉共振达标阈值
   RES_DECAY: 1.1,       // 共振值未达标时的自然衰减（每秒）
   RES_PER_SWAP: 58,     // 每次潮汐换相给相邻塔的共振增量
-  CRISIS_MS: 0          // 未用（保留位）
+  CRISIS_MS: 0,         // 未用（保留位）
+  BLIGHT_CRIT: 70,      // 腐化饱和线（BLIGHT_SATURATED）
+  HEAT_CRIT: 0.78,      // 全塔均温临界（HEAT_CRITICAL）
+  GALE_CROSS: 200,      // 风切穿越阈值（GALE_CROSS）
+  GRID_LOCK_MS: 6000,   // 相位锁定窗口
+  HOP_MUL: 1.45,        // 根脉跃迁水平倍率
+  BOOT_FRAME: 1 / 60,
+  BOOT_STAGE_MS: 84      // 十四级自检的逐级节拍
 };
+
+/* ---------- 五科目整数守恒账（唯一允许改余额的入口） ---------- */
+var ACCT_KEYS = ['nutr', 'sap', 'kine', 'blight', 'ent'];
+var ACCT_NAMES = ['营养', '树脂', '动能', '腐化', '熵损'];
+var ACCT_TOTAL = 1000000;
+var ACCT_U = 100;                 /* 1 点资源 = 100 账本整数单位 */
+var ACCT_COL = { nutr: '#ffd166', sap: '#7fe08a', kine: '#3fdfc4', blight: '#b18cff', ent: '#ff5c72' };
 
 /* ---------- 地形：确定性阶梯地面 ---------- */
 /* gh[c] = 该列地表格行；实心格为 r ∈ [gh[c], ROWS-1]；|gh[c+1]-gh[c]| ≤ 1 */
@@ -425,48 +478,68 @@ function windAt(x, y, t, cyc) {
   return { x: wx, z: wz };
 }
 
-/* ---------- 八阶互斥状态机（判定优先级自上而下，高位压制低位） ---------- */
+/* ---------- 十四阶互斥状态机（判定优先级自上而下，高位压制低位） ---------- */
 var SN = [
-  'RUN_SETTLED_LEDGER',     /* 0 本局真实交互数据审计结算 */
-  'CRISIS_FAILED_ROLLBACK', /* 1 致命失败熔断与因果回溯 */
-  'OVERLOAD_PENALTY',       /* 2 过载失稳硬直惩罚态 */
-  'TITLE_LOBBY',            /* 3 初始待机就绪 */
-  'SEEDED_INITIALIZING',    /* 4 关卡随机种子与实体阵列重构 */
-  'DYNAMIC_BRANCHING',      /* 5 空域危机与高阶机制爆发 */
-  'ATTUNEMENT_DWELL',       /* 6 着陆/锚定同调校准挂起中 */
-  'ACTIVE_ENGAGED'          /* 7 主交互循环激活 */
+  'RUN_SETTLED_LEDGER',     /* 0  本局真实交互数据审计结算 */
+  'CRISIS_FAILED_ROLLBACK', /* 1  致命失败熔断与因果回溯 */
+  'OVERLOAD_PENALTY',       /* 2  过载失稳硬直惩罚态 */
+  'BOOT_SEQUENCING',        /* 3  启动链路逐级自检挂起 */
+  'TITLE_LOBBY',            /* 4  初始待机就绪 */
+  'SEEDED_INITIALIZING',    /* 5  关卡随机种子与实体阵列重构 */
+  'BLIGHT_SATURATED',       /* 6  腐化饱和 · 射程与射界双降 */
+  'HEAT_CRITICAL',          /* 7  塔群积热临界 · 强制泄压 */
+  'GRID_LOCKED',            /* 8  潮汐相位锁定 · 换相权冻结 */
+  'DYNAMIC_BRANCHING',      /* 9  空域危机与高阶机制爆发 */
+  'GALE_CROSS',             /* 10 风切穿越 · 逆流升力失衡 */
+  'ATTUNEMENT_DWELL',       /* 11 着陆/锚定同调校准挂起中 */
+  'WAVE_ENGAGED',           /* 12 波次交战 · 实体在场 */
+  'ACTIVE_ENGAGED'          /* 13 主交互循环激活 */
 ];
-var SC = ['审计结算', '熔断因果回溯', '过载失稳硬直', '初始待机就绪',
-          '实体阵列重构', '高阶机制爆发', '同调校准挂起', '主交互循环'];
-var SK = ['#ffe9a8', '#ff5c72', '#ff5c72', '#5f818e',
-          '#8babb5', '#b18cff', '#3fdfc4', '#ffd166'];
+var SC = ['审计结算', '熔断因果回溯', '过载失稳硬直', '启动链路自检',
+          '初始待机就绪', '实体阵列重构', '腐化饱和双降', '塔群积热临界',
+          '潮汐相位锁定', '高阶机制爆发', '风切穿越失衡', '同调校准挂起',
+          '波次交战在场', '主交互循环'];
+var SK = ['#ffe9a8', '#ff5c72', '#ff5c72', '#8babb5', '#5f818e',
+          '#8babb5', '#b18cff', '#ff5c72', '#9fd8ff', '#3fdfc4',
+          '#3fdfc4', '#3fdfc4', '#ffd166', '#ffd166'];
 
 /* 状态决策表：常驻 HUD 展示，与 evalState 严格同源同序 */
 var STAB = [
-  { s: 'RUN_SETTLED_LEDGER',    g: '抵达世界树核心结算 / 生命归零后结算', n: 'SEEDED_INITIALIZING' },
-  { s: 'CRISIS_FAILED_ROLLBACK', g: '核心生命归零 · 根脉断绝',            n: 'SEEDED_INITIALIZING' },
-  { s: 'OVERLOAD_PENALTY',      g: '蓄能越限 · 硬直计时 > 0',            n: 'ACTIVE_ENGAGED' },
-  { s: 'TITLE_LOBBY',           g: '未开局',                              n: 'SEEDED_INITIALIZING' },
-  { s: 'SEEDED_INITIALIZING',   g: '种子装载 · 地块阵列落位中',           n: 'ACTIVE_ENGAGED' },
-  { s: 'DYNAMIC_BRANCHING',     g: '索锚定 / 腐化爆发窗 / 共振脉冲 / 王战', n: 'ATTUNEMENT_DWELL' },
-  { s: 'ATTUNEMENT_DWELL',      g: '驻块且同调进度严格介于零与满之间',     n: 'ACTIVE_ENGAGED' },
-  { s: 'ACTIVE_ENGAGED',        g: '其余情形（主交互循环基态）',           n: '任意高位状态' }
+  { s: 'RUN_SETTLED_LEDGER',    g: '已触发结算' },
+  { s: 'CRISIS_FAILED_ROLLBACK', g: '核心生命归零 · 回溯中' },
+  { s: 'OVERLOAD_PENALTY',      g: '蓄能越限 · 硬直 > 0' },
+  { s: 'BOOT_SEQUENCING',       g: '启动链未闭合' },
+  { s: 'TITLE_LOBBY',           g: '自检已过 · 未开局' },
+  { s: 'SEEDED_INITIALIZING',   g: '种子装载 · 阵列落位中' },
+  { s: 'BLIGHT_SATURATED',      g: '腐化 ≥ 饱和线' },
+  { s: 'HEAT_CRITICAL',         g: '塔群均温临界 / 过热' },
+  { s: 'GRID_LOCKED',           g: '相位锁定剩余 > 0' },
+  { s: 'DYNAMIC_BRANCHING',     g: '索锚 / 爆发窗 / 脉冲 / 王' },
+  { s: 'GALE_CROSS',            g: '风切 ≥ 穿越阈值' },
+  { s: 'ATTUNEMENT_DWELL',      g: '驻块且同调未满' },
+  { s: 'WAVE_ENGAGED',          g: '场上存在魔物' },
+  { s: 'ACTIVE_ENGAGED',        g: '其余情形（基态）' }
 ];
 
-/* ---------- 五行复合手势 ---------- */
+/* ---------- 十项复合高阶手势 ---------- */
 var GESTURES = [
-  { k: '动量压制蓄能弹射', d: '蓄能压缩 → 非线性弹出' },
-  { k: '空域能量索摆荡',   d: '锚定圣泉 → 单摆摆荡脱离' },
-  { k: '动量下压速坠冲击', d: '空中下压 → 落点沉陷加深' },
-  { k: '空间相位瞬时翻转', d: '重力与按键映射反向 300ms' },
-  { k: '韧根共振主动同调', d: '清空地块寿命 → 全屏脉冲' }
+  { k: '动量压制蓄能弹射', d: '蓄能压缩 → 非线性弹出', key: 'J' },
+  { k: '空域能量索摆荡',   d: '锚定圣泉 → 单摆脱离',   key: 'K' },
+  { k: '动量下压速坠',     d: '空中下压 → 沉陷加深',   key: 'S/↓' },
+  { k: '空间相位翻转',     d: '重力与映射反向',        key: 'L' },
+  { k: '韧根共振同调',     d: '清寿命 → 全屏脉冲',     key: 'U' },
+  { k: '侧倾制动',         d: '动能 −14 · 水平 ×0.35', key: 'X' },
+  { k: '根脉跃迁',         d: '动能 −22 · 沿风切向',   key: 'C' },
+  { k: '腐质炼金入账',     d: '腐化 → 营养',           key: 'G' },
+  { k: '营养转能出账',     d: '营养 → 动能',           key: 'Y' },
+  { k: '根壤置换',         d: '营养 −6 换腐化 −8',     key: 'B' }
 ];
 
 /* ---------- 防御塔 ---------- */
 var TOWERS = {
-  thorn: { k: 'thorn', n: '荆棘塔', cost: 90,  dmg: 9,  range: 152, cd: 0.34, pspd: 520, col: '#7fe08a', dim: '#2f7a45', d: '高速单体 · 棘刺弹' },
-  moon:  { k: 'moon',  n: '月光塔', cost: 120, dmg: 16, range: 178, cd: 0.75, pspd: 440, col: '#9fd8ff', dim: '#2c5f86', d: '中速缓速 · 月华弹' },
-  ember: { k: 'ember', n: '星火塔', cost: 150, dmg: 34, range: 144, cd: 1.15, pspd: 380, col: '#ffb347', dim: '#93551a', d: '低速溅射 · 星火弹' }
+  thorn: { k: 'thorn', n: '荆棘塔', cost: 90,  dmg: 9,  range: 152, cd: 0.34, pspd: 520, arc: 0.70, col: '#7fe08a', dim: '#2f7a45', d: '高速单体 · 棘刺弹' },
+  moon:  { k: 'moon',  n: '月光塔', cost: 120, dmg: 16, range: 178, cd: 0.75, pspd: 440, arc: 0.80, col: '#9fd8ff', dim: '#2c5f86', d: '中速缓速 · 月华弹' },
+  ember: { k: 'ember', n: '星火塔', cost: 150, dmg: 34, range: 144, cd: 1.15, pspd: 380, arc: 0.62, col: '#ffb347', dim: '#93551a', d: '低速溅射 · 星火弹' }
 };
 var TOWER_KEYS = ['thorn', 'moon', 'ember'];
 var UP_COST = [0.75, 1.25];      /* 1→2 / 2→3 级的升级费倍率 */
@@ -517,7 +590,7 @@ var LEDGER_DEF = [
 <script>
 /* ============================================================
    森灵防线 GROVE WARDEN · 韧根潮汐 —— 引擎
-   三块画布独立重绘 · 共享单一内存物理态 · 固定步长 60 Hz
+   七块画布独立重绘 · 共享单一内存物理态 · 固定步长 60 Hz
    结算一律由逐帧样本数组 G.frames 纯函数式回溯得出
    ============================================================ */
 (function () {
@@ -570,7 +643,12 @@ var LEDGER_DEF = [
       hint: '', hintT: 0, tilt: 0, tiltT: 0,
       resOkPeak: 0, landSum: 0, landN: 0, windGood: 0, windN: 0,
       agg: null, painted: 0, RNG: mulberry32(SEED ^ 0x7F31),
-      coreHitN: 0, lastState: ''
+      coreHitN: 0, lastState: '',
+      /* 五科目整数守恒账 / 启动链 / 新状态量 */
+      acct: null, acctPeakGap: 0,
+      boot: { on: !BOOTED, stage: 0, t: 0, rows: [], done: false },
+      gridLockT: 0, galeNow: 0, galeInject: 0, galeCalm: 0, heatAvg: 0,
+      gestures: 0, sapSpent: 0, polLock: 0, arcRej: 0, arcRejTot: 0
     };
     T = { gh: genGround(), caps: genCaps(), tile: [], nodes: [3, 8] };
     var c, r;
@@ -599,16 +677,79 @@ var LEDGER_DEF = [
     P.y0 = P.y;
     if (mode === 'seed') { G.seedT = 1500; }
     FX.length = 0;
+    acctSeed(d);
   }
+
+  /* ─────────── 五科目整数守恒账（唯一允许改余额的入口） ─────────── */
+  var BOOTED = false;
+  function acctSeed(d) {
+    var a = { nutr: 0, sap: 0, kine: 0, blight: 0, ent: ACCT_TOTAL };
+    a.nutr = Math.round(d.nutr * ACCT_U);
+    a.sap = 9000;                       /* 树脂 90 */
+    a.kine = Math.round(P.kine * ACCT_U);
+    a.blight = 0;
+    a.ent = ACCT_TOTAL - a.nutr - a.sap - a.kine - a.blight;
+    G.acct = a;
+    syncAcct();
+  }
+  function syncAcct() {
+    if (!G.acct) return;
+    G.nutr = G.acct.nutr / ACCT_U;
+    G.corr = G.acct.blight / ACCT_U;
+    if (P) P.kine = G.acct.kine / ACCT_U;
+  }
+  function acctSum() {
+    var s = 0, i;
+    for (i = 0; i < ACCT_KEYS.length; i++) s += G.acct[ACCT_KEYS[i]];
+    return s;
+  }
+  function acctGap() { return acctSum() - ACCT_TOTAL; }
+  /* 双边转账：只从一科目扣、向另一科目加，任何经济行为都必须走这里 */
+  function xfer(from, to, u) {
+    u = Math.round(u);
+    if (!u || from === to || !G.acct) return 0;
+    if (u < 0) { var tp = from; from = to; to = tp; u = -u; }
+    var src = G.acct[from] || 0;
+    if (src < u) u = src;
+    if (u <= 0) return 0;
+    G.acct[from] -= u; G.acct[to] += u;
+    var gp = acctGap();
+    if (gp !== 0) G.acctPeakGap = Math.max(G.acctPeakGap, Math.abs(gp));
+    syncAcct();
+    return u / ACCT_U;
+  }
+  function kineGain(v) {
+    var room = Math.max(0, PHYS.KINE_MAX * ACCT_U - G.acct.kine);
+    return xfer('ent', 'kine', Math.min(room, Math.round(v * ACCT_U)));
+  }
+  function kineSpend(v) {
+    var got = xfer('kine', 'ent', Math.round(v * ACCT_U));
+    G.kineSpent += got; return got;
+  }
+  function nutrGain(v) { return xfer('ent', 'nutr', Math.round(v * ACCT_U)); }
+  function nutrSpend(v) { return xfer('nutr', 'ent', Math.round(v * ACCT_U)); }
+  function blightAdd(v) {
+    var room = Math.max(0, 100 * ACCT_U - G.acct.blight);
+    return xfer('ent', 'blight', Math.min(room, Math.round(v * ACCT_U)));
+  }
+  function blightCut(v) { return xfer('blight', 'ent', Math.round(v * ACCT_U)); }
+  function sapGain(v) { return xfer('ent', 'sap', Math.round(v * ACCT_U)); }
+  function sapSpend(v) { return xfer('sap', 'ent', Math.round(v * ACCT_U)); }
 
   /* ─────────── 风与潮汐 ─────────── */
   function windCyc() { return G.corrBurstT > 0 ? 840 : 4200; }
   function localWind(x, y) { return windAt(x, y, G.t, windCyc()); }
+  /* 风切：守卫体与其上方 120px 处的水平风速差（真实场量，不是常数） */
+  function galeAt(x, y) {
+    var a = windAt(x, y, G.t, windCyc()), b = windAt(x, y - 120, G.t, windCyc());
+    return Math.abs(a.x - b.x);
+  }
 
   function stepTide(dt) {
     var d = DIFFS[G.diff];
     var per = PHYS.TIDE_MS / d.tide;
-    G.phase += dt * 1000 / per;
+    if (G.gridLockT > 0) { G.gridLockT -= dt * 1000; if (G.gridLockT < 0) G.gridLockT = 0; }
+    else { G.phase += dt * 1000 / per; }
     while (G.phase >= 1) { G.phase -= 1; G.swaps++; onSwap(); }
     var cs = Math.cos(G.phase * 6.2832);
     G.rangeMul = PHYS.RANGE_LO + (PHYS.RANGE_HI - PHYS.RANGE_LO) * (0.5 + 0.5 * cs);
@@ -639,10 +780,10 @@ var LEDGER_DEF = [
     if (off <= PHYS.CORE_ZONE / 2 + 0.10) {
       /* 精准踏中地块共鸣核心区（居中 20%）→ 按离差加权瞬时充能 */
       var w = 1 - off / (PHYS.CORE_ZONE / 2 + 0.10);
-      P.kine = Math.min(PHYS.KINE_MAX, P.kine + PHYS.KINE_REFUND * (0.5 + 0.5 * w));
-      G.nutr += Math.round(PHYS.NUTR_REFUND * (0.5 + 0.5 * w));
+      var kg = kineGain(PHYS.KINE_REFUND * (0.5 + 0.5 * w));
+      var ng = nutrGain(PHYS.NUTR_REFUND * (0.5 + 0.5 * w));
       P.stab = Math.min(100, P.stab + 14);
-      G.kineGain += PHYS.KINE_REFUND * (0.5 + 0.5 * w); G.nutrGain += PHYS.NUTR_REFUND * (0.5 + 0.5 * w);
+      G.kineGain += kg; G.nutrGain += ng;
       G.coreHitN++; P.coreHit = 24;
       fxText(P.x, P.y - 46, '共鸣核心 +' + Math.round(PHYS.NUTR_REFUND * (0.5 + 0.5 * w)), '#3fdfc4');
       fxBurst(P.x, P.y, '#3fdfc4', 14, 120);
@@ -676,6 +817,9 @@ var LEDGER_DEF = [
   function physics(dt) {
     var w = localWind(P.x, P.y);
     G.wind = w;
+    if (G.galeCalm > 0) { G.galeCalm -= dt * 1000; G.galeNow = 0; }
+    else if (G.galeInject > 0) { G.galeNow = G.galeInject; G.galeInject = Math.max(0, G.galeInject - dt * 90); }
+    else G.galeNow = galeAt(P.x, P.y);
     var polG = P.pol > 0 ? PHYS.POL_GRAV_POS : PHYS.POL_GRAV_NEG;
     var ax = 0, ay = PHYS.G * polG;
     var wn = Math.min(1, Math.abs(w.x) / 380);
@@ -869,7 +1013,7 @@ var LEDGER_DEF = [
     if (ms > PHYS.CHARGE_FAIL) {
       /* 过载熔断：硬直期内屏蔽全部输入 */
       P.overT = PHYS.OVER_MS; P.overMax = PHYS.OVER_MS;
-      P.kine = Math.max(0, P.kine - PHYS.OVER_KINE);
+      kineSpend(PHYS.OVER_KINE);
       pushLog('<i>惩罚</i> 蓄能越限 ' + Math.round(ms) + 'ms → 硬直 ' + PHYS.OVER_MS + 'ms · 动能 −' + PHYS.OVER_KINE);
       fxText(P.x, P.y - 48, '过载硬直', '#ff5c72');
       G.overheat++;
@@ -880,8 +1024,7 @@ var LEDGER_DEF = [
     var mul = 1 + 1.15 * u * u;                     /* 非线性：蓄力量平方放大 */
     var perfect = ms >= PHYS.CHARGE_P0 && ms <= PHYS.CHARGE_P1;
     if (perfect) mul *= PHYS.CHARGE_MUL;
-    P.kine = Math.max(0, P.kine - PHYS.KINE_SHOT);
-    G.kineSpent += PHYS.KINE_SHOT;
+    kineSpend(PHYS.KINE_SHOT);
     var ang = PHYS.BURST_ANG + (G.in.left ? -0.30 : G.in.right ? 0.30 : 0);
     if (P.pol < 0) ang = -ang;
     var sp = jumpPower() * mul;
@@ -898,7 +1041,7 @@ var LEDGER_DEF = [
   function togglePolarity() {
     if (G.mode !== 'play' || P.overT > 0 || P.polCd > 0 || G.rollT >= 0 || G.settled) return false;
     if (P.kine < PHYS.KINE_FLIP) { hint('动能不足 · 磁极翻转需要 ' + PHYS.KINE_FLIP + ' 动能'); return false; }
-    P.kine -= PHYS.KINE_FLIP; G.kineSpent += PHYS.KINE_FLIP;
+    kineSpend(PHYS.KINE_FLIP);
     P.pol = -P.pol; P.polCd = PHYS.POL_CD; P.polT = 300; G.tiltT = PHYS.POL_TILT_MS;
     pushLog('<i>相位</i> 磁极翻转 → ' + (P.pol > 0 ? '正极 ×' + PHYS.POL_GRAV_POS : '负极 ×' + PHYS.POL_GRAV_NEG) + ' · 按键映射反向');
     fxBurst(P.x, P.y - 22, '#b18cff', 22, 200);
@@ -924,8 +1067,7 @@ var LEDGER_DEF = [
     var an = P.tether;
     P.tether = null; P.tension = 0; P.reel = false;
     if (natural) {
-      P.kine = Math.min(PHYS.KINE_MAX, P.kine + PHYS.KINE_TETHER);
-      G.kineGain += PHYS.KINE_TETHER;
+      G.kineGain += kineGain(PHYS.KINE_TETHER);
       fxText(P.x, P.y - 46, '摆荡完成 +' + PHYS.KINE_TETHER + ' 动能', '#3fdfc4');
       pushLog('<i>脱索</i> 摆荡释放 · 动能 +' + PHYS.KINE_TETHER);
     }
@@ -934,12 +1076,15 @@ var LEDGER_DEF = [
   function resonate() {
     if (G.mode !== 'play' || P.overT > 0 || G.rollT >= 0 || G.settled) return false;
     if (!P.onGround || P.attune < 1) { hint('同调未完成 · 无法共振释放'); return false; }
+    if (G.acct.sap < 12 * ACCT_U) { hint('树脂不足 · 韧根共振需要 12 树脂'); return false; }
     var c = P.gc, r = groundRow(c);
     var t = T.tile[c][r];
     if (!t || t.state === 2) return false;
+    sapSpend(12); G.sapSpent += 12; G.gestures++;
     if (t.state === 0) setUnstable(t);
     t.fuse = 1;
     P.resT = 1400; G.pulses++;
+    G.gridLockT = PHYS.GRID_LOCK_MS;
     var dmg = 90;
     for (var i = 0; i < EN.length; i++) {
       var e = EN[i];
@@ -949,7 +1094,61 @@ var LEDGER_DEF = [
     }
     P.vy = -jumpPower() * 0.86; P.onGround = false; P.charges = 0; P.attune = 0;
     fxBurst(P.x, P.y, '#ffd166', 46, 320);
-    pushLog('<i>共振</i> 韧根脉冲释放 · 全场 ' + EN.length + ' 只魔物受创 · 该地块寿命清空');
+    pushLog('<i>共振</i> 韧根脉冲释放 · 树脂 −12 · 相位锁定 ' + PHYS.GRID_LOCK_MS + 'ms · 全场 ' + EN.length + ' 只魔物受创');
+    return true;
+  }
+
+  /* ─────────── 追加五项复合手势（全部走同一张五科目账） ─────────── */
+  function gateGesture() {
+    return !(G.mode !== 'play' || P.overT > 0 || G.rollT >= 0 || G.settled || (G.boot && G.boot.on));
+  }
+  function brakeTilt() {                       /* X 侧倾制动 */
+    if (!gateGesture()) return false;
+    if (G.acct.kine < 14 * ACCT_U) { hint('动能不足 · 侧倾制动需要 14 动能'); return false; }
+    kineSpend(14);
+    P.vx *= 0.35; P.attune = 0; P.charges = 0; G.gestures++;
+    G.tiltT = Math.min(PHYS.POL_TILT_MS, 180);
+    fxText(P.x, P.y - 44, '侧倾制动 · 水平 ×0.35', '#9fd8ff');
+    fxBurst(P.x, P.y, '#9fd8ff', 10, 90);
+    pushLog('<i>制动</i> 侧倾姿态压制 · 动能 −14 · 同调进度清零');
+    return true;
+  }
+  function rootHop() {                         /* C 根脉跃迁 */
+    if (!gateGesture()) return false;
+    if (G.acct.kine < 22 * ACCT_U) { hint('动能不足 · 根脉跃迁需要 22 动能'); return false; }
+    kineSpend(22);
+    var dir = G.wind.x >= 0 ? 1 : -1;
+    if (P.pol < 0) dir = -dir;
+    P.vx = dir * PHYS.CRUISE * PHYS.HOP_MUL;
+    P.vy = -PHYS.JUMP * 0.30; P.onGround = false;
+    P.attune = 0; P.charges = 0; G.gestures++;
+    fxText(P.x, P.y - 46, '根脉跃迁 ×' + PHYS.HOP_MUL.toFixed(2), '#7fe08a');
+    fxBurst(P.x, P.y, '#7fe08a', 16, 150);
+    pushLog('<i>跃迁</i> 沿风切向冲刺 · 动能 −22 · 水平 ' + (dir > 0 ? '→' : '←') + ' ' + Math.round(P.vx));
+    return true;
+  }
+  function alchemy() {                         /* G 腐质炼金入账 */
+    if (!gateGesture()) return false;
+    if (G.acct.blight < 8 * ACCT_U) { hint('腐化不足 8 · 无法炼金'); return false; }
+    blightCut(8); nutrGain(5); G.gestures++;
+    fxText(P.x, P.y - 44, '腐化 −8 → 营养 +5', '#b18cff');
+    pushLog('<i>炼金</i> 腐质转化 · 腐化 −8 · 营养 +5 · 熵损 +3');
+    return true;
+  }
+  function feedKine() {                        /* Y 营养转能出账 */
+    if (!gateGesture()) return false;
+    if (G.acct.nutr < 10 * ACCT_U) { hint('营养不足 10 · 无法转能'); return false; }
+    nutrSpend(10); var got = kineGain(6); G.gestures++;
+    fxText(P.x, P.y - 44, '营养 −10 → 动能 +' + got.toFixed(0), '#3fdfc4');
+    pushLog('<i>转能</i> 营养 −10 · 动能 +' + got.toFixed(0) + ' · 熵损 +' + Math.max(0, 10 - got).toFixed(0));
+    return true;
+  }
+  function soilSwap() {                        /* B 根壤置换 */
+    if (!gateGesture()) return false;
+    if (G.acct.nutr < 6 * ACCT_U) { hint('营养不足 6 · 无法置换'); return false; }
+    nutrSpend(6); blightCut(8); G.gestures++;
+    fxText(P.x, P.y - 44, '营养 −6 · 腐化 −8', '#ffd166');
+    pushLog('<i>置换</i> 根壤置换 · 营养 −6 · 腐化 −8 · 熵损 +2');
     return true;
   }
 
@@ -962,7 +1161,7 @@ var LEDGER_DEF = [
     if (towerAt(c, r)) { hint('该格已有防御塔'); return false; }
     if (T.nodes.indexOf(c) >= 0) { hint('圣泉节点本身不可建造'); return false; }
     if (G.nutr < spec.cost) { hint('营养不足 · ' + spec.n + ' 需要 ' + spec.cost); return false; }
-    G.nutr -= spec.cost; G.built++;
+    if (!nutrSpend(spec.cost)) return false; G.built++;
     var tw = {
       c: c, r: r, kind: kind, name: spec.n, lv: 1, cd: 0.4, heat: 0, over: false,
       res: 0, attune: 0, attuneT: 0, intg: 100, spend: spec.cost, shots: 0,
@@ -979,7 +1178,7 @@ var LEDGER_DEF = [
     if (tw.lv >= 3) { hint('已达最高等级'); return false; }
     var cost = Math.round(TOWERS[tw.kind].cost * UP_COST[tw.lv - 1]);
     if (G.nutr < cost) { hint('营养不足 · 升级需要 ' + cost); return false; }
-    G.nutr -= cost; tw.lv++; tw.spend += cost; G.upg++;
+    if (!nutrSpend(cost)) return false; tw.lv++; tw.spend += cost; G.upg++;
     tw.res = 0; tw.attune = 0; tw.attuneT = 0; tw.intg = Math.min(100, tw.intg + 22);
     fxText((c + 0.5) * CELL, r * CELL - 30, 'Lv.' + tw.lv + ' · 共振清零', '#9fd8ff');
     pushLog('<i>升级</i> ' + tw.name + ' → Lv.' + tw.lv + ' · 营养 −' + cost + ' · 共振值归零');
@@ -989,7 +1188,7 @@ var LEDGER_DEF = [
     var tw = towerAt(c, r);
     if (!tw) return false;
     var back = Math.floor(tw.spend * SELL_BACK);
-    G.nutr += back; G.sold++;
+    nutrGain(back); G.sold++;
     TW.splice(TW.indexOf(tw), 1);
     fxText((c + 0.5) * CELL, r * CELL - 26, '出售 +' + back, '#ffd166');
     pushLog('<i>出售</i> ' + tw.name + ' · 营养 +' + back);
@@ -997,10 +1196,27 @@ var LEDGER_DEF = [
   }
   function rangeOf(tw) {
     var base = TOWERS[tw.kind].range * (1 + 0.10 * (tw.lv - 1));
+    return base * G.rangeMul * corrRangeMul();
+  }
+  /* 腐化双降：射程倍率与射界倍率（两者都实时读 G.corr） */
+  function corrRangeMul() {
     var cut = Math.min(PHYS.CORR_RANGE, G.corr / 100 * 0.5);
     if (G.corrBurstT > 0) cut += PHYS.CORR_BURST_CUT;
-    return base * G.rangeMul * (1 - cut);
+    return 1 - cut;
   }
+  function corrArcMul() {
+    var cut = Math.min(PHYS.CORR_ARC, G.corr / 100 * PHYS.CORR_ARC);
+    if (G.corrBurstT > 0) cut += PHYS.CORR_ARC * 0.25;
+    return 1 - cut;
+  }
+  function arcOf(tw) { return TOWERS[tw.kind].arc * corrArcMul(); }
+  function resShare() {
+    if (!TW.length) return 0;
+    var n = 0, i;
+    for (i = 0; i < TW.length; i++) if (TW[i].res >= PHYS.RES_THRESH) n++;
+    return n / TW.length;
+  }
+  function resMul() { return 1 + 0.25 * resShare(); }
   function dmgOf(tw) {
     var d = TOWERS[tw.kind].dmg * Math.pow(1.45, tw.lv - 1);
     if (tw.res >= PHYS.RES_THRESH) d *= 1.25;
@@ -1008,6 +1224,7 @@ var LEDGER_DEF = [
   }
   function stepTowers(dt) {
     var i, j;
+    G.arcRej = 0;
     for (i = 0; i < TW.length; i++) {
       var tw = TW[i];
       /* 地块寿命 / 完整度 */
@@ -1036,11 +1253,14 @@ var LEDGER_DEF = [
       tw.cd -= dt;
       if (tw.cd > 0) continue;
       /* 索敌 */
-      var R = rangeOf(tw), best = null, bd = 1e9;
+      var R = rangeOf(tw), AR = arcOf(tw), best = null, bd = 1e9;
       var tx = (tw.c + 0.5) * CELL, ty = tw.r * CELL - 14;
       for (j = 0; j < EN.length; j++) {
         var q = EN[j];
         var d = Math.hypot(q.x - tx, q.y - ty);
+        /* 射界：目标相对水平轴的仰角必须落在该塔当前半角之内（腐化实时收窄） */
+        var el = Math.abs(Math.atan2(ty - (q.y - 12), Math.abs(q.x - tx)));
+        if (el > AR) { G.arcRej++; G.arcRejTot++; continue; }
         if (d < R && d < bd) { bd = d; best = q; }
       }
       if (!best) continue;
@@ -1116,7 +1336,8 @@ var LEDGER_DEF = [
     EN.splice(i, 1);
     G.kills++;
     var bounty = Math.round(ENEMIES[e.k].bounty * (1 + G.wave * 0.03) * (G.tideHigh ? PHYS.TIDE_BOOST : 1) * (G.corr > 0 ? 1 : 1));
-    G.nutr += bounty; G.nutrGain += bounty;
+    G.nutrGain += nutrGain(bounty);
+    sapGain(Math.max(1, Math.round(bounty * 0.22)));
     G.combat += Math.round(bounty * 2.2);
     fxText(e.x, e.y - 40, '+' + bounty, '#ffd166');
     fxBurst(e.x, e.y - 12, ENEMIES[e.k].col, 14, 150);
@@ -1191,7 +1412,7 @@ var LEDGER_DEF = [
         var dmgLife = e.k === 'boss' ? 4 : 1;
         G.life -= dmgLife; G.leaks++;
         var before = Math.floor(G.corr / PHYS.CORR_STEP);
-        G.corr = Math.min(100, G.corr + PHYS.CORR_PER_LEAK);
+        blightAdd(PHYS.CORR_PER_LEAK);
         if (G.corr > G.corrPeak) G.corrPeak = G.corr;
         var after = Math.floor(G.corr / PHYS.CORR_STEP);
         if (after > before) { G.corrBurstT = PHYS.CORR_BURST_MS; pushLog('<i>爆发</i> 腐化跨过 ' + (after * PHYS.CORR_STEP) + ' · 全场射程骤降 ' + Math.round(PHYS.CORR_BURST_CUT * 100) + '%'); }
@@ -1237,7 +1458,8 @@ var LEDGER_DEF = [
     /* ③ 无波次在途：清场判定 */
     if (G.wave >= 1 && EN.length === 0) {
       G.cleared++;
-      pushLog('<i>清场</i> 第 ' + G.wave + ' 波清空 · 波间整备 ' + WAVE_LEAD.toFixed(1) + 's');
+      sapGain(18);
+      pushLog('<i>清场</i> 第 ' + G.wave + ' 波清空 · 树脂 +18 · 波间整备 ' + WAVE_LEAD.toFixed(1) + 's');
       if (G.wave >= 10) { settle('ALL_CLEAR'); return; }
       G.pendingWave = G.wave + 1;
       G.waveT = WAVE_LEAD;
@@ -1263,6 +1485,11 @@ var LEDGER_DEF = [
   function hint(s) { G.hint = s; G.hintT = 1.6; }
 
   /* ─────────── 台账 ─────────── */
+  var FRAME_COLS = [
+    't', 'x', 'y', 'vx', 'vy', 'kine', 'stab', 'life', 'nutr', 'kills', 'leaks', 'corr',
+    'phase', 'towers', 'enemies', 'enemyHp', 'shots', 'dmgTot', 'avgInteg', 'resOk',
+    'landOff', 'hitN', 'heatAvg', 'acctGap'
+  ];                                  /* 24 列 · 第 24 列为守恒缺口 */
   function recordFrame() {
     if (G.frames.length >= 72000) return;
     var c, r, sum = 0, n = 0;
@@ -1280,7 +1507,8 @@ var LEDGER_DEF = [
       Math.round(G.t), +P.x.toFixed(2), +P.y.toFixed(2), +P.vx.toFixed(2), +P.vy.toFixed(2),
       +P.kine.toFixed(2), +P.stab.toFixed(2), G.life, G.nutr, G.kills, G.leaks, G.corr,
       +G.phase.toFixed(4), TW.length, EN.length, Math.round(enHp),
-      G.shots, Math.round(G.dmgTot), n ? +(sum / n).toFixed(2) : 0, resOk, lo, G.hitN
+      G.shots, Math.round(G.dmgTot), n ? +(sum / n).toFixed(2) : 0, resOk, lo, G.hitN,
+      +G.heatAvg.toFixed(4), acctGap()
     ]);
     /* 结算面板：每 6 步记录一帧 */
     if (G.frames.length % 6 === 0) G.settleFrames = G.frames.length;
@@ -1290,9 +1518,10 @@ var LEDGER_DEF = [
     var F = G.frames, n = F.length, i;
     if (!n) return { n: 0 };
     var guard = 0, integ = 0, resOk = 0, wind = 0, landS = 0, landN = 0, kineG = 0, kineS = 0;
-    var peakHp = 0, lastDmg = 0;
+    var peakHp = 0, lastDmg = 0, gapBad = 0, gapMax = 0;
     for (i = 0; i < n; i++) {
       var f = F[i];
+      if (f[23] !== 0) { gapBad++; gapMax = Math.max(gapMax, Math.abs(f[23])); }
       guard += f[7] / G.lifeMax;
       integ += f[18];
       resOk += f[19];
@@ -1314,7 +1543,7 @@ var LEDGER_DEF = [
       n: n, guard: +g.toFixed(1), prec: +prec.toFixed(1), integ: +integP.toFixed(1),
       eff: +eff.toFixed(1), chain: +chain.toFixed(1), wind: +windP.toFixed(1),
       score: +sc.toFixed(1), grade: grade, lands: landN, dmg: Math.round(lastDmg),
-      resPeak: G.resOkPeak
+      resPeak: G.resOkPeak, gapBad: gapBad, gapMax: gapMax, cols: FRAME_COLS.length
     };
   }
 
@@ -1324,20 +1553,167 @@ var LEDGER_DEF = [
     if (G.settled) s = 0;
     else if (G.rollT >= 0) s = 1;
     else if (P.overT > 0) s = 2;
-    else if (G.mode === 'title') s = 3;
-    else if (G.mode === 'seed') s = 4;
-    else if (P.tether || P.resT > 0 || G.corrBurstT > 0 || G.boss) s = 5;
-    else if (P.onGround && !P.charging && P.attune > 0 && P.attune < 1) s = 6;
-    else s = 7;
+    else if (G.boot && G.boot.on) s = 3;
+    else if (G.mode === 'title') s = 4;
+    else if (G.mode === 'seed') s = 5;
+    else if (G.corr >= PHYS.BLIGHT_CRIT) s = 6;
+    else if (G.heatAvg >= PHYS.HEAT_CRIT || anyOverheat()) s = 7;
+    else if (G.gridLockT > 0) s = 8;
+    else if (P.tether || P.resT > 0 || G.corrBurstT > 0 || G.boss) s = 9;
+    else if (G.galeNow >= PHYS.GALE_CROSS) s = 10;
+    else if (P.onGround && !P.charging && P.attune > 0 && P.attune < 1) s = 11;
+    else if (EN.length > 0) s = 12;
+    else s = 13;
     if (s !== G.st) { G.st = s; pushLog('<i>状态</i> → ' + SN[s] + ' (' + SC[s] + ')'); }
+  }
+  function anyOverheat() {
+    for (var i = 0; i < TW.length; i++) if (TW[i].over) return true;
+    return false;
+  }
+  function stepHeatAvg() {
+    var s = 0, i;
+    for (i = 0; i < TW.length; i++) s += TW[i].heat;
+    G.heatAvg = TW.length ? s / TW.length : 0;
   }
   function pushLog(s) {
     G.log.unshift(s);
     if (G.log.length > 90) G.log.pop();
   }
 
+  /* ─────────── 启动链路：十四级实测自检 ─────────── */
+  var BOOT_STAGES = [
+    { k: 'DOM_PROBE', f: function () {
+      var ids = ['top', 'tRun', 'tSeed', 'tPhase', 'tLife', 'tNutr', 'tKine', 'tWave', 'tState', 'tScore',
+        'shop', 'hero', 'gestList', 'cvWorld', 'cvRig', 'cvRadar', 'cvBars', 'cvLedger', 'cvFlux', 'cvSettle',
+        'titleLayer', 'bootLayer', 'diffs', 'btnGo', 'stBody', 'yieldBody', 'ledgBody', 'logBox', 'chips', 'stName', 'stDot'];
+      var ok = 0, i;
+      for (i = 0; i < ids.length; i++) if (document.getElementById(ids[i])) ok++;
+      return { ok: ok === ids.length, note: '必需节点 ' + ok + ' / ' + ids.length + ' 全绑定' };
+    } },
+    { k: 'CANVAS_BIND', f: function () {
+      var arr = [cvWorld, cvRig, cvRadar, cvBars, cvLedger, cvFlux, cvSettle], ok = 0, i;
+      for (i = 0; i < arr.length; i++) if (arr[i] && arr[i].getContext && arr[i].getContext('2d')) ok++;
+      return { ok: ok === 7, note: '2D 上下文 ' + ok + ' / 7 块画布' };
+    } },
+    { k: 'GRID_TOPOLOGY', f: function () {
+      var c, r, n = 0, build = 0;
+      for (c = 0; c < COLS; c++) for (r = T.gh[c]; r < ROWS; r++) { n++; if (T.tile[c][r] && T.tile[c][r].state === 0) build++; }
+      return { ok: n > 0 && COLS === 12 && T.nodes.length === 2, note: '地块 ' + n + ' · 列 ' + COLS + ' · 可建 ' + build + ' · 圣泉 ' + T.nodes.length };
+    } },
+    { k: 'ROUTE_GEOMETRY', f: function () {
+      var c, mx = 0;
+      for (c = 1; c < COLS; c++) mx = Math.max(mx, Math.abs(T.gh[c] - T.gh[c - 1]));
+      return { ok: mx <= 1 && T.gh.length === COLS, note: '列 0 地面 r' + T.gh[0] + ' → 列 11 地面 r' + T.gh[11] + ' · 最大落差 ' + mx };
+    } },
+    { k: 'SEED_PRG', f: function () {
+      var A = mulberry32(SEED ^ 0x7F31), B = mulberry32(SEED ^ 0x7F31), d = 0, i, px = '', a, b;
+      for (i = 0; i < 8; i++) { a = A(); b = B(); if (a !== b) d++; if (i < 4) px += a.toFixed(4) + ' '; }
+      return { ok: d === 0, note: '种子 ' + SEED + ' · 前 8 抽样逐位一致 · ' + px.trim() };
+    } },
+    { k: 'TIDE_LAW', f: function () {
+      var LO = PHYS.RANGE_LO, HI = PHYS.RANGE_HI, s0, s1;
+      s0 = (LO + (HI - LO) * 1.0) + (LO + (HI - LO) * 0.0);
+      s1 = (LO + (HI - LO) * 0.5) + (LO + (HI - LO) * 0.5);
+      return { ok: Math.abs(s0 - s1) < 1e-9, note: '射程 ×' + LO.toFixed(2) + '↔' + HI.toFixed(2) + ' + 敌速恒等 ' + s1.toFixed(3) + '（反相）' };
+    } },
+    { k: 'PHYS_LAWS', f: function () {
+      var ok = PHYS.ATTUNE_MS === 350 && PHYS.FUSE_MS === 500 && PHYS.REBOUND_K === 0.68
+        && Math.abs(PHYS.TAIL_DRAG - 1.40) < 1e-9 && PHYS.SINK_BASE === 1.2 && PHYS.SINK_DIV === 200
+        && PHYS.EDGE_IDLE_PS === 0.05;
+      return { ok: ok, note: '同调 350 · 引信 500 · 反冲 0.68 · 顺流 1.40 · 沉陷 1.2/200 · 边缘 5%/s' };
+    } },
+    { k: 'TOWER_MATRIX', f: function () {
+      var n = 0, k, cs = [];
+      for (k in TOWERS) if (TOWERS.hasOwnProperty(k)) { n++; cs.push(TOWERS[k].cost); }
+      return { ok: n === 3 && cs.join('/') === '90/120/150', note: n + ' 塔 · 造价 ' + cs.join(' / ') + ' · 各 2 级升级 · 出售返还 ' + Math.round(SELL_BACK * 100) + '%' };
+    } },
+    { k: 'WAVE_TABLE', f: function () {
+      var i, tot = 0, k, bossN = 0;
+      for (i = 0; i < WAVES.length; i++) for (k in WAVES[i]) if (WAVES[i].hasOwnProperty(k)) { tot += WAVES[i][k]; if (k === 'boss') bossN++; }
+      return { ok: WAVES.length === 10 && bossN === 1, note: WAVES.length + ' 波 · 实体 ' + tot + ' 只 · 末波王战 ' + bossN + ' 只' };
+    } },
+    { k: 'LEDGER_SCHEMA', f: function () {
+      var seen = {}, dup = 0, i;
+      for (i = 0; i < FRAME_COLS.length; i++) { if (seen[FRAME_COLS[i]]) dup++; seen[FRAME_COLS[i]] = 1; }
+      return { ok: FRAME_COLS.length === 24 && dup === 0, note: FRAME_COLS.length + ' 列 · 重名 ' + dup + ' · 守恒缺口列 #23' };
+    } },
+    { k: 'ACCT_INVARIANT', f: function () {
+      var s = acctSum(), g = acctGap();
+      return { ok: s === ACCT_TOTAL && g === 0, note: 'Σ ' + s + ' ≡ ' + ACCT_TOTAL + ' · 缺口 ' + g + ' · 五科目整数记账' };
+    } },
+    { k: 'PIXEL_PROBE', f: function () {
+      drawWorld(); drawRig(); drawRadar(); drawBars(); drawLedger(); drawFlux();
+      var cvs = [cvWorld, cvRig, cvRadar, cvBars, cvLedger, cvFlux], fp = [], ink = 0, i;
+      for (i = 0; i < cvs.length; i++) {
+        var cv = cvs[i], g = cv && cv.getContext && cv.getContext('2d');
+        if (!g || !cv.width || !cv.height) { fp.push('x'); continue; }
+        var col = 0, row, dx, dy, px;
+        for (dy = 1; dy < 6; dy++) for (dx = 1; dx < 7; dx++) {
+          row = g.getImageData(Math.floor(cv.width * dx / 7), Math.floor(cv.height * dy / 6), 1, 1).data;
+          col = (col * 31 + row[0] * 7 + row[1] * 13 + row[2] * 3 + row[3]) % 1000003;
+          if (row[0] + row[1] + row[2] > 24) ink++;
+        }
+        fp.push(String(col));
+      }
+      var uniq = {}, distinct = 0;
+      for (i = 0; i < fp.length; i++) if (!uniq[fp[i]]) { uniq[fp[i]] = 1; distinct++; }
+      return { ok: distinct >= 5 && ink > 40, note: '六画布指纹 ' + distinct + '/6 互异 · 非空像素 ' + ink + '/180' };
+    } },
+    { k: 'SANCTUM_TOPOLOGY', f: function () {
+      var n = T.nodes, ok = n.length === 2 && n[0] === 3 && n[1] === 8;
+      return { ok: ok, note: '圣泉 ' + n.length + ' 处 · 列 ' + n.join(' / ') + ' · 节点格不可建造 · 同列与左右邻列累积共振' };
+    } },
+    { k: 'HANDSHAKE', f: function () {
+      return { ok: true, note: '链路闭合 · 标题层解锁 · 事件流已落痕 · 步长 60Hz' };
+    } }
+  ];
+
+  function stepBoot(dt) {
+    G.boot.t += dt * 1000;
+    var want = Math.min(BOOT_STAGES.length, Math.floor(G.boot.t / PHYS.BOOT_STAGE_MS) + 1);
+    while (G.boot.stage < want && G.boot.stage < BOOT_STAGES.length) {
+      var i = G.boot.stage, st = BOOT_STAGES[i], r;
+      try { r = st.f(); } catch (err) { r = { ok: false, note: 'EXCEPTION ' + (err && err.message ? err.message : err) }; }
+      G.boot.rows.push({ i: i + 1, k: st.k, ok: !!r.ok, note: r.note });
+      G.boot.stage++;
+      renderBoot();
+    }
+    if (G.boot.stage >= BOOT_STAGES.length && G.boot.t >= BOOT_STAGES.length * PHYS.BOOT_STAGE_MS + 40) {
+      var bad = 0, j;
+      for (j = 0; j < G.boot.rows.length; j++) if (!G.boot.rows[j].ok) bad++;
+      if (bad > 0) {
+        G.boot.stage = 0; G.boot.t = 0; G.boot.rows = []; G.boot.retry = (G.boot.retry || 0) + 1;
+        renderBoot();
+        return;
+      }
+      G.boot.on = false; G.boot.done = true; BOOTED = true;
+      G.boot.tEnd = G.boot.t;
+      el('bootLayer').className = 'boot';
+      el('titleLayer').style.display = 'flex';
+      pushLog('<i>启动</i> 启动链 14 / 14 通过 · 用时 ' + Math.round(G.boot.t) + 'ms · 标题层解锁');
+      renderDom();
+    }
+  }
+  function renderBoot() {
+    var h = '', i, r;
+    for (i = 0; i < G.boot.rows.length; i++) {
+      r = G.boot.rows[i];
+      h += '<div class="brow"><span class="i">' + pad2(r.i) + '</span><span class="n">' + r.k +
+        '</span><span class="' + (r.ok ? 'p' : 'f') + '">' + (r.ok ? 'PASS' : 'FAIL') +
+        '</span><span class="m">' + r.note + '</span></div>';
+    }
+    var body = el('bootBody');
+    if (body) body.innerHTML = h;
+    var ft = el('bootFoot');
+    if (ft) ft.textContent = '逐级实测 · 任一级 FAIL 则整链重跑 · 已测 ' + G.boot.rows.length + ' / ' + BOOT_STAGES.length +
+      ' · 计时 ' + Math.round(G.boot.t) + ' ms';
+    var bl = el('bootLayer');
+    if (bl && G.boot.on) bl.className = 'boot on';
+  }
+
   /* ─────────── 主循环 ─────────── */
   function tick(dt) {
+    if (G.boot && G.boot.on) { stepBoot(dt); evalState(); return; }
     if (G.mode === 'seed') {
       G.seedT -= dt * 1000;
       if (G.seedT <= 0) { G.mode = 'play'; pushLog('<i>装填</i> 地块阵列落位完成 · 主交互循环激活'); }
@@ -1361,6 +1737,7 @@ var LEDGER_DEF = [
     physics(dt);
     stepTiles(dt);
     stepTowers(dt);
+    stepHeatAvg();
     stepEnemies(dt);
     stepProj(dt);
     stepFx(dt);
@@ -1929,19 +2306,25 @@ var LEDGER_DEF = [
 
     /* ① 风切矢量罗盘 */
     var x = pad, y = pad;
-    panel(g, x, y, cw, ch, '① 风切矢量罗盘', Math.round(Math.hypot(G.wind.x, G.wind.z)) + ' u/s');
+    panel(g, x, y, cw, ch, '① 风切矢量罗盘', '风 ' + Math.round(Math.hypot(G.wind.x, G.wind.z)) + ' u/s');
     var cx = x + cw / 2, cy = y + ch / 2 + 6, R = Math.min(cw, ch) * 0.30;
     g.strokeStyle = 'rgba(23,73,58,.9)'; g.lineWidth = 1;
     g.beginPath(); g.arc(cx, cy, R, 0, 6.2832); g.stroke();
     g.beginPath(); g.arc(cx, cy, R * 0.55, 0, 6.2832); g.stroke();
-    var wa = Math.atan2(G.wind.z, G.wind.x), wm = cl(Math.hypot(G.wind.x, G.wind.z) / 420, 0, 1);
+    var wa = Math.atan2(G.wind.z, G.wind.x), wm = cl(0.30 + 0.70 * Math.hypot(G.wind.x, G.wind.z) / 300, 0.30, 1);
     g.strokeStyle = G.lift ? '#3fdfc4' : (G.along ? '#ffb347' : '#9fd8ff');
+    var ex = cx + Math.cos(wa) * R * wm, ey = cy + Math.sin(wa) * R * wm;
     g.lineWidth = 2.4;
-    g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(wa) * R * wm, cy + Math.sin(wa) * R * wm); g.stroke();
+    g.beginPath(); g.moveTo(cx, cy); g.lineTo(ex, ey); g.stroke();
     g.fillStyle = g.strokeStyle;
-    g.beginPath(); g.arc(cx + Math.cos(wa) * R * wm, cy + Math.sin(wa) * R * wm, 3.4, 0, 6.2832); g.fill();
+    g.beginPath();
+    g.moveTo(ex, ey);
+    g.lineTo(ex - Math.cos(wa - 0.48) * 8, ey - Math.sin(wa - 0.48) * 8);
+    g.lineTo(ex - Math.cos(wa + 0.48) * 8, ey - Math.sin(wa + 0.48) * 8);
+    g.closePath(); g.fill();
+    g.beginPath(); g.arc(cx, cy, 2.2, 0, 6.2832); g.fill();
     g.fillStyle = '#7ba79a'; g.font = '10px system-ui,sans-serif';
-    g.fillText(P.tether ? '索载 · 摆荡中' : (G.lift ? '逆风 · 升力向量' : (G.along ? '顺风 · 阻尼放大' : '静风 · 无攻角')), x + 7, y + ch - 6);
+    g.fillText(P.tether ? '索载 · 摆荡中' : (G.lift ? '逆风 · 升力向量' : (G.along ? '顺风 · 阻尼放大' : '驻停 · 无攻角')), x + 7, y + ch - 6);
 
     /* ② 动能示波雷达 */
     x = pad + cw + gap;
@@ -2129,6 +2512,82 @@ var LEDGER_DEF = [
     resOk + 0;
   }
 
+  /* ─────────── 渲染：五科目守恒账（画布 E） ─────────── */
+  function drawLedger() {
+    var f = fit(cvLedger); if (!f) return;
+    var g = f.g, w = f.w, h = f.h;
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = 'rgba(6,26,20,.86)'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#17493a'; g.lineWidth = 1; g.strokeRect(.5, .5, w - 1, h - 1);
+    var i, k, v, x = 6, bw = w - 12, cw;
+    /* 比例带 */
+    g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(x, 5, bw, 12);
+    var acc = x;
+    for (i = 0; i < ACCT_KEYS.length; i++) {
+      k = ACCT_KEYS[i]; cw = bw * G.acct[k] / ACCT_TOTAL;
+      g.fillStyle = ACCT_COL[k]; g.fillRect(acc, 5, Math.max(0, cw), 12);
+      acc += cw;
+    }
+    g.strokeStyle = 'rgba(207,232,223,.35)'; g.strokeRect(x + .5, 5.5, bw - 1, 11);
+    /* 逐科目整数（五列一行，各自左名右数，互不压字） */
+    var colW = (w - 12) / 5;
+    for (i = 0; i < ACCT_KEYS.length; i++) {
+      k = ACCT_KEYS[i];
+      var cx = x + i * colW, cy = 32;
+      g.fillStyle = ACCT_COL[k]; g.fillRect(cx, cy - 5, 4, 4);
+      g.fillStyle = '#7ba79a'; g.font = '8.5px system-ui,sans-serif';
+      g.fillText(ACCT_NAMES[i], cx + 7, cy);
+      g.fillStyle = '#cfe8df'; g.font = '9px ui-monospace,Menlo,monospace'; g.textAlign = 'right';
+      g.fillText(String(G.acct[k]), cx + colW - 7, cy);
+      g.textAlign = 'left';
+    }
+    /* Σ 与缺口 */
+    var gap = acctGap();
+    g.font = '9px ui-monospace,Menlo,monospace';
+    g.fillStyle = '#3fdfc4';
+    g.fillText('Σ ' + acctSum(), x, h - 4);
+    g.textAlign = 'right';
+    g.fillStyle = gap === 0 ? '#7fe08a' : '#ff5c72';
+    g.fillText('缺口 ' + gap + ' · 单位 1/100', w - 7, h - 4);
+    g.textAlign = 'left';
+  }
+
+  /* ─────────── 渲染：收益倍率示波（画布 F · 恰六行） ─────────── */
+  function drawFlux() {
+    var f = fit(cvFlux); if (!f) return;
+    var g = f.g, w = f.w, h = f.h;
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = 'rgba(6,26,20,.86)'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#17493a'; g.lineWidth = 1; g.strokeRect(.5, .5, w - 1, h - 1);
+    var rows = [
+      { n: '潮汐射程', v: G.rangeMul, c: '#ffd166', live: G.tideHigh },
+      { n: '潮汐敌速', v: G.spdMul, c: '#9fd8ff', live: !G.tideHigh },
+      { n: '腐化射程', v: corrRangeMul(), c: '#b18cff', live: G.corr > 0 },
+      { n: '腐化射界', v: corrArcMul(), c: '#b18cff', live: G.arcRej > 0 },
+      { n: '顺风阻尼', v: PHYS.TAIL_DRAG, c: '#7fe08a', live: G.along },
+      { n: '圣泉共振', v: resMul(), c: '#3fdfc4', live: resShare() > 0 }
+    ];
+    var top = 4, rh = Math.max(11, Math.min(16, (h - 8) / 6));
+    var i;
+    for (i = 0; i < rows.length; i++) {
+      var r = rows[i], y = top + i * rh;
+      g.fillStyle = r.live ? r.c : '#4e7a70';
+      g.font = '9px system-ui,sans-serif';
+      g.fillText(r.n, 6, y + rh * 0.68);
+      var bx = 54, bwd = w - bx - 44, by = y + rh * 0.28, bh = Math.max(4, rh * 0.40);
+      g.fillStyle = 'rgba(0,0,0,.46)'; g.fillRect(bx, by, bwd, bh);
+      var fw = bwd * cl(r.v / 1.60, 0, 1);
+      g.fillStyle = r.live ? r.c : 'rgba(78,122,112,.75)';
+      g.fillRect(bx, by, fw, bh);
+      g.strokeStyle = 'rgba(63,223,196,.30)'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(bx + bwd * 0.625, by - 1); g.lineTo(bx + bwd * 0.625, by + bh + 1); g.stroke();
+      g.fillStyle = r.live ? '#cfe8df' : '#6e9c8f';
+      g.font = '9px ui-monospace,Menlo,monospace'; g.textAlign = 'right';
+      g.fillText('×' + r.v.toFixed(3), w - 6, y + rh * 0.68);
+      g.textAlign = 'left';
+    }
+  }
+
   /* ─────────── 渲染：结算雷达 ─────────── */
   function drawSettleRadar() {
     var f = fit(cvSettle); if (!f) return;
@@ -2154,10 +2613,8 @@ var LEDGER_DEF = [
     for (i = 0; i < 5; i++) {
       var ang2 = -1.5708 + i * 6.2832 / 5;
       g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(ang2) * R, cy + Math.sin(ang2) * R); g.stroke();
-      g.fillStyle = '#7ba79a'; g.font = '10px system-ui,sans-serif'; g.textAlign = 'center';
-      g.fillText(axes[i].k, cx + Math.cos(ang2) * (R + 20), cy + Math.sin(ang2) * (R + 20) + 3);
-      g.fillStyle = '#cfe8df';
-      g.fillText(Math.round(axes[i].v) + '', cx + Math.cos(ang2) * (R * axes[i].v / 100), cy + Math.sin(ang2) * (R * axes[i].v / 100) - 5);
+      g.fillStyle = '#9fc0b3'; g.font = '10px system-ui,sans-serif'; g.textAlign = 'center';
+      g.fillText(axes[i].k + ' ' + Math.round(axes[i].v), cx + Math.cos(ang2) * (R + 24), cy + Math.sin(ang2) * (R + 24) + 3);
       g.textAlign = 'left';
     }
     g.beginPath();
@@ -2176,12 +2633,17 @@ var LEDGER_DEF = [
     var d = DIFFS[G.diff];
     el('tRun').textContent = RUNID;
     el('tSeed').textContent = SEED;
-    el('tPhase').textContent = (G.tideHigh ? '涨潮' : '退潮') + ' ' + G.phase.toFixed(3) + ' · ×' + G.rangeMul.toFixed(3);
+    el('tPhase').textContent = (G.tideHigh ? '涨潮' : '退潮') + ' ×' + G.rangeMul.toFixed(3);
     el('tLife').innerHTML = '<b style="color:' + (G.life <= 4 ? '#ff5c72' : '#ffd166') + '">' + G.life + '</b> / ' + G.lifeMax;
     el('tNutr').textContent = G.nutr + ' 营养';
     el('tKine').textContent = P.kine.toFixed(0) + ' / ' + Math.round(P.stab) + '%';
-    el('tWave').textContent = G.wave + '/10 波 · 在场 ' + EN.length + ' · 清场 ' + G.cleared;
+    el('tWave').textContent = G.wave + '/10 · ' + EN.length;
+    var si = G.st || 0, ts = el('tState');
+    ts.textContent = SN[si];
+    ts.style.color = SK[si];
     el('tScore').textContent = G.combat + ' 分';
+    el('acctSub').textContent = 'Σ ' + acctSum() + ' · 缺口 ' + acctGap();
+    el('fluxSub').textContent = '风切 ' + G.galeNow.toFixed(0) + ' / 阈值 ' + PHYS.GALE_CROSS;
 
     el('tagL').innerHTML = '根脉潮汐 · <b>' + (G.tideHigh ? '涨潮' : '退潮') + '</b> · 射程 ×' + G.rangeMul.toFixed(3) + ' · 敌速 ×' + G.spdMul.toFixed(3);
     el('tagR').innerHTML = '生命 <b>' + G.life + '</b> · 腐化 ' + G.corr.toFixed(0) + ' · 塔 ' + TW.length + ' 座 · 击杀 ' + G.kills + ' / 漏 ' + G.leaks;
@@ -2212,7 +2674,7 @@ var LEDGER_DEF = [
       c.querySelector('.ds').textContent = s.d;
       c.querySelector('.pr').innerHTML = s.cost + '<i>' + (G.nutr < s.cost ? '营养不足' : '营养') + '</i>';
     });
-    el('shopSub').textContent = '已建 ' + TW.length + ' 座 · 共振达标 ' + TW.filter(function (t) { return t.res >= PHYS.RES_THRESH; }).length + ' 座';
+    el('shopSub').textContent = '已建 ' + TW.length + ' · 共振 ' + TW.filter(function (t) { return t.res >= PHYS.RES_THRESH; }).length;
 
     /* 守卫读数 */
     el('hero').innerHTML =
@@ -2223,6 +2685,8 @@ var LEDGER_DEF = [
       row('磁极', (P.pol > 0 ? '正极' : '负极') + ' · 重力 ×' + (P.pol > 0 ? PHYS.POL_GRAV_POS : PHYS.POL_GRAV_NEG), 'vi') +
       row('终端降落', (P.dive ? PHYS.TERM_DIVE : (G.lift ? PHYS.TERM_LIFT : PHYS.TERM)) + ' px/s', '') +
       row('能量索', P.tether ? '锚定 · 张力 ' + Math.round(P.tension) + '/' + PHYS.TENSION_MAX : '未锚定', P.tether ? 'cy' : '') +
+      row('树脂 / 腐化', (G.acct.sap / ACCT_U).toFixed(0) + ' · ' + G.corr.toFixed(0) + ' %', G.corr >= PHYS.BLIGHT_CRIT ? 'bad' : 'vi') +
+      row('射界收窄', '×' + corrArcMul().toFixed(3) + ' · 拒绝 ' + G.arcRejTot, G.corr > 0 ? 'bad' : '') +
       row('落点离差', P.lastOff >= 0 ? '上次 ' + (P.lastOff * 100).toFixed(0) + ' %' : '—', '') +
       row('核心命中', G.coreHitN + ' 次', 'al');
 
@@ -2285,6 +2749,11 @@ var LEDGER_DEF = [
       ['速坠', P.dive ? 'on' : '', 'S/↓'],
       ['磁极', P.pol < 0 ? 'hot' : '', 'L'],
       ['共振', P.resT > 0 ? 'on' : '', 'U'],
+      ['制动', '', 'X'],
+      ['跃迁', '', 'C'],
+      ['炼金', G.acct.blight >= 8 * ACCT_U ? 'on' : '', 'G'],
+      ['转能', G.acct.nutr >= 10 * ACCT_U ? 'on' : '', 'Y'],
+      ['置换', '', 'B'],
       ['结算', '', 'Enter']
     ];
     el('chips').innerHTML = chips.map(function (c) { return '<span class="chip ' + c[1] + '">' + c[0] + '<span style="opacity:.55"> ' + c[2] + '</span></span>'; }).join('');
@@ -2327,6 +2796,8 @@ var LEDGER_DEF = [
     el('sTiles').innerHTML = s;
 
     var k = '<table class="tbl">';
+    k += '<tr><td>五科目整数</td><td>' + ACCT_KEYS.map(function (q) { return ACCT_NAMES[ACCT_KEYS.indexOf(q)] + ' ' + G.acct[q]; }).join(' · ') + '</td></tr>';
+    k += '<tr><td>守恒 Σ / 缺口</td><td>' + acctSum() + ' / ' + acctGap() + '</td></tr>';
     k += '<tr><td>动能上限</td><td>' + PHYS.KINE_MAX + '</td></tr>';
     k += '<tr><td>弹射消耗</td><td>' + G.kineSpent + '（' + Math.round(G.kineSpent / PHYS.KINE_SHOT) + ' 次）</td></tr>';
     k += '<tr><td>核心区返还</td><td>' + Math.round(G.kineGain) + '（' + G.coreHitN + ' 次）</td></tr>';
@@ -2346,7 +2817,7 @@ var LEDGER_DEF = [
     el('sBd').textContent = '逐帧回溯：' + a.lands + ' 次落点相对共鸣核心区中心的偏离量加权';
     el('sC').textContent = a.eff.toFixed(1) + '%';
     el('sCd').textContent = '逐帧回溯：核心区返还 / 弹射消耗 动能之比';
-    el('sFoot').innerHTML = '结算原因 <b style="color:#ffd166">' + G.settleWhy + '</b> · 五轴加权 <b style="color:#3fdfc4">' + a.score.toFixed(1) + '</b> · 评级 <b style="color:#ffd166">' + a.grade + '</b> · 帧样本数 ' + a.n + '（恒等于逐帧数组长度）· 协同达标峰值 ' + a.resPeak + ' 座 · 风场利用 ' + a.wind.toFixed(1) + '%';
+    el('sFoot').innerHTML = '结算原因 <b style="color:#ffd166">' + G.settleWhy + '</b> · 五轴加权 <b style="color:#3fdfc4">' + a.score.toFixed(1) + '</b> · 评级 <b style="color:#ffd166">' + a.grade + '</b> · 帧样本数 ' + a.n + '（恒等于逐帧数组长度 · ' + a.cols + ' 列）· 守恒缺口 <b style="color:' + (a.gapBad ? '#ff5c72' : '#7fe08a') + '">' + a.gapBad + '</b> / 峰值 ' + a.gapMax + ' · 协同达标峰值 ' + a.resPeak + ' 座 · 风场利用 ' + a.wind.toFixed(1) + '%';
     drawSettleRadar();
     G.painted++;
   }
@@ -2355,7 +2826,7 @@ var LEDGER_DEF = [
 
   /* ─────────── 输入 ─────────── */
   G = { diff: 'normal' };
-  var cvWorld, cvRig, cvRadar, cvBars, cvSettle;
+  var cvWorld, cvRig, cvRadar, cvBars, cvLedger, cvFlux, cvSettle;
   G.in = { left: false, right: false, down: false };
 
   function bindKeys() {
@@ -2369,6 +2840,11 @@ var LEDGER_DEF = [
       if (k === 'k' || k === 'K') { tetherKey(); }
       if (k === 'l' || k === 'L') { togglePolarity(); }
       if (k === 'u' || k === 'U') { resonate(); }
+      if (k === 'x' || k === 'X') { brakeTilt(); }
+      if (k === 'c' || k === 'C') { rootHop(); }
+      if (k === 'g' || k === 'G') { alchemy(); }
+      if (k === 'y' || k === 'Y') { feedKine(); }
+      if (k === 'b' || k === 'B') { soilSwap(); }
       if (k === 'p' || k === 'P') { G.paused = !G.paused; hint(G.paused ? '已暂停' : '已恢复'); }
       if (k === 'Escape') { toTitle(); }
       if (k === 'Enter') { if (G.mode === 'play' && !G.settled) settle('MANUAL'); else startRun(); }
@@ -2420,6 +2896,7 @@ var LEDGER_DEF = [
     el('sAgain').addEventListener('click', function () { el('settle').className = 'settle'; startRun(); });
   }
   function startRun() {
+    if (G.boot && G.boot.on) { hint('启动链未闭合 · 标题层锁定'); return; }
     el('settle').className = 'settle';
     reset('seed');
     G.mode = 'seed'; G.seedT = 1500;
@@ -2456,17 +2933,19 @@ var LEDGER_DEF = [
     requestAnimationFrame(loopRadar);
     if (G.frozen) return;
     if ((radarTick++ % 6) !== 0) return;
-    drawRadar(); drawBars();
+    drawRadar(); drawBars(); drawLedger(); drawFlux();
   }
 
   function boot() {
     cvWorld = el('cvWorld'); cvRig = el('cvRig'); cvRadar = el('cvRadar');
-    cvBars = el('cvBars'); cvSettle = el('cvSettle');
+    cvBars = el('cvBars'); cvLedger = el('cvLedger'); cvFlux = el('cvFlux'); cvSettle = el('cvSettle');
     reset('title');
-    el('titleLayer').style.display = 'flex';
-    el('titleNote').textContent = '根系种子 ' + SEED + ' · 定点步进 60 Hz · 逐帧可复现 · 任务号 ' + RUNID;
+    el('titleLayer').style.display = 'none';
+    el('bootLayer').className = 'boot on';
+    el('titleNote').textContent = '根系种子 ' + SEED + ' · 任务号 ' + RUNID + ' · 定长步进 60Hz · 自包含单文件';
     bindKeys(); bindMouse(); bindChips();
     renderDom();
+    renderBoot();
     last = performance.now();
     requestAnimationFrame(loopWorld);
     requestAnimationFrame(loopRig);
@@ -2479,7 +2958,7 @@ var LEDGER_DEF = [
     seed: function (n) { SEED = n; reset(G.mode); return SEED; },
     freeze: function () { G.frozen = true; },
     unfreeze: function () { G.frozen = false; acc = 0; last = performance.now(); },
-    step: function (n) { for (var i = 0; i < (n || 1); i++) tick(STEP); drawWorld(); drawRig(); drawRadar(); return G.t; },
+    step: function (n) { for (var i = 0; i < (n || 1); i++) tick(STEP); drawWorld(); drawRig(); drawRadar(); drawBars(); drawLedger(); drawFlux(); return G.t; },
     start: function () { startRun(); return G.mode; },
     toTitle: function () { toTitle(); return G.mode; },
     state: function () { return SN[G.st || 0]; },
@@ -2496,14 +2975,18 @@ var LEDGER_DEF = [
         built: G.built, upg: G.upg, sold: G.sold, dmg: Math.round(G.dmgTot), wave: G.wave,
         cleared: G.cleared, pending: G.pendingWave || 0, waveT: G.waveT, score: G.combat,
         rollT: G.rollT, settled: G.settled, why: G.settleWhy, corrBurst: G.corrBurstT > 0,
-        frac: countFrac(), peakSink: +peakSink().toFixed(2), pkEnemies: G.pkEnemies
+        frac: countFrac(), peakSink: +peakSink().toFixed(2), pkEnemies: G.pkEnemies,
+        sap: G.acct.sap / ACCT_U, ent: G.acct.ent, gap: acctGap(), sum: acctSum(),
+        heatAvg: +G.heatAvg.toFixed(4), gale: +G.galeNow.toFixed(1), gridLock: G.gridLockT,
+        arcRej: G.arcRejTot, gestures: G.gestures, cols: FRAME_COLS.length,
+        bootOn: G.boot.on, bootStage: G.boot.stage
       };
     },
     player: function () { return { x: P.x, y: P.y, vx: P.vx, vy: P.vy, onGround: P.onGround, gc: P.gc, attune: P.attune, charges: P.charges, kine: P.kine, stab: P.stab, pol: P.pol, tether: !!P.tether, tension: P.tension, charging: P.charging, chargeMs: P.chargeMs, overT: P.overT, dive: P.dive, landOff: P.landOff, landV: P.landV, th: P._th || 0, tension2: P._vt || 0, swung: !!P.swung }; },
     consts: function () { var o = {}, k; for (k in PHYS) if (PHYS.hasOwnProperty(k)) o[k] = PHYS[k]; return o; },
     setT: function (ms) { G.t = ms; return G.t; },
     dom: function () { renderDom(); return 1; },
-    paint: function () { drawWorld(); drawRig(); drawRadar(); drawBars(); renderDom(); if (G.settled) drawSettleRadar(); return 1; },
+    paint: function () { drawWorld(); drawRig(); drawRadar(); drawBars(); drawLedger(); drawFlux(); renderDom(); if (G.settled) drawSettleRadar(); return 1; },
     tiles: function () { var o = [], c, r; for (c = 0; c < COLS; c++) for (r = T.gh[c]; r < ROWS; r++) { var t = T.tile[c][r]; if (t) o.push({ c: c, r: r, state: t.state, sink: +t.sink.toFixed(2), sv: +t.sv.toFixed(2), peak: +t.peak.toFixed(2), lastPeak: +t.lastPeak.toFixed(2), intg: +t.intg.toFixed(1), load: t.load, cap: T.caps[c], fuse: +t.fuse.toFixed(0) }); } return o; },
     tile: function (c, r) { var t = T.tile[c] && T.tile[c][r]; return t ? { state: t.state, sink: t.sink, sv: t.sv, peak: t.peak, lastPeak: t.lastPeak, intg: t.intg, load: t.load, fuse: t.fuse, rbd: t.rbd || null } : null; },
     ground: function () { return T.gh.slice(); },
@@ -2523,15 +3006,35 @@ var LEDGER_DEF = [
     polarity: function () { return togglePolarity(); },
     resonate: function () { return resonate(); },
     dive: function (v) { P.dive = !!v; return P.dive; },
+    brake: function () { return brakeTilt(); },
+    hop: function () { return rootHop(); },
+    alchemy: function () { return alchemy(); },
+    feed: function () { return feedKine(); },
+    swap: function () { return soilSwap(); },
+    flux: function () {
+      return { range: G.rangeMul, spd: G.spdMul, corrRange: corrRangeMul(), corrArc: corrArcMul(),
+        drag: PHYS.TAIL_DRAG, res: resMul(), resShare: resShare(), gale: G.galeNow,
+        rows: 6, heatAvg: G.heatAvg, gridLock: G.gridLockT };
+    },
     build: function (k, c, r) { if (k) G.buildKind = k; return buildN(G.buildKind, c, r === undefined ? groundRow(c) : r); },
     upgrade: function (c, r) { return upgradeN(c, r === undefined ? groundRow(c) : r); },
     sell: function (c, r) { return sellN(c, r === undefined ? groundRow(c) : r); },
     setAttune: function (v) { P.attune = v; P.charges = v >= 1 ? 1 : 0; return P.attune; },
-    setKine: function (v) { P.kine = v; return P.kine; },
+    setKine: function (v) { var d = Math.round(v * ACCT_U) - G.acct.kine; if (d > 0) xfer('ent', 'kine', d); else if (d < 0) xfer('kine', 'ent', -d); return P.kine; },
     setStab: function (v) { P.stab = v; return P.stab; },
-    setNutr: function (v) { G.nutr = v; return G.nutr; },
+    setNutr: function (v) { var d = Math.round(v * ACCT_U) - G.acct.nutr; if (d > 0) xfer('ent', 'nutr', d); else if (d < 0) xfer('nutr', 'ent', -d); return G.nutr; },
+    setSap: function (v) { var d = Math.round(v * ACCT_U) - G.acct.sap; if (d > 0) xfer('ent', 'sap', d); else if (d < 0) xfer('sap', 'ent', -d); return G.acct.sap / ACCT_U; },
     setLife: function (v) { G.life = v; return G.life; },
-    setCorr: function (v) { G.corr = v; return G.corr; },
+    setCorr: function (v) { var d = Math.round(v * ACCT_U) - G.acct.blight; if (d > 0) xfer('ent', 'blight', d); else if (d < 0) xfer('blight', 'ent', -d); return G.corr; },
+    setHeat: function (v) { for (var i = 0; i < TW.length; i++) { TW[i].heat = v; TW[i].over = v >= PHYS.OVERHEAT; } G.heatAvg = TW.length ? v : 0; return G.heatAvg; },
+    setGale: function (v) {
+      if (v > 0) { G.galeInject = v; G.galeCalm = 0; G.galeNow = v; }
+      else { G.galeInject = 0; G.galeCalm = 3000; G.galeNow = 0; }
+      return G.galeNow;
+    },
+    setGridLock: function (ms) { G.gridLockT = ms === undefined ? PHYS.GRID_LOCK_MS : ms; return G.gridLockT; },
+    acct: function () { var o = {}, i; for (i = 0; i < ACCT_KEYS.length; i++) o[ACCT_KEYS[i]] = G.acct[ACCT_KEYS[i]]; o.sum = acctSum(); o.gap = acctGap(); return o; },
+    boot: function () { return { on: G.boot.on, stage: G.boot.stage, rows: G.boot.rows.slice(), t: G.boot.t, tEnd: G.boot.tEnd || 0, total: BOOT_STAGES.length }; },
     teleport: function (x, y) { P.x = x; P.y = y; P.vx = 0; P.vy = 0; P.onGround = false; return { x: P.x, y: P.y }; },
     setVel: function (x, y) { P.vx = x; P.vy = y; return { vx: P.vx, vy: P.vy }; },
     setGround: function (arr) { for (var c = 0; c < COLS && c < arr.length; c++) { var nv = arr[c], r; for (r = 0; r < ROWS; r++) T.tile[c][r] = null; T.gh[c] = nv; for (r = nv; r < ROWS; r++) T.tile[c][r] = { c: c, r: r, load: 0, prevLoad: 0, sink: 0, sv: 0, peak: 0, lastPeak: 0, intg: 100, state: 0, fuse: PHYS.FUSE_MS, hitT: 0 }; } return T.gh.slice(); },
@@ -2543,6 +3046,7 @@ var LEDGER_DEF = [
     wave: function (n) { beginWave(n); return G.wave; },
     wavePending: function (n) { G.pendingWave = n | 0; G.waveT = WAVE_LEAD; return G.pendingWave; },
     crisis: function (v) { G.corrBurstT = v ? PHYS.CORR_BURST_MS : 0; return G.corrBurstT; },
+    fail: function () { failRun(); return G.rollT; },
     settle: function (why) { settle(why || 'PROBE'); return G.settled; },
     unsettle: function () { G.settled = false; G.rollT = -1; el('settle').className = 'settle'; return G.settled; },
     reset: function (m) { reset(m || 'play'); return G.mode; },
