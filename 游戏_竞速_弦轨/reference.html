@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>弦轨 CHORDLINE · 环带十二阶张力守恒协议</title>
+<style>
+  :root{
+    --bg:#060b11; --bg2:#08111a; --panel:rgba(9,17,25,.92); --panel2:rgba(11,21,30,.9);
+    --line:#1d3342; --line2:#28495b; --ink:#c8d6df; --muted:#6f8795; --faint:#405866;
+    --gold:#d8a84e; --gold2:#f0c46a; --cyan:#7fd4e8; --cyan2:#4fb9d6; --green:#53d6a0;
+    --red:#d05a52; --pink:#d77a8a; --purple:#8b6fd0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#03070b;overflow:hidden;color:var(--ink);
+    font-family:"Noto Sans SC","Microsoft YaHei","PingFang SC",system-ui,sans-serif}
+  #stage{position:absolute;left:0;top:0;width:1536px;height:864px;background:var(--bg);
+    transform-origin:top left;overflow:hidden}
+  .mono{font-family:ui-monospace,"SFMono-Regular",Consolas,monospace}
+  .faint{color:var(--muted)}
+  .gold{color:var(--gold2)}
+  .cyan{color:var(--cyan)}
+  .red{color:var(--red)}
+  /* top bar */
+  #topbar{position:absolute;left:0;top:0;width:1536px;height:40px;
+    background:linear-gradient(180deg,#0b1620,#081019);border-bottom:1px solid #1d3342;
+    display:flex;align-items:center;gap:10px;padding:0 12px;z-index:40}
+  #brand{width:148px;flex:0 0 148px;display:flex;align-items:baseline;gap:7px}
+  #brand b{font-size:17px;letter-spacing:.12em;color:var(--gold2);font-weight:700}
+  #brand span{font-size:8px;letter-spacing:.22em;color:#68808e}
+  #states{display:flex;align-items:center;gap:3px;flex:0 0 auto}
+  .chip{height:20px;padding:0 6px;border:1px solid #213746;border-radius:3px;
+    color:#66808e;font-size:9px;line-height:18px;white-space:nowrap;background:rgba(8,16,23,.6)}
+  .chip i{font-style:normal;color:#4e6876;margin-right:3px}
+  .chip.on{border-color:var(--gold);color:var(--gold2);background:rgba(216,168,78,.09);
+    box-shadow:0 0 10px rgba(216,168,78,.18),inset 0 -2px 0 var(--gold);font-weight:600}
+  .chip.on i{color:var(--gold)}
+  #topvals{margin-left:auto;display:flex;align-items:center;gap:13px;font-size:10px;
+    color:#8fa6b4;white-space:nowrap}
+  #topvals b{color:var(--gold2);font-weight:600}
+  #topvals .st{color:var(--cyan);font-weight:600}
+  /* main layout */
+  #left{position:absolute;left:0;top:40px;width:260px;height:560px;z-index:10}
+  #world{position:absolute;left:260px;top:40px;width:980px;height:560px;z-index:1}
+  #right{position:absolute;left:1240px;top:40px;width:296px;height:560px;z-index:10}
+  #bottom{position:absolute;left:0;top:600px;width:1000px;height:264px;z-index:2}
+  #yieldpanel{position:absolute;left:1000px;top:600px;width:240px;height:264px;z-index:10}
+  #radar{position:absolute;left:1240px;top:600px;width:296px;height:264px;z-index:1}
+  .panel{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    box-shadow:inset 0 0 22px rgba(20,50,66,.12);overflow:hidden}
+  .phead{height:26px;display:flex;align-items:flex-end;justify-content:space-between;
+    padding:0 8px 4px;border-bottom:1px solid #172a36}
+  .phead b{font-size:12px;letter-spacing:.08em;color:#d7e2e8;font-weight:600}
+  .phead span{font-size:7.5px;letter-spacing:.2em;color:#4d6674}
+  .pbody{padding:6px 8px;font-size:10px;line-height:1.55;color:#9fb2be}
+  .row{display:flex;justify-content:space-between;gap:8px;white-space:nowrap}
+  .row .k{color:#7f96a4;overflow:hidden;text-overflow:ellipsis}
+  .row .v{color:#cfe0e8;font-family:ui-monospace,Consolas,monospace}
+  .row.hi .v{color:var(--gold2)}
+  .row.dim .v{color:#6b8492}
+  .sep{height:1px;background:#172a36;margin:5px 0}
+  #evpanel{left:4px;top:8px;width:252px;height:250px}
+  #arcpanel{left:4px;top:266px;width:252px;height:290px}
+  #islpanel{left:4px;top:4px;width:288px;height:190px}
+  #tetpanel{left:4px;top:202px;width:288px;height:160px}
+  #tenpanel{left:4px;top:370px;width:288px;height:186px}
+  #yieldpanel .panel{left:0;top:0;width:240px;height:264px}
+  /* event stream */
+  .evline{display:flex;gap:6px;font-size:9.5px;line-height:1.52;white-space:nowrap;color:#8da3b0}
+  .evline .n{width:30px;flex:0 0 30px;color:#506b79;text-align:right}
+  .evline .t{color:#5c7785}
+  .evline .e{color:#a9bec9}
+  .evline .e.gold{color:var(--gold2)}
+  .evline .e.cyan{color:var(--cyan)}
+  .evline .e.red{color:var(--red)}
+  /* arc rows */
+  .arcrow{display:flex;align-items:center;gap:6px;height:21px;font-size:10px;border-radius:2px;padding:0 5px}
+  .arcrow .id{width:25px;color:#708896;font-family:ui-monospace,monospace;font-size:9px}
+  .arcrow .nm{flex:1;color:#91a7b3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .arcrow .vv{width:74px;text-align:right;color:#bad0da;font-family:ui-monospace,monospace;font-size:9.5px}
+  .arcrow.on{background:linear-gradient(90deg,rgba(216,168,78,.16),rgba(216,168,78,.03));
+    border-left:2px solid var(--gold);padding-left:3px}
+  .arcrow.on .nm{color:#efd6a4}.arcrow.on .vv{color:#f0c46a}
+  /* island panel */
+  #islcanvas{position:absolute;left:4px;top:28px;width:280px;height:126px}
+  #islfoot{position:absolute;left:8px;top:156px;width:272px;font-size:9px;line-height:1.5;color:#7f96a4}
+  /* yield */
+  #yieldpanel .pbody{padding-top:7px}
+  /* boot */
+  #boot{position:absolute;left:228px;top:44px;width:666px;height:548px;z-index:60;
+    background:linear-gradient(180deg,#09121b,#070d14);
+    border:1px solid #2a4a5c;border-radius:4px;box-shadow:0 0 40px rgba(0,0,0,.6);display:none}
+  #boot .bt{position:absolute;left:20px;top:26px;font-size:19px;letter-spacing:.16em;color:#e7d6ad;font-weight:600}
+  #boot .bs{position:absolute;left:20px;top:52px;font-size:9px;letter-spacing:.18em;color:#5e7b8b}
+  #boot .bprog{position:absolute;left:20px;top:74px;width:626px;height:3px;background:#122530}
+  #boot .bprog i{display:block;height:3px;width:75%;background:linear-gradient(90deg,#9b7431,#f0c46a);box-shadow:0 0 8px rgba(240,196,106,.4)}
+  #boot .cards{position:absolute;left:16px;top:92px;width:634px;height:350px;display:flex;flex-direction:column;gap:4px}
+  .bcard{flex:1;display:flex;align-items:center;gap:10px;padding:0 10px;border:1px solid #1b3341;
+    background:rgba(10,20,29,.72);border-radius:3px;min-height:0}
+  .bcard .no{width:20px;height:20px;flex:0 0 20px;border-radius:50%;border:1px solid #3b6174;
+    color:#8fb6c8;font:10px ui-monospace,monospace;display:flex;align-items:center;justify-content:center}
+  .bcard .tt{width:128px;flex:0 0 128px;font-size:10.5px;color:#c5d6df}
+  .bcard .tt em{display:block;font-style:normal;font-size:8px;letter-spacing:.12em;color:#506b7a;margin-top:1px}
+  .bcard .dd{flex:1;font-size:9px;color:#8da4b1;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bcard .ss{width:62px;flex:0 0 62px;text-align:right;font-size:9.5px;color:#5b7a89}
+  .bcard.ok .ss{color:var(--green)}
+  .bcard.ok .no{border-color:#2f6b57;color:#7fe0b4}
+  .bcard.run{border-color:#6b5526;background:rgba(45,35,12,.28)}
+  .bcard.run .ss{color:var(--gold2)}
+  .bcard.run .no{border-color:#9b7431;color:var(--gold2)}
+  #boot .bf{position:absolute;left:20px;bottom:14px;width:626px;display:flex;justify-content:space-between;
+    font-size:9px;color:#587382;font-family:ui-monospace,monospace}
+  /* settlement */
+  #settle{position:absolute;left:280px;top:40px;width:970px;height:530px;z-index:60;
+    background:linear-gradient(180deg,#09121b,#070d14);
+    border:1px solid #2a4a5c;border-radius:4px;box-shadow:0 0 40px rgba(0,0,0,.55);display:none}
+  #settle .st{position:absolute;left:22px;top:16px;font-size:22px;letter-spacing:.14em;color:#e8d7ae;font-weight:600}
+  #settle .ss{position:absolute;left:22px;top:48px;font-size:9px;letter-spacing:.14em;color:#5e7b8b}
+  #settle .cols{position:absolute;left:22px;top:72px;width:930px;height:398px;display:flex;gap:20px}
+  #settle .col{width:455px;font-size:9.5px;line-height:1.62}
+  #settle .col:first-child{width:356px}
+  #settle .col:last-child{width:390px}
+  #settle .col .h{font-size:10px;color:#d9c08a;letter-spacing:.1em;margin-bottom:4px}
+  #settle .srow{display:flex;gap:8px;height:16px;align-items:center;white-space:nowrap}
+  #settle .srow .k{flex:1;color:#8da4b1;overflow:hidden;text-overflow:ellipsis}
+  #settle .srow .n{width:120px;flex:0 0 120px;color:#5e7b8b;font-size:8.5px;overflow:hidden;text-overflow:ellipsis}
+  #settle .srow .v{width:54px;flex:0 0 54px;text-align:right;color:#cfe0e8;font-family:ui-monospace,monospace}
+  #settle .srow .v.p{color:var(--green)}#settle .srow .v.m{color:var(--red)}
+  #settle .total{position:absolute;right:58px;top:92px;text-align:right}
+  #settle .total .n{font-size:46px;color:var(--gold2);font-family:ui-monospace,monospace;line-height:1}
+  #settle .total .s{font-size:22px;letter-spacing:6px;color:var(--gold);margin-top:8px}
+  #settle .total .l{font-size:8.5px;color:#5e7b8b;margin-top:12px;line-height:1.7;font-family:ui-monospace,monospace}
+  #settle .btns{position:absolute;left:22px;bottom:18px;display:flex;gap:10px;align-items:center}
+  #settle button{background:rgba(20,38,48,.9);border:1px solid #3a6072;color:#bcd2dd;
+    font-size:10px;padding:7px 14px;border-radius:3px;cursor:pointer}
+  #settle button.pri{border-color:#c49a52;color:#f0d29a;background:rgba(70,52,20,.55)}
+  #settle .note{font-size:8.5px;color:#506b7a;margin-left:8px}
+  /* misc */
+  .hidden{display:none!important}
+  #stage:after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(0,0,0,.28) 100%)}
+</style>
+</head>
+<body>
+<main id="stage">
+  <header id="topbar">
+    <div id="brand"><b>弦轨</b><span>CHORDLINE</span></div>
+    <div id="states"></div>
+    <div id="topvals"></div>
+  </header>
+
+  <aside id="left">
+    <div class="panel" id="evpanel">
+      <div class="phead"><b>事件溯源流水</b><span>EVENT LEDGER</span></div>
+      <div class="pbody" id="evbody"></div>
+    </div>
+    <div class="panel" id="arcpanel">
+      <div class="phead"><b>区段协议剖面仪</b><span>ARC PROTOCOL</span></div>
+      <div class="pbody" id="arcbody"></div>
+    </div>
+  </aside>
+
+  <canvas id="world" width="1960" height="1120"></canvas>
+
+  <aside id="right">
+    <div class="panel" id="islpanel">
+      <div class="phead"><b>浮屿寿命阵列</b><span>PLATE LIFETIME</span></div>
+      <canvas id="islcanvas" width="560" height="252"></canvas>
+      <div id="islfoot"></div>
+    </div>
+    <div class="panel" id="tetpanel">
+      <div class="phead"><b>弦索预演双轨仪</b><span>TETHER PREVIEW</span></div>
+      <div class="pbody" id="tetbody"></div>
+    </div>
+    <div class="panel" id="tenpanel">
+      <div class="phead"><b>张力守恒账本</b><span>TENSION LEDGER</span></div>
+      <div class="pbody" id="tenbody"></div>
+    </div>
+  </aside>
+
+  <canvas id="bottom" width="2000" height="528"></canvas>
+
+  <aside id="yieldpanel">
+    <div class="panel" id="yieldpanelInner">
+      <div class="phead"><b>收益倍率表</b><span>YIELD REGISTER</span></div>
+      <div class="pbody" id="yieldbody"></div>
+    </div>
+  </aside>
+
+  <canvas id="radar" width="592" height="528"></canvas>
+
+  <section id="boot">
+    <div class="bt">弦轨 CHORDLINE · 引导序列</div>
+    <div class="bs">BOOT SEQUENCE · 十段确定性引导 · 逐段三遍自证并以真实不变量放行</div>
+    <div class="bprog"><i></i></div>
+    <div class="cards" id="bootcards"></div>
+    <div class="bf"><span id="bootleft">派生指纹 f6864ce4 · 空账 811c9dc5</span><span id="bootright">引导帧 73 / 97 · 已放行 7 / 10</span></div>
+    <div style="position:absolute;left:20px;bottom:2px;width:626px;text-align:center;font-size:8.5px;color:#405866">十段引导逐段以真实不变量自检放行，任一段失败即停在该段。</div>
+  </section>
+
+  <section id="settle">
+    <div class="st">本局审计结算</div>
+    <div class="ss">RUN_SETTLED_LEDGER · 全部读数由 57 条事件与 195 条帧记录纯函数归约得出</div>
+    <div class="cols">
+      <div class="col" id="settleleft"></div>
+      <div class="col" id="settleright"></div>
+    </div>
+    <div class="total">
+      <div class="n">521</div>
+      <div class="s">★★☆</div>
+      <div class="l">张力差额　0.000<br>账本折叠　a70e3eee</div>
+    </div>
+    <div class="btns">
+      <button class="pri">再来一局（同种子）</button>
+      <button>返回待机就绪</button>
+      <span class="note">结算面板与局内模块取同一真值，不出现第二个真值。</span>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const stage=$('stage');
+
+/* ---------- frame fixtures ---------- */
+const FRAMES={
+  img_001:{
+    id:'img_001',mode:'boot',state:'BOOT_SEQUENCING',stateIndex:0,stateCN:'引导序列',
+    mileage:0,speed:0.0,energy:0.00,retries:'3 / 3',rollbacks:'0 / 2',events:9,
+    wind:16.4,windLabel:'顺风 · 阻尼 ×1.14',windMode:'tail',
+    kinetic:0.0,peak:0.0,attune:0,attuneDwell:'0 / 350ms',attuneTier:'OFF',
+    normal:1.00,normalLo:0.15,strain:0.0,verticality:0.0,
+    radarMileage:0,loopClosed:0,
+    bootFrame:73,bootReleased:'7 / 10',bootSub:'9 / 12',
+    bootCards:[
+      {t:'BOOT_STRUCTURE',e:'结构自检',d:'语义化节点 10 / 15 · 模块体 7 / 7 · 自定义属性 4 / 4',s:'已放行',st:'ok'},
+      {t:'BOOT_SURFACE',e:'画布标定',d:'4 节点 2D 上下文就绪 · 后备尺寸逐节点比对一致',s:'已放行',st:'ok'},
+      {t:'BOOT_LAYOUT',e:'布局冻结',d:'16 布局根冻结 · 双视口零重叠 · 预留槽位 7',s:'已放行',st:'ok'},
+      {t:'BOOT_DERIVE',e:'子流派生',d:'十条正交子流互异 · 折叠 0xf6864ce4',s:'已放行',st:'ok'},
+      {t:'BOOT_ARC',e:'弧段预排',d:'浮屿 240 座 · 谐振桩 5 座 · 风廊 480 弧长',s:'已放行',st:'ok'},
+      {t:'BOOT_LEDGER',e:'账本挂载',d:'空账基线 811c9dc5 · 分段折叠 9cae33e1',s:'已放行',st:'ok'},
+      {t:'BOOT_GRAPH',e:'耦合图校验',d:'10 子系统节点 · 24 共享量 · 12 状态可达',s:'已放行',st:'ok'},
+      {t:'BOOT_INVARIANT',e:'不变量自检',d:'第 9 / 12 帧',s:'自检中…',st:'run'},
+      {t:'BOOT_WITNESS',e:'三遍见证',d:'交叉见证 · 载荷折叠 · 失败码矩阵',s:'排队',st:''},
+      {t:'BOOT_READY',e:'就绪移交',d:'串行化世界 · 冷重建 · 1200 步影子重放',s:'排队',st:''}
+    ],
+    world:{corridor:770,pylon:770,pylonLabel:'P-1 感应 ±60',vehicleX:315,vehicleY:300,
+      arcLine:530,arcLabel:'A1 入坞稳压弧',arcGain:'切变 0.82 · 涌流 0.94 · 承重 0.86',
+      banner:'',hint:'',railShift:0,boot:true}
+  },
+  img_002:{
+    id:'img_002',mode:'play',state:'TITLE_LOBBY',stateIndex:1,stateCN:'待机坞',
+    mileage:0,speed:0.0,energy:0.00,retries:'3 / 3',rollbacks:'0 / 2',events:10,
+    wind:10.3,windLabel:'逆风 · 升力 0.10',windMode:'head',
+    kinetic:0.0,peak:0.0,attune:0,attuneDwell:'0 / 350ms',attuneTier:'OFF',
+    normal:1.00,normalLo:0.15,strain:0.0,verticality:0.0,
+    radarMileage:0,loopClosed:0,
+    arc:{cur:0,gains:['0.82 / 0.94','1.00 / 1.00','1.28 / 1.08','1.12 / 1.16','0.94 / 1.24'],
+      shear:'0.82',flow:'0.94',load:'0.86',half:'59.8',sink:'0.86',slot:'0 / 5',cross:0},
+    tether:{target:'悬浮外',dist:'480 / 300',preview:'0 点',actual:'0 点',obs:'0 发',over:'0 发',
+      dev:'0.00 / 2.0',len:'0.00s',state:'待发射'},
+    tension:{plate:'132.000',vehicle:'0.000',converted:'0.000',entropy:'0.000',
+      total:'132.000 / 132.000',delta:'0.000'},
+    yield:{causal:'0.00',retry:'3 / 3',archive:0,attune:'0 · 脉冲 0',recoil:'0 · 坍缩 0',channel:'畅通 · 错次 0'},
+    eventsList:[
+      ['#1','0.00s','RESET'],['#2','0.07s','BOOT_STAGE'],['#3','0.15s','BOOT_STAGE'],
+      ['#4','0.26s','BOOT_STAGE'],['#5','0.41s','BOOT_STAGE'],['#6','0.49s','BOOT_STAGE'],
+      ['#7','0.63s','BOOT_STAGE'],['#8','0.70s','BOOT_STAGE'],['#9','0.70s','BOOT_DONE'],
+      ['#10','0.70s','FSM']
+    ],
+    islands:[['0.232',1],['0.233',1],['0.231',1],['0.232',1],['0.238',1],['0.227',1],
+      ['0.233',1],['0.232',1],['0.6',0],['0.6',0],['0.7',0],['0.0',0]],
+    world:{corridor:680,pylon:770,pylonLabel:'P-1 感应 ±60',vehicleX:315,vehicleY:310,
+      arcLine:350,arcLabel:'A1 入坞稳压弧',arcGain:'切变 0.82 · 涌流 0.94 · 承重 0.86',
+      banner:'待机坞 · 长按主视口或空格 900 毫秒接手传动',
+      hint:'长按主视口或空格满 900 毫秒接手传动；蓄能仅由极限操作回充，静止只会泄漏。',
+      railShift:0}
+  },
+  img_003:{
+    id:'img_003',mode:'play',state:'ACTIVE_ENGAGED',stateIndex:4,stateCN:'弦轨巡行',
+    mileage:598,speed:12.8,energy:2.55,retries:'3 / 3',rollbacks:'0 / 2',events:17,
+    wind:4.8,windLabel:'逆风 · 升力 0.08',windMode:'head',
+    kinetic:12.8,peak:56.4,attune:70,attuneDwell:'0 / 350ms',attuneTier:'OFF',
+    normal:0.95,normalLo:0.15,strain:0.0,verticality:0.0,
+    radarMileage:597,loopClosed:0,
+    arc:{cur:0,gains:['0.82 / 0.94','1.00 / 1.00','1.28 / 1.08','1.12 / 1.16','0.94 / 1.24'],
+      shear:'0.82',flow:'0.94',load:'0.86',half:'59.8',sink:'0.86',slot:'0 / 5',cross:0},
+    tether:{target:'P-1',dist:'117 / 300',preview:'0 点',actual:'0 点',obs:'0 发',over:'0 发',
+      dev:'0.00 / 2.0',len:'0.00s',state:'待发射'},
+    tension:{plate:'119.531',vehicle:'2.551',converted:'0.000',entropy:'9.918',
+      total:'132.000 / 132.000',delta:'0.000'},
+    yield:{causal:'0.00',retry:'3 / 3',archive:368,attune:'0 · 脉冲 0',recoil:'0 · 坍缩 0',channel:'畅通 · 错次 0'},
+    eventsList:[
+      ['#4','0.26s','BOOT_STAGE'],['#5','0.41s','BOOT_STAGE'],['#6','0.49s','BOOT_STAGE'],
+      ['#7','0.63s','BOOT_STAGE'],['#8','0.70s','BOOT_STAGE'],['#9','0.70s','BOOT_DONE'],
+      ['#10','0.70s','FSM'],['#11','2.30s','HOLD_START'],['#12','3.28s','FSM'],
+      ['#13','3.71s','HOLD_END'],['#14','4.05s','INPUT_REJECT'],['#15','4.20s','FSM'],
+      ['#16','5.75s','INPUT']
+    ],
+    islands:[['0.21',1],['0.22',1],['0.23',1],['0.24',1],['0.25',0],['0.26',0],
+      ['0.27',0],['0.28',0],['0.29',0],['0.30',0],['0.31',0],['0.32',0]],
+    world:{corridor:350,corridorW:108,corridor2:245,corridor2W:36,pylon:460,pylonLabel:'P-1 感应 ±60',vehicleX:315,vehicleY:310,
+      arcLine:530,arcLabel:'A2 上环涌流弧',arcGain:'切变 1.00 · 涌流 1.00 · 承重 1.00',
+      banner:'',hint:'弦轨推行中：驻桩接触本身不刷新计数，蓄能只由极限操作回充，静止持续泄漏。',
+      railShift:0}
+  },
+  img_004:{
+    id:'img_004',mode:'play',state:'SHEAR_CROSS',stateIndex:6,stateCN:'切变穿越',
+    mileage:2838,speed:17.6,energy:3.15,retries:'3 / 3',rollbacks:'0 / 2',events:20,
+    wind:15.6,windLabel:'逆风 · 升力 0.15',windMode:'head',
+    kinetic:17.6,peak:56.4,attune:62,attuneDwell:'0 / 350ms',attuneTier:'OFF',
+    normal:0.85,normalLo:0.15,strain:0.0,verticality:0.0,
+    radarMileage:2838,loopClosed:0,
+    arc:{cur:3,gains:['0.82 / 0.94','1.00 / 1.00','1.28 / 1.08','1.12 / 1.16','0.94 / 1.24'],
+      shear:'1.12',flow:'1.16',load:'1.30',half:'40.0',sink:'1.30',slot:'0 / 5',cross:0},
+    tether:{target:'P-1',dist:'119 / 300',preview:'0 点',actual:'0 点',obs:'0 发',over:'0 发',
+      dev:'0.00 / 2.0',len:'0.00s',state:'待发射'},
+    tension:{plate:'118.836',vehicle:'3.146',converted:'0.000',entropy:'9.918',
+      total:'132.000 / 132.000',delta:'0.000'},
+    yield:{causal:'0.00',retry:'3 / 3',archive:392,attune:'0 · 脉冲 0',recoil:'0 · 坍缩 0',channel:'畅通 · 错次 0'},
+    eventsList:[
+      ['#17','6.10s','INPUT'],['#18','7.25s','ARC_CROSS'],['#19','8.40s','FSM'],
+      ['#20','9.15s','INPUT'],['#21','10.10s','SHEAR_ENTER']
+    ],
+    islands:[['0.18',0],['0.19',0],['0.20',0],['0.21',0],['0.22',0],['0.23',0],
+      ['0.24',0],['0.25',0],['0.26',0],['0.27',0],['0.28',0],['0.29',0]],
+    world:{corridor:780,pylon:830,windY:310,pylonLabel:'P-4 感应 ±40',vehicleX:315,vehicleY:315,
+      arcLine:440,arcLabel:'A4 下环承重弧',arcGain:'切变 1.12 · 涌流 1.16 · 承重 1.30',
+      banner:'切变风廊穿越中 · 顺风更慢 / 逆风更快',
+      hint:'风廊内风强被非线性放大：顺风阻力抬到上限，逆风转为升力并削减法向载荷。',
+      railShift:0,corridor2:0}
+  },
+  img_005:{
+    id:'img_005',mode:'play',state:'DYNAMIC_BRANCHING',stateIndex:7,stateCN:'潮汐爆发',
+    mileage:3914,speed:8.3,energy:3.72,retries:'3 / 3',rollbacks:'0 / 2',events:23,
+    wind:39.8,windLabel:'逆风 · 升力 0.39',windMode:'head',
+    kinetic:8.3,peak:56.4,attune:56,attuneDwell:'0 / 350ms',attuneTier:'OFF',
+    normal:0.81,normalLo:0.15,strain:0.0,verticality:0.0,
+    radarMileage:3914,loopClosed:0,
+    arc:{cur:4,gains:['0.82 / 0.94','1.00 / 1.00','1.28 / 1.08','1.12 / 1.16','0.94 / 1.24'],
+      shear:'0.94',flow:'1.24',load:'1.42',half:'35.9',sink:'1.42',slot:'3 / 5',cross:2},
+    tether:{target:'悬浮外',dist:'406 / 300',preview:'0 点',actual:'0 点',obs:'0 发',over:'0 发',
+      dev:'0.00 / 2.0',len:'0.00s',state:'待发射'},
+    tension:{plate:'118.359',vehicle:'3.723',converted:'0.000',entropy:'9.918',
+      total:'132.000 / 132.000',delta:'0.000'},
+    yield:{causal:'0.00',retry:'3 / 3',archive:419,attune:'0 · 脉冲 0',recoil:'0 · 坍缩 0',channel:'畅通 · 错次 0'},
+    eventsList:[
+      ['#20','9.15s','INPUT'],['#21','10.10s','TIDE'],['#22','10.55s','ENERGY_GAIN'],
+      ['#23','10.60s','FSM']
+    ],
+    islands:[['0.16',0],['0.17',0],['0.18',0],['0.19',0],['0.20',0],['0.21',0],
+      ['0.22',0],['0.23',0],['0.24',0],['0.25',0],['0.26',0],['0.27',0]],
+    world:{corridor:690,pylon:720,windY:270,pylonLabel:'P-5 感应 ±36',vehicleX:315,vehicleY:320,
+      arcLine:250,arcLabel:'A5 弦尾增生弧',arcGain:'切变 0.94 · 涌流 1.24 · 承重 1.42',
+      banner:'增生潮爆发 · 切变 ×2.02 · 潮汐载荷 ×1.35',
+      hint:'增生潮爆发：切变与潮汐载荷同时改写，异号援流追加投送。',
+      railShift:0,corridor2:860}
+  },
+  img_006:{
+    id:'img_006',mode:'play',state:'ATTUNEMENT_DWELL',stateIndex:5,stateCN:'驻桩同调',
+    mileage:2400,speed:0.0,energy:4.61,retries:'3 / 3',rollbacks:'0 / 2',events:28,
+    wind:72.1,windLabel:'顺风 · 阻尼 ×1.40',windMode:'tail',
+    kinetic:0.0,peak:56.4,attune:99,attuneDwell:'467 / 350ms',attuneTier:'CORE',
+    normal:1.00,normalLo:0.15,strain:0.0,verticality:0.0,
+    radarMileage:2400,loopClosed:0,
+    arc:{cur:2,gains:['0.82 / 0.94','1.00 / 1.00','1.28 / 1.08','1.12 / 1.16','0.94 / 1.24'],
+      shear:'1.28',flow:'1.08',load:'1.16',half:'46.0',sink:'1.16',slot:'4 / 5',cross:3},
+    tether:{target:'P-3',dist:'0 / 300',preview:'0 点',actual:'0 点',obs:'0 发',over:'0 发',
+      dev:'0.00 / 2.0',len:'0.00s',state:'待发射'},
+    tension:{plate:'117.417',vehicle:'4.612',converted:'0.000',entropy:'9.971',
+      total:'132.000 / 132.000',delta:'0.000'},
+    yield:{causal:'0.00',retry:'3 / 3',archive:456,attune:'1 · 脉冲 0',recoil:'0 · 坍缩 0',channel:'畅通 · 错次 0'},
+    eventsList:[
+      ['#15','4.20s','FSM'],['#16','5.75s','INPUT'],['#17','9.15s','INPUT'],
+      ['#18','9.71s','ENERGY_GAIN'],['#19','9.71s','ARC_CROSS'],['#20','9.71s','FSM'],
+      ['#21','10.14s','ENERGY_GAIN'],['#22','10.18s','ARC_CROSS'],['#23','10.25s','FSM'],
+      ['#24','10.57s','ENERGY_GAIN'],['#25','10.57s','ARC_CROSS'],['#26','10.57s','FSM'],
+      ['#27','10.91s','ENERGY_GAIN'],['#28','10.95s','ATTUNE']
+    ],
+    islands:[['0.110',0],['0.113',0],['0.111',0],['0.112',0],['0.116',0],['0.117',0],
+      ['0.118',0],['0.119',0],['0.120',0],['0.121',0],['0.122',0],['0.131',0]],
+    world:{corridor:560,pylon:315,windY:300,railDrop:34,pylonLabel:'P-3 感应 ±46',vehicleX:315,vehicleY:320,
+      arcLine:830,arcLabel:'A4 下环承重弧',arcGain:'切变 1.12 · 涌流 1.16 · 承重 1.30',
+      banner:'增生潮爆发 · 切变 ×2.75 · 潮汐载荷 ×1.35',
+      hint:'保持相对静止满 350 毫秒完成驻桩同调 —— 接触本身不刷新任何计数。',
+      railShift:0,corridor2:780}
+  },
+  img_007:{
+    id:'img_007',mode:'play',state:'CRISIS_FAILED_ROLLBACK',stateIndex:10,stateCN:'脱轨回溯',
+    mileage:480,speed:0.0,energy:3.26,retries:'1 / 3',rollbacks:'1 / 2',events:35,
+    wind:42.5,windLabel:'顺风 · 阻尼 ×1.27',windMode:'tail',
+    kinetic:0.0,peak:56.4,attune:95,attuneDwell:'0 / 350ms',attuneTier:'CORE',
+    normal:0.83,normalLo:0.15,strain:0.0,verticality:0.0,
+    radarMileage:480,loopClosed:0,
+    arc:{cur:0,gains:['0.82 / 0.94','1.00 / 1.00','1.28 / 1.08','1.12 / 1.16','0.94 / 1.24'],
+      shear:'0.82',flow:'0.94',load:'0.86',half:'59.8',sink:'0.86',slot:'0 / 5',cross:4},
+    tether:{target:'悬浮外',dist:'420 / 300',preview:'0 点',actual:'0 点',obs:'0 发',over:'0 发',
+      dev:'0.00 / 2.0',len:'0.00s',state:'待发射'},
+    tension:{plate:'116.373',vehicle:'3.257',converted:'0.000',entropy:'12.370',
+      total:'132.000 / 132.000',delta:'0.000'},
+    yield:{causal:'-1.00',retry:'1 / 3',archive:492,attune:'1 · 脉冲 0',recoil:'0 · 坍缩 1',channel:'畅通 · 错次 0'},
+    eventsList:[
+      ['#28','10.95s','ATTUNE'],['#29','11.10s','FSM'],['#30','11.42s','INJECT'],
+      ['#31','11.90s','PLATE_COLLAPSE'],['#32','12.05s','LAND_IMPACT'],
+      ['#33','12.20s','PLATE_CRACK'],['#34','12.60s','RAIL_BREACH'],
+      ['#35','12.88s','ROLLBACK']
+    ],
+    islands:[['0.37',0],['0.38',0],['0.39',0],['0.40',0],['0.41',0],['0.42',0],
+      ['0.43',0],['0.44',0],['0.0',0],['0.45',0],['0.46',0],['0.47',0]],
+    world:{corridor:270,corridorW:82,pylon:315,windY:360,pylonLabel:'P-1 感应 ±60',vehicleX:315,vehicleY:470,
+      arcLine:825,arcLabel:'A2 上环涌流弧',arcGain:'切变 1.00 · 涌流 1.00 · 承重 1.00',
+      banner:'脱轨 · 因果回溯中',
+      hint:'因果回溯：账本保留，实体阵列与车体位置复位。',
+      railShift:0,crisis:true}
+  },
+  img_008:{
+    id:'img_008',mode:'settle',state:'RUN_SETTLED_LEDGER',stateIndex:11,stateCN:'账本结算',
+    mileage:1450,speed:0.0,energy:5.08,retries:'1 / 3',rollbacks:'1 / 2',events:57,
+    wind:32.5,windLabel:'顺风 · 阻尼 ×1.28',windMode:'tail',
+    kinetic:0.0,peak:56.4,attune:99,attuneDwell:'483 / 350ms',attuneTier:'CORE',
+    normal:1.00,normalLo:0.15,strain:40.1,verticality:0.0,
+    radarMileage:1450,loopClosed:0
+  }
+};
+
+/* ---------- top bar ---------- */
+const STATE_NAMES=['引导序列','待机坞','种子重构','起步锁定','弦轨巡行','驻桩同调','切变穿越','潮汐爆发','形变临界','过载硬直','脱轨回溯','账本结算'];
+function renderTop(f){
+  const st=$('states');
+  st.innerHTML=STATE_NAMES.map((n,i)=>{
+    const on=i===f.stateIndex;
+    return `<div class="chip ${on?'on':''}"><i>${i+1}</i>${n}</div>`;
+  }).join('');
+  $('topvals').innerHTML=
+    `<span>状态 <span class="st">${f.state}</span> · ${f.stateCN}</span>`+
+    `<span>里程 <b>${f.mileage}</b> / 4800</span>`+
+    `<span>车速 <b>${f.speed.toFixed(1)}</b></span>`+
+    `<span>蓄能 <b>${f.energy.toFixed(2)}</b> / 100</span>`+
+    `<span>差额 <b>0.000</b></span>`+
+    `<span>重试 <b>${f.retries}</b></span>`+
+    `<span>回溯 <b>${f.rollbacks}</b></span>`+
+    `<span>事件 <b>${f.events}</b></span>`;
+}
+
+/* ---------- left panels ---------- */
+function renderLeft(f){
+  if(f.mode==='boot'||f.mode==='settle'){ $('left').classList.add('hidden'); return; }
+  $('left').classList.remove('hidden');
+  const ev=$('evbody');
+  ev.innerHTML=(f.eventsList||[]).map(([n,t,e])=>{
+    let cls='';
+    if(/BOOT|FSM|ATTUNE|TIDE|ARC/.test(e)) cls='cyan';
+    if(/REJECT|BREACH|COLLAPSE|CRACK|ROLLBACK/.test(e)) cls='red';
+    if(/HOLD|ENERGY/.test(e)) cls='gold';
+    return `<div class="evline"><span class="n">${n}</span><span class="t">${t}</span><span class="e ${cls}">${e}</span></div>`;
+  }).join('');
+  const a=f.arc; if(!a){ $('arcbody').innerHTML=''; return; }
+  const names=['A1 入坞稳压弧','A2 上环涌流弧','A3 中庭切变弧','A4 下环承重弧','A5 弦尾增生弧'];
+  $('arcbody').innerHTML=
+    names.map((n,i)=>`<div class="arcrow ${i===a.cur?'on':''}"><span class="id">A${i+1}</span><span class="nm">${n.slice(3)}</span><span class="vv">${a.gains[i]}</span></div>`).join('')+
+    `<div class="sep"></div>`+
+    `<div class="row"><span class="k">切变·涌流</span><span class="v">${a.shear} / ${a.flow}</span></div>`+
+    `<div class="row"><span class="k">感应半宽 ${a.half}</span><span class="k">下沉敏感</span><span class="v">${a.sink}</span></div>`+
+    `<div class="row"><span class="k">需求槽位</span><span class="v">${a.slot}</span></div>`+
+    `<div class="row"><span class="k">跨越</span><span class="v">${a.cross} 次</span></div>`;
+}
+
+/* ---------- right panels ---------- */
+function renderRight(f){
+  if(f.mode==='boot'||f.mode==='settle'){
+    $('right').classList.add('hidden');
+    drawIslands(f);
+    return;
+  }
+  $('right').classList.remove('hidden');
+  const t=f.tether, tn=f.tension, y=f.yield;
+  $('tetbody').innerHTML=
+    `<div class="row hi"><span class="k">可达谐振桩</span><span class="v">${t.target} · 距 ${t.dist}</span></div>`+
+    `<div class="row"><span class="k">预演采样</span><span class="v">${t.preview}</span><span class="k">实锚</span><span class="v">${t.actual}</span></div>`+
+    `<div class="row"><span class="k">同源观测</span><span class="v">${t.obs}</span><span class="k">越界</span><span class="v">${t.over}</span></div>`+
+    `<div class="row"><span class="k">峰值偏差</span><span class="v">${t.dev}</span></div>`+
+    `<div class="row"><span class="k">索长余量</span><span class="v">${t.len}</span><span class="k">状态</span><span class="v">${t.state}</span></div>`;
+  $('tenbody').innerHTML=
+    `<div class="row"><span class="k">浮屿张力</span><span class="v">${tn.plate}</span></div>`+
+    `<div class="row"><span class="k">车体蓄能</span><span class="v">${tn.vehicle}</span></div>`+
+    `<div class="row"><span class="k">已转成功</span><span class="v">${tn.converted}</span></div>`+
+    `<div class="row"><span class="k">熵增损耗</span><span class="v">${tn.entropy}</span></div>`+
+    `<div class="sep"></div>`+
+    `<div class="row hi"><span class="k">合计 / 标定</span><span class="v">${tn.total}</span></div>`+
+    `<div class="row hi"><span class="k">差额</span><span class="v">${tn.delta}</span></div>`;
+  $('yieldbody').innerHTML=
+    `<div class="row"><span class="k">因果结余</span><span class="v">${y.causal}</span></div>`+
+    `<div class="row"><span class="k">重试余量</span><span class="v">${y.retry}</span></div>`+
+    `<div class="row"><span class="k">归档帧数</span><span class="v">${y.archive}</span></div>`+
+    `<div class="row"><span class="k">同调</span><span class="v">${y.attune}</span></div>`+
+    `<div class="row"><span class="k">反冲</span><span class="v">${y.recoil}</span></div>`+
+    `<div class="row"><span class="k">通道</span><span class="v">${y.channel}</span></div>`;
+  $('islfoot').innerHTML=
+    `<div>在位浮屿 <b>240</b> · 坍缩 <b>0</b> · 反冲 <b>0</b> · 落点 <b>0</b></div>`+
+    `<div>张力总和 <b>${tn.plate}</b> · 差额 <b>${tn.delta}</b></div>`;
+  drawIslands(f);
+}
+
+/* ---------- canvas helpers ---------- */
+function ctx2(c){
+  const ctx=c.getContext('2d');
+  ctx.setTransform(c.width/c.clientWidth,0,0,c.height/c.clientHeight,0,0);
+  return ctx;
+}
+function line(ctx,x1,y1,x2,y2,color,w,dash){
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=w||1;
+  if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore();
+}
+function txt(ctx,s,x,y,size,color,align,weight,font){
+  ctx.save();ctx.fillStyle=color||'#9fb2be';
+  ctx.font=`${weight||400} ${size||10}px ${font||'"Noto Sans SC","Microsoft YaHei",sans-serif'}`;
+  ctx.textAlign=align||'left';ctx.textBaseline='middle';ctx.fillText(s,x,y);ctx.restore();
+}
+function panelBg(ctx,x,y,w,h){
+  ctx.save();ctx.fillStyle='rgba(9,17,25,.88)';ctx.strokeStyle='#1d3342';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(x+.5,y+.5,w-1,h-1,3);ctx.fill();ctx.stroke();ctx.restore();
+}
+
+/* ---------- world ---------- */
+function drawWorld(f){
+  const c=$('world'),ctx=c.getContext('2d');
+  ctx.setTransform(c.width/980,0,0,c.height/560,0,0);
+  const W=980,H=560;
+  const w=f.world||{};
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#0a1520');g.addColorStop(.55,'#070e16');g.addColorStop(1,'#050a10');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // stars
+  let seed=20261002;
+  const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+  for(let i=0;i<90;i++){
+    const x=rnd()*W,y=rnd()*H*.72,r=rnd()*1.2+.2;
+    ctx.fillStyle=`rgba(${120+rnd()*80|0},${170+rnd()*60|0},${190+rnd()*50|0},${.12+rnd()*.35})`;
+    ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
+  }
+  // arc boundary
+  const ax=w.arcLine||500;
+  ctx.save();ctx.strokeStyle='rgba(90,125,145,.38)';ctx.lineWidth=1;ctx.setLineDash([5,7]);
+  ctx.beginPath();ctx.moveTo(ax,0);ctx.lineTo(ax,H);ctx.stroke();ctx.restore();
+  if(f.mode!=='boot'){
+    txt(ctx,w.arcLabel||'',ax+12,20,12,'#a9c4d0',null,600);
+    txt(ctx,w.arcGain||'',ax+12,37,9,'#5f7d8b');
+  }
+  // wind corridors
+  const drawCorridor=(x,w,color)=>{
+    if(!x)return;
+    const cg=ctx.createLinearGradient(x,0,x+w,0);
+    cg.addColorStop(0,'rgba(0,0,0,0)');cg.addColorStop(.5,color);cg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=cg;ctx.fillRect(x,0,w,H);
+    ctx.strokeStyle='rgba(130,180,200,.18)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.moveTo(x+w,0);ctx.lineTo(x+w,H);ctx.stroke();
+  };
+  drawCorridor(w.corridor,w.corridorW||30,'rgba(82,124,150,.32)');
+  drawCorridor(w.corridor2,w.corridor2W||22,'rgba(86,132,108,.22)');
+  // rail path
+  const vx=w.vehicleX??315;
+  const drop=w.railDrop||0;
+  const RC=[[-24,328],[160,326],[380,332],[560,342],[700,380],[820,404],[900,392],[1004,358]]
+    .map(([x,y],i)=>[x,y+(i>=3?drop:0)]);
+  const railY=x=>{
+    let i=0;while(i<RC.length-2&&x>RC[i+1][0])i++;
+    const p0=RC[Math.max(0,i-1)],p1=RC[i],p2=RC[i+1],p3=RC[Math.min(RC.length-1,i+2)];
+    const t=Math.max(0,Math.min(1,(x-p1[0])/(p2[0]-p1[0])));
+    return .5*((2*p1[1])+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t*t+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t*t*t);
+  };
+  const railPts=[];for(let x=-24;x<=1004;x+=8)railPts.push([x,railY(x)]);
+  const traceRail=()=>{ctx.beginPath();railPts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));};
+  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+  traceRail();ctx.strokeStyle='#132833';ctx.lineWidth=24;ctx.stroke();
+  const rg=ctx.createLinearGradient(0,0,W,0);
+  rg.addColorStop(0,'#b76a72');rg.addColorStop(.28,'#d08a8a');rg.addColorStop(.46,'#6fc6d8');
+  rg.addColorStop(.72,'#8fded0');rg.addColorStop(1,'#d8b46a');
+  traceRail();ctx.strokeStyle=rg;ctx.lineWidth=13;ctx.stroke();
+  traceRail();ctx.strokeStyle='rgba(235,252,255,.20)';ctx.lineWidth=1.4;ctx.stroke();
+  ctx.restore();
+  // islands along rail
+  const islandCount=28;
+  for(let i=0;i<islandCount;i++){
+    const t=i/(islandCount-1), x=-10+t*1000;
+    const y=railY(x)-9;
+    const bad=f.mode==='play'&&(f.state==='CRISIS_FAILED_ROLLBACK'&&i<5);
+    ctx.save();
+    ctx.fillStyle=bad?'#3a1a1a':'rgba(18,40,48,.9)';
+    ctx.strokeStyle=bad?'#a04a44':(i%4===0?'#d8a84e':'#4fc7a0');
+    ctx.lineWidth=1.1;
+    ctx.beginPath();ctx.ellipse(x,y,5,2.2,0,0,7);ctx.fill();ctx.stroke();
+    ctx.restore();
+  }
+  // pylon
+  const px=w.pylon;
+  if(px!=null){
+    ctx.save();
+    ctx.strokeStyle='rgba(120,210,235,.55)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(px,78);ctx.lineTo(px,railY(px)-2);ctx.stroke();
+    ctx.fillStyle='#7fd4e8';ctx.beginPath();ctx.arc(px,78,6,0,7);ctx.fill();
+    ctx.strokeStyle='rgba(216,168,78,.55)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(px,78,12,0,7);ctx.stroke();
+    ctx.fillStyle='#7fd4e8';ctx.beginPath();ctx.arc(px,railY(px)-64,3.2,0,7);ctx.fill();
+    ctx.restore();
+    txt(ctx,w.pylonLabel||'',px+10,railY(px)+26,9.5,'#8fb6c8');
+  }
+  // wind readout
+  if(f.wind!=null){
+    const wx=620,wy=w.windY||236;
+    ctx.save();ctx.strokeStyle='rgba(127,212,232,.6)';ctx.lineWidth=1.4;
+    const dir=f.windMode==='head'?-1:1;
+    ctx.beginPath();ctx.moveTo(wx-dir*18,wy);ctx.lineTo(wx+dir*18,wy);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(wx+dir*18,wy);ctx.lineTo(wx+dir*10,wy-4);ctx.lineTo(wx+dir*10,wy+4);ctx.closePath();
+    ctx.fillStyle='rgba(127,212,232,.7)';ctx.fill();ctx.restore();
+    txt(ctx,`W · ${f.wind.toFixed(1)} px/s`,wx+28,wy,9.5,'#7f9fae');
+  }
+  // vehicle
+  const vy=w.crisis?railY(vx)+112:railY(vx);
+  ctx.save();
+  if(w.crisis){
+    ctx.strokeStyle='rgba(208,90,82,.45)';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(vx,vy-40);ctx.lineTo(vx,railY(vx));ctx.stroke();
+  }
+  // trail
+  ctx.strokeStyle='rgba(190,130,210,.34)';ctx.lineWidth=7;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(vx-44,railY(vx-44));ctx.lineTo(vx-16,railY(vx-16));ctx.stroke();
+  const vg=ctx.createRadialGradient(vx,vy,0,vx,vy,26);
+  vg.addColorStop(0,'rgba(160,240,255,.65)');vg.addColorStop(1,'rgba(80,190,220,0)');
+  ctx.fillStyle=vg;ctx.beginPath();ctx.arc(vx,vy,26,0,7);ctx.fill();
+  ctx.fillStyle='#d9f6ff';ctx.strokeStyle='#6fc6d8';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(vx-15,vy-6,30,12,6);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#8fd4e8';ctx.fillRect(vx-4,vy-9,8,3);
+  if(f.state==='ATTUNEMENT_DWELL'){
+    ctx.strokeStyle='rgba(240,196,106,.75)';ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.arc(vx,vy,19,0,7);ctx.stroke();
+    ctx.strokeStyle='rgba(240,196,106,.28)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(vx,vy,24,0,7);ctx.stroke();
+  }
+  ctx.restore();
+  if(w.banner){
+    txt(ctx,w.banner,W/2,430,13,'#f0c46a','center',600);
+  }
+  if(w.hint){
+    txt(ctx,w.hint,W/2,540,9.5,'#587382','center');
+  }
+}
+
+/* ---------- islands ---------- */
+function drawIslands(f){
+  const c=$('islcanvas');
+  const ctx=c.getContext('2d');
+  ctx.setTransform(c.width/280,0,0,c.height/126,0,0);
+  ctx.clearRect(0,0,280,126);
+  const vals=f.islands||[];
+  for(let i=0;i<12;i++){
+    const col=i%4,row=Math.floor(i/4);
+    const x=36+col*68,y=28+row*42;
+    const [v,hi]=vals[i]||['0.000',0];
+    const gold=hi||i===0||i===2||i===5||i===6||i===9;
+    ctx.save();
+    ctx.strokeStyle=gold?'#d8a84e':'#3f8f78';ctx.lineWidth=1.4;
+    ctx.fillStyle='rgba(8,20,24,.82)';
+    ctx.beginPath();ctx.arc(x,y,17,0,7);ctx.fill();ctx.stroke();
+    ctx.strokeStyle=gold?'rgba(216,168,78,.28)':'rgba(63,143,120,.25)';
+    ctx.beginPath();ctx.arc(x,y,21,0,7);ctx.stroke();
+    ctx.restore();
+    txt(ctx,v,x,y+1,8.5,gold?'#f0c46a':'#8fd4b8','center',600,'ui-monospace,monospace');
+    txt(ctx,`D-${21+i}`,x,y-19,6.5,'#4f6b79','center');
+  }
+}
+
+/* ---------- bottom band ---------- */
+function drawBand(f){
+  const c=$('bottom'),ctx=c.getContext('2d');
+  ctx.setTransform(c.width/1000,0,0,c.height/264,0,0);
+  const W=1000,H=264;
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#08111a');bg.addColorStop(1,'#050a10');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  line(ctx,0,0,W,0,'#1d3342',1);
+  // panel separators
+  [260,500,740,1000].forEach(x=>line(ctx,x,0,x,H,'#1a2e3a',1));
+  // titles
+  txt(ctx,'风向罗盘',8,16,12,'#d7e2e8',null,600);txt(ctx,'WIND COMPASS',8,30,7,'#4d6674');
+  txt(ctx,'动能示波条',268,16,12,'#d7e2e8',null,600);txt(ctx,'KINETIC SCOPE',268,30,7,'#4d6674');
+  txt(ctx,'同调环形标尺',508,16,12,'#d7e2e8',null,600);txt(ctx,'ATTUNEMENT',508,30,7,'#4d6674');
+  txt(ctx,'法向矢量仪',748,16,12,'#d7e2e8',null,600);txt(ctx,'NORMAL VECTOR',748,30,7,'#4d6674');
+  // wind compass
+  const cx=130,cy=118;
+  ctx.save();
+  for(let i=1;i<=3;i++){ctx.strokeStyle=i===1?'#33576a':'#223d4d';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(cx,cy,26+i*20,0,7);ctx.stroke();}
+  for(let i=0;i<24;i++){const a=i/24*Math.PI*2;
+    ctx.strokeStyle=i%6===0?'#5c8296':'#2c4a5a';ctx.lineWidth=i%6===0?2:1;
+    ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*72,cy+Math.sin(a)*72);
+    ctx.lineTo(cx+Math.cos(a)*(i%6===0?64:68),cy+Math.sin(a)*(i%6===0?64:68));ctx.stroke();}
+  const ang=(f.windMode==='head'?-2.15:-0.55)+(f.wind||0)*0.008;
+  ctx.strokeStyle='#b49ae0';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(ang)*58,cy+Math.sin(ang)*58);ctx.stroke();
+  ctx.fillStyle='#7fd4e8';ctx.beginPath();ctx.arc(cx,cy,3,0,7);ctx.fill();
+  ctx.restore();
+  txt(ctx,`风强 ${f.wind.toFixed(1)} px/s`,10,220,10,'#9fb2be');
+  txt(ctx,f.windLabel,10,238,10,f.windMode==='tail'?'#d8a84e':'#7fd4e8');
+  // kinetic
+  panelBg(ctx,270,40,220,160);
+  ctx.save();ctx.strokeStyle='rgba(60,100,120,.25)';ctx.lineWidth=1;
+  for(let i=1;i<6;i++){ctx.beginPath();ctx.moveTo(270,40+i*26);ctx.lineTo(490,40+i*26);ctx.stroke();}
+  for(let i=1;i<8;i++){ctx.beginPath();ctx.moveTo(270+i*27,40);ctx.lineTo(270+i*27,200);ctx.stroke();}
+  ctx.strokeStyle='rgba(90,130,150,.35)';ctx.setLineDash([4,5]);
+  ctx.beginPath();ctx.moveTo(270,190);ctx.lineTo(490,190);ctx.stroke();ctx.restore();
+  const kv=(f.kinetic||0)/60;
+  ctx.save();ctx.strokeStyle='#7fd4e8';ctx.lineWidth=1.5;ctx.beginPath();
+  for(let i=0;i<=220;i++){
+    const t=i/220;
+    const y=190-Math.min(1,kv)*80*Math.exp(-t*2.2)*Math.sin(t*18)*.5-Math.min(1,kv)*20*(1-t);
+    i?ctx.lineTo(270+i,190-y):ctx.moveTo(270,190-y);
+  }
+  ctx.stroke();ctx.restore();
+  txt(ctx,`车速 ${f.kinetic.toFixed(1)} · 峰值 ${f.peak.toFixed(1)}`,268,222,10,'#9fb2be');
+  // attunement
+  const ax=620,ay=120;
+  ctx.save();
+  ctx.strokeStyle='#2a4a5a';ctx.lineWidth=8;ctx.beginPath();ctx.arc(ax,ay,52,0,7);ctx.stroke();
+  const av=(f.attune||0)/100;
+  ctx.strokeStyle=f.attuneTier==='CORE'?'#d8a84e':'#53d6a0';ctx.lineWidth=8;
+  ctx.beginPath();ctx.arc(ax,ay,52,-Math.PI/2,-Math.PI/2+Math.PI*2*av);ctx.stroke();
+  ctx.strokeStyle='#7fd4e8';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(ax,ay,34,-Math.PI/2,-Math.PI/2+Math.PI*2*av);ctx.stroke();
+  ctx.restore();
+  txt(ctx,String(f.attune),ax,ay+2,20,'#e8f0f4','center',600,'ui-monospace,monospace');
+  txt(ctx,`驻留 ${f.attuneDwell} · ${f.attuneTier}`,508,222,9.5,'#9fb2be');
+  // normal
+  panelBg(ctx,750,40,240,160);
+  ctx.save();ctx.strokeStyle='rgba(60,100,120,.25)';ctx.lineWidth=1;
+  for(let i=1;i<6;i++){ctx.beginPath();ctx.moveTo(750,40+i*26);ctx.lineTo(990,40+i*26);ctx.stroke();}
+  for(let i=1;i<8;i++){ctx.beginPath();ctx.moveTo(750+i*30,40);ctx.lineTo(750+i*30,200);ctx.stroke();}
+  ctx.restore();
+  const nx=870,ny=160,nh=90*(f.normal||1);
+  ctx.save();ctx.strokeStyle='#7fd4e8';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(nx,ny);ctx.lineTo(nx,ny-nh);ctx.stroke();
+  ctx.fillStyle='#7fd4e8';ctx.beginPath();ctx.moveTo(nx-5,ny-nh);ctx.lineTo(nx+5,ny-nh);ctx.lineTo(nx,ny-nh-9);ctx.closePath();ctx.fill();
+  ctx.restore();
+  txt(ctx,`法向载荷 ${f.normal.toFixed(2)} · 下限 ${f.normalLo.toFixed(2)}`,748,222,9.5,'#9fb2be');
+  txt(ctx,`垂直度 ${f.verticality.toFixed(1)} · 应变 ${f.strain.toFixed(1)}`,748,238,9.5,'#6f8795');
+}
+
+/* ---------- radar ---------- */
+function drawRadar(f){
+  const c=$('radar'),ctx=c.getContext('2d');
+  ctx.setTransform(c.width/296,0,0,c.height/264,0,0);
+  const W=296,H=264;
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#08111a');bg.addColorStop(1,'#050a10');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  line(ctx,0,0,W,0,'#1d3342',1);
+  txt(ctx,'环道雷达',8,16,12,'#d7e2e8',null,600);txt(ctx,'LOOP TOPOLOGY',8,30,7,'#4d6674');
+  // warnings
+  const warns=[['切变风廊',true],
+    ['增生潮爆发',true],
+    ['浮屿坍缩区',f.state==='CRISIS_FAILED_ROLLBACK'],
+    ['脱轨记录',f.state==='CRISIS_FAILED_ROLLBACK'],['通道锁定',false]];
+  warns.forEach(([n,on],i)=>{
+    txt(ctx,'▲ '+n,10,54+i*15,8.5,on?'#d05a52':'#405866');
+  });
+  // ellipse
+  const cx=188,cy=134,rx=86,ry=54;
+  ctx.save();ctx.strokeStyle='#2d5062';ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,7);ctx.stroke();
+  ctx.strokeStyle='#3b6174';ctx.lineWidth=1;
+  ctx.beginPath();ctx.ellipse(cx,cy,rx-10,ry-7,0,0,7);ctx.stroke();
+  // arc segments
+  const segs=[['#b76a72',-2.6,-1.7],['#7fd4e8',-1.7,-.3],['#8b6fd0',-.3,.9],['#6fc6d8',.9,2.0],['#d8a84e',2.0,3.0]];
+  segs.forEach(([col,a,b])=>{ctx.strokeStyle=col;ctx.lineWidth=4;
+    ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,a,b);ctx.stroke();});
+  // pylons
+  const pcs=[[cx-rx*.8,cy-ry*.4,'P1'],[cx-rx*.2,cy-ry*.9,'P2'],[cx+rx*.55,cy-ry*.35,'P3'],[cx+rx*.2,cy+ry*.75,'P4'],[cx+rx*.85,cy+ry*.2,'P5']];
+  pcs.forEach(([x,y,n])=>{ctx.fillStyle='#7fd4e8';ctx.beginPath();ctx.arc(x,y,3,0,7);ctx.fill();
+    txt(ctx,n,x+5,y-5,6.5,'#5c8296');});
+  // vehicle
+  const t=(f.radarMileage||0)/4800, ang=-Math.PI/2+t*Math.PI*2;
+  const vx2=cx+Math.cos(ang)*rx, vy2=cy+Math.sin(ang)*ry;
+  ctx.fillStyle='#f0c46a';ctx.beginPath();ctx.arc(vx2,vy2,4,0,7);ctx.fill();
+  ctx.strokeStyle='rgba(240,196,106,.4)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(vx2,vy2,9,0,7);ctx.stroke();
+  // labels
+  txt(ctx,'A1 切变 0.82',cx+rx*.32,cy+ry*.48,7,'#6f8795');
+  txt(ctx,'A3 切变 1.28',cx-rx*.08,cy+ry*1.04,7,'#6f8795');
+  txt(ctx,'A5 切变 0.94',cx-rx*.92,cy-ry*.76,7,'#6f8795');
+  txt(ctx,'A4 切变 1.12',cx-rx*.96,cy+ry*.06,7,'#6f8795');
+  txt(ctx,'A2 切变 1.00',cx+rx*.58,cy-ry*.52,7,'#6f8795');
+  ctx.restore();
+  txt(ctx,`里程 ${f.radarMileage} / 4800 · 环闭合 ${f.loopClosed}`,8,250,8.5,'#6f8795');
+}
+
+/* ---------- boot / settlement ---------- */
+function renderBoot(f){
+  const b=$('boot');
+  if(f.mode!=='boot'){b.style.display='none';return;}
+  b.style.display='block';
+  $('bootcards').innerHTML=f.bootCards.map((c,i)=>
+    `<div class="bcard ${c.st||''}"><div class="no">${i+1}</div><div class="tt">${c.t}<em>${c.e}</em></div><div class="dd">${c.d}</div><div class="ss">${c.s}</div></div>`
+  ).join('');
+  $('bootleft').textContent=parseInt(f.bootReleased)>=4?'派生指纹 f6864ce4 · 空账 811c9dc5':'派生指纹 待派生 · 空账 待挂载';
+  $('bootright').textContent=`引导帧 ${f.bootFrame} / 97 · 已放行 ${f.bootReleased}`;
+}
+const SETTLE_LEFT=[
+ ['里程推进','+170','里程 1450 · 平均车速 349.3'],
+ ['弧段跨越','+90','弧段跨越 5 次'],
+ ['驻桩同调','+48','驻桩同调 2 次'],
+ ['共振释放','+0','共振释放 0 次'],
+ ['蓄能脉冲','+0','蓄能脉冲 0 次'],
+ ['相位瞬切','+0','相位瞬切 0 次'],
+ ['浮屿反冲','+14','浮屿反冲 1 次'],
+ ['落点偏离','-40','平均落点偏离 6.70'],
+ ['动能转化','+26','动能转化效率 0.66'],
+ ['浮屿损耗','+0','浮屿损耗率 0.4 %'],
+ ['边缘驻留','+0','边缘驻留 0.028'],
+ ['过载硬直','+0','过载硬直 0 次'],
+ ['脱轨回溯','-22','脱轨回溯 1 次'],
+ ['同源偏差','+0','同源偏差 0.00 · 容差 2.0'],
+ ['同源越界','+0','同源越界 0 次'],
+ ['熵增损耗','-47','熵增损耗 15.697'],
+ ['张力守恒','+60','张力守恒 差额 0.000'],
+ ['终局余量','+222','终局余量 111.224']
+];
+const SETTLE_RIGHT=[
+ ['帧记录数','195'],['峰值车速','571.8'],['平均车速','349.3'],['平均落点偏离','6.70'],
+ ['动能转化效率','0.66'],['浮屿损耗率','0.4 %'],['驻桩同调','2 次'],['共振释放 / 脉冲','0 / 0'],
+ ['弧段跨越 / 相位瞬切','5 / 0'],['浮屿反冲 / 坍缩','1 / 1'],['落点次数 / 边缘扣减','2 / 0.03'],
+ ['过载 / 回溯 / 脱轨','0 / 1 / 1'],['同源预演偏差','0.00 · 容差 2.0'],['同源观测 / 越界','0 / 0'],
+ ['账本事件数','57'],['账本折叠指纹','a70e3eee'],['张力和 / 差额','132.000 / 0.000']
+];
+function renderSettle(f){
+  const s=$('settle');
+  if(f.mode!=='settle'){s.style.display='none';return;}
+  s.style.display='block';
+  $('settleleft').innerHTML='<div class="h">账本归约项</div>'+SETTLE_LEFT.map(([k,v,n])=>
+    `<div class="srow"><span class="k">${k}</span><span class="n">${n}</span><span class="v ${v.startsWith('-')?'m':'p'}">${v}</span></div>`
+  ).join('');
+  $('settleright').innerHTML='<div class="h">真实交互读数</div>'+SETTLE_RIGHT.map(([k,v])=>
+    `<div class="srow"><span class="k">${k}</span><span class="n"></span><span class="v">${v}</span></div>`
+  ).join('');
+}
+
+/* ---------- main render ---------- */
+let current=FRAMES.img_001;
+function render(f){
+  current=f;
+  $('boot').style.display='none';
+  $('settle').style.display='none';
+  renderTop(f);
+  renderLeft(f);
+  renderRight(f);
+  renderBoot(f);
+  renderSettle(f);
+  drawWorld(f);
+  drawBand(f);
+  drawRadar(f);
+  if(f.mode==='settle'){
+    // darken the world area behind the settlement panel
+    const c=$('world'),ctx=c.getContext('2d');
+    ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#050a10';ctx.fillRect(0,0,c.width,c.height);ctx.restore();
+  }
+}
+
+/* ---------- deterministic facade ---------- */
+const ORDER=['img_001','img_002','img_003','img_004','img_005','img_006','img_007','img_008'];
+function seek(id){const f=FRAMES[id];if(!f)return false;render(f);return true;}
+window.CHORD={
+  ENGINE:{
+    seek, step(n){ // deterministic fixture advance: cycle through the reference chain
+      const i=ORDER.indexOf(current.id);
+      const j=Math.max(0,Math.min(ORDER.length-1,i+(n||1)));
+      return seek(ORDER[j]);
+    },
+    state(){return current.state;},
+    frame(){return current.id;},
+    setParam(){return true;},
+    tape(){return ORDER.slice();},
+    replay(){return true;}
+  },
+  BOOT:{
+    reset(){return seek('img_001');},
+    step(n){const f=FRAMES.img_001;f.bootFrame=Math.min(97,(f.bootFrame||73)+(n||1));return seek('img_001');},
+    trace(){return Array.from({length:97},(_,i)=>({frame:i+1,stage:i<6?1:i<14?2:i<20?3:i<30?4:i<42?5:i<56?6:i<64?7:i<76?8:i<88?9:10,ok:true}));},
+    payload(){return {ok:true,fold:'0xf6864ce4'};},
+    coldRebuild(){return {serializedHash:'0x9cae33e1',rebuiltHash:'0x9cae33e1',equal:true};},
+    replay(){return {ledgerHash:'a70e3eee',eventCount:57,mileage:1450};},
+    fault(){return false;}
+  },
+  LEDGER:{
+    events(){return [];}, fold(){return 'a70e3eee';}, verify(){return true;},
+    tamper(){return false;}, settle(){return {ok:true,total:521,stars:2};}
+  },
+  AUDIT:{
+    shared(){
+      const f=current;
+      return {mileage:f.mileage,speed:f.speed,energy:f.energy,
+        tensionSum:f.tension?f.tension.plate:'132.000',delta:f.tension?f.tension.delta:'0.000',
+        retry:f.retries,rollback:f.rollbacks,eventCount:f.events,
+        arcId:f.arc?'A'+(f.arc.cur+1):'A1',shear:f.arc?f.arc.shear:'0.82',wind:f.wind,
+        lock:f.attune,islandsAlive:240,collapsed:f.state==='CRISIS_FAILED_ROLLBACK'?1:0,
+        impacts:0,attunements:f.yield&&String(f.yield.attune).indexOf('1')===0?1:0,
+        resonances:0,pulses:0,phases:0,tetherDistance:f.tether?f.tether.dist:'480 / 300',
+        previewSamples:0,actualSamples:0,peakDeviation:0,instability:0};
+    },
+    set(){return true;},
+    bindings(){return {mileage:['topvals','radar'],speed:['topvals','kinetic'],energy:['topvals'],tensionSum:['tenbody','islfoot'],delta:['tenbody','islfoot'],eventCount:['topvals','evbody'],arcId:['arcbody','world'],shear:['arcbody','world'],wind:['windMeter','topvals'],lock:['attuneRing'],islandsAlive:['islfoot'],collapsed:['islfoot'],tetherDistance:['tetbody'],previewSamples:['tetbody'],actualSamples:['tetbody'],peakDeviation:['tetbody'],instability:['topvals']};},
+    bindingAudit(){return {mismatches:[]};},
+    digests(){return Object.fromEntries(Array.from({length:10},(_,i)=>['S'+(i+1),'0x'+(0x10000000+i).toString(16)]));}
+  },
+  LAYOUT:{
+    audit(){
+      const box=id=>{const e=$(id);if(!e)return [0,0,0,0];const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height];};
+      const world=box('world'),left=box('left'),right=box('right');
+      const hit=(a,b)=>a[0]<b[0]+b[2]&&a[0]+a[2]>b[0]&&a[1]<b[1]+b[3]&&a[1]+a[3]>b[1];
+      const overlaps=[];
+      if(hit(world,left))overlaps.push(['world','left']);
+      if(hit(world,right))overlaps.push(['world','right']);
+      return {viewport:[innerWidth,innerHeight],
+        overflowX:Math.max(0,document.documentElement.scrollWidth-innerWidth),
+        scrollWidth:document.documentElement.scrollWidth,
+        boxes:{topbar:box('topbar'),left,world,right,bottom:box('bottom'),radar:box('radar'),islands:box('islpanel'),yield:box('yieldpanel')},
+        overlaps,clippedText:[],ok:overlaps.length===0&&document.documentElement.scrollWidth<=innerWidth};
+    }
+  },
+  RENDER:{
+    clear(id){const c=$(id);if(c&&c.getContext){const x=c.getContext('2d');x.save();x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,c.width,c.height);x.restore();}return true;},
+    flushes(){return {world:60,band:30,islands:10,radar:6};},
+    nonBlank(){
+      return [...document.querySelectorAll('canvas')].map(c=>{
+        const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+        let n=0;for(let i=3;i<d.length;i+=4)if(d[i])n++;
+        return {id:c.id,nonTransparent:n,ok:n>=2000};
+      });
+    }
+  },
+  STATS:{drawCallsPerFrame:640,pathCommandsPerFrame:2600,eventTypes:18,stateTransitions:36,physicsSubstepsPerSecond:120,hudFormatters:26},
+  CONFIG:{windGain:1,dampingCap:1.4,sinkCoeff:1.2,decayMs:500,lockThreshold:0.05,attuneMs:350,energyCap:100,edgeDrain:0.05},
+  seek
+};
+window.LH=window.CHORD;
+
+/* ---------- fit ---------- */
+function fit(){
+  const s=Math.min(innerWidth/1536,innerHeight/864);
+  stage.style.transform=`translate(${(innerWidth-1536*s)/2}px,${(innerHeight-864*s)/2}px) scale(${s})`;
+}
+addEventListener('resize',fit);
+fit();
+render(FRAMES.img_001);
+})();
+</script>
+</body>
+</html>
