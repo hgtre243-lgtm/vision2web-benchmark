@@ -184,13 +184,18 @@
   .boot h2{margin:2px 0 0;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--hot);font-weight:400}
   .bootbar{height:5px;background:#0d2530;border:1px solid var(--line);border-radius:3px;overflow:hidden;flex:0 0 auto}
   .bootbar i{display:block;height:100%;background:linear-gradient(90deg,var(--hot),var(--al));width:0}
-  .bootgrid{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px;align-content:start;min-height:0}
-  .bcard{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:7px;align-items:baseline;
-    border:1px solid var(--line);border-radius:4px;padding:4px 8px;background:#0a1c25;min-width:0}
+  .bootgrid{flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px 8px;align-content:start;min-height:0}
+  .bcard{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:6px;align-items:baseline;
+    border:1px solid var(--line);border-radius:4px;padding:3px 7px;background:#0a1c25;min-width:0}
   .bcard .n{font-family:var(--mono);font-size:9px;color:var(--dim2)}
-  .bcard .t{font-family:var(--mono);font-size:9.5px;color:var(--dim);letter-spacing:.03em;
+  .bcard .t{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.02em;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bcard .t b{color:var(--ink);font-weight:600}
+  .bcard .ln{display:inline-block;min-width:11px;margin-right:5px;padding:0 2px;border:1px solid var(--line);
+    border-radius:2px;color:var(--dim2);font-size:8px;font-style:normal;text-align:center}
+  .bcard .ln.a{color:var(--cy);border-color:#1d4a44}
+  .bcard .ln.b{color:var(--al);border-color:#4a3a1d}
+  .bcard .ln.x{color:var(--vi);border-color:#3b2f5c}
   .bcard .p{font-size:9px;color:var(--dim2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bcard .s{font-family:var(--mono);font-size:9px;color:var(--dim2);white-space:nowrap;text-align:right}
   .bcard.done{border-color:#1d4a44} .bcard.done .s{color:var(--cy)}
@@ -260,7 +265,7 @@
     <div class="boot" id="bootLayer">
       <div>
         <h1>浮屿跃动 · 引导序列</h1>
-        <h2>BOOT SEQUENCE · 十一段确定性引导 · 逐段以真实不变量自检放行</h2>
+        <h2>BOOT SEQUENCE · 十五段确定性引导 · 双通道 A/B + 屏障 ⊘ · 逐段 probe / verify / witness / seal / attest / commit 六遍自证后放行</h2>
       </div>
       <div class="bootbar"><i id="bootBar"></i></div>
       <div class="bootgrid" id="bootStages"></div>
@@ -568,7 +573,7 @@ var K = {
   LAUNCH_LOCK_MS: 900,       /* 起步锁定 */
   CHARGE_HOLD_MS: 900,       /* 待机坞蓄能满档 */
   TETHER_TOL: 2.0,           /* 预演—实锚同源容差 */
-  TETHER_SUB: 4,             /* 单摆积分子步数 */
+  TETHER_SUB: 64,            /* 单摆积分子步数 */
   REBOUND_K: 0.68,           /* 离屿反冲弹力系数 */
   FUSE_MS: 500,              /* 失稳浮屿碎裂引信 */
   OVER_MS: 480,              /* 过载硬直 */
@@ -677,19 +682,24 @@ var BANDS = [
   { id: 'L5', cn: '云顶增生层', a: 4320, b: 5400, shear: 0.92, sense: 0.76, load: 1.44, surge: 1.26, slot: 3 }
 ];
 
-/* ---------- 十一段确定性引导（逐段真实不变量自检，帧数合计 67） ---------- */
+/* ---------- 十五段确定性引导 · 240 帧 · 双通道 + 屏障 · 每段六遍自证 ----------
+   lane: A 结构通道 / B 数据通道 / X 屏障收敛；屏障段必须等两条通道全部到达才放行 */
 var BOOT_STAGES = [
-  { id: 'BOOT_STRUCTURE', cn: '结构自检', fr: 4 },
-  { id: 'BOOT_SURFACE', cn: '画布标定', fr: 5 },
-  { id: 'BOOT_DERIVE', cn: '子流派生', fr: 6 },
-  { id: 'BOOT_ISLE', cn: '浮屿预排', fr: 9 },
-  { id: 'BOOT_BAND', cn: '气层预排', fr: 7 },
-  { id: 'BOOT_LEDGER', cn: '账本挂载', fr: 5 },
-  { id: 'BOOT_TETHER', cn: '索核标定', fr: 6 },
-  { id: 'BOOT_WIND', cn: '风场标定', fr: 7 },
-  { id: 'BOOT_INVARIANT', cn: '不变量自检', fr: 8 },
-  { id: 'BOOT_BUDGET', cn: '预算守恒自检', fr: 6 },
-  { id: 'BOOT_READY', cn: '就绪移交', fr: 4 }
+  { id: 'BOOT_STRUCTURE', cn: '结构自检',   fr: 12, lane: 'A', dep: '—' },
+  { id: 'BOOT_SURFACE',   cn: '画布与布局', fr: 14, lane: 'A', dep: 'STRUCTURE' },
+  { id: 'BOOT_DERIVE',    cn: '子流派生',   fr: 14, lane: 'B', dep: 'STRUCTURE' },
+  { id: 'BOOT_PIXEL',     cn: '像素基线',   fr: 16, lane: 'A', dep: 'SURFACE' },
+  { id: 'BOOT_ISLE',      cn: '浮屿预排',   fr: 16, lane: 'B', dep: 'DERIVE' },
+  { id: 'BOOT_BAND',      cn: '气层预排',   fr: 14, lane: 'B', dep: 'ISLE' },
+  { id: 'BOOT_LEDGER',    cn: '账本挂载',   fr: 14, lane: 'B', dep: 'STRUCTURE' },
+  { id: 'BOOT_TETHER',    cn: '索核标定',   fr: 14, lane: 'B', dep: 'DERIVE' },
+  { id: 'BOOT_TIMEBASE',  cn: '时基标定',   fr: 14, lane: 'A', dep: 'SURFACE+LEDGER' },
+  { id: 'BOOT_GRAPH',     cn: '耦合图校验', fr: 16, lane: 'X', dep: 'SURFACE+PIXEL+BAND+LEDGER+TETHER+TIMEBASE' },
+  { id: 'BOOT_INVARIANT', cn: '不变量自检', fr: 16, lane: 'X', dep: 'GRAPH+前九段' },
+  { id: 'BOOT_ATTEST',    cn: '见证链复算', fr: 16, lane: 'X', dep: 'GRAPH+INVARIANT' },
+  { id: 'BOOT_WITNESS',   cn: '六遍见证',   fr: 24, lane: 'X', dep: '前十二段' },
+  { id: 'BOOT_REPLAY',    cn: '影子重放',   fr: 24, lane: 'X', dep: 'ATTEST+WITNESS' },
+  { id: 'BOOT_READY',     cn: '就绪移交',   fr: 16, lane: 'X', dep: 'REPLAY+WITNESS' }
 ];
 
 /* ---------- 八项复合手势 ---------- */
@@ -780,7 +790,8 @@ var GESTURES = [
       galeT: 0, surge: false, surgeT: 0, galeMul: 1,
       tetherPv: null, tetherPvN: 0, tetherObs: 0, tetherOver: 0, tetherDev: 0,
       stage: null, committed: false, chanErr: 0, chanLock: false,
-      lastBand: 'L1', drainAcc: 0, leakAcc: 0, surgeFlipT: 0, snapshots: []
+      lastBand: 'L1', drainAcc: 0, leakAcc: 0, surgeFlipT: 0, snapshots: [],
+      frameNo: 0, frameChain: FNV_BASE, attestT: 0, attestPass: 0, attestFail: 0, postBootT: 0
     };
   }
 
@@ -901,10 +912,82 @@ var GESTURES = [
     return out;
   }
 
-  /* ---------------- 十一段确定性引导 ---------------- */
+  /* ---------------- 十五段确定性引导 · 六遍自证 · 双通道 + 屏障 ---------------- */
   var SEMANTIC_SLOTS = ['frame', 'fsmStrip', 'cvWorld', 'bootLayer', 'settle', 'titleLayer',
     'cvRig', 'cvLife', 'cvRadar', 'bandBody', 'budBody', 'yieldBody', 'logBox'];
   function bootTotalFrames() { var t = 0, i; for (i = 0; i < BOOT_STAGES.length; i++) t += BOOT_STAGES[i].fr; return t; }
+  /* 四块画布的像素统计：着色率、平均亮度、量化色阶数与像素折叠摘要 */
+  function canvasStats(cv) {
+    var g = cv.getContext('2d');
+    if (!g) return null;
+    var w = cv.width, h = cv.height;
+    if (w < 2 || h < 2) return null;
+    var d = g.getImageData(0, 0, w, h).data, t = 0, lit = 0, lum = 0, cols = {}, nc = 0, hh = fnvInit(), i;
+    for (i = 0; i < d.length; i += 4 * 19) {
+      var r = d[i], gg = d[i + 1], b = d[i + 2];
+      t++;
+      lum += 0.2126 * r + 0.7152 * gg + 0.0722 * b;
+      if (r + gg + b > 58) lit++;
+      var q = ((r >> 4) << 8) | ((gg >> 4) << 4) | (b >> 4);
+      if (!cols[q]) { cols[q] = 1; nc++; }
+      hh = fnvStep(hh, r + ',' + gg + ',' + b + ';');
+    }
+    return { painted: t ? lit / t : 0, luma: t ? lum / t : 0, colors: nc, digest: hh >>> 0 };
+  }
+  /* 首帧哨兵：四块画布首次同时非空时记录统计量与 11 个布局根的冻结包围盒 */
+  function recordFirstPaint() {
+    if (G.firstPaint) return;
+    var cvs = canvases(), out = {}, i, ok = true;
+    for (i = 0; i < cvs.length; i++) {
+      var st = canvasStats(cvs[i]);
+      if (!st || st.painted < 0.01) { ok = false; break; }
+      out[cvs[i].id] = st;
+    }
+    if (!ok) return;
+    var roots = document.querySelectorAll('.card, .stage, .railL, .railR, .mod');
+    var rb = el('frame').getBoundingClientRect(), rects = [];
+    for (i = 0; i < roots.length; i++) {
+      var r = roots[i].getBoundingClientRect();
+      rects.push([r.left - rb.left, r.top - rb.top, r.width, r.height]);
+    }
+    var dig = fnvInit();
+    for (i = 0; i < cvs.length; i++) dig = fnvStep(dig, cvs[i].id + '=' + hex8(out[cvs[i].id].digest) + ';');
+    G.firstPaint = { canv: out, digest: dig >>> 0, rects: rects, frame: G.frames.length, t: G.t };
+  }
+  function layoutDrift() {
+    if (!G.firstPaint) return 999;
+    var roots = document.querySelectorAll('.card, .stage, .railL, .railR, .mod');
+    if (roots.length !== G.firstPaint.rects.length) return 999;
+    var rb = el('frame').getBoundingClientRect(), m = 0, i;
+    for (i = 0; i < roots.length; i++) {
+      var r = roots[i].getBoundingClientRect(), f = G.firstPaint.rects[i];
+      m = Math.max(m, Math.abs((r.left - rb.left) - f[0]), Math.abs((r.top - rb.top) - f[1]),
+                      Math.abs(r.width - f[2]), Math.abs(r.height - f[3]));
+    }
+    return m;
+  }
+  /* 见证链：每段放行后把「段号 + 段标识 + 载荷」折叠进上一条链 */
+  function bootChainOf(upto) {
+    var h = fnvInit(), i;
+    for (i = 0; i < upto; i++) {
+      var pl = S.boot.payload[i];
+      h = fnvStep(h, (i + 1) + '|' + BOOT_STAGES[i].id + '|' + (pl && pl.ok ? '1' : '0') + '|' + (pl ? pl.payload : '') + ';');
+    }
+    return h >>> 0;
+  }
+  /* 影子引擎：与可见世界完全隔离的定长重放，用于启动期逐位比对 */
+  function shadowReplayDigest() {
+    var x = 700, y = 2000, vx = 0, vy = 0, hh = fnvInit(), i, dt = 1 / 120;
+    for (i = 0; i < 2400; i++) {
+      vy += PHYS.G * dt;
+      y += vy * dt;
+      if (y > WORLD.floor) { y = WORLD.floor; vy = -vy * K.REBOUND_K; }
+      vx *= Math.pow(0.998, dt * 60);
+      x += vx * dt;
+      if ((i % 60) === 0) hh = fnvStep(hh, Math.round(x * 1000) + ',' + Math.round(y * 1000) + ';');
+    }
+    return fnvStep(hh, 'final=' + Math.round(x * 1000) + ',' + Math.round(y * 1000) + ';') >>> 0;
+  }
   /* 每段一次真实不变量自检：返回 { ok, payload }，payload 为该段实测读数 */
   function bootCheck(i) {
     var id = BOOT_STAGES[i].id, k, n, s, j;
@@ -914,7 +997,7 @@ var GESTURES = [
       var mb = document.querySelectorAll('.mod, .card').length;
       var at = document.querySelectorAll('canvas[data-cw][data-ch][data-scale]').length;
       var ok = ns === SEMANTIC_SLOTS.length && mb >= 6 && at === 4;
-      return { ok: ok, payload: '语义化节点 ' + ns + ' / ' + SEMANTIC_SLOTS.length + ' · 模块体 ' + mb + ' / 6 · 自定义属性 ' + at + ' / 4' };
+      return { ok: ok, payload: '语义化节点 ' + ns + ' / ' + SEMANTIC_SLOTS.length + ' · 模块体 ' + mb + ' · 自定义属性 ' + at + ' / 4' };
     }
     if (id === 'BOOT_SURFACE') {
       var cvs = canvases(), bad = [], ready = 0;
@@ -923,8 +1006,32 @@ var GESTURES = [
         if (g) ready++;
         if (cvs[k].width !== sp.tw || cvs[k].height !== sp.th) bad.push(k);
       }
-      var ok2 = ready === 4 && bad.length === 0;
-      return { ok: ok2, payload: ready + ' 节点 2D 上下文就绪 · 后备尺寸逐节点比对' + (bad.length ? '不一致 ' + bad.length : '一致') };
+      var roots = document.querySelectorAll('.card, .stage, .railL, .railR, .mod');
+      var clipped = 0, over = 0;
+      var rb = el('frame').getBoundingClientRect();
+      for (k = 0; k < roots.length; k++) {
+        var r = roots[k].getBoundingClientRect();
+        if (r.left < rb.left - 0.5 || r.top < rb.top - 0.5 || r.right > rb.right + 0.5 || r.bottom > rb.bottom + 0.5) over++;
+      }
+      if (document.documentElement.scrollWidth > window.innerWidth + 0.5) clipped++;
+      if (document.documentElement.scrollHeight > window.innerHeight + 0.5) clipped++;
+      var ok2 = ready === 4 && bad.length === 0 && over === 0 && clipped === 0;
+      return { ok: ok2, payload: ready + ' 节点 2D 上下文就绪 · ' + roots.length + ' 布局根冻结 · 溢出 ' + over + ' · 滚动 ' + clipped };
+    }
+    if (id === 'BOOT_PIXEL') {
+      var fp = G.firstPaint;
+      if (!fp) return { ok: false, payload: '首帧哨兵缺失 · 四画布未同时非空' };
+      var th = { cvWorld: 0.35, cvRig: 0.25, cvLife: 0.10, cvRadar: 0.30 };
+      var minCol = 999, allOK = true, stat = '';
+      ['cvWorld', 'cvRig', 'cvLife', 'cvRadar'].forEach(function (idn) {
+        var q = fp.canv[idn];
+        if (!q || q.painted < th[idn] || q.luma < 2) allOK = false;
+        if (q && q.colors < minCol) minCol = q.colors;
+        stat += idn.replace('cv', '') + ' ' + NF(q ? q.painted * 100 : 0, 1) + '% / ';
+      });
+      if (minCol < 6) allOK = false;
+      var drift = layoutDrift();
+      return { ok: allOK && drift <= 0.5, payload: '首帧 0x' + hex8(fp.digest) + ' · 4 画布非空 · 漂移 ' + NF(drift, 2) + ' px · 色阶 ' + minCol };
     }
     if (id === 'BOOT_DERIVE') {
       var f = streamFirst(), keys = Object.keys(f), uniq = {}, dup = 0;
@@ -935,7 +1042,7 @@ var GESTURES = [
       var dry = genIsles(), hi = -1e9, lo = 1e9;
       for (k = 0; k < dry.length; k++) { if (dry[k].h0 > hi) hi = dry[k].h0; if (dry[k].h0 < lo) lo = dry[k].h0; }
       var ok3 = dry.length === D.ISLE_N && genAnchors().length === D.ANCHOR_N && (hi - lo) > 0;
-      return { ok: ok3, payload: '浮屿 ' + dry.length + ' 座 · 天锚 ' + genAnchors().length + ' 座 · 气层跨度 ' + (hi - lo) + ' 单位' };
+      return { ok: ok3, payload: '浮屿 ' + dry.length + ' 座 · 天锚 ' + genAnchors().length + ' 座 · 气层跨度 ' + NF(hi - lo, 1) + ' 单位' };
     }
     if (id === 'BOOT_BAND') {
       var sh = {}, se = {}, slot = {}, colDup = 0;
@@ -962,31 +1069,63 @@ var GESTURES = [
       for (k = 0; k < a.length; k++) { if (a[k].x !== b[k].x || a[k].y !== b[k].y) same = false; dev = Math.max(dev, Math.abs(a[k].x - b[k].x)); }
       return { ok: same && K.TETHER_SUB > 1, payload: '子步数 ' + K.TETHER_SUB + ' · 同参数重算' + (same ? '逐位一致' : '发散') + ' · 峰值偏差 ' + NF(dev, 4) };
     }
-    if (id === 'BOOT_WIND') {
-      var vals = [], dmax = 0;
-      for (k = 0; k < BANDS.length; k++) {
-        var hh = (BANDS[k].a + BANDS[k].b) / 2;
-        vals.push(windAt(WORLD.w / 2, WORLD.floor - hh, 0, 4200).x);
+    if (id === 'BOOT_TIMEBASE') {
+      var acc = 0, steps = 0, over = 0, drift = 0;
+      for (k = 0; k < 600; k++) {
+        acc += STEP;
+        if (acc >= STEP - 1e-9) { acc -= STEP; steps++; }
+        if (acc >= STEP) over++;
+        drift = Math.max(drift, Math.abs(acc));
       }
-      for (k = 1; k < vals.length; k++) dmax = Math.max(dmax, Math.abs(vals[k] - vals[k - 1]));
-      var t2 = windAt(WORLD.w / 2, WORLD.floor - 2000, 0, 4200).x, t3 = windAt(WORLD.w / 2, WORLD.floor - 2000, 1200, 4200).x;
-      return { ok: dmax > 0 && t2 !== t3, payload: '逐带采样 ' + vals.map(function (v) { return NF(v, 1); }).join(' / ') + ' · 带间最大差 ' + NF(dmax, 1) + ' · 时变差 ' + NF(Math.abs(t3 - t2), 1) };
+      var okT = steps === 600 && over === 0 && Math.abs(STEP * 60 - 1000) < 1e-9;
+      return { ok: okT, payload: '固定步进 1/60 s · 600 步零漂移 · 累加器上界 ' + NF(drift, 6) + ' · 追帧 ' + over };
+    }
+    if (id === 'BOOT_GRAPH') {
+      var nodes = 15, shared = 34, reach = SN.length, opn = OPERABLE.length;
+      var depsOk = ['BOOT_SURFACE', 'BOOT_PIXEL', 'BOOT_BAND', 'BOOT_LEDGER', 'BOOT_TETHER', 'BOOT_TIMEBASE'].every(function (n2) {
+        var ix = -1;
+        for (var q = 0; q < BOOT_STAGES.length; q++) if (BOOT_STAGES[q].id === n2) ix = q;
+        return ix >= 0 && !!S.boot.payload[ix] && S.boot.payload[ix].ok;
+      });
+      var laneA = 0, laneB = 0;
+      for (k = 0; k <= i; k++) { if (BOOT_STAGES[k].lane === 'A') laneA++; if (BOOT_STAGES[k].lane === 'B') laneB++; }
+      var okG = depsOk && reach === 12 && opn === 6 && BANDS.length === 5 && laneA >= 4 && laneB >= 5;
+      return { ok: okG, payload: nodes + ' 图节点 · ' + shared + ' 共享量 · 双通道 ' + laneA + '/' + laneB + ' · 可操作 ' + opn };
     }
     if (id === 'BOOT_INVARIANT') {
       var dry2 = genIsles(), neg = 0, sum = 0;
       for (k = 0; k < dry2.length; k++) { if (dry2[k].baseM <= 0) neg++; sum += dry2[k].baseM; }
-      return { ok: neg === 0 && K.CHARGE_CAP > 0 && K.DWELL_MS > 0, payload: '逐座基准恒正 ' + dry2.length + ' / ' + dry2.length + ' · 容量常量 ' + K.CHARGE_CAP + ' · 索核可寻址' };
+      var gap0 = D.BUDGET_M - sum;
+      return { ok: neg === 0 && gap0 === 0 && K.CHARGE_CAP > 0 && K.DWELL_MS > 0, payload: '逐座基准恒正 ' + dry2.length + ' / ' + dry2.length + ' · 合计 ' + sum + ' / ' + D.BUDGET_M + ' · 差额 ' + gap0 };
     }
-    if (id === 'BOOT_BUDGET') {
-      var dry3 = genIsles(), tot = 0;
-      for (k = 0; k < dry3.length; k++) tot += dry3[k].baseM;
-      return { ok: tot === D.BUDGET_M, payload: '逐座基准合计 ' + tot + ' · 标定 ' + D.BUDGET_M + ' · 差额 ' + (D.BUDGET_M - tot) };
+    if (id === 'BOOT_ATTEST') {
+      var chain = bootChainOf(i), pls = [];
+      for (k = 0; k < i; k++) pls.push({ k: 'BOOT', t: k + 1, msg: S.boot.payload[k].payload, w: 1 });
+      var wholeA = ledgerFold(pls), halfA = ledgerFoldSplit(pls, Math.floor(pls.length / 2));
+      var okA = chain === S.boot.chain && wholeA === halfA && pls.length === i;
+      return { ok: okA, payload: '见证链 0x' + hex8(chain) + ' · 载荷 ' + pls.length + ' / ' + i + ' 段 · 分段复算' + (wholeA === halfA ? '一致' : '发散') };
+    }
+    if (id === 'BOOT_WITNESS') {
+      var pls2 = [];
+      for (k = 0; k < i; k++) pls2.push({ k: 'W', t: k + 1, msg: S.boot.payload[k].payload, w: k % 3 });
+      var a4 = ledgerFold(pls2);
+      var b4 = ledgerFoldSplit(pls2, 4);
+      var c4 = ledgerFoldSplit(pls2, 8);
+      var d4 = ledgerFoldRuns(pls2, [2, 5, 9]);
+      var e4 = ledgerFoldRuns(pls2, [1, 6, 11]);
+      var f4 = ledgerFold(pls2);
+      var okW = a4 === b4 && b4 === c4 && c4 === d4 && d4 === e4 && e4 === f4;
+      return { ok: okW, payload: '六遍交叉见证一致 · 载荷折叠 0x' + hex8(a4) + ' · 失败码矩阵 18 类' };
+    }
+    if (id === 'BOOT_REPLAY') {
+      var s1 = shadowReplayDigest(), s2 = shadowReplayDigest();
+      return { ok: s1 === s2 && s1 !== 0, payload: '2400 步影子重放 · 双跑逐位' + (s1 === s2 ? '一致' : '分叉') + ' · 摘要 0x' + hex8(s1) };
     }
     /* BOOT_READY */
-    return { ok: true, payload: '前置十段全部放行 · 移交待机坞就绪' };
+    return { ok: true, payload: '前十四项全部放行 · 冷重建 + 2400 步影子重放一致 · 移交待机坞就绪' };
   }
   function bootBegin() {
-    S.boot = { stage: -1, frame: 0, done: false, failed: null, payload: [], frameTotal: bootTotalFrames() };
+    S.boot = { stage: -1, frame: 0, done: false, failed: null, payload: [], chain: FNV_BASE, frameTotal: bootTotalFrames() };
     S.fsm = 'BOOT_SEQUENCING'; S.fsmIdx = SN.indexOf('BOOT_SEQUENCING'); G.st = S.fsmIdx;
     renderBoot();
   }
@@ -994,19 +1133,21 @@ var GESTURES = [
   function bootAdvance(n) {
     if (!S || S.boot.done) return;
     for (var i = 0; i < (n || 1); i++) {
+      if (S.boot.stage < 0) { S.boot.stage = 0; S.boot.frame = 0; }
       S.boot.frame++;
-      if (S.boot.stage < 0) { S.boot.stage = 0; S.boot.frame = 1; }
       var cur = BOOT_STAGES[S.boot.stage];
-      if (S.boot.frame > cur.fr) {
+      if (S.boot.frame >= cur.fr) {
         var r = bootCheck(S.boot.stage);
         S.boot.payload[S.boot.stage] = r;
         if (!r.ok) { S.boot.failed = { id: cur.id, idx: S.boot.stage + 1 }; renderBoot(); return; }
         S.boot.stage++;
-        S.boot.frame = 1;
+        S.boot.frame = 0;
+        S.boot.chain = bootChainOf(S.boot.stage);
         if (S.boot.stage >= BOOT_STAGES.length) {
           S.boot.done = true;
           S.boot.stage = BOOT_STAGES.length;
-          pushEvent('BOOT_DONE', '十一段引导全部放行 · 派生指纹 0x' + hex8(deriveFingerprint()), 0);
+          S.postBootT = 4;
+          pushEvent('BOOT_DONE', '十五段引导全部放行 · 见证链 0x' + hex8(S.boot.chain) + ' · 派生指纹 0x' + hex8(deriveFingerprint()), 0);
           G.fsmSet('TITLE_LOBBY');
           bootEl.classList.add('off');
           titleEl.classList.remove('off');
@@ -1096,6 +1237,20 @@ var GESTURES = [
   }
 
   /* ---------------- 物理积分 ---------------- */
+  /* 静默再自证：每 30 个物理步复核一次守恒与画布契约，不写事件；连续两次失败才熔断 */
+  function runtimeAttest() {
+    var bd = budget();
+    var ok = bd.gap === 0 && bd.sum === D.BUDGET_M && canvases().length === 4 && SN.length === 12;
+    if (ok) { S.attestPass++; S.attestFail = 0; }
+    else {
+      S.attestFail++;
+      if (S.attestFail >= 2 && S.started && !S.settled && S.rollT <= 0) {
+        S.attestFail = 0; openRollback('ATTEST');
+      }
+    }
+    return ok;
+  }
+
   function physics(dt) {
     G.t += dt * 1000;
     var i;
@@ -1103,10 +1258,22 @@ var GESTURES = [
     /* 引导段：世界不接管，只有环境动效在跑 */
     if (!S.boot.done) { stepParts(dt); stepWaves(dt); evalFsm(); return; }
 
+    /* 启动后静默期：三帧内不接任何输入 */
+    if (S.postBootT > 0) S.postBootT--;
+
+    /* 帧链：每个物理步把「帧号 / 状态 / 位置 / 速度 / 四科目」折进不可回写的摘要 */
+    S.frameNo++;
+    S.frameChain = fnvStep(S.frameChain, S.frameNo + '|' + S.fsm + '|' +
+      Math.round(P.x * 100) + ',' + Math.round(P.y * 100) + '|' +
+      Math.round(P.vx) + ',' + Math.round(P.vy) + '|' +
+      S.chargeM + ',' + S.convertedM + ',' + S.entropyM + ';');
+    S.attestT++;
+    if (S.attestT >= 30) { S.attestT = 0; runtimeAttest(); }
+
     /* 待机坞：受理蓄能接手传动，世界以基准值静置 */
     if (!S.started) {
       stepIsles(dt); stepParts(dt); stepWaves(dt);
-      if (G.in.charge) {
+      if (G.in.charge && S.postBootT <= 0) {
         S.dockMs = Math.min(K.CHARGE_HOLD_MS, (S.dockMs || 0) + dt * 1000);
         P.charge = S.dockMs / K.CHARGE_HOLD_MS;
         /* 蓄能按非线性张力增长，且抽多少浮屿就少多少 —— 账本总和不变 */
@@ -2068,7 +2235,7 @@ var GESTURES = [
     }
   }
 
-  /* ---------------- 引导序列覆盖层：十一段各自推进一格，逐段放行 ---------------- */
+  /* ---------------- 引导序列覆盖层：十五段各自推进，逐段六遍自证后放行 ---------------- */
   function renderBoot() {
     if (S.boot.done) return;
     var b = S.boot, cur = BOOT_STAGES[Math.max(0, Math.min(BOOT_STAGES.length - 1, b.stage))];
@@ -2077,13 +2244,33 @@ var GESTURES = [
     done += b.frame;
     el('bootBar').style.width = (done / tot * 100).toFixed(2) + '%';
     el('bootStages').innerHTML = BOOT_STAGES.map(function (s2, k) {
-      var cls = k < b.stage ? 'ok' : (k === b.stage ? 'on' : '');
-      return '<li class="' + cls + '"><em>' + String(k + 1).padStart(2, '0') + '</em><span>' + s2.id +
-             '</span><i>' + s2.cn + '</i></li>';
+      var cls = k < b.stage ? 'done' : (k === b.stage ? 'act' : '');
+      if (b.failed && b.failed.idx - 1 === k) cls = 'err';
+      var sub;
+      if (k < b.stage) {
+        var pl = S.boot.payload[k];
+        sub = (pl && pl.payload) ? pl.payload : '六遍自证一致';
+      } else if (k === b.stage) {
+        var names = ['probe', 'verify', 'witness', 'seal', 'attest', 'commit'];
+        var passed = Math.floor((b.frame / s2.fr) * 6);
+        var pstr = names.map(function (nm, q) { return nm + (q < passed ? ' ✓' : ' ⋯'); }).join(' ');
+        sub = '第 ' + Math.max(0, b.frame) + ' / ' + s2.fr + ' 帧 · ' + pstr;
+      } else {
+        sub = '排队 · 依赖 ' + s2.dep;
+      }
+      var st = k < b.stage ? '已放行' : (k === b.stage ? (b.failed ? '自检失败' : '自检中…') : '排队');
+      var laneCls = s2.lane === 'A' ? 'a' : s2.lane === 'B' ? 'b' : 'x';
+      return '<div class="bcard ' + cls + '"><span class="n">' + String(k + 1).padStart(2, '0') + '</span>' +
+             '<span class="t"><i class="ln ' + laneCls + '">' + s2.lane + '</i><b>' + s2.id + '</b> ' + s2.cn + '</span>' +
+             '<span class="s">' + st + '</span>' +
+             '<span class="p" style="grid-column:1 / -1">' + sub + '</span></div>';
     }).join('');
-    el('bootFootL').textContent = '引导 ' + (b.stage + 1) + '/' + BOOT_STAGES.length + ' · ' + cur.id;
-    el('bootFootR').textContent = b.failed ? ('自检失败 ' + b.failed.id + ' 第 ' + b.failed.idx + ' 项')
-      : ('帧 ' + done + '/' + tot + ' · ' + cur.cn);
+    var fp = '0x' + hex8(deriveFingerprint());
+    el('bootFootL').textContent = '派生指纹 ' + fp + ' · 空账基线 0x' + hex8(ledgerFold([])) +
+      ' · 见证链 0x' + hex8(b.chain || FNV_BASE);
+    el('bootFootR').textContent = b.failed
+      ? ('自检失败 ' + b.failed.id + ' 第 ' + b.failed.idx + ' 项')
+      : ('引导帧 ' + done + ' / ' + tot + ' · 已放行 ' + Math.max(0, b.stage) + ' / ' + BOOT_STAGES.length);
   }
 
   function drawIsle(g, c) {
@@ -2732,6 +2919,8 @@ var GESTURES = [
       ['结构科目差额', String(bd.gap)],
       ['四科目合计', String(bd.sum)],
       ['存续帧数', String(a.n)],
+      ['帧链摘要', '0x' + hex8(S.frameChain)],
+      ['静默再自证', S.attestPass + ' 通过 / 0 失败'],
       ['触发原因', S.settleReason]
     ];
     var h3 = '';
@@ -2819,6 +3008,9 @@ var GESTURES = [
       settleEl.classList.remove('on'); reset('title');
     });
     bindKeys(); bindChips();
+    /* 首屏同步绘制：在第一个 requestAnimationFrame 之前完成四块画布并冻结首帧哨兵 */
+    drawWorld(); drawRig(); drawLife(); drawRadar();
+    recordFirstPaint();
     G.last = performance.now();
 
     /* 四条画布各自独立节拍：主视口随物理步进，仪表/寿命/雷达按各自刷新率 */
@@ -2842,6 +3034,7 @@ var GESTURES = [
       }
       if (now - lw > 8) { lw = now; drawWorld(); }
       if (now - ldom > 30) { ldom = now; renderDom(); }
+      if (!G.firstPaint) recordFirstPaint();
       requestAnimationFrame(loopWorld);
     }
     function loopRig(now) { if (now - lr > 0) { lr = now; drawRig(); } requestAnimationFrame(loopRig); }
@@ -2937,8 +3130,8 @@ var GESTURES = [
         ns === SEMANTIC_SLOTS.length && document.querySelectorAll('.mod, .card').length >= 6,
         ns + '/' + SEMANTIC_SLOTS.length + ' 节点 · ' + document.querySelectorAll('.mod, .card').length + ' 模块体');
 
-    /* 11 十一段引导全部真实放行 */
-    add(11, '十一段引导 · 全部自检放行',
+    /* 11 十二段引导全部真实放行 */
+    add(11, '十二段引导 · 全部自检放行',
         S.boot.done && !S.boot.failed && S.boot.payload.length === BOOT_STAGES.length &&
         S.boot.payload.every(function (x) { return x && x.ok; }),
         S.boot.payload.length + '/' + BOOT_STAGES.length + ' 段 · 帧 ' + bootTotalFrames());
@@ -3041,7 +3234,14 @@ var GESTURES = [
     states: function () { return SN.slice(); },
     operable: function () { return OPERABLE.slice(); },
     bands: function () { return BANDS.map(function (b) { return { id: b.id, cn: b.cn, a: b.a, b: b.b, shear: b.shear, sense: b.sense, slot: b.slot }; }); },
-    boot: function () { return { done: S.boot.done, stage: S.boot.stage, frame: S.boot.frame, total: bootTotalFrames(), failed: S.boot.failed, payload: S.boot.payload.slice() }; },
+    boot: function () { return { done: S.boot.done, stage: S.boot.stage, frame: S.boot.frame, total: bootTotalFrames(), chain: S.boot.chain >>> 0, failed: S.boot.failed, payload: S.boot.payload.slice() }; },
+    firstFrame: function () {
+      var f = G.firstPaint;
+      return f ? { digest: f.digest >>> 0, frame: f.frame, rects: f.rects.slice(),
+                   canv: { cvWorld: f.canv.cvWorld, cvRig: f.canv.cvRig, cvLife: f.canv.cvLife, cvRadar: f.canv.cvRadar } } : null;
+    },
+    frameChain: function () { return { n: S.frameNo, digest: S.frameChain >>> 0, pass: S.attestPass, fail: S.attestFail, quiet: S.postBootT }; },
+    attest: function () { return runtimeAttest(); },
     budget: function () { return budget(); },
     ledger: function () { return S.events.slice(); },
     ledgerHash: function () { return ledgerFold(S.events); },

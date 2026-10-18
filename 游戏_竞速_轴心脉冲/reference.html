@@ -48,6 +48,10 @@ body{
 }
 
 /* ── 覆盖层与结算面板（挂在 stage 内，随舞台缩放） ──── */
+#bootcv{
+  position:absolute;inset:0;z-index:12;width:100%;height:100%;
+  display:block;pointer-events:none;image-rendering:pixelated;
+}
 #ov{
   position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:13px;text-align:center;
@@ -76,7 +80,8 @@ body{
 
 #card{
   position:absolute;inset:0;z-index:9;display:none;flex-direction:column;
-  padding:18px 24px;gap:9px;background:linear-gradient(180deg,#0a1130f2,#04060ff7);
+  justify-content:center;
+  padding:18px 24px;gap:9px;background:linear-gradient(180deg,#0a1130,#04060f);
 }
 #card.on{display:flex}
 #card h2{font-size:22px;letter-spacing:8px;color:#9ff4ff;text-shadow:0 0 18px #1d94b8;font-weight:700}
@@ -90,7 +95,7 @@ body{
 #cGrid .cell b{font-size:13px;color:#e6f0ff}
 #cGrid .cell b.warn{color:#ff9d6b}
 #cGrid .cell b.good{color:#7fffdc}
-#cFoot{display:flex;gap:18px;align-items:flex-end;margin-top:auto;font-size:11px;color:#8b93cf;letter-spacing:1px}
+#cFoot{display:flex;gap:18px;align-items:flex-end;margin-top:14px;font-size:11px;color:#8b93cf;letter-spacing:1px}
 .grade{
   font-size:44px;font-weight:700;letter-spacing:4px;color:#ffd479;
   text-shadow:0 0 26px #b07d2090;line-height:.9;
@@ -162,6 +167,7 @@ body{
     <div class="foot"><span id="bootFootL"></span><span id="bootFootR"></span></div>
   </div>
 
+  <canvas id="bootcv" width="1280" height="720"></canvas>
   <div id="ov"></div>
   <div id="card"></div>
 </div>
@@ -1260,7 +1266,9 @@ var BOARD_HINT = {
 
   /* ══════════════ 9. 主步进 ══════════════ */
   function tick(dt) {
-    G.t += dt; G.f++;
+    if (HAL.stage !== 'PLAYING') { bootStageTick(dt); return; }
+    G.t += dt; G.f++; HAL.frame++; HAL.tickN++;
+    MI[MEM.TICK] = HAL.tickN;
     /* 引导自检优先于一切：十四段确定性引导没有逐段通过之前，物理世界一格都不推进。
        每一段都带可证伪的判据，任何一段判据不成立就地停住并把该段标红 ——
        于是「启动流程」不是装饰性的加载动画，而是一道必须逐段通过的验收序列。 */
@@ -1746,6 +1754,7 @@ var BOARD_HINT = {
   function finishRun(result) {
     if (G.settled) return;
     G.settled = true; G.result = result;
+    HAL.stage = 'GAME_OVER'; bootShow(false); G.frozen = true;
     ev('结算', 0, result + ' · 账本 ' + G.ledger.length + ' 条');
     resolveState();
   }
@@ -2046,6 +2055,573 @@ var BOARD_HINT = {
     CV[id] = document.getElementById(id);
     CX[id] = CV[id].getContext('2d');
   });
+
+  /* ══════════════ 12A. 复古街机硬件抽象层 / HAL ═══════════════════════
+     单一 64 KiB ArrayBuffer 承载核心态：Int32 槽位、Float32 槽位、
+     256 字 JAMMA 扫描码环形缓冲。画布文本一律走 5X7 位图字库，
+     渲染侧不保留任何字体状态或文本绘制调用。                          */
+  var HAL = {
+    AB: new ArrayBuffer(65536),
+    stage: 'POST_RAM_CHECK', frame: 0, bake: 0, tickN: 0,
+    audio: null, audioReady: false, clockLock: false,
+    attractT: 0, attractIdx: 0, glide: 0, intro: 0,
+    sheetA: null, sheetB: null, manual: false
+  };
+  HAL.MI = new Int32Array(HAL.AB);
+  HAL.MU = new Uint8Array(HAL.AB);
+  HAL.MF = new Float32Array(HAL.AB, 2048);
+  var MI = HAL.MI, MU = HAL.MU, MF = HAL.MF;
+  var MEM = { TICK: 0, STAGE: 1, SCORE: 2, PX: 3, PY: 4, LIFE: 5, STAB: 6,
+              FATIGUE: 7, STRAIN: 8, LAP: 9, GAP: 10, HEAD: 11, TAIL: 12, KEYQ: 32 };
+  var FSLOT = { PX: 0, PY: 1, VX: 2, VY: 3, TH: 4, U: 5, ALT: 6, VZ: 7, T: 8, CHARGE: 9 };
+  function memBindF(obj, prop, idx) {
+    MF[idx] = +obj[prop] || 0;
+    Object.defineProperty(obj, prop, {
+      get: function () { return MF[idx]; },
+      set: function (v) { MF[idx] = +v || 0; },
+      enumerable: true, configurable: true
+    });
+  }
+  function memBindI(obj, prop, idx, scale) {
+    var k = scale || 1;
+    MI[idx] = Math.round((+obj[prop] || 0) * k);
+    Object.defineProperty(obj, prop, {
+      get: function () { return MI[idx] / k; },
+      set: function (v) { MI[idx] = Math.round((+v || 0) * k); },
+      enumerable: true, configurable: true
+    });
+  }
+  memBindI(P, 'x', MEM.PX, 100); memBindI(P, 'y', MEM.PY, 100);
+  memBindF(P, 'v', FSLOT.VX); memBindF(P, 'u', FSLOT.VY); memBindF(P, 'th', FSLOT.TH);
+  memBindF(P, 'alt', FSLOT.ALT); memBindF(P, 'vz', FSLOT.VZ);
+  memBindI(G, 'score', MEM.SCORE, 1); memBindI(G, 'lap', MEM.LAP, 1);
+  memBindI(G, 'life', MEM.LIFE, 100); memBindI(G, 'stab', MEM.STAB, 100);
+  memBindI(G, 'fatigue', MEM.FATIGUE, 100); memBindI(G, 'strain', MEM.STRAIN, 100);
+  memBindF(G, 'chargeM', FSLOT.CHARGE);
+
+  function keyPush(code, down) {
+    var head = MI[MEM.HEAD], tail = MI[MEM.TAIL], next = (head + 1) & 255;
+    if (next === tail) tail = (tail + 1) & 255;
+    MI[MEM.KEYQ + head] = ((code & 127) << 1) | (down ? 1 : 0);
+    MI[MEM.HEAD] = next; MI[MEM.TAIL] = tail;
+  }
+  var SCAN_ON = { 1: false, 2: false, 4: false, 8: false, 16: false, 32: false, 64: false };
+
+  /* ── 5X7 位图字库：英文/数字/符号 ───────────────────────────── */
+  var FONT5 = {
+    'A':'0E11111F111111','B':'1E11111E11111E','C':'0E11101010110E','D':'1E11111111111E',
+    'E':'1F10101E10101F','F':'1F10101E101010','G':'0E11101711110E','H':'1111111F111111',
+    'I':'1F04040404041F','J':'0702020202120C','K':'11121418141211','L':'1010101010101F',
+    'M':'111B1515111111','N':'11191513111111','O':'0E11111111110E','P':'1E11111E101010',
+    'Q':'0E11111115120D','R':'1E11111E141211','S':'0F10100E01011E','T':'1F040404040404',
+    'U':'1111111111110E','V':'11111111110A04','W':'11111115151B11','X':'11110A040A1111',
+    'Y':'11110A04040404','Z':'1F01020408101F',
+    '0':'0E11131519110E','1':'040C040404040E','2':'0E11010204081F','3':'1F02040201110E',
+    '4':'02060A121F0202','5':'1F101E0101110E','6':'0608101E11110E','7':'1F010204080808',
+    '8':'0E11110E11110E','9':'0E11110F01020C',
+    ' ':'00000000000000','.':'00000000000C0C',',':'000000000C0C18',':':'000C0C000C0C00',
+    ';':'000C0C000C0C18','/':'01020204080810','%':'191A0204080B13','+':'0004041F040400',
+    '-':'0000001F000000','=':'00001F001F0000','>':'08040201020408','<':'02040810080402',
+    '(':'02040808080402',')':'08040202020408','[':'0E08080808080E',']':'0E02020202020E',
+    '!':'04040404040004','?':'0E110102040004',"'":'04040000000000','#':'0A1F0A0A1F0A00',
+    '*':'00150E1F0E1500','|':'04040404040404','\\':'10080804020201','^':'040A1100000000',
+    '_':'0000000000001F','@':'0E11171517100E','&':'0C12140815120D','"':'0A0A0000000000',
+    '$':'040F140E051E04','~':'00000815020000'
+  };
+  var TRP = [
+    ['实时损耗率监视器','LIVE LOSS RATE'], ['任何正增益都必须能追到一次主动操作','GAIN MUST TRACE TO AN ACTION'],
+    ['分带汇率包络与置换账','BAND FX ENVELOPE / SWAP LEDGER'], ['分带配额沙盘','BAND QUOTA BOARD'],
+    ['浮屿寿命环形条','PLATE LIFE RING'], ['同调充盈环','ATTUNEMENT RING'],
+    ['同调已确立','ATTUNED'], ['已由 0 置为 1','SET 0 -> 1'], ['同调未确立','NOT ATTUNED'],
+    ['锚定同调驻留','ANCHOR ATTUNE'], ['低速窗口','LOW-SPEED WINDOW'],
+    ['空域危机','AIRSPACE CRISIS'], ['轴心卫戍在场','AXIS GUARD PRESENT'],
+    ['过载熔断硬直','OVERLOAD LOCK'], ['舵面锁死','STEERING LOCKED'],
+    ['世界时钟回退','CLOCK REWIND'], ['事件注记','EVENT NOTE'],
+    ['环境雷达','ENV RADAR'], ['远端预警','REMOTE WARNING'], ['外环剩余','RING LEFT'],
+    ['当前环带','BAND'], ['切向风','TANGENTIAL'], ['横向风','LATERAL'], ['波次进度','WAVE'],
+    ['交战中','ENGAGED'], ['已清空','CLEAR'], ['威胁','THREATS'],
+    ['种子底稿','SEED DRAFT'], ['尚未显影','UNREVEALED'], ['放行后逐段显影到实况','REVEAL SEGMENTS ON LAUNCH'],
+    ['逐段解算',' REVEAL'], ['种子','SEED'], ['轴心','AXIS'],
+    ['氮气三段能量','N2 3-STAGE'], ['科目余额','ACCOUNT'], ['千分位','MILLI'],
+    ['安全线','SAFE'], ['满值','FULL'], ['五层环带','5 BANDS'], ['本圈配额余量','QUOTA LEFT'],
+    ['本带配额枯竭','BAND QUOTA DRY'], ['抽取停摆','EXTRACTION HALTED'],
+    ['每圈重发','REISSUED PER LAP'], ['只减不增','EXTRACT ONLY DECREASES'],
+    ['风廊','WIND'], ['爆发','BURST'], ['换算税','FEE'], ['下限','MIN'], ['上限','MAX'],
+    ['手刹漂移','HANDBRAKE DRIFT'], ['蓄能折损至六成','CHARGE CUT TO 60%'], ['滑移角','SLIP'],
+    ['浮空跃迁','HOP'], ['只有同调驻留能回充','ONLY ATTUNE DWELL RECHARGES'],
+    ['长按蓄能弹射','HOLD CATAPULT'], ['越限即熔断硬直','OVER LIMIT = OVERLOAD LOCK'],
+    ['空间相位翻转','PHASE FLIP'], ['视差倾角扰动','PARALLAX TILT'], ['免疫','IMMUNE'],
+    ['能量索抓取摆荡','TETHER SWING'], ['再按脱离','PRESS AGAIN TO RELEASE'],
+    ['切向速度达标才回补牵引','TANGENTIAL SPEED REFILLS TRACTION'],
+    ['浮屿共振同调脉冲','RESONANCE PULSE'], ['先完成同调驻留','AFTER ATTUNE DWELL'],
+    ['瓦解崩落体回收物量','BREAK FRAGMENTS FOR MASS'],
+    ['动量下压速坠冲击','PLUNGE IMPACT'], ['落速越限才打得穿重装甲壳','HIGH FALL SPEED PIERCES ARMOR'],
+    ['竞速功兑换入','FOLD IN'], ['牵引储备兑换出','TRACTION OUT'], ['按分带汇率包络结算','AT BAND FX ENVELOPE'],
+    ['分带配额置换','BAND QUOTA SWAP'], ['烧竞速功把本带已动用的额度放回一部分','BURN FOLD TO RESTORE QUOTA'],
+    ['同调驻留','ATTUNE DWELL'], ['同调','ATTUNE'], ['跃迁余量','HOP MARGIN'], ['锚定','ANCHOR'],
+    ['环带','BAND'], ['浮屿寿命','PLATE LIFE'], ['剩余','LEFT'],
+    ['波次排程','WAVE SCHED'], ['下一波帧号','NEXT FRAME'], ['放行','RELEASE'],
+    ['崩落体','FRAGMENTS'], ['在空物量','AIR MASS'],
+    ['风切穿越','GALE CROSS'], ['起步锁定','LAUNCH LOCK'],
+    ['配额重发','REISSUE'], ['抽取被拒','EXTRACT REFUSED'],
+    ['蓄能弹射','CATAPULT'], ['相位翻转','PHASE'], ['能量索','TETHER'],
+    ['屿壳总和','SHELL'], ['牵引储备','TRACTION'], ['蓄能存量','CHARGE'], ['竞速功','FOLD'], ['熵损','ENTROPY'],
+    ['守恒科目表','ACCOUNTS'], ['缺口','GAP'], ['收益倍率','YIELD'], ['连击蓄能槽','COMBO CELLS'],
+    ['连击段','COMBO'], ['累计得分','SCORE'], ['清波','CLEAR'], ['击杀','KILL'],
+    ['牵引消耗','TRACTION USED'], ['速坠峰值','PLUNGE PEAK'], ['承压峰值','STRAIN PEAK'],
+    ['核心区锚定','CORE ANCHOR'], ['边缘暴露','EDGE EXPOSURE'], ['静默','IDLE'],
+    ['环程','LAPS'], ['本圈','THIS LAP'], ['上一圈','LAST'], ['最佳','BEST'], ['名次','RANK'], ['反超','PASS'],
+    ['完好','INTACT'], ['引信','FUSE'], ['虚空','VOID'], ['段','SEG'], ['枚','PCS'],
+    ['实时损耗率','LOSS RATE'], ['牵引','TRACTION'], ['稳定','STAB'], ['结构','STRUCT'], ['承压','STRAIN'],
+    ['配额','QUOTA'], ['抽取','EXTRACT'], ['置换','SWAP'], ['汇率','FX'], ['感度','SENSE'],
+    ['摩擦','MU'], ['风剪','SHEAR'], ['轴心环','AXIS'], ['内切线','INNER'], ['中线带','MID'],
+    ['外切线','OUTER'], ['真空带','VACUUM'], ['保持','HOLD'], ['窗口','WINDOW'],
+    ['秒','S'], ['档',''], ['未','NOT '], ['已',''], ['第',''],
+    ['·','/'], ['×','X'], ['‰','P'], ['°','D'], ['≡','='], ['Σ','SUM'], ['→','->'], ['…','...'],
+    ['（','('], ['）',')'], ['：',':'], ['，',','], ['。','.'], ['“','"'], ['”','"'],
+    ['−','-'], ['—','-'], ['–','-'], ['　',' '],
+    ['速度矢量仪','SPEED VECTOR'], ['风切矢量罗盘','WIND COMPASS'], ['升力矢量','LIFT VECTOR'],
+    ['越限即承压临界','OVER LIMIT = STRAIN CRIT'], ['转向权限减半','STEER HALVED'],
+    ['承压应变','STRAIN'], ['顺风','TAILWIND'], ['逆风','HEADWIND'], ['阻尼','DAMP'],
+    ['抽取感度','EXTRACT SENSE'], ['本圈配额余量','THIS LAP QUOTA LEFT'],
+    ['风切穿越','GALE CROSS'], ['兑换入','IN'], ['兑换出','OUT'], ['冷却','CD'],
+    ['已解除','RELEASED'], ['解除','RELEASED'], ['极限','VMAX'], ['峰值','PEAK'],
+    ['撞入相位体 · 相位未翻转','PHASE BODY / NOT FLIPPED'],
+    ['坠入碎裂虚空','FELL INTO VOID'], ['驶入碎裂虚空','DROVE INTO VOID'],
+    ['稳定性储备耗尽','STAB DEPLETED'], ['结构疲劳越限 · 解体','STRUCT LIMIT / BREAKUP'],
+    ['高速撞上外侧护墙','HIGH-SPEED WALL HIT'], ['探针注入的致命失败','INJECTED CRASH'],
+    ['空','EMPTY'], ['满','FULL'], ['圈','LAP'], ['轮','RND'], ['次','X'], ['格','CELL'],
+    ['帧','F'], ['架',''], ['枚','PCS'], ['条',''], ['起',''],
+    ['①','(1)'], ['②','(2)'], ['③','(3)'], ['④','(4)'], ['⑤','(5)'], ['⑥','(6)'],
+    ['⑦','(7)'], ['⑧','(8)'], ['⑨','(9)'], ['⑩','(10)'], ['⑪','(11)'], ['⑫','(12)'],
+    ['⑬','(13)'], ['⑭','(14)'], ['⑮','(15)'],
+    ['稳定性储备','STAB RESERVE'], ['核心区外停驻每秒','CORE OUT -5%/S'],
+    ['结构疲劳','STRUCT FATIGUE'], ['蓄能压缩量','CHARGE PRESS'],
+    ['大滑移累积','SLIP BUILD'], ['速度','SPD'], ['撞击','IMPACT'],
+    ['疲劳','FATIGUE'], ['储备','RESERVE'], ['耗尽','DEPLETED'], ['越限','OVER LIMIT'],
+    ['解体','BREAKUP'], ['碎裂','FRACTURE'], ['坠入','FELL'], ['驶入','DROVE'],
+    ['相位体','PHASE BODY'], ['翻转','FLIP'], ['入账','CREDIT'], ['连击','COMBO'],
+    ['熔断','FUSE BLOW'], ['擦墙','WALL'], ['跃迁','HOP'], ['漂移','DRIFT'],
+    ['崩落','COLLAPSE'], ['相位','PHASE'], ['脉冲','PULSE'], ['风切','GALE'],
+    ['过载','OVERLOAD'], ['失稳','INSTABILITY'], ['溢流','OVERFLOW'], ['兑换','SWAP'],
+    ['回收','RECLAIM'], ['修复','REPAIR'], ['航速','SPEED'], ['距离','DIST'],
+    ['高度','ALT'], ['落点','LANDING'], ['同调','ATTUNE'], ['锚定','ANCHOR'],
+    ['窗口','WINDOW'], ['耗尽','DEPLETED'], ['撞入','HIT'], ['外侧','OUTER'],
+    ['护墙','WALL'], ['任务失败','MISSION FAIL'], ['轴心失守','AXIS LOST'],
+    ['空域清空','AIRSPACE CLEAR'], ['本带配额可抽取','BAND QUOTA EXTRACTABLE'],
+    ['出闸对准度待核','LAUNCH ALIGN PENDING'], ['出闸对准度','ALIGN'],
+    ['未达成同调','NOT ATTUNED'], ['核心区锚定同调','CORE ANCHOR ATTUNE'],
+    ['逐段解算',' REVEAL'], ['锚定段','ANCHOR SEG'], ['恒等于零','ALWAYS 0'],
+    ['成功抽取','EXTRACT OK'], ['余量','MARGIN'], ['沙盘','BOARD '], ['余额','BAL'],
+    ['回溯','ROLL'], ['当前帧','FRAME'], ['逾期','EXPIRED'], ['溯源','TRACE'],
+    ['核心区','CORE'], ['倍率','MULT'], ['浮屿','PLATE'], ['抽取率','EXTRACT RATE'],
+    ['折算','CONV'], ['余数','REM'], ['不足','LOW'], ['精准','PRECISE'], ['加成','BONUS'],
+    ['屿壳枯竭','SHELL DRY'], ['抽不出物量','NO MASS'], ['锚定浮屿','ANCHOR PLATE'],
+    ['精准加成',' PRECISE BONUS'], ['非核心','NON-CORE'], ['速坠','PLUNGE'],
+    ['环道','ORBIT'], ['屿壳','SHELL'], ['边缘','EDGE'], ['落在','IN '], ['无','NO '],
+    /* 事件溯源账本的动态注记：注记是运行时拼出来的，条目必须逐段覆盖，
+       否则账本行会混进未译汉字而被字库替换成问号。 */
+    ['第 十二 波压上','#12 WAVE UP'], ['第 十一 波压上','#11 WAVE UP'],
+    ['第 十 波压上','#10 WAVE UP'], ['第 一 波压上','#1 WAVE UP'],
+    ['第 二 波压上','#2 WAVE UP'], ['第 三 波压上','#3 WAVE UP'],
+    ['第 四 波压上','#4 WAVE UP'], ['第 五 波压上','#5 WAVE UP'],
+    ['第 六 波压上','#6 WAVE UP'], ['第 七 波压上','#7 WAVE UP'],
+    ['第 八 波压上','#8 WAVE UP'], ['第 九 波压上','#9 WAVE UP'],
+    ['跃迁余量保持','HOP MARGIN HOLD'], ['缺口恒等于零','GAP ALWAYS 0'],
+    ['漂移连贯','DRIFT CHAIN'], ['精准锚定','PRECISE ANCHOR'],
+    ['因果回溯','CAUSAL ROLL'], ['结算落账','SETTLED'],
+    ['窗口内速度越界','SPEED OVER WINDOW'], ['进度打回','PROGRESS RESET'],
+    ['承压临界','STRAIN CRITICAL'], ['过载失稳硬直','OVERLOAD STUN'],
+    ['涌潮迎击','WAVE ENGAGED'], ['波压上','WAVE UP'],
+    ['拦截机','INTERCEPTOR'], ['穿刺艇','LANCER'], ['重装拦截','HULK'],
+    ['轴心卫戍','AXIS GUARD'], ['圈完赛','LAPS DONE'],
+    ['账本','LEDGER'], ['波次','WAVE'], ['状态','STATE'], ['结算','SETTLE'],
+    ['切向','TANGENT'], ['横向','LATERAL'], ['强度','POWER'],
+    ['撞击 ','IMPACT '], ['第 ','#']
+  ];
+  TRP.sort(function (a, b) { return b[0].length - a[0].length; });
+  function tr(s) {
+    s = String(s);
+    for (var i = 0; i < TRP.length; i++) {
+      if (s.indexOf(TRP[i][0]) >= 0) s = s.split(TRP[i][0]).join(TRP[i][1]);
+    }
+    return s.replace(/[^\x20-\x7E]/g, '?');
+  }
+  var BT_CACHE = {};
+  function btCanvas(txt, color, scale) {
+    var key = txt + '\u0001' + color + '\u0001' + scale;
+    var hit = BT_CACHE[key];
+    if (hit) return hit;
+    var w = Math.max(scale, txt.length * 6 * scale - scale), h = 7 * scale;
+    var cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    var x = cv.getContext('2d');
+    x.imageSmoothingEnabled = false;
+    x.fillStyle = color;
+    for (var i = 0; i < txt.length; i++) {
+      var ch = txt.charAt(i);
+      if (ch >= 'a' && ch <= 'z') ch = ch.toUpperCase();
+      var g = FONT5[ch] || FONT5['?'];
+      for (var r = 0; r < 7; r++) {
+        var bits = parseInt(g.substr(r * 2, 2), 16);
+        for (var c2 = 0; c2 < 5; c2++) {
+          if (bits & (16 >> c2)) x.fillRect((i * 6 + c2) * scale, r * scale, scale, scale);
+        }
+      }
+    }
+    if (Object.keys(BT_CACHE).length > 1600) BT_CACHE = {};
+    BT_CACHE[key] = cv;
+    return cv;
+  }
+  function bt(c, txt, x, y, scale) {
+    scale = scale || 1;
+    txt = tr(txt);
+    var col = (typeof c.fillStyle === 'string') ? c.fillStyle : '#a9c6e0';
+    var cv = btCanvas(txt, col, scale);
+    var dx = x;
+    if (c.textAlign === 'center') dx -= cv.width / 2;
+    else if (c.textAlign === 'right') dx -= cv.width;
+    c.drawImage(cv, Math.round(dx), Math.round(y - 7 * scale));
+  }
+  function tw(s, scale) { s = tr(s); scale = scale || 1; return Math.max(scale, s.length * 6 * scale - scale); }
+
+  /* ── 启动画布 ─────────────────────────────────────────────── */
+  var BC = document.getElementById('bootcv').getContext('2d');
+  BC.imageSmoothingEnabled = false;
+  function bootShow(on) {
+    var cv = document.getElementById('bootcv');
+    if (cv) cv.style.display = on ? 'block' : 'none';
+  }
+  function bootClear(bg) {
+    BC.setTransform(1, 0, 0, 1, 0, 0);
+    BC.globalAlpha = 1; BC.textAlign = 'left';
+    BC.fillStyle = bg || '#000'; BC.fillRect(0, 0, 1280, 720);
+  }
+
+  var POST_LINES = [
+    'HYDROSTAT BIOS 2.6 / ARCADE HARDWARE',
+    'CPU: 68000 COMPAT / 60 HZ FIXED TICK',
+    'RAM CHECK 64K ............. PASS',
+    'VRAM ALLOC: 0x8000 OK',
+    'PALETTE RAM 16 x RGB444 ... PASS',
+    'AUDIO_CORE: DUAL_PULSE OK',
+    'NOISE LFSR-17 ............. PASS',
+    'PRNG SEED BOUND: OK',
+    'SHEET A 4-BIT INDEXED ..... MOUNT',
+    'SHEET B PALETTE SWAP X16 .. MOUNT',
+    'JAMMA 7-BIT SCAN RING ..... READY',
+    'DETERMINISTIC CLOCK 1/60 .. LOCK',
+    'ATTRACT PATHFINDER ........ ARMED',
+    'BOOT COMPLETE / HAND OFF TO BAKING'
+  ];
+  function bootPost() {
+    bootClear('#000000');
+    BC.fillStyle = '#03101c'; BC.fillRect(0, 0, 1280, 720);
+    BC.globalAlpha = 0.15; BC.fillStyle = '#0c3a44';
+    for (var sy = 0; sy < 720; sy += 4) BC.fillRect(0, sy, 1280, 1);
+    BC.globalAlpha = 1;
+    BC.fillStyle = '#7fffdc'; bt(BC, 'POST_RAM_CHECK', 36, 58, 4);
+    BC.fillStyle = '#4d8ea8'; BC.textAlign = 'right';
+    bt(BC, 'STAGE 0 / FRAME ' + String(HAL.frame).padStart(2, '0') + ' / 72', 1240, 56, 2);
+    BC.textAlign = 'left';
+    var shown = Math.min(POST_LINES.length, Math.floor(HAL.frame / 4) + 1);
+    var start = Math.max(0, shown - 15);
+    for (var i = start; i < shown; i++) {
+      BC.fillStyle = (i === 3 || i === 5 || i === 7) ? '#9ff4ff' : '#5fe0c0';
+      bt(BC, '> ' + POST_LINES[i], 40, 118 + (i - start) * 31, 2);
+    }
+    BC.fillStyle = '#2f8f7c';
+    bt(BC, '0000  41 58 45 4C 50 55 4C 53 45 00 01 03 07 0F 1F 3F', 40, 610, 2);
+    bt(BC, '0010  5F E0 C0 7F FF DC 00 00 00 00 00 00 00 00 00 00', 40, 632, 2);
+  }
+  function bootBaking() {
+    bootClear('#000000');
+    BC.fillStyle = '#020b16'; BC.fillRect(0, 0, 1280, 720);
+    BC.globalAlpha = 0.14; BC.fillStyle = '#0a3140';
+    for (var sy = 0; sy < 720; sy += 4) BC.fillRect(0, sy, 1280, 1);
+    BC.globalAlpha = 1;
+    var p = clamp(HAL.frame / 84, 0, 1);
+    HAL.bake = p;
+    BC.fillStyle = '#7fffdc'; bt(BC, 'PALETTE_ASSET_BAKING', 36, 58, 4);
+    BC.fillStyle = '#4d8ea8'; bt(BC, 'NO EXTERNAL IMAGE I/O / ALL PIXELS GENERATED IN MEMORY', 38, 92, 2);
+    var ax = 40, ay = 116;
+    BC.strokeStyle = '#12455e'; BC.lineWidth = 2; BC.strokeRect(ax, ay, 576, 304);
+    BC.fillStyle = '#9fe8ff'; bt(BC, 'SHEET A / 4-BIT INDEXED / 16 TILES', ax + 10, ay + 24, 2);
+    var cols = ['#7fffdc', '#5fe0c0', '#3fa8c0', '#2f7f9c'];
+    for (var f = 0; f < 4; f++) {
+      var cx = ax + 40 + f * 100, cy = ay + 112;
+      var bob = Math.round(Math.sin(HAL.frame * 0.12 + f) * 3);
+      BC.fillStyle = cols[f];
+      BC.fillRect(cx - 18, cy - 26 + bob, 36, 44);
+      BC.fillStyle = '#04222c'; BC.fillRect(cx - 11, cy - 16 + bob, 22, 9);
+      BC.fillStyle = '#9ff4ff'; BC.fillRect(cx - 7, cy - 13 + bob, 5, 4); BC.fillRect(cx + 3, cy - 13 + bob, 5, 4);
+      BC.fillStyle = '#1d4a5e'; BC.fillRect(cx - 14, cy + 18 + bob, 28, 8);
+      BC.fillStyle = f <= p * 4 ? '#7fffdc' : '#274a5a';
+      bt(BC, 'FRAME ' + (f + 1), cx - 26, cy + 56, 2);
+    }
+    BC.fillStyle = '#9fe8ff'; bt(BC, 'ENEMY', ax + 470, ay + 92, 2);
+    for (var e2 = 0; e2 < 4; e2++) {
+      var ex = ax + 488 + e2 * 30, ey = ay + 126;
+      BC.fillStyle = ['#ff8a5c', '#c08bff', '#ffd479', '#7fffdc'][e2];
+      BC.globalAlpha = 0.35 + 0.65 * clamp(p * 2 - e2 * 0.08, 0, 1);
+      BC.beginPath();
+      BC.moveTo(ex, ey - 18); BC.lineTo(ex + 13, ey); BC.lineTo(ex, ey + 18); BC.lineTo(ex - 13, ey);
+      BC.closePath(); BC.fill();
+      BC.fillStyle = '#04222c';
+      BC.fillRect(ex - 6, ey - 5, 4, 5); BC.fillRect(ex + 2, ey - 5, 4, 5);
+    }
+    BC.globalAlpha = 1;
+    for (var t = 0; t < 16; t++) {
+      var tx = ax + 40 + (t % 8) * 66, ty = ay + 190 + Math.floor(t / 8) * 52;
+      BC.fillStyle = t % 3 === 0 ? '#2b5062' : (t % 3 === 1 ? '#5a3a20' : '#12303c');
+      BC.fillRect(tx, ty, 60, 44);
+      BC.strokeStyle = '#3f7e97'; BC.strokeRect(tx + 0.5, ty + 0.5, 59, 43);
+    }
+    var bx = 650, by = 116;
+    BC.strokeStyle = '#12455e'; BC.strokeRect(bx, by, 590, 304);
+    BC.fillStyle = '#9fe8ff'; bt(BC, 'SHEET B / 16 PALETTE SWAP / SCANLINE', bx + 10, by + 24, 2);
+    var pal = ['#7fffdc', '#5fe0c0', '#9ff4ff', '#ffd479', '#ff9d4a', '#ff6b6b', '#c08bff', '#8fd8b8'];
+    for (var q = 0; q < 16; q++) {
+      BC.fillStyle = pal[q % 8];
+      BC.globalAlpha = 0.35 + 0.65 * clamp(p * 2 - q * 0.05, 0, 1);
+      BC.fillRect(bx + 20 + (q % 8) * 68, by + 60 + Math.floor(q / 8) * 54, 60, 44);
+    }
+    BC.globalAlpha = 1;
+    for (var row = 0; row < 4; row++) {
+      for (var col = 0; col < 12; col++) {
+        var on = (row * 12 + col) / 48 <= p;
+        BC.fillStyle = on ? (row % 2 ? '#7fffdc' : '#9ff4ff') : '#0a2632';
+        BC.fillRect(bx + 20 + col * 46, by + 182 + row * 24, 40, 16);
+      }
+    }
+    var pw = 1180, px2 = 50, py = 500, cells = 40;
+    BC.fillStyle = '#062029'; BC.fillRect(px2, py, pw, 34);
+    for (var k = 0; k < cells; k++) {
+      BC.fillStyle = (k / cells) < p ? (k % 2 ? '#5fe0c0' : '#7fffdc') : '#0a2632';
+      BC.fillRect(px2 + 4 + k * (pw / cells), py + 4, pw / cells - 4, 26);
+    }
+    BC.strokeStyle = '#2f8f9c'; BC.strokeRect(px2 + 0.5, py + 0.5, pw, 34);
+    BC.fillStyle = '#7fffdc'; bt(BC, 'BAKING ' + Math.round(p * 100) + '%', 50, 580, 4);
+    BC.fillStyle = '#4d8ea8';
+    bt(BC, '64K ARRAYBUFFER / 256-WORD SCAN RING / 0 EXTERNAL FETCH', 50, 616, 2);
+    BC.fillStyle = '#5fe0c0'; BC.textAlign = 'right';
+    bt(BC, 'SHEET A ' + (p > 0.35 ? 'OK' : '..') + '  SHEET B ' + (p > 0.65 ? 'OK' : '..') +
+       '  PALETTE ' + (p > 0.9 ? 'OK' : '..'), 1240, 616, 2);
+    BC.textAlign = 'left';
+  }
+  function bootAudio() {
+    bootClear('#000000');
+    BC.fillStyle = '#030d14'; BC.fillRect(0, 0, 1280, 720);
+    BC.globalAlpha = 0.14; BC.fillStyle = '#123a4a';
+    for (var sy = 0; sy < 720; sy += 4) BC.fillRect(0, sy, 1280, 1);
+    BC.globalAlpha = 1;
+    var p = clamp(HAL.frame / 54, 0, 1);
+    BC.fillStyle = '#7fffdc'; bt(BC, 'CHIP_AUDIO_WARMUP', 36, 58, 4);
+    BC.fillStyle = '#4d8ea8'; bt(BC, '2 x PULSE OSCILLATOR + 1 x WHITE NOISE SOURCE', 38, 92, 2);
+    BC.strokeStyle = '#12455e'; BC.lineWidth = 2; BC.strokeRect(140, 190, 1000, 220);
+    BC.strokeStyle = '#7fffdc'; BC.lineWidth = 3;
+    BC.beginPath();
+    for (var x = 0; x <= 1000; x += 2) {
+      var t = x / 1000, phase = (t * 8 + HAL.frame * 0.05) % 1;
+      var y = 300 + (phase < 0.5 ? -46 : 46) * (1 - t * 0.25);
+      x === 0 ? BC.moveTo(140 + x, y) : BC.lineTo(140 + x, y);
+    }
+    BC.stroke();
+    BC.strokeStyle = '#3fa8c0'; BC.lineWidth = 2;
+    BC.beginPath();
+    for (var x2 = 0; x2 <= 1000; x2 += 3) {
+      var ph2 = (x2 / 1000 * 13 + HAL.frame * 0.07) % 1;
+      var y2 = 370 + (ph2 < 0.25 ? -26 : 26);
+      x2 === 0 ? BC.moveTo(140 + x2, y2) : BC.lineTo(140 + x2, y2);
+    }
+    BC.stroke();
+    var rng = 0x5eed; BC.fillStyle = 'rgba(159,244,255,0.45)';
+    for (var n = 0; n < 220; n++) {
+      rng = (rng * 1103515245 + 12345) & 0x7fffffff;
+      BC.fillRect(160 + (rng % 960), 470 - (6 + (rng % 34)), 2, 6 + (rng % 34));
+    }
+    BC.fillStyle = '#9ff4ff'; bt(BC, 'SWEEP 440 > 880 HZ / 150 MS', 140, 500, 3);
+    BC.fillStyle = '#4d8ea8'; bt(BC, 'OSC1 SQUARE 50% / OSC2 SQUARE 25% / NOISE LFSR-17', 140, 540, 2);
+    BC.fillStyle = '#7fffdc'; bt(BC, 'AUDIO_CORE: DUAL_PULSE OK', 140, 590, 3);
+    BC.fillStyle = '#ffd479'; BC.textAlign = 'right';
+    bt(BC, HAL.audioReady ? 'AUDIO READY' : 'WARMUP ' + Math.round(p * 100) + '%', 1240, 590, 2);
+    BC.textAlign = 'left';
+  }
+  function attractStep(dt) {
+    HAL.attractT += dt; HAL.frame++;
+    G.t += dt;
+    var tgt = (HAL.attractIdx % 8) / 8 * Math.PI * 2;
+    var dth = ((tgt - P.th) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+    if (Math.abs(dth) < 0.05) HAL.attractIdx++;
+    P.th += clamp(dth, -0.035, 0.035);
+    P.d = Math.sin(HAL.attractT * 0.8) * HW * 0.42;
+    syncPos();
+    HAL.glide += dt;
+    if (HAL.glide > 0.85) { HAL.glide = 0; G.fx.push({ x: P.x, y: P.y, r: 6, life: 0.7, maxLife: 0.7 }); }
+    paintWorld(CX.world);
+    drawAttract();
+  }
+  function drawAttract() {
+    BC.clearRect(0, 0, 1280, 720);
+    BC.fillStyle = 'rgba(3,5,14,0.975)'; BC.fillRect(0, 0, 1280, 720);
+    BC.fillStyle = '#040814'; BC.fillRect(36, 96, 600, 600);
+    BC.strokeStyle = '#12455e'; BC.lineWidth = 2; BC.strokeRect(36, 96, 600, 600);
+    try { BC.drawImage(document.getElementById('world'), 40, 100, 592, 592); } catch (e) {}
+    BC.strokeStyle = '#5fe0c0'; BC.strokeRect(40, 100, 592, 592);
+    BC.fillStyle = '#4d8ea8'; bt(BC, 'AUTO PATHFINDING ATTRACT REPLAY', 40, 84, 2);
+    var lx = 700;
+    BC.fillStyle = '#9ff4ff'; bt(BC, 'AXELPULSE', lx, 190, 7);
+    BC.fillStyle = '#5fe0c0'; bt(BC, 'AXIS PULSE / ORBITAL DRIFT', lx + 2, 246, 3);
+    BC.fillStyle = '#12455e'; BC.fillRect(lx, 266, 520, 2);
+    BC.fillStyle = '#6ea9c0';
+    bt(BC, '5 BANDS / 24 PLATES / 10 LAPS', lx, 302, 2);
+    bt(BC, 'DUAL PULSE AUDIO / 5X7 HAL FONT', lx, 330, 2);
+    var blink = Math.sin(HAL.attractT * Math.PI * 2) * 0.5 + 0.5;
+    BC.globalAlpha = blink > 0.35 ? 1 : 0.18;
+    BC.fillStyle = '#ffd479'; bt(BC, 'INSERT COIN / PRESS SPACE', lx, 430, 3);
+    BC.globalAlpha = 1;
+    BC.fillStyle = '#ff9d4a'; bt(BC, 'COIN 00  CREDIT 00', lx, 470, 2);
+    BC.fillStyle = '#8fd8b8'; bt(BC, '1 EASY   2 NORMAL   3 HARD', lx, 506, 2);
+    BC.fillStyle = '#12455e'; BC.fillRect(lx, 530, 520, 2);
+    BC.fillStyle = '#3f6f85';
+    bt(BC, 'HAL STAGE 3 / ATTRACT_TITLE', lx, 568, 2);
+    BC.textAlign = 'right'; bt(BC, 'T ' + f2(HAL.attractT) + ' S', 1220, 568, 2); BC.textAlign = 'left';
+  }
+  function drawIntro() {
+    BC.clearRect(0, 0, 1280, 720);
+    BC.fillStyle = 'rgba(3,5,14,0.86)'; BC.fillRect(0, 0, 1280, 720);
+    BC.fillStyle = 'rgba(3,4,12,0.55)'; BC.fillRect(0, 268, 1280, 268);
+    var f = HAL.intro;
+    var txt = f < 54 ? '3' : f < 108 ? '2' : f < 162 ? '1' : 'GO';
+    var pulse = 1 + 0.10 * Math.sin(f * 0.30);
+    BC.save(); BC.translate(640, 330); BC.scale(pulse, pulse);
+    BC.fillStyle = f >= 162 ? '#7fffdc' : '#9ff4ff';
+    BC.textAlign = 'center'; bt(BC, txt, 0, 0, 16); BC.textAlign = 'left';
+    BC.restore();
+    BC.fillStyle = '#5fe0c0'; BC.textAlign = 'center';
+    bt(BC, 'STAGE_INTRO_LOCK / PHYSICS LOCKED', 640, 430, 3);
+    var left = Math.max(0, 180 - f);
+    BC.fillStyle = '#4d8ea8'; bt(BC, 'DEPLOY IN ' + (left / 60).toFixed(2) + ' S', 640, 466, 2);
+    var w = 420, p = clamp(f / 180, 0, 1);
+    BC.fillStyle = '#062029'; BC.fillRect(430, 500, w, 10);
+    BC.fillStyle = '#7fffdc'; BC.fillRect(430, 500, w * p, 10);
+    BC.strokeStyle = '#2f8f9c'; BC.strokeRect(430.5, 500.5, w, 10);
+    BC.textAlign = 'left';
+  }
+
+  /* ── 五段启动管线：帧号写死，60 HZ 定长步进下逐帧可复算 ───────── */
+  function beginPost() {
+    HAL.stage = 'POST_RAM_CHECK'; HAL.frame = 0; HAL.tickN = 0;
+    G.boot.done = false; G.boot.st = 0; G.boot.f = 0; G.boot.err = ''; G.boot.bad = false;
+    G.boot.list = []; G.started = false; G.settled = false;
+    G.state = 'BOOT_SEQUENCING'; G.frozen = false; G.paused = false;
+    bootShow(true); bootPost(); syncOverlay(); syncBoot(); lastBar = '';
+  }
+  function beginBaking() {
+    HAL.stage = 'PALETTE_BAKING'; HAL.frame = 0; HAL.bake = 0;
+    bootShow(true); bootBaking(); lastBar = '';
+  }
+  function beginWarmup() {
+    HAL.stage = 'CHIP_AUDIO_WARMUP'; HAL.frame = 0;
+    initAudio();
+    bootShow(true); bootAudio(); lastBar = '';
+  }
+  function beginAttract() {
+    resetRun();
+    HAL.stage = 'ATTRACT_TITLE'; HAL.frame = 0; HAL.attractT = 0;
+    HAL.attractIdx = 0; HAL.glide = 0;
+    G.boot.done = true; G.boot.st = BOOT_STAGES.length; G.boot.f = 0;
+    G.started = false; G.settled = false; G.revealed = 1;
+    G.state = 'TITLE_LOBBY'; G.frozen = false; G.paused = false;
+    G.launchLock = 0;
+    bootShow(true); BC.clearRect(0, 0, 1280, 720); lastBar = '';
+    syncOverlay(); syncBoot();
+  }
+  function beginIntro() {
+    resetRun();
+    HAL.stage = 'STAGE_INTRO'; HAL.intro = 0; HAL.frame = 0;
+    G.boot.done = true; G.boot.st = BOOT_STAGES.length;
+    G.started = true; G.settled = false; G.revealed = 1;
+    G.state = 'GRID_LOCKED'; G.frozen = false; G.paused = false;
+    G.launchLock = 0;
+    bootShow(true); BC.clearRect(0, 0, 1280, 720); lastBar = '';
+    syncOverlay(); syncBoot();
+  }
+  function finishIntro() {
+    HAL.stage = 'PLAYING'; HAL.frame = 0;
+    G.boot.done = true; G.started = true; G.revealed = 1;
+    G.launchLock = PHYS.LAUNCH_LOCK_MS / 1000;
+    G.state = 'GRID_LOCKED'; G.frozen = false;
+    bootShow(false); lastBar = ''; syncOverlay();
+  }
+  function bootStageTick(dt) {
+    HAL.tickN++;
+    MI[MEM.TICK] = HAL.tickN;
+    if (HAL.stage === 'POST_RAM_CHECK') {
+      HAL.frame++;
+      if (HAL.frame >= 72) { beginBaking(); return; }
+      bootPost(); return;
+    }
+    if (HAL.stage === 'PALETTE_BAKING') {
+      HAL.frame++;
+      if (HAL.frame >= 84) { beginWarmup(); return; }
+      bootBaking(); return;
+    }
+    if (HAL.stage === 'CHIP_AUDIO_WARMUP') {
+      HAL.frame++;
+      if (HAL.frame >= 54) { beginAttract(); return; }
+      bootAudio(); return;
+    }
+    if (HAL.stage === 'ATTRACT_TITLE') { attractStep(dt); return; }
+    if (HAL.stage === 'STAGE_INTRO') {
+      HAL.intro++; HAL.frame++;
+      if (HAL.intro >= 180) { finishIntro(); return; }
+      drawIntro(); return;
+    }
+    if (HAL.stage === 'GAME_OVER') { G.t += dt; return; }
+  }
+  function initAudio() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) throw new Error('NO_AUDIO');
+      if (!HAL.audio) HAL.audio = new AC();
+      var ac = HAL.audio;
+      if (ac.state === 'suspended' && ac.resume) ac.resume();
+      var t0 = ac.currentTime;
+      var g = ac.createGain(); g.gain.value = 0.0001; g.connect(ac.destination);
+      var o1 = ac.createOscillator(), o2 = ac.createOscillator();
+      o1.type = 'square'; o2.type = 'square';
+      /* OSC2 是 25% 占空比的窄脉冲：OscillatorNode 的 square 固定 50%，
+         必须用傅里叶系数合成 PeriodicWave，屏上标注的 25% 才不是空话。 */
+      var NH = 32, pre = new Float32Array(NH), pim = new Float32Array(NH);
+      for (var h = 1; h < NH; h++) {
+        var phd = 2 * Math.PI * h * 0.25;
+        pre[h] = (2 / (h * Math.PI)) * Math.sin(phd);
+        pim[h] = (2 / (h * Math.PI)) * (1 - Math.cos(phd));
+      }
+      o2.setPeriodicWave(ac.createPeriodicWave(pre, pim));
+      o1.frequency.setValueAtTime(440, t0);
+      o1.frequency.linearRampToValueAtTime(880, t0 + 0.15);
+      o2.frequency.setValueAtTime(440, t0);
+      o2.frequency.linearRampToValueAtTime(880, t0 + 0.15);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(0.035, t0 + 0.01);
+      g.gain.linearRampToValueAtTime(0.0001, t0 + 0.15);
+      o1.connect(g); o2.connect(g); o1.start(t0); o2.start(t0);
+      o1.stop(t0 + 0.16); o2.stop(t0 + 0.16);
+      var nb = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.15), ac.sampleRate);
+      var ch = nb.getChannelData(0), sr = 0x9e3779b9;
+      for (var i = 0; i < ch.length; i++) {
+        sr ^= sr << 13; sr ^= sr >>> 17; sr ^= sr << 5;
+        ch[i] = ((sr >>> 0) / 4294967296) * 2 - 1;
+      }
+      var ns = ac.createBufferSource(); ns.buffer = nb;
+      var ng = ac.createGain(); ng.gain.value = 0.02; ns.connect(ng); ng.connect(ac.destination);
+      ns.start(t0 + 0.15);
+      HAL.audioReady = true;
+    } catch (e) { HAL.audioReady = false; }
+  }
+
   function clear(c, w, h, bg) {
     c.clearRect(0, 0, w, h);
     if (bg) { c.fillStyle = bg; c.fillRect(0, 0, w, h); }
@@ -2054,10 +2630,10 @@ var BOARD_HINT = {
     c.fillStyle = back; c.fillRect(x, y, w, h);
     c.fillStyle = fore; c.fillRect(x, y, w * clamp(frac, 0, 1), h);
     c.strokeStyle = '#2b3a6e'; c.lineWidth = 1; c.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-    if (label) { c.fillStyle = '#8b93cf'; c.font = '10px monospace'; c.fillText(label, x, y - 3); }
+    if (label) { c.fillStyle = '#8b93cf';  bt(c, label, x, y - 3); }
     if (val !== undefined) {
-      c.fillStyle = '#dff0ff'; c.font = 'bold 11px monospace'; c.textAlign = 'right';
-      c.fillText(val, x + w, y - 3); c.textAlign = 'left';
+      c.fillStyle = '#dff0ff';  c.textAlign = 'right';
+      bt(c, val, x + w, y - 3); c.textAlign = 'left';
     }
   }
   function ring(c, cx, cy, r, frac, col, back, thick) {
@@ -2136,18 +2712,18 @@ var BOARD_HINT = {
           var acx = 273 + rc * Math.cos(tc), acy = 273 + rc * Math.sin(tc);
           c.beginPath(); c.arc(acx, acy, 9, 0, Math.PI * 2);
           c.strokeStyle = 'rgba(127,255,220,0.70)'; c.lineWidth = 1; c.stroke();
-          c.fillStyle = 'rgba(127,255,220,0.85)'; c.font = '8px monospace';
-          c.textAlign = 'center'; c.fillText(String(pz), acx, acy + 3); c.textAlign = 'left';
+          c.fillStyle = 'rgba(127,255,220,0.85)'; 
+          c.textAlign = 'center'; bt(c, String(pz), acx, acy + 3); c.textAlign = 'left';
         }
       }
       for (sb = 0; sb < STRATA.length; sb++) {
         c.fillStyle = STRATA[sb].tint; c.fillRect(14, 16 + sb * 13, 12, 10);
-        c.fillStyle = '#8fb6e6'; c.font = '9px monospace';
-        c.fillText(STRATA[sb].n + '  摩擦 ' + f2(STRATA[sb].mu) + '  风剪 ×' + f2(STRATA[sb].shear) +
+        c.fillStyle = '#8fb6e6'; 
+        bt(c, STRATA[sb].n + '  摩擦 ' + f2(STRATA[sb].mu) + '  风剪 ×' + f2(STRATA[sb].shear) +
                    '  感度 ' + f2(STRATA[sb].sense) + '  配额 ' + G.quotaCap[sb], 30, 25 + sb * 13);
       }
-      c.fillStyle = '#5f7aad'; c.font = '9px monospace';
-      c.fillText('种子底稿 · 尚未显影 · 放行后逐段显影到实况', 14, 30 + STRATA.length * 13);
+      c.fillStyle = '#5f7aad'; 
+      bt(c, '种子底稿 · 尚未显影 · 放行后逐段显影到实况', 14, 30 + STRATA.length * 13);
       c.globalAlpha = 1;
     }
 
@@ -2233,8 +2809,8 @@ var BOARD_HINT = {
       }
       c.beginPath(); c.arc(273, 273, 15, 0, Math.PI * 2);
       c.fillStyle = 'rgba(200,240,255,' + (0.35 + 0.3 * pulse) + ')'; c.fill();
-      c.fillStyle = '#9ff4ff'; c.font = '9px monospace'; c.textAlign = 'center';
-      c.fillText('轴心', 273, 273 + 32); c.textAlign = 'left';
+      c.fillStyle = '#9ff4ff';  c.textAlign = 'center';
+      bt(c, '轴心', 273, 273 + 32); c.textAlign = 'left';
     })();
 
     /* ── 轮胎印 ── */
@@ -2315,9 +2891,9 @@ var BOARD_HINT = {
       c.beginPath(); c.moveTo(273, 273);
       c.lineTo(273 + Math.cos(a0) * 290, 273 + Math.sin(a0) * 290);
       c.strokeStyle = 'rgba(95,224,192,0.85)'; c.lineWidth = 2; c.stroke();
-      c.fillStyle = '#5fe0c0'; c.font = 'bold 11px monospace';
+      c.fillStyle = '#5fe0c0'; 
       /* 读数放在画布左下角：左上角被窗格标签占着，两行字叠在一起读不出来 */
-      c.fillText('种子 ' + G.seed + ' 逐段解算 ' + Math.round(G.revealed * 100) + '%', 12, H - 10);
+      bt(c, '种子 ' + G.seed + ' 逐段解算 ' + Math.round(G.revealed * 100) + '%', 12, H - 10);
     }
     /* ② 同调驻留：以浮屿为圆心的谐振环一圈圈外扩 */
     if (G.state === 'ATTUNEMENT_DWELL') {
@@ -2328,8 +2904,8 @@ var BOARD_HINT = {
         c.strokeStyle = 'rgba(127,255,220,' + (0.45 * (1 - ((G.f * 1.4 + k * 26) % 74) / 74)) + ')';
         c.lineWidth = 2; c.stroke();
       }
-      c.fillStyle = '#7fffdc'; c.font = 'bold 11px monospace';
-      c.fillText('锚定同调驻留 ' + f2(P.attune) + ' · 低速窗口', 12, H - 10);
+      c.fillStyle = '#7fffdc'; 
+      bt(c, '锚定同调驻留 ' + f2(P.attune) + ' · 低速窗口', 12, H - 10);
     }
     /* ③ 危机分支：红色暗角 + 呼吸边框 */
     if (G.state === 'DYNAMIC_BRANCHING') {
@@ -2340,8 +2916,8 @@ var BOARD_HINT = {
       c.fillStyle = vg; c.fillRect(0, 0, W, H);
       c.strokeStyle = 'rgba(255,90,90,' + (0.35 + 0.45 * Math.abs(Math.sin(G.t * 4))) + ')';
       c.lineWidth = 3; c.strokeRect(1.5, 1.5, W - 3, H - 3);
-      c.fillStyle = '#ff8a5c'; c.font = 'bold 11px monospace';
-      c.fillText('空域危机 · 轴心卫戍在场', 12, H - 10);
+      c.fillStyle = '#ff8a5c'; 
+      bt(c, '空域危机 · 轴心卫戍在场', 12, H - 10);
     }
     /* ④ 过载熔断：橙色冲洗 + 车体向外扩散的压力环 */
     if (G.overT > 0) {
@@ -2352,8 +2928,8 @@ var BOARD_HINT = {
         c.beginPath(); c.arc(w2sX(P.x), w2sY(P.y), rr, 0, Math.PI * 2);
         c.strokeStyle = 'rgba(255,180,120,' + (0.5 * ot) + ')'; c.lineWidth = 2; c.stroke();
       }
-      c.fillStyle = '#ffb27a'; c.font = 'bold 11px monospace';
-      c.fillText('过载熔断硬直 ' + f1(G.overT) + ' s · 舵面锁死', 12, H - 10);
+      c.fillStyle = '#ffb27a'; 
+      bt(c, '过载熔断硬直 ' + f1(G.overT) + ' s · 舵面锁死', 12, H - 10);
     }
     /* ⑤ 因果回溯：把整块视窗按进度盖回去，底部固定通知板 */
     if (G.rollT >= 0) {
@@ -2364,10 +2940,10 @@ var BOARD_HINT = {
       c.fillStyle = 'rgba(8,10,24,0.94)'; c.fillRect(24, H - 62, W - 48, 44);
       c.strokeStyle = '#ff5a5a'; c.lineWidth = 1; c.strokeRect(24.5, H - 61.5, W - 49, 43);
       c.textAlign = 'center';
-      c.fillStyle = '#ff9d6b'; c.font = 'bold 13px monospace';
-      c.fillText('回溯 · ' + G.rollReason, W / 2, H - 42);
-      c.fillStyle = '#8b93cf'; c.font = '10px monospace';
-      c.fillText('世界时钟回退 ' + PHYS.ROLLBACK_S + ' s · 剩余 ' + f1(Math.max(0, G.rollT)) + ' s', W / 2, H - 26);
+      c.fillStyle = '#ff9d6b'; 
+      bt(c, '回溯 · ' + G.rollReason, W / 2, H - 42);
+      c.fillStyle = '#8b93cf'; 
+      bt(c, '世界时钟回退 ' + PHYS.ROLLBACK_S + ' s · 剩余 ' + f1(Math.max(0, G.rollT)) + ' s', W / 2, H - 26);
       c.textAlign = 'left';
     }
   }
@@ -2413,15 +2989,15 @@ var BOARD_HINT = {
     /* 右侧读数 */
     var band = STRATA[strataAt(P.d)];
     var wnd = windAt(P.th, G.t);
-    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
-    c.fillText('环境雷达 · 远端预警', 150, 16);
-    c.fillStyle = '#dff0ff'; c.font = 'bold 11px monospace';
-    c.fillText('外环剩余 ' + G.plates.filter(function (q) { return q.alive; }).length + '/' + SEG, 150, 34);
-    c.fillText('引信 ' + G.plates.filter(function (q) { return q.fuse >= 0; }).length +
+    c.fillStyle = '#8b93cf'; 
+    bt(c, '环境雷达 · 远端预警', 150, 16);
+    c.fillStyle = '#dff0ff'; 
+    bt(c, '外环剩余 ' + G.plates.filter(function (q) { return q.alive; }).length + '/' + SEG, 150, 34);
+    bt(c, '引信 ' + G.plates.filter(function (q) { return q.fuse >= 0; }).length +
                ' · 虚空 ' + G.plates.filter(function (q) { return !q.alive; }).length, 150, 51);
-    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
-    c.fillText('当前环带 ' + band.n + ' · 摩擦 ' + f2(band.mu) + ' · 风剪 ×' + f2(band.shear), 150, 69);
-    c.fillText('切向风 ' + f1(wnd[0]) + ' · 横向风 ' + f1(wnd[1]), 150, 82);
+    c.fillStyle = '#8b93cf'; 
+    bt(c, '当前环带 ' + band.n + ' · 摩擦 ' + f2(band.mu) + ' · 风剪 ×' + f2(band.shear), 150, 69);
+    bt(c, '切向风 ' + f1(wnd[0]) + ' · 横向风 ' + f1(wnd[1]), 150, 82);
     /* 波次刻度 */
     for (var wv = 0; wv < WAVES.length; wv++) {
       var wx = 380 + wv * 14;
@@ -2429,12 +3005,12 @@ var BOARD_HINT = {
       c.fillRect(wx, 27, 10, 12);
       c.strokeStyle = '#2b3a6e'; c.lineWidth = 1; c.strokeRect(wx + 0.5, 27.5, 9, 11);
     }
-    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
-    c.fillText('波次进度 ' + G.wave + ' / ' + WAVES.length, 380, 20);
+    c.fillStyle = '#8b93cf'; 
+    bt(c, '波次进度 ' + G.wave + ' / ' + WAVES.length, 380, 20);
     c.fillStyle = '#7fb6cc';
-    c.fillText(G.drones.length ? '威胁 ' + G.drones.length + ' 架 · ' + (G.waveState === 'fighting' ? '交战中' : '已清空')
+    bt(c, G.drones.length ? '威胁 ' + G.drones.length + ' 架 · ' + (G.waveState === 'fighting' ? '交战中' : '已清空')
                                : '空域清空', 380, 58);
-    c.fillText('圈 ' + G.lap + '/' + LAPS + ' · 上一圈 ' + (G.lapTimes.length ? mmss(G.lapTimes[G.lapTimes.length - 1], 2) : '--:--.--'), 380, 76);
+    bt(c, '圈 ' + G.lap + '/' + LAPS + ' · 上一圈 ' + (G.lapTimes.length ? mmss(G.lapTimes[G.lapTimes.length - 1], 2) : '--:--.--'), 380, 76);
   }
 
   /* ══════════════ 15. 动态仪表组（九表） ══════════════ */
@@ -2456,11 +3032,11 @@ var BOARD_HINT = {
     c.strokeStyle = '#dff0ff'; c.lineWidth = 2; c.stroke();
     c.beginPath(); c.arc(cx, cy, 3, 0, Math.PI * 2);
     c.fillStyle = '#8b93cf'; c.fill();
-    c.fillStyle = '#dff0ff'; c.font = 'bold 12px monospace'; c.textAlign = 'center';
-    c.fillText(val, cx, cy + r * 0.42); c.textAlign = 'left';
-    c.fillStyle = '#8b93cf'; c.font = '10px monospace'; c.textAlign = 'center';
-    c.fillText(title, cx, cy + r + 13);
-    if (sub) { c.fillStyle = '#5f7aad'; c.font = '9px monospace'; c.fillText(sub, cx, cy + r + 24); }
+    c.fillStyle = '#dff0ff';  c.textAlign = 'center';
+    bt(c, val, cx, cy + r * 0.42); c.textAlign = 'left';
+    c.fillStyle = '#8b93cf';  c.textAlign = 'center';
+    bt(c, title, cx, cy + r + 13);
+    if (sub) { c.fillStyle = '#5f7aad';  bt(c, sub, cx, cy + r + 24); }
     c.textAlign = 'left';
   }
   function paintRig(c) {
@@ -2494,42 +3070,43 @@ var BOARD_HINT = {
       c.lineTo(cx + Math.cos(ma) * L, cy + Math.sin(ma) * L);
       c.strokeStyle = tail ? '#ff8a5c' : '#7fffdc'; c.lineWidth = 3; c.stroke();
       c.beginPath(); c.arc(cx, cy, 3, 0, Math.PI * 2); c.fillStyle = '#8b93cf'; c.fill();
-      c.fillStyle = '#dff0ff'; c.font = 'bold 11px monospace'; c.textAlign = 'center';
-      c.fillText(f1(m), cx, cy + r * 0.52); c.textAlign = 'left';
-      c.fillStyle = '#8b93cf'; c.font = '10px monospace'; c.textAlign = 'center';
-      c.fillText('② 风切矢量罗盘', cx, cy + r + 13);
-      c.fillStyle = tail ? '#ff8a5c' : '#7fffdc'; c.font = '9px monospace';
-      c.fillText(tail ? '顺风 · 阻尼 ×1.40' : '逆风 · 升力矢量', cx, cy + r + 24);
+      c.fillStyle = '#dff0ff';  c.textAlign = 'center';
+      bt(c, f1(m), cx, cy + r * 0.52); c.textAlign = 'left';
+      c.fillStyle = '#8b93cf';  c.textAlign = 'center';
+      bt(c, '② 风切矢量罗盘', cx, cy + r + 13);
+      c.fillStyle = tail ? '#ff8a5c' : '#7fffdc'; 
+      bt(c, tail ? '顺风 · 阻尼 ×1.40' : '逆风 · 升力矢量', cx, cy + r + 24);
       c.textAlign = 'left';
     })();
 
     /* ── ③ 五层环带摩擦与风剪整表 ── */
-    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
-    c.fillText('③ 五层环带 · 摩擦 / 风剪 / 抽取感度 / 本圈配额余量', 14, 126);
+    c.fillStyle = '#8b93cf'; 
+    bt(c, '③ 五层环带 · 摩擦 / 风剪 / 抽取感度 / 本圈配额余量', 14, 126);
     for (var s2 = 0; s2 < STRATA.length; s2++) {
       var y2 = 139 + s2 * 13, on = s2 === si;
       c.fillStyle = STRATA[s2].tint; c.fillRect(14, y2 - 8, 10, 9);
       if (on) { c.strokeStyle = '#ffd479'; c.lineWidth = 1; c.strokeRect(14.5, y2 - 7.5, 9, 8); }
       c.fillStyle = on ? '#dff4ff' : '#5f7aad';
-      c.font = on ? 'bold 10px monospace' : '10px monospace';
-      c.fillText(STRATA[s2].n + ' 摩擦 ' + f2(STRATA[s2].mu) + ' 风剪 ×' + f2(STRATA[s2].shear) +
+      
+      bt(c, STRATA[s2].n + ' 摩擦 ' + f2(STRATA[s2].mu) + ' 风剪 ×' + f2(STRATA[s2].shear) +
                  ' 配额 ' + G.quota[s2] + '/' + G.quotaCap[s2], 30, y2);
     }
 
     /* ── ④ 承压应变条 ── */
     bar(c, 14, 214, 300, 12, G.strain / PHYS.STRAIN_CAP, '#2a1b3a',
         G.strain >= PHYS.STRAIN_CAP ? '#ff5a5a' : (G.strain > 66 ? '#ff8a5c' : '#c08bff'),
-        '④ 承压应变（越限即承压临界 · 转向权限减半）', f1(G.strain));
+        '(4) STRAIN / OVER LIMIT = STEER HALVED', f1(G.strain));
 
     /* ── ⑤ 实时损耗率监视器 ── */
-    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
-    c.fillText('⑤ 实时损耗率监视器（任何正增益都必须能追到一次主动操作）', 14, 238);
-    var rates = [['牵引', G.rateGas], ['稳定', G.rateStab], ['结构', G.rateFat], ['承压', G.rateStrain]];
+    c.fillStyle = '#8b93cf'; 
+    bt(c, '⑤ 实时损耗率监视器（任何正增益都必须能追到一次主动操作）', 14, 238);
+    /* 四格读数按 80 px 等距铺开：字库每字 6 px，译名超过 4 字符就会骑到下一格上，
+       所以这四项固定用三字母缩写，不走替换表。 */
+    var rates = [['GAS', G.rateGas], ['STB', G.rateStab], ['STR', G.rateFat], ['STN', G.rateStrain]];
     for (var r2 = 0; r2 < rates.length; r2++) {
       var v = rates[r2][1];
       c.fillStyle = v > 0.01 ? '#ff8a5c' : (v < -0.01 ? '#7fffdc' : '#5f7aad');
-      c.font = 'bold 10px monospace';
-      c.fillText(rates[r2][0] + ' ' + (v >= 0 ? '+' : '') + f1(v) + '/s', 14 + r2 * 76, 256);
+      bt(c, rates[r2][0] + ' ' + (v >= 0 ? '+' : '') + f1(v) + '/s', 14 + r2 * 80, 256);
     }
 
     /* ── ⑥ 稳定性储备条 ── */
@@ -2541,19 +3118,19 @@ var BOARD_HINT = {
 
     /* ── ⑧ 氮气三段能量条（读的是牵引储备科目余额） ── */
     var bx = 330, bw = 346, seg = G.gasMax / 3;
-    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
-    c.fillText('⑧ 氮气三段能量 · 科目余额 ' + G.tractionM + ' 千分位', bx, 98);
+    c.fillStyle = '#8b93cf'; 
+    bt(c, '⑧ 氮气三段能量 · 科目余额 ' + G.tractionM + ' 千分位', bx, 98);
     for (var k2 = 0; k2 < 3; k2++) {
       var q = clamp((G.gas - k2 * seg) / seg, 0, 1);
       c.fillStyle = '#1b2450'; c.fillRect(bx + k2 * 118, 104, 112, 14);
       c.fillStyle = q >= 1 ? '#ff5fd0' : '#7fffdc';
       c.fillRect(bx + k2 * 118, 104, 112 * q, 14);
       c.strokeStyle = '#2b3a6e'; c.lineWidth = 1; c.strokeRect(bx + k2 * 118 + 0.5, 104.5, 111, 13);
-      c.fillStyle = '#8b93cf'; c.font = '9px monospace';
-      c.fillText(q <= 0 ? '空' : (q >= 1 ? '满' : Math.round(q * 100) + '%'), bx + k2 * 118 + 48, 114);
+      c.fillStyle = '#8b93cf'; 
+      bt(c, q <= 0 ? '空' : (q >= 1 ? '满' : Math.round(q * 100) + '%'), bx + k2 * 118 + 48, 114);
     }
-    c.fillStyle = '#dff0ff'; c.font = 'bold 11px monospace'; c.textAlign = 'right';
-    c.fillText(f1(G.gas / G.gasMax * 100) + '%', bx + bw, 98); c.textAlign = 'left';
+    c.fillStyle = '#dff0ff';  c.textAlign = 'right';
+    bt(c, f1(G.gas / G.gasMax * 100) + '%', bx + bw, 98); c.textAlign = 'left';
 
     /* ── ⑨ 蓄能压缩量条 ── */
     bar(c, 330, 142, 346, 12, G.chargeM / LEDGER.CHARGE_FULL_M, '#2a1b3a',
@@ -2564,24 +3141,24 @@ var BOARD_HINT = {
 
     /* ── 手势键位表（十种复合手势，非仪表） ── */
     var hints = [
-      'Space 手刹漂移 · 滑移角 > 32° 蓄能折损至六成',
-      'J 浮空跃迁 · 余量 ' + P.hop + ' · 只有同调驻留能回充',
-      'K 长按蓄能弹射 · 越限即熔断硬直 ' + (PHYS.OVER_MS / 1000) + ' s',
-      'L 空间相位翻转 · ' + f0(PHYS.POL_MS) + ' ms 视差倾角扰动 · 免疫 ' + f0(PHYS.POL_IMMUNE_MS) + ' ms',
-      'U 能量索抓取摆荡 · 再按脱离，切向速度达标才回补牵引',
-      'I 浮屿共振同调脉冲 · 先完成同调驻留 · 瓦解崩落体回收物量',
-      'H 动量下压速坠冲击 · 落速越限才打得穿重装甲壳',
-      'G 竞速功兑换入 · Y 牵引储备兑换出 · 按分带汇率包络结算',
-      'B 分带配额置换 · 烧竞速功把本带已动用的额度放回一部分'
+      'SPACE HANDBRAKE / SLIP > 32D: CHARGE CUT TO 60%',
+      'J HOP / MARGIN ' + P.hop + ' / ONLY ATTUNE RECHARGES',
+      'K HOLD CATAPULT / OVER LIMIT = LOCK ' + (PHYS.OVER_MS / 1000) + ' S',
+      'L PHASE FLIP / ' + f0(PHYS.POL_MS) + ' MS TILT / IMMUNE ' + f0(PHYS.POL_IMMUNE_MS) + ' MS',
+      'U TETHER / PRESS TO RELEASE / TANGENTIAL REFILL',
+      'I PULSE / AFTER ATTUNE DWELL / BREAK FRAGMENTS',
+      'H PLUNGE / HIGH FALL SPEED PIERCES ARMOR',
+      'G FOLD IN / Y TRACTION OUT / BAND FX ENVELOPE',
+      'B QUOTA SWAP / BURN FOLD TO RESTORE QUOTA'
     ];
     for (var h4 = 0; h4 < hints.length; h4++) {
       c.fillStyle = h4 === 1 && P.hop === 0 ? '#ff8a5c' : '#5f7aad';
-      c.font = '10px monospace';
-      c.fillText(hints[h4], 330, 174 + h4 * 12);
+      
+      bt(c, hints[h4], 330, 174 + h4 * 12);
     }
     c.fillStyle = P.attuned ? '#7fffdc' : '#8b93cf';
-    c.font = 'bold 11px monospace';
-    c.fillText(P.attuned ? '同调已确立 · 跃迁余量已由 0 置为 1'
+    
+    bt(c, P.attuned ? '同调已确立 · 跃迁余量已由 0 置为 1'
                          : '同调未确立 · 跃迁余量保持 ' + P.hop +
                            ' · 环带 ' + band.n + ' · 浮屿寿命 ' +
                            f2(G.plates[plateOf(P.th)[0]].life), 330, 288);
@@ -2605,30 +3182,28 @@ var BOARD_HINT = {
       c.fillRect(x, 16, 60, 34 * (1 - f));
       c.strokeStyle = b === si ? '#ffd479' : '#2b3a6e'; c.lineWidth = 1;
       c.strokeRect(x + 0.5, 16.5, 59, 33);
-      c.fillStyle = b === si ? '#dff4ff' : '#8b93cf'; c.font = '9px monospace';
-      c.fillText(STRATA[b].n, x + 4, 28);
-      c.fillStyle = left <= 0 ? '#ff8a5c' : '#7fffdc'; c.font = 'bold 10px monospace';
-      c.fillText(String(left), x + 4, 46);
+      c.fillStyle = b === si ? '#dff4ff' : '#8b93cf'; 
+      bt(c, STRATA[b].n, x + 4, 28);
+      c.fillStyle = left <= 0 ? '#ff8a5c' : '#7fffdc'; 
+      bt(c, String(left), x + 4, 46);
     }
-    c.fillStyle = '#8b93cf'; c.font = '9px monospace';
-    c.fillText('⑩ 沙盘每圈重发 · 抽取只减不增 · 感度 ' + senses.join('/'), 12, 68);
+    c.fillStyle = '#8b93cf'; 
+    bt(c, '⑩ BOARD / REISSUE PER LAP / EXTRACT ONLY DECREASES / SENSE ' + senses.join('/'), 12, 72);
     /* ── ⑪ 分带汇率包络与置换账 ── */
-    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
-    c.fillText('⑪ 分带汇率包络与置换账（‰）', 352, 11);
+    c.fillStyle = '#8b93cf'; 
+    bt(c, '⑪ 分带汇率包络与置换账（‰）', 352, 11);
     for (var b2 = 0; b2 < STRATA.length; b2++) {
       var rr = exRate(b2), on = b2 === si;
       c.fillStyle = on ? '#dff4ff' : '#5f7aad';
-      c.font = (on ? 'bold ' : '') + '9px monospace';
-      c.fillText(STRATA[b2].n + ' ' + rr + '‰' + (b2 === 0 ? '（下限）' : (b2 === 4 ? '（上限）' : '')),
+      
+      bt(c, STRATA[b2].n + ' ' + rr + '‰' + (b2 === 0 ? '（下限）' : (b2 === 4 ? '（上限）' : '')),
                  352 + (b2 % 2) * 168, 26 + Math.floor(b2 / 2) * 11);
     }
-    c.fillStyle = '#8b93cf'; c.font = '9px monospace';
-    c.fillText('风廊 −10% · 爆发 +8% · 换算税 ' + f1(LEDGER.CONV_FEE * 100) + '%' +
-               ' · 兑换入 ' + G.convIn + ' / 兑换出 ' + G.convOut +
-               ' · 置换 ' + G.quotaSwap + ' 次 · 冷却 ' + G.exchCd + ' 帧', 352, 62);
+    c.fillStyle = '#8b93cf'; 
     c.fillStyle = G.quotaDead ? '#ff8a5c' : '#5f7aad';
-    c.fillText(G.quotaDead ? '本带配额枯竭 · 抽取停摆 · QUOTA_EXHAUSTED'
-                           : '本带配额可抽取 · 余额 ' + G.quota[si], 352, 73);
+    bt(c, (G.quotaDead ? 'BAND QUOTA DRY / EXTRACT HALTED' : 'BAND QUOTA OK / BAL ' + G.quota[si]) +
+       ' / FEE ' + f1(LEDGER.CONV_FEE * 100) + '% / IN ' + G.convIn + ' OUT ' + G.convOut +
+       ' / SWAP ' + G.quotaSwap + ' / CD ' + G.exchCd + ' F', 12, 60);
   }
 
   /* ══════════════ 17. 环形计量（二表） ══════════════ */
@@ -2653,47 +3228,49 @@ var BOARD_HINT = {
         c.strokeStyle = '#ffd479'; c.lineWidth = 2; c.stroke();
       }
     }
-    c.fillStyle = '#8b93cf'; c.font = '9px monospace'; c.textAlign = 'center';
-    c.fillText('完好 ' + G.plates.filter(function (q) { return q.alive; }).length, cx, 54);
-    c.fillText('引信 ' + G.plates.filter(function (q) { return q.fuse >= 0; }).length, cx, 66);
-    c.fillText('虚空 ' + G.plates.filter(function (q) { return !q.alive; }).length, cx, 78);
+    c.fillStyle = '#8b93cf';  c.textAlign = 'center';
+    bt(c, '完好 ' + G.plates.filter(function (q) { return q.alive; }).length, cx, 54);
+    bt(c, '引信 ' + G.plates.filter(function (q) { return q.fuse >= 0; }).length, cx, 66);
+    bt(c, '虚空 ' + G.plates.filter(function (q) { return !q.alive; }).length, cx, 78);
     c.textAlign = 'left';
-    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
-    c.fillText('⑫ 浮屿寿命环形条 · ' + SEG + ' 段 · 引信 ' + f0(PHYS.FUSE_MS) + ' ms', 12, 132);
+    c.fillStyle = '#8b93cf'; 
+    /* 标题只留段数：引信毫秒数并进环心读数，否则译成英文后会与
+       ⑬ 的标题在 x≈200..270 处压字。 */
+    bt(c, '⑫ 浮屿寿命环形条 · ' + SEG + ' 段', 12, 132);
 
     /* ── ⑬ 同调充盈环 ── */
     ring(c, 262, 76, 44, P.attune, P.attuned ? '#7fffdc' : '#ffd479', '#16204a', 8);
     c.beginPath();
     c.arc(262, 76, 44, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(P.attune, 0, 1));
     c.strokeStyle = P.attuned ? '#7fffdc' : '#ffd479'; c.lineWidth = 8; c.stroke();
-    c.fillStyle = '#dff0ff'; c.font = 'bold 12px monospace'; c.textAlign = 'center';
+    c.fillStyle = '#dff0ff';  c.textAlign = 'center';
     /* 分子只到窗口目标为止：驻留达标之后读数继续累加会让「8217 ms / 350」
        读成越限，与「同调已确立」自相矛盾。封顶后分子恒 ≤ 分母。 */
-    c.fillText(Math.round(Math.min(P.attuneT, PHYS.ATTUNE_MS)) + '', 262, 74);
-    c.fillStyle = '#8b93cf'; c.font = '9px monospace';
-    c.fillText('ms · 窗口 ' + f0(PHYS.ATTUNE_MS), 262, 86);
-    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
-    c.fillText('⑬ 同调充盈环', 262, 134 - 4);
+    bt(c, Math.round(Math.min(P.attuneT, PHYS.ATTUNE_MS)) + '', 262, 74);
+    c.fillStyle = '#8b93cf'; 
+    bt(c, 'ms · 窗口 ' + f0(PHYS.ATTUNE_MS), 262, 86);
+    c.fillStyle = '#8b93cf'; 
+    bt(c, '⑬ 同调充盈环', 262, 134 - 4);
     c.textAlign = 'left';
 
     /* 读数区（非仪表） */
-    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
-    c.fillText('环程 ' + f1(G.totalTh / (Math.PI * 2)) + ' 圈 · 名次 ' + G.rank + '/6 · 反超 ' +
+    c.fillStyle = '#8b93cf'; 
+    bt(c, '环程 ' + f1(G.totalTh / (Math.PI * 2)) + ' 圈 · 名次 ' + G.rank + '/6 · 反超 ' +
                G.overtakes + ' · 擦墙 ' + G.wallCount + ' · 回溯 ' + G.rollN + ' 次', 336, 26);
-    c.fillText('波次排程 ' + G.wavePtr + '/' + G.quotaPlan.length + ' 放行 · 下一波帧号 ' +
+    bt(c, '波次排程 ' + G.wavePtr + '/' + G.quotaPlan.length + ' 放行 · 下一波帧号 ' +
                (G.quotaPlan[G.wavePtr] ? G.quotaPlan[G.wavePtr].f : '—') +
                ' · 当前帧 ' + G.f, 336, 44);
     c.fillStyle = G.frags.length ? '#ffb020' : '#5f7aad';
-    c.fillText('崩落体 ' + G.frags.length + ' 枚 · 在空物量 ' +
+    bt(c, '崩落体 ' + G.frags.length + ' 枚 · 在空物量 ' +
                G.frags.reduce(function (a, q) { return a + q.m; }, 0) +
                ' · 回收 ' + G.fragClaim + ' / 逾期 ' + G.fragBreak, 336, 62);
     c.fillStyle = '#8b93cf';
-    c.fillText('风切穿越 ' + G.galeCount + ' 次 · 起步锁定 ' +
+    bt(c, '风切穿越 ' + G.galeCount + ' 次 · 起步锁定 ' +
                (G.launchLock > 0 ? f2(G.launchLock) + ' s' : '已解除') +
                ' · 出闸对准度 ' + f2(G.launchAlign), 336, 80);
-    c.fillText('配额重发 ' + G.quotaRefill + ' 轮 · 抽取被拒 ' + G.quotaBlock +
+    bt(c, '配额重发 ' + G.quotaRefill + ' 轮 · 抽取被拒 ' + G.quotaBlock +
                ' · 成功抽取 ' + G.exCount + ' 次', 336, 98);
-    c.fillText('蓄能弹射 ' + G.catCount + ' · 相位翻转 ' + G.polCount + ' · 能量索 ' + G.tgCount +
+    bt(c, '蓄能弹射 ' + G.catCount + ' · 相位翻转 ' + G.polCount + ' · 能量索 ' + G.tgCount +
                ' · 速坠 ' + G.plungeCount + ' · 熔断 ' + G.overCount, 336, 116);
   }
 
@@ -2715,20 +3292,20 @@ var BOARD_HINT = {
       c.fillStyle = acc[a][2];
       c.fillRect(x, 18, 62 * clamp(acc[a][1] / LEDGER.BUDGET_M, 0, 1) * 2.6, 3);
       c.strokeStyle = '#2b3a6e'; c.lineWidth = 1; c.strokeRect(x + 0.5, 18.5, 61, 29);
-      c.fillStyle = '#8b93cf'; c.font = '9px monospace'; c.fillText(acc[a][0], x + 4, 30);
-      c.fillStyle = acc[a][2]; c.font = 'bold 11px monospace';
-      c.fillText(String(acc[a][1]), x + 4, 44);
+      c.fillStyle = '#8b93cf';  bt(c, acc[a][0], x + 4, 30);
+      c.fillStyle = acc[a][2]; 
+      bt(c, String(acc[a][1]), x + 4, 44);
     }
     c.fillStyle = '#0d1330'; c.fillRect(344, 18, 54, 30);
     c.strokeStyle = B.gap === 0 ? '#7fffdc' : '#ff5a5a'; c.lineWidth = 1;
     c.strokeRect(344.5, 18.5, 53, 29);
-    c.fillStyle = '#8b93cf'; c.font = '9px monospace'; c.fillText('缺口', 348, 30);
-    c.fillStyle = B.gap === 0 ? '#7fffdc' : '#ff5a5a'; c.font = 'bold 11px monospace';
-    c.fillText(String(B.gap), 348, 44);
+    c.fillStyle = '#8b93cf';  bt(c, '缺口', 348, 30);
+    c.fillStyle = B.gap === 0 ? '#7fffdc' : '#ff5a5a'; 
+    bt(c, String(B.gap), 348, 44);
 
     /* 事件溯源账本（最近三条） */
-    c.fillStyle = '#5f7aad'; c.font = '9px monospace';
-    c.fillText('⑭ 守恒科目表 · Σ ≡ ' + LEDGER.BUDGET_M +
+    c.fillStyle = '#5f7aad'; 
+    bt(c, '⑭ 守恒科目表 · Σ ≡ ' + LEDGER.BUDGET_M +
                ' · 缺口恒等于零 · 溯源 ' + G.ledger.length + ' 条', 12, 62);
     var n = G.ledger.length;
     for (var i = 0; i < 3; i++) {
@@ -2737,22 +3314,27 @@ var BOARD_HINT = {
       var e = G.ledger[idx];
       var hot = e.type === '入账' || e.type === '连击';
       c.fillStyle = hot ? '#7fffdc' : (e.type === '回溯' || e.type === '熔断' ? '#ff8a5c' : '#8b93cf');
-      c.font = '9px monospace';
+      
       var amt = (e.amt >= 0 ? '+' : '') + f1(e.amt);
-      var head = ('     ' + e.f).slice(-5) + '  ' + mmss(e.t, 1) + '  ' + e.type.padEnd(6, ' ') +
+      /* 类型列先译后补位：先 padEnd 再译会把汉字长度当成终长，英文一缩短，
+         后面整列读数就跟着错位。 */
+      var head = ('     ' + e.f).slice(-5) + '  ' + mmss(e.t, 1) + '  ' +
+                 tr(e.type).slice(0, 9).padEnd(9, ' ') +
                  ('       ' + amt).slice(-7) + '  ';
-      /* 事件注记长度不可控：按实测宽度截到 ⑮ 栏左界之前，免得压掉右侧读数 */
-      var lim = 400 - (12 + c.measureText(head).width), nt = e.note;
-      while (nt.length > 1 && c.measureText(nt).width > lim) nt = nt.slice(0, -1);
-      if (nt !== e.note) nt = nt.slice(0, -1) + '…';
-      c.fillText(head + nt, 12, y);
+      /* 事件注记长度不可控：5X7 定宽字库每字 6 px，按字宽截到 ⑮ 栏左界之前。
+         截断必须发生在译后，否则会把「牵引储备」这类词切成半个词，
+         剩下的半个汉字被字库替换成问号。 */
+      var lim = 400 - (12 + head.length * 6), full = tr(e.note), nt = full;
+      while (nt.length > 3 && nt.length * 6 > lim) nt = nt.slice(0, -1);
+      if (nt !== full) nt = nt.slice(0, Math.max(0, nt.length - 3)) + '...';
+      bt(c, head + nt, 12, y);
     }
 
     /* ── ⑮ 收益倍率账本与连击蓄能槽 ──
        读数一律压在 x=360 起、宽 322 以内：原来挂在 x=470 的几行会溢出右缘。 */
     var qx = 410, qw2 = 690 - qx - 10;
-    c.fillStyle = '#8b93cf'; c.font = '10px monospace';
-    c.fillText('⑮ 收益倍率 ×' + f2(G.yieldMul) + ' · 峰值 ×' +
+    c.fillStyle = '#8b93cf'; 
+    bt(c, '⑮ 收益倍率 ×' + f2(G.yieldMul) + ' · 峰值 ×' +
                f2(1 + Math.min(2.4, Math.max(0, G.bestCombo - 1) * 0.13)) +
                ' · 连击蓄能槽 26 格', qx, 11);
     for (var k = 0; k < 26; k++) {
@@ -2760,16 +3342,16 @@ var BOARD_HINT = {
       c.fillStyle = on ? (k < 8 ? '#4fa8d8' : (k < 18 ? '#7fffdc' : '#ffd479')) : '#141c3c';
       c.fillRect(qx + k * (qw2 / 26), 18, qw2 / 26 - 3.4, 14);
     }
-    c.fillStyle = '#8b93cf'; c.font = '9px monospace';
-    c.fillText('连击段 ' + G.combo + ' · 保持 ' + f2(Math.max(0, G.comboHold)) +
+    c.fillStyle = '#8b93cf'; 
+    bt(c, '连击段 ' + G.combo + ' · 保持 ' + f2(Math.max(0, G.comboHold)) +
                ' s · 撞击 ' + G.hitCount + ' 次', qx, 44);
-    c.fillText('累计得分 ' + Math.round(G.score) + ' · 清波 ' + G.salvage +
+    bt(c, '累计得分 ' + Math.round(G.score) + ' · 清波 ' + G.salvage +
                ' · 击杀 ' + G.kills, qx, 57);
-    c.fillText('牵引消耗 ' + f1(G.gasSpent) + ' · 速坠峰值 ' + Math.round(G.plungeBest) +
+    bt(c, '牵引消耗 ' + f1(G.gasSpent) + ' · 速坠峰值 ' + Math.round(G.plungeBest) +
                ' px/s · 承压峰值 ' + f1(G.strainPeak), qx, 70);
-    c.fillText('核心区锚定 ' + G.coreN + '/' + G.landN + ' · 边缘暴露 ' + f1(G.edgeTime) +
+    bt(c, '核心区锚定 ' + G.coreN + '/' + G.landN + ' · 边缘暴露 ' + f1(G.edgeTime) +
                ' s · 静默 ' + f1(G.idleTime) + ' s', qx, 83);
-    c.fillText('环程 ' + G.lap + '/' + LAPS + ' · 本圈 ' + mmss(G.lapT, 2) +
+    bt(c, '环程 ' + G.lap + '/' + LAPS + ' · 本圈 ' + mmss(G.lapT, 2) +
                ' · 最佳 ' + (G.bestLap ? mmss(G.bestLap, 2) : '--:--.--'), qx, 96);
   }
 
@@ -2860,25 +3442,9 @@ var BOARD_HINT = {
   var bootFR = document.getElementById('bootFootR');
   var bootSig = '';
   function syncBoot() {
-    var B = G.boot, on = !B.done;
-    if (on !== (bootEl.className === 'on')) bootEl.className = on ? 'on' : '';
-    if (!on) return;
-    var sig = B.st + '|' + B.f + '|' + B.bad + '|' + B.err;
-    if (sig === bootSig) return;
-    bootSig = sig;
-    var h = '', i;
-    for (i = 0; i < BOOT_STAGES.length; i++) {
-      var r = B.list[i], st = BOOT_STAGES[i];
-      var cls = r ? (r.ok ? 'done' : 'bad') : (i === B.st ? 'run' : '');
-      var note = r ? r.note : (i === B.st ? '校验中 · 帧 ' + B.f + '/' + st.h : '待决');
-      h += '<div class="' + cls + '"><b>' + (i + 1) + ' · ' + st.n + '</b><i>' + note + '</i></div>';
-    }
-    bootGrid.innerHTML = h;
-    bootSub.textContent = B.bad ? '引导中止 · ' + B.err
-      : (B.done ? '引导完成 · ' + BOOT_STAGES.length + ' 段全部通过 · 放行'
-                : '第 ' + (B.st + 1) + ' / ' + BOOT_STAGES.length + ' 段 · ' + BOOT_STAGES[B.st].n);
-    bootFL.textContent = '帧 ' + G.f + ' / 预算 ' + B_TOTAL + ' 帧';
-    bootFR.textContent = B.done ? '放行 → TITLE_LOBBY' : 'BOOT_SEQUENCING';
+    /* 五段启动管线全部绘制在 #bootcv 上；旧十四段 DOM 蒙皮永久隐藏，
+       避免两套自检画面互相抢帧。 */
+    if (bootEl.className) bootEl.className = '';
   }
 
   /* ══════════════ 21. 顶栏 ══════════════ */
@@ -2908,7 +3474,7 @@ var BOARD_HINT = {
 
   /* ══════════════ 22. 蒙皮同步 ══════════════ */
   function syncOverlay() {
-    var menu = (G.state === 'TITLE_LOBBY');
+    var menu = (G.state === 'TITLE_LOBBY') && HAL.stage !== 'ATTRACT_TITLE';
     if (menu) { if (ovEl.className === 'hide') buildMenu(); }
     else if (ovEl.className !== 'hide') ovEl.className = 'hide';
     if (G.settled) { if (cardEl.className !== 'on') showCard(); }
@@ -2927,21 +3493,17 @@ var BOARD_HINT = {
     /* 放行只在引导十四段全部通过之后才成立：引导没走完就调 start()，
        返回的是当前态而不是「假装已放行」—— 启动流程因此不可被绕过。 */
     start: function () {
-      if (!G.boot.done) return G.state;
-      if (G.state === 'TITLE_LOBBY' || G.settled) {
-        resetRun(); G.started = true;
-        G.state = 'SEEDED_INITIALIZING'; G.revealed = 0;
-      }
+      if (HAL.stage === 'ATTRACT_TITLE') { beginIntro(); return G.state; }
+      if (HAL.stage !== 'PLAYING') return HAL.stage;
+      if (G.settled || G.state === 'TITLE_LOBBY') { beginIntro(); return G.state; }
       G.frozen = false; G.paused = false; syncOverlay(); return G.state;
     },
     toMenu: function () {
-      G.frozen = true; G.settled = false; G.started = false;
-      G.state = 'TITLE_LOBBY'; syncOverlay(); return G.state;
+      beginAttract(); return G.state;
     },
     restart: function () {
-      if (!G.boot.done) return G.state;
-      G.frozen = false; G.settled = false; resetRun(); G.started = true;
-      G.state = 'SEEDED_INITIALIZING'; G.revealed = 0; syncOverlay(); return G.state;
+      if (HAL.stage === 'ATTRACT_TITLE' || HAL.stage === 'PLAYING' || HAL.stage === 'GAME_OVER') beginIntro();
+      return HAL.stage;
     },
     pause: function () { G.paused = true; G.frozen = true; return true; },
     resume: function () { G.paused = false; G.frozen = false; return true; },
@@ -2950,6 +3512,7 @@ var BOARD_HINT = {
     step: function (n) { for (var i = 0; i < (n || 1); i++) tick(1 / 60); return G.f; },
     seek: function (sec) {
       resetRun(); G.boot.done = true; G.started = true;
+      HAL.stage = 'PLAYING'; HAL.frame = 0; bootShow(false);
       G.state = 'ACTIVE_ENGAGED'; G.revealed = 1; G.launchLock = 0;
       var n = Math.max(0, Math.round(sec * 60));
       for (var i = 0; i < n; i++) tick(1 / 60);
@@ -3153,7 +3716,13 @@ var BOARD_HINT = {
       return G.frags.length;
     },
     rebuildPlate: function (i, m) { return rebuild(G.plates[i], m === undefined ? LEDGER.VOID_REGROW : m); },
-    overload: function () { G.overT = PHYS.OVER_MS / 1000; G.overCount++; return true; },
+    overload: function () {
+      /* 探针注入的过载必须与真实越限同构：同样进入可见泄放窗口，
+         否则截图上会出现「已熔断但蓄能条纹丝不动」的矛盾帧。 */
+      P.ventM = G.chargeM; P.vent = PHYS.OVER_MS / 1000;
+      G.overT = PHYS.OVER_MS / 1000; G.overCount++;
+      return true;
+    },
     crisis: function (r) { crash(r || '探针注入的致命失败'); return true; },
     wall: function () { wall(); return G.wallCount; },
     setAttune: function (v) { P.attuneT = clamp(v, 0, 1) * PHYS.ATTUNE_MS; P.attuned = v >= 1; return P.attune; },
@@ -3192,6 +3761,15 @@ var BOARD_HINT = {
 
   /* ══════════════ 22. 输入绑定 ══════════════ */
   window.addEventListener('keydown', function (e) {
+    if (HAL.stage !== 'PLAYING' && HAL.stage !== 'GAME_OVER') {
+      if (HAL.stage === 'ATTRACT_TITLE') {
+        if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); beginIntro(); }
+        else if (e.code === 'Digit1') G.diff = 'easy';
+        else if (e.code === 'Digit2') G.diff = 'normal';
+        else if (e.code === 'Digit3') G.diff = 'hard';
+      }
+      return;
+    }
     var a = KEYS[e.code];
     if (a) { K[a] = true; if (e.code === 'Space') e.preventDefault(); }
     if (e.code === 'Enter') {
@@ -3218,6 +3796,9 @@ var BOARD_HINT = {
      任意一块的重绘开销都不会拖慢另外五块，也不会拖慢定长步进的仿真时钟。 */
   var acc = 0, last = 0;
   function advance(now) {
+    /* 外部探针一旦用 step() 接管时钟，rAF 只保留重绘，不再自行步进 ——
+       两条时钟同时推进会让同一帧号上的校验和出现漂移。 */
+    if (HAL.manual) { last = now; return; }
     if (G.frozen || G.paused) {
       last = now;
       /* 引导自检序列不受「冻结」约束：冻结冻的是对局物理，不是启动流程。
@@ -3244,13 +3825,45 @@ var BOARD_HINT = {
 
   /* ══════════════ 24. 启动 ══════════════ */
   resetRun();
-  G.boot.done = false; G.boot.st = 0; G.boot.f = 0; G.boot.err = ''; G.boot.bad = false;
   G.boot.list = [];
-  G.started = false;
-  G.state = 'BOOT_SEQUENCING';
-  G.frozen = true;
+  G.boot.done = false; G.boot.st = 0; G.boot.f = 0; G.boot.err = ''; G.boot.bad = false;
   buildMenu();
   window.AXELPULSE = API;
+  window.__V2W_GAME_HARNESS__ = {
+    getStage: function () { return HAL.stage; },
+    getStageFrame: function () { return HAL.stage === 'STAGE_INTRO' ? HAL.intro : HAL.frame; },
+    injectScanCode: function (scanCode, isDown) {
+      var scan = scanCode | 0, down = !!isDown;
+      if (scan <= 0 || scan > 127) return false;
+      keyPush(scan, down);
+      MI[MEM.HEAD] = MI[MEM.HEAD];
+      var map = { 1: 'up', 2: 'dn', 4: 'lf', 8: 'rt', 16: 'hand', 32: 'cat' };
+      if (scan === 64) {
+        SCAN_ON[64] = down;
+        if (down && HAL.stage === 'ATTRACT_TITLE') beginIntro();
+        return true;
+      }
+      for (var bit in map) {
+        if (scan & (bit | 0)) { K[map[bit]] = down; SCAN_ON[bit | 0] = down; }
+      }
+      return true;
+    },
+    step: function (frameCount) {
+      HAL.manual = true;
+      var n = Math.max(0, frameCount | 0);
+      for (var i = 0; i < n; i++) tick(1 / 60);
+      return HAL.tickN;
+    },
+    getStateChecksum: function () {
+      var px = Math.round(P.x * 100), py = Math.round(P.y * 100);
+      return ((HAL.tickN * 31) ^ (px * 17) ^ (py * 13) ^ Math.round(G.score)) >>> 0;
+    },
+    getMemory: function () {
+      return { bytes: HAL.AB.byteLength, tick: MI[MEM.TICK],
+               head: MI[MEM.HEAD], tail: MI[MEM.TAIL], buffer: HAL.AB };
+    }
+  };
+  beginPost();
   paint();
   requestAnimationFrame(loopWorld);
   requestAnimationFrame(loopRadar);
