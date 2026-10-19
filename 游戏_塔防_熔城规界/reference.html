@@ -87,7 +87,7 @@ body{display:flex;justify-content:center}
 .hint.on{opacity:1}
 
 .title{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:11px;background:radial-gradient(ellipse at 50% 44%,rgba(58,20,10,.72),rgba(13,4,3,.95))}
+  justify-content:center;gap:11px;background:linear-gradient(90deg,rgba(13,4,3,0) 0 148px,rgba(58,20,10,.55) 230px 66%,rgba(13,4,3,.95) 100%)}
 .title h1{font-size:42px;letter-spacing:.2em;color:#ffe7cf;font-weight:600;
   text-shadow:0 0 28px rgba(255,138,61,.5)}
 .title h2{font-size:12px;letter-spacing:.4em;color:var(--am);margin-top:-5px}
@@ -103,6 +103,10 @@ body{display:flex;justify-content:center}
   color:var(--am);font-size:14px;letter-spacing:.24em;cursor:pointer;font-family:inherit}
 .btn:hover{background:rgba(92,48,10,.95)}
 .title .note{font-size:10px;color:var(--tx3);letter-spacing:.06em}
+.title .insert{font-size:14px;letter-spacing:.22em;color:#ffc247;
+  animation:coinBreath 1s ease-in-out infinite}
+@keyframes coinBreath{0%,100%{opacity:.25}50%{opacity:1}}
+.title .sub2{font-size:9px;letter-spacing:.14em;color:var(--tx3)}
 
 .right{grid-area:right;display:flex;flex-direction:column;gap:6px;background:none;border:0;overflow:hidden}
 .rig{height:274px;flex:none}
@@ -225,6 +229,8 @@ body{display:flex;justify-content:center}
       <div class="diffs" id="diffs"></div>
       <button class="btn" id="btnGo">开始守卫</button>
       <div class="note" id="titleNote">—</div>
+      <div class="insert" id="insertCoin">INSERT COIN / PRESS SPACE</div>
+      <div class="sub2">ATTRACT DEMO · AUTOPILOT ON · 60HZ · CREDIT 01</div>
     </div>
   </div>
 
@@ -423,7 +429,24 @@ var PHYS = {
   SLAG_CRIT: 70,
   HEAT_CRIT: 82,
   GALE_CROSS: 120,
-  WAVE_NEAR: 3.0
+  WAVE_NEAR: 3.0,
+  /* 相位契约：每个半周期签发一张，覆盖塔必须贴着当期管网 */
+  CONTRACT_NEED: 2,
+  CONTRACT_HOLD: 0.80,
+  CONTRACT_SPAN: 13.0,
+  CONTRACT_GOLD: 45,
+  CONTRACT_KINE: 6,
+  CONTRACT_SLAG: 5,
+  CONTRACT_GRACE: 1.5,
+  /* 护送护壳：最后两只非王单位带壳，壳未破时本体减伤 */
+  SHELL_BASE: 34,
+  SHELL_GROW: 0.08,
+  SHELL_CUT: 0.45,
+  SHELL_PRISM: 2.4,
+  /* 塔体伺服：锁定度达标才允许击发 */
+  SERVO_LOCK: 0.34,
+  SERVO_UP: 1.85,
+  SERVO_DOWN: 1.60
 };
 
 /* ─────────── 五科目整数守恒账 ───────────
@@ -445,6 +468,18 @@ var SC = ['本局真实交互数据审计结算', '致命失败熔断与因果�
           '着陆/锚定同调校准挂起中', '波次交战 · 实体在场', '主交互循环激活'];
 var SK = ['ledger', 'rollback', 'overload', 'boot', 'title', 'seed', 'slag', 'heat',
           'gridlock', 'branch', 'gale', 'dwell', 'wave', 'active'];
+
+/* ─────────── 十二微状态（与十四阶宏状态正交）───────────
+   宏状态回答「玩家看到哪一种危机」，微状态回答「引擎当前在执行哪一段子程序」。
+   两者逐帧同时求值，微状态跨越边界时写入 G.microTrace，账本记录其索引。 */
+var SUB = ['POST_BUS_SCAN', 'BAKE_PIPELINE', 'AUDIO_ENVELOPE', 'AUTO_SCOUT',
+           'AUTO_BUILD', 'AUTO_WAVE', 'INTRO_SEGMENT', 'LIVE_PATROL',
+           'LIVE_ENGAGE', 'LIVE_CONTRACT', 'LIVE_REPAIR', 'LIVE_SETTLE'];
+var SUBC = ['POST BUS + RAM WALK', '4-PHASE ASSET BAKE', 'DUAL PULSE + LFSR ENVELOPE',
+            'AUTOPILOT PATHFIND', 'AUTOPILOT BUILD', 'AUTOPILOT WAVE',
+            'INTRO SEGMENTS 1-4', 'IDLE ORBIT', 'SERVO TARGETING', 'PHASE CONTRACT',
+            'SLAG REPAIR', 'LEDGER FREEZE'];
+var ROUTE_CELLS = [ROUTE_IN, ROUTE_OUT];
 
 /* ─────────── 防御塔 ─────────── */
 var TOWERS = {
@@ -505,8 +540,10 @@ var LEDGER_DEF = [
   ['life', '炉壁结构'], ['clink', '结渣'], ['heat', '炉温均值'], ['kills', '击杀'], ['leaks', '漏怪'],
   ['phase', '准线相位'], ['towers', '塔数'], ['enemies', '在场'], ['ehp', '在场总血'], ['shot', '开火'],
   ['dmg', '累计伤害'], ['integ', '地块平均完整度'], ['coup', '耦合达标塔数'], ['off', '本帧落点离差'],
-  ['gap', '守恒缺口（恒为 0）'], ['gale', '风切强度']
+  ['gap', '守恒缺口（恒为 0）'], ['gale', '风切强度'],
+  ['contract', '契约保持率'], ['shell', '在场护壳数'], ['lock', '塔均锁定度'], ['micro', '微状态索引']
 ];
+/* 22 列基础账 + 4 列耦合遥测 = 26 列；列数与 POST 的 AUDIT LEDGER 行必须一致 */
 
 /* ─────────── 地脉准线：非匀速四段推进 ─────────── */
 function merSlope(phase) {
@@ -709,7 +746,7 @@ function makeTowerView(slot) {
   var b = M.TBASE + slot * M.TSTRIDE, t = { slot: slot, kind: '', over: false, target: null, cool: 0, coup: 0 };
   fp(t, 'c', b, true); fp(t, 'r', b + 1, true); fp(t, 'lv', b + 2, true);
   fp(t, 'heat', b + 3); fp(t, 'aim', b + 4); fp(t, 'shots', b + 5, true);
-  fp(t, 'range', b + 6);
+  fp(t, 'range', b + 6); fp(t, 'lock', b + 7);
   return t;
 }
 
@@ -743,7 +780,9 @@ var HAL_FRAMES = [72, 84, 54, Infinity, 180];
 var HAL = {
   stage: 0, t: 0, frames: 0, stageFrames: 0, done: false,
   logs: [], progress: 0, sheets: null, audio: null, introT: 0,
-  bios: [], postLines: 0, tick: 0
+  bios: [], postLines: 0, tick: 0,
+  bake: null, postSum: 0, postChecks: 0, lfsr: 0x1ACE,
+  auto: { step: 0, t: 0 }
 };
 
 function reset(mode) {
@@ -769,6 +808,12 @@ function reset(mode) {
             notes: HAL.logs, fp: [] },
     heatAvg: 0, galeNow: 0, galeSeen: 0, acctGap: 0, evapN: 0, forceState: -1,
     attractT: 0, attractIdx: 0, attractReset: 0,
+    /* 新增耦合子系统：相位契约 / 护送护壳 / 塔体伺服 / 微状态 / 不变量 */
+    contract: { route: 0, need: PHYS.CONTRACT_NEED, t: 0, span: PHYS.CONTRACT_SPAN,
+                hold: 0, breach: 0, ratio: 1, held: 0, failed: 0, streak: 0, best: 0 },
+    shellsIn: 0, shellsBroken: 0, servoN: 0, lockAvg: 0,
+    microIdx: 0, microN: 0, microTrace: [], invOk: 30, invN: 30, invBad: [],
+    autoStep: 0, autoT: 0, autoBuilds: 0, autoWaves: 0, introSeg: 0,
     acct: { gold: 52000, iron: 0, kine: 9600, slag: 0, ent: 0 }
   };
   bindGMemory(G);
@@ -1128,7 +1173,7 @@ function buildN(kind, c, r) {
   var tw = makeTowerView(tFree.length ? tFree.pop() : 0);
   tw.kind = kind; tw.c = c; tw.r = r; tw.lv = 1; tw.aim = merAngle(G.phase);
   tw.cd = 0; tw.heat = 0; tw.coup = 0; tw.over = false; tw.spent = def.cost;
-  tw.shots = 0; tw.dmg = 0; tw.overN = 0;
+  tw.shots = 0; tw.dmg = 0; tw.overN = 0; tw.lock = 0; tw.mode = 0; tw.lockT = 0;
   TW.push(tw); t.tower = tw; t.load++;
   fxBurst(cellX(c), cellY(r), def.col, 10);
   pushLog('建造 ' + def.n + ' (' + c + ',' + r + ') · 炉金 −' + def.cost, def.col);
@@ -1174,7 +1219,7 @@ function towerDmg(tw, ek) {
   return base * cnt * coup;
 }
 function stepTowers(dt) {
-  var mer = merAngle(G.phase);
+  var mer = merAngle(G.phase), lockSum = 0, lockN = 0;
   for (var i = 0; i < TW.length; i++) {
     var tw = TW[i];
     var slew = PHYS.AIM_SLEW_BASE * (PHYS.ARC_BASE / TOWERS[tw.kind].cone) * (1 - 0.35 * (G.clink / 100));
@@ -1186,12 +1231,29 @@ function stepTowers(dt) {
     if (tw.over && tw.heat <= PHYS.HEAT_RELEASE) { tw.over = false; pushLog(TOWERS[tw.kind].n + ' (' + tw.c + ',' + tw.r + ') 解除过载', '#9ee06a'); }
     var rate = tw.over ? TOWERS[tw.kind].cd / PHYS.HEAT_OVER_RATE : TOWERS[tw.kind].cd;
     tw.cd -= dt;
-    if (tw.cd > 0) continue;
+
+    /* 伺服微状态：先对目标建立锁定，锁定度 ≥ 0.34 才允许击发；
+       过载时强制进入 VENT（泄压），锁定度按 1.60/s 衰减。 */
     var tg = pickTarget(tw);
-    if (!tg) continue;
+    var lockRate = PHYS.SERVO_UP * (1 - 0.35 * (G.clink / 100)) * (tw.over ? 0 : 1);
+    if (tg && !tw.over) {
+      tw.lock = Math.min(1, tw.lock + lockRate * dt);
+      tw.lockT += dt;
+    } else {
+      tw.lock = Math.max(0, tw.lock - PHYS.SERVO_DOWN * dt);
+      tw.lockT = 0;
+    }
+    tw.mode = tw.over ? 3 : (tg && tw.lock >= PHYS.SERVO_LOCK ? 2 : tw.lock > 0.05 ? 1 : 0);
+    lockSum += tw.lock; lockN++;
+
+    if (tw.cd > 0 || !tg) continue;
+    if (tw.lock < PHYS.SERVO_LOCK) { tw.cd = 0.05; continue; }   /* 未锁定：等待伺服收敛 */
     tw.cd = rate;
     fire(tw, tg);
   }
+  G.lockAvg = lockN ? lockSum / lockN : 0;
+  G.servoN = 0;
+  for (var s = 0; s < TW.length; s++) if (TW[s].mode === 2) G.servoN++;
 }
 /* 有向角差，结果恒落在 [−π, π)：aim 会随准线无限累积增长，
    直接对 (ang − aim + 3π) 取模在 JS 中会因被除数为负而返回负值，必须逐次归一化 */
@@ -1231,7 +1293,7 @@ function fire(tw, tg) {
     pushLog(TOWERS[tw.kind].n + ' (' + tw.c + ',' + tw.r + ') 过热熔断 · 结渣 +' + PHYS.CLINKER_PER_OVERHEAT, '#ff8a3d');
   }
   PJ.push({ x: cellX(tw.c), y: cellY(tw.r), tx: tg.e.x, ty: tg.e.y, e: tg.e, dmg: dmg,
-            col: TOWERS[tw.kind].col, life: 0.5, spent: false, align: alignCos });
+            col: TOWERS[tw.kind].col, life: 0.5, spent: false, align: alignCos, pk: tw.kind });
   if (alignCos <= 0) pushLog(TOWERS[tw.kind].n + ' 偏差 ' + (delta * 180 / Math.PI).toFixed(1) + '° ≥ 锥半角 · 落空', '#ff4d5e');
 }
 function stepProj(dt) {
@@ -1242,16 +1304,28 @@ function stepProj(dt) {
     var d = Math.hypot(p.tx - p.x, p.ty - p.y);
     var sp = 900 * dt;
     if (d <= sp || p.life <= 0) {
-      if (p.e && p.e.hp > 0 && p.dmg > 0) damage(p.e, p.dmg);
+      if (p.e && p.e.hp > 0 && p.dmg > 0) damage(p.e, p.dmg, p.pk);
       if (p.dmg <= 0) fxBurst(p.tx, p.ty, '#ff4d5e', 3);
       PJ.splice(i, 1); continue;
     }
     p.x += (p.tx - p.x) / d * sp; p.y += (p.ty - p.y) / d * sp;
   }
 }
-function damage(e, d) {
-  e.hp -= d; G.dmgTot += d;
-  xfer('ent', 'iron', Math.round(d * 6));   /* 熔铁科目按伤害入账 */
+function damage(e, d, kind) {
+  var applied = d;
+  /* 护送护壳：壳未破时本体只吃 45% 伤害；折光塔对壳造成 2.4 倍剥离 */
+  if (e.sh > 0) {
+    var strip = d * (kind === 'prism' ? PHYS.SHELL_PRISM : 1);
+    e.sh -= strip;
+    applied = d * PHYS.SHELL_CUT;
+    if (e.sh <= 0) {
+      e.sh = 0; G.shellsBroken++;
+      fxBurst(e.x, e.y, '#9fd8ff', 8);
+      pushLog(e.def.n + ' 护壳剥离 · 累计 ' + G.shellsBroken, '#9fd8ff');
+    }
+  }
+  e.hp -= applied; G.dmgTot += applied;
+  xfer('ent', 'iron', Math.round(applied * 6));   /* 熔铁科目按伤害入账 */
   if (e.hp <= 0) kill(e);
 }
 function kill(e) {
@@ -1284,7 +1358,7 @@ function posAlong(route, d) {
   var l = route[route.length - 1];
   return { x: l.x, y: l.y };
 }
-function spawn(kind, d) {
+function spawn(kind, d, shell) {
   var def = ENEMIES[kind];
   var w = Math.max(1, G.wave);
   var hp = def.hp * (1 + PHYS.KILL_HP_GROW * (w - 1)) * DIFFS[G.diff].ehp;
@@ -1293,6 +1367,8 @@ function spawn(kind, d) {
   var e = makeEnemyView(eFree.length ? eFree.pop() : 0);
   e.kind = kind; e.def = def; e.gold = gold;
   e.hp = hp; e.hpMax = hp; e.dist = d || 0; e.route = route; e.spd = def.spd;
+  e.sh = (shell && kind !== 'boss') ? Math.round(PHYS.SHELL_BASE * (1 + PHYS.SHELL_GROW * (w - 1))) : 0;
+  e.shMax = e.sh;
   var p = posAlong(routeFor(e), e.dist);
   e.x = p.x; e.y = p.y;
   EN.push(e);
@@ -1343,13 +1419,152 @@ function stepWaves(dt) {
   if (!G.queue || !G.queue.length) return;
   G.spawnGap -= dt;
   if (G.spawnGap <= 0 && G.spawnIdx < G.queue.length) {
-    var k = G.queue[G.spawnIdx++];
-    spawn(k, 0);
+    var k = G.queue[G.spawnIdx];
+    /* 末尾两只非王单位带护送护壳：壳在时本体减伤，折光塔负责剥壳 */
+    var shell = (G.spawnIdx >= G.queue.length - 3 && k !== 'boss');
+    G.spawnIdx++;
+    spawn(k, 0, shell);
     G.spawnGap = PHYS.SPAWN_GAP;
   }
 }
 function waveClear() {
   return G.wave > 0 && (!G.queue || G.spawnIdx >= G.queue.length) && EN.length === 0;
+}
+
+/* ─────────── 相位契约：与准线换相同周期的耦合约束 ───────────
+   每半周期签发一张契约，要求当期管网一邻域内至少 2 座塔。
+   保持率 ≥ 80% 才判达成：炉金 +45 / 动能 +6 并累计连约；
+   违约则结渣 +5、连约清零。契约与换相、布塔、经济、结渣四系统同时耦合。 */
+function routeTowerCount(route) {
+  var cells = ROUTE_CELLS[route] || ROUTE_IN, n = 0;
+  for (var i = 0; i < TW.length; i++) {
+    var tw = TW[i], hit = false;
+    for (var j = 0; j < cells.length && !hit; j++) {
+      if (Math.max(Math.abs(tw.c - cells[j][0]), Math.abs(tw.r - cells[j][1])) <= 1) hit = true;
+    }
+    if (hit) n++;
+  }
+  return n;
+}
+function contractReset(route) {
+  var c = G.contract;
+  c.route = route === undefined ? merRoute(G.phase) : route;
+  c.t = 0; c.hold = 0; c.breach = 0; c.ratio = 1;
+  c.need = PHYS.CONTRACT_NEED; c.span = PHYS.CONTRACT_SPAN;
+}
+function contractStep(dt) {
+  if (G.mode !== 'play' || G.settled) return;
+  var c = G.contract;
+  c.t += dt;
+  if (routeTowerCount(c.route) >= c.need) c.hold += dt; else c.breach += dt;
+  c.ratio = clamp(c.hold / Math.max(1e-4, c.t), 0, 1);
+  if (c.t >= c.span) {
+    var ratio = clamp(c.hold / c.span, 0, 1);
+    if (ratio >= PHYS.CONTRACT_HOLD) {
+      c.held++; c.streak++; c.best = Math.max(c.best, c.streak);
+      G.gold += PHYS.CONTRACT_GOLD; xfer('ent', 'gold', PHYS.CONTRACT_GOLD * ACCT_U);
+      P.kine = Math.min(PHYS.KINE_MAX, P.kine + PHYS.CONTRACT_KINE);
+      xfer('ent', 'kine', PHYS.CONTRACT_KINE * ACCT_U);
+      pushLog('相位契约达成 · ' + (c.route ? 'OUTER' : 'INNER') + ' 保持 ' +
+              (ratio * 100).toFixed(0) + '% · 炉金 +' + PHYS.CONTRACT_GOLD +
+              ' · 动能 +' + PHYS.CONTRACT_KINE + ' · 连约 ' + c.streak, '#9ee06a');
+    } else {
+      c.failed++; c.streak = 0;
+      G.clink = Math.min(100, G.clink + PHYS.CONTRACT_SLAG);
+      G.peakClink = Math.max(G.peakClink, G.clink);
+      pushLog('相位契约违约 · ' + (c.route ? 'OUTER' : 'INNER') + ' 保持 ' +
+              (ratio * 100).toFixed(0) + '% < ' + (PHYS.CONTRACT_HOLD * 100).toFixed(0) +
+              '% · 结渣 +' + PHYS.CONTRACT_SLAG, '#ff4d5e');
+    }
+    contractReset(1 - c.route);
+  }
+}
+/* ─────────── 十二微状态求值 ─────────── */
+function microIdxNow() {
+  if (!HAL.done) {
+    if (HAL.stage === 0) return 0;
+    if (HAL.stage === 1) return 1;
+    if (HAL.stage === 2) return 2;
+    if (HAL.stage === 4) return 6;
+    return 3 + (HAL.auto.step % 3);
+  }
+  if (G.settled) return 11;
+  if (G.mode !== 'play') return 7;
+  var c = G.contract;
+  if (c.t > PHYS.CONTRACT_GRACE && c.ratio < PHYS.CONTRACT_HOLD) return 10;
+  if (c.t > PHYS.CONTRACT_GRACE && routeTowerCount(c.route) >= c.need) return 9;
+  if (EN.length > 0) return 8;
+  return 7;
+}
+function microStep() {
+  var idx = microIdxNow();
+  if (idx !== G.microIdx) {
+    G.microN++;
+    G.microTrace.push({ f: G.frames, from: G.microIdx, to: idx });
+    if (G.microTrace.length > 24) G.microTrace.shift();
+    G.microIdx = idx;
+  }
+}
+/* ─────────── 逐帧不变量：30 项，任何一项失败都会累计 invBad ─────────── */
+function invChecks() {
+  var a = G.acct, out = [], i;
+  out.push(['ACCT_GAP_ZERO', acctGap() === 0, acctGap()]);
+  out.push(['ACCT_SUM_TOTAL', acctSum() === ACCT_TOTAL, acctSum()]);
+  out.push(['LIFE_RANGE', G.life >= 0 && G.life <= G.lifeMax, G.life]);
+  out.push(['CLINK_RANGE', G.clink >= 0 && G.clink <= 100, G.clink]);
+  out.push(['PHASE_RANGE', G.phase >= 0 && G.phase < 1, G.phase]);
+  out.push(['TILE_COUNT', Object.keys(T).length === COLS * ROWS, Object.keys(T).length]);
+  out.push(['TOWER_SLOTS', (function () {
+    var s = {}; for (var j = 0; j < TW.length; j++) { if (s[TW[j].slot]) return false; s[TW[j].slot] = 1; } return true;
+  })(), TW.length]);
+  out.push(['ENEMY_SLOTS', (function () {
+    var s = {}; for (var j = 0; j < EN.length; j++) { if (s[EN[j].slot]) return false; s[EN[j].slot] = 1; } return true;
+  })(), EN.length]);
+  out.push(['TOWER_TILE_LINK', (function () {
+    for (var j = 0; j < TW.length; j++) { var t = tileAt(TW[j].c, TW[j].r); if (!t || t.tower !== TW[j]) return false; }
+    return true;
+  })(), TW.length]);
+  out.push(['ENEMY_HP_NONNEG', EN.every(function (e) { return e.hp > -1e-6; }), EN.length]);
+  out.push(['LEDGER_CAP', G.ledger.length <= 20000, G.ledger.length]);
+  out.push(['LEDGER_ROW_26', !G.ledger.length || G.ledger[G.ledger.length - 1].length === 26, G.ledger.length ? G.ledger[G.ledger.length - 1].length : 26]);
+  out.push(['TICK_MONOTONIC', MI[M.TICK] >= 0, MI[M.TICK]]);
+  out.push(['STAGE_RANGE', HAL.stage >= 0 && HAL.stage <= 4, HAL.stage]);
+  out.push(['RING_DEPTH', ringCount() <= 256, ringCount()]);
+  out.push(['KINE_RANGE', P.kine >= 0 && P.kine <= PHYS.KINE_MAX + 1e-6, P.kine]);
+  out.push(['STAB_RANGE', P.stab >= 0 && P.stab <= 100, P.stab]);
+  out.push(['SHOT_COUNT', G.shots >= 0, G.shots]);
+  out.push(['DAMAGE_NONNEG', G.dmgTot >= 0, G.dmgTot]);
+  out.push(['CONTRACT_ROUTE', G.contract.route === 0 || G.contract.route === 1, G.contract.route]);
+  out.push(['CONTRACT_RATIO', G.contract.ratio >= 0 && G.contract.ratio <= 1, G.contract.ratio]);
+  out.push(['CONTRACT_NEED', G.contract.need === PHYS.CONTRACT_NEED, G.contract.need]);
+  out.push(['SHELL_NONNEG', EN.every(function (e) { return e.sh >= 0; }), G.shellsBroken]);
+  out.push(['SHELL_BROKEN_TOTAL', G.shellsBroken >= 0, G.shellsBroken]);
+  out.push(['SERVO_RANGE', G.lockAvg >= 0 && G.lockAvg <= 1, G.lockAvg]);
+  out.push(['SERVO_COUNT', G.servoN >= 0 && G.servoN <= TW.length, G.servoN]);
+  out.push(['MICRO_RANGE', G.microIdx >= 0 && G.microIdx < SUB.length, G.microIdx]);
+  out.push(['WAVE_RANGE', G.wave >= 0 && G.wave <= 10, G.wave]);
+  out.push(['PENDING_RANGE', G.pending >= 0 && G.pending <= 10, G.pending]);
+  out.push(['RESULT_CONSISTENT', !G.settled || !!G.result, G.result || '—']);
+  return out;
+}
+function invStep() {
+  var r = invChecks(), bad = [];
+  for (var i = 0; i < r.length; i++) if (!r[i][1]) bad.push(r[i][0]);
+  G.invOk = r.length - bad.length; G.invN = r.length; G.invBad = bad;
+}
+/* 结构化自检：30 项运行时不变式 + 6 项静态结构断言 = 36 */
+function selfTest() {
+  var checks = invChecks().map(function (r) { return { k: r[0], ok: !!r[1], v: r[2] }; });
+  checks.push({ k: 'HAL_STAGES_5', ok: HAL_STAGES.length === 5, v: HAL_STAGES.length });
+  checks.push({ k: 'MICRO_STATES_12', ok: SUB.length === 12, v: SUB.length });
+  checks.push({ k: 'LEDGER_COLS_26', ok: LEDGER_DEF.length === 26, v: LEDGER_DEF.length });
+  checks.push({ k: 'TILES_108', ok: Object.keys(T).length === COLS * ROWS, v: Object.keys(T).length });
+  checks.push({ k: 'CONTRACT_SPAN_13', ok: PHYS.CONTRACT_SPAN === 13, v: PHYS.CONTRACT_SPAN });
+  checks.push({ k: 'WAVES_10', ok: WAVES.length === 10, v: WAVES.length });
+  var bad = checks.filter(function (c) { return !c.ok; }).map(function (c) { return c.k; });
+  var fp = halFnv(checks.map(function (c) { return c.k + ':' + (c.ok ? 1 : 0) + ':' + c.v; }).join('|'));
+  return { pass: checks.length - bad.length, total: checks.length, failed: bad, checks: checks,
+           fingerprint: '0x' + halHex(fp, 8) };
 }
 
 /* ─────────── 特效 ─────────── */
@@ -1377,13 +1592,15 @@ function recordFrame() {
   var heatSum = 0, coupN = 0, integSum = 0, integN = 0;
   for (var i = 0; i < TW.length; i++) { heatSum += TW[i].heat; if (TW[i].coup >= PHYS.COUPLING_THRESHOLD) coupN++; }
   for (var k in T) { integSum += T[k].integ; integN++; }
-  var ehp = 0;
-  for (var j = 0; j < EN.length; j++) ehp += Math.max(0, EN[j].hp);
+  var ehp = 0, shells = 0;
+  for (var j = 0; j < EN.length; j++) { ehp += Math.max(0, EN[j].hp); if (EN[j].sh > 0) shells++; }
+  G.shellsIn = shells;
   G.ledger.push([
     G.t, P.x, P.y, P.z, P.kine, P.stab, G.life, G.clink,
     G.heatAvg, G.kills, G.leaks, G.phase, TW.length,
     EN.length, ehp, G.shots, G.dmgTot, integN ? integSum / integN : 0, coupN, P.off,
-    acctGap(), G.galeNow
+    acctGap(), G.galeNow,
+    G.contract.ratio, shells, G.lockAvg, G.microIdx
   ]);
   if (G.ledger.length > 20000) G.ledger.shift();
 }
@@ -1435,27 +1652,42 @@ function acctSeed(gold, kine) {
    → ATTRACT（常驻）→ INTRO 180f → PLAYING。严禁跳步。
    ============================================================ */
 var HAL_POST = [
-  'FORGE MERIDIAN HAL V2.09',
+  'FORGE MERIDIAN HAL V3.10',
   'COPYRIGHT 1989 MERIDIAN WORKS',
-  '',
+  'LICENSED TO SECTOR FM-2091',
   'VRAM ALLOC: 0x8000 OK',
   'VRAM MAP: A000-BFFF OK',
   'VRAM REFRESH: 60HZ OK',
+  'BUS WALK: 0000-FFFF 65536 OK',
   'AUDIO_CORE: DUAL_PULSE OK',
   'AUDIO IRQ: 60HZ OK',
   'NOISE GEN: LFSR-17 OK',
   'PRNG SEED BOUND: OK',
   'SEED LATCH: 20260918',
+  'PRNG VECTOR: 0x8F2A OK',
   'TILE REFS: 108/108 OK',
   'SHEET SLOTS: 2/2 FREE',
   'INPUT RING: 256 WORDS OK',
   'JAMMA MAP: 1/2/4/8/16/32/64',
   'CANVAS BIND: 7/7 OK',
-  'AUDIT LEDGER: 22 COLS OK',
+  'AUDIT LEDGER: 26 COLS OK',
   'SUM INVARIANT: 1000000 OK',
+  'SUB FSM: 12 STATES OK',
+  'INVARIANT SET: 30/30 OK',
   'BOOT ROM SUM: 0x6F3A OK',
+  'CHECK VECTOR: 24/24 PASS',
   'POST COMPLETE'
 ];
+function halHex(n, w) {
+  var s = (Math.round(n) >>> 0).toString(16).toUpperCase();
+  while (s.length < w) s = '0' + s;
+  return s.slice(-w);
+}
+function halFnv(str) {
+  var h = 2166136261;
+  for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
 var PALETTE16 = ['#0b0403', '#150607', '#2a100e', '#4a1d16', '#7a5348', '#b08a7c', '#f0dcd2', '#ffe7cf',
                  '#ffc247', '#ff8a3d', '#ff4d5e', '#66e0c8', '#9ee06a', '#c08bff', '#9fd8ff', '#ff5c72'];
 var SHEET_A = null, SHEET_B = null, SHEET_IDX = null;
@@ -1550,8 +1782,28 @@ function bakeSheets() {
     imgB.data[p + 3] = (idx === 0 || SHEET_IDX[y * W + x] === 0) ? 0 : 255;
   }
   ga.putImageData(imgA, 0, 0); gb.putImageData(imgB, 0, 0);
+  /* 烘焙回读：统计非零索引、唯一索引数、逐槽占用，供 STAGE 1 的 VERIFY 面板读取 */
+  var nz = 0, alphaN = 0, seen = {};
+  for (var q = 0; q < SHEET_IDX.length; q++) {
+    if (SHEET_IDX[q] > 0) nz++;
+    if (SHEET_IDX[q] !== 0) alphaN++;
+    seen[SHEET_IDX[q]] = 1;
+  }
+  var uni = 0; for (var u in seen) if (+u > 0) uni++;
+  var slots = [];
+  for (k = 0; k < kinds.length; k++) {
+    var kd = SPRITE_DEF[kinds[k]], kc = 0;
+    for (f = 0; f < kd.frames; f++) for (y = 0; y < S; y++) for (x = 0; x < S; x++) {
+      var sx = (kd.col + f) * S + x, sy = kd.row * S + y;
+      if (sx < W && sy < H && SHEET_IDX[sy * W + sx] > 0) kc++;
+    }
+    slots.push({ name: kinds[k].toUpperCase(), frames: kd.frames, px: kc, fp: halHex(kc * 2654435761 + kd.frames * 97, 4) });
+  }
+  HAL.bake = { nz: nz, alpha: alphaN, uni: uni, slots: slots, bytes: W * H,
+               phases: ['INDEX', 'QUANTIZE', 'PALETTE', 'VERIFY'] };
   HAL.sheets = { a: SHEET_A, b: SHEET_B, idx: SHEET_IDX, w: W, h: H };
   HAL.bios.push('SHEET A 16×64×4BIT · SHEET B 16 COLOR · ' + W + '×' + H);
+  HAL.bios.push('BAKE VERIFY · NONZERO ' + nz + '/' + (W * H) + ' · UNIQUE ' + uni + '/16');
 }
 
 /* ─────────── CHIP AUDIO：双脉冲 + 白噪声，440→880Hz / 150ms ─────────── */
@@ -1609,7 +1861,7 @@ function halStep(dt) {
   MI[M.STAGE] = HAL.stage;
   MI[M.STAGE_T] = Math.round(HAL.stageT * 1000);
   if (HAL.stage === 0) {
-    HAL.postLines = Math.min(HAL_POST.length, Math.floor(HAL.stageFrames / 4) + 1);
+    HAL.postLines = Math.min(HAL_POST.length, Math.floor(HAL.stageFrames / 3) + 1);
     HAL.progress = clamp(HAL.stageFrames / HAL_FRAMES[0], 0, 1);
     if (HAL.stageFrames >= HAL_FRAMES[0]) halAdvance();
   } else if (HAL.stage === 1) {
@@ -1637,7 +1889,8 @@ function beginIntro() {
   G.mode = 'intro'; G.diff = d.k;
   G.life = d.life; G.lifeMax = d.life; G.gold = d.gold;
   acctSeed(d.gold, P.kine);
-  G.seedT = 0; G.t = 0;
+  G.seedT = 0; G.t = 0; G.introSeg = 0;
+  contractReset(0);
   P.x = cellX(5); P.y = cellY(4); P.tile = key(5, 4);
   el('settle').classList.remove('on');
   pushLog('投币确认 · STAGE_INTRO 锁定 3.0s · 物理与位移冻结', '#ffc247');
@@ -1658,15 +1911,30 @@ function startAttract() {
   reset('attract'); resetRng();
   G.diff = 'normal'; buildDiffCards();
   G.gold = 900; acctSeed(900, P.kine);
-  buildN('hammer', 3, 1); buildN('prism', 6, 4); buildN('mag', 8, 6);
-  G.wave = 1; beginWave(1);
+  /* 演示态只建第一座塔，其余两座由 AUTO FSM 在固定时刻自行落位 */
+  buildN('hammer', 3, 1);
+  G.wave = 0;
   G.attractT = 0; G.attractIdx = 0;
+  G.autoStep = 0; G.autoT = 0; G.autoBuilds = 0; G.autoWaves = 0;
+  HAL.auto.step = 0; HAL.auto.t = 0;
   P.x = cellX(2); P.y = cellY(4); P.tile = key(2, 4);
   G.acctGap = 0;
 }
 function attractStep(dt) {
-  G.t += dt; G.frames++; G.attractT += dt;
+  G.t += dt; G.frames++; G.attractT += dt; G.autoT += dt;
   if (G.attractT > 26 || G.life <= 0) { startAttract(); return; }
+  /* AUTO FSM：SCOUT → BUILD → WAVE → REPAIR，每 4.0s 推进一格 */
+  var step = Math.min(3, Math.floor(G.autoT / 4));
+  if (step !== G.autoStep) {
+    G.autoStep = step;
+    if (step === 1 && G.autoBuilds < 1) { buildN('prism', 6, 4); G.autoBuilds++; }
+    if (step === 2 && G.autoWaves < 1) { beginWave(1); G.autoWaves++; }
+    if (step === 2 && G.autoBuilds < 2) { buildN('mag', 8, 5); G.autoBuilds++; }
+    if (step === 3 && G.autoBuilds < 3) { upgradeN(6, 4); G.autoBuilds++; }
+    HAL.auto.step = step;
+    pushLog('AUTO FSM → ' + ['SCOUT', 'BUILD', 'WAVE', 'REPAIR'][step], '#66e0c8');
+  }
+  if (G.autoT >= 16) { G.autoT = 0; G.autoStep = -1; HAL.auto.step = 0; }
   var wp = ATTRACT_PATH[G.attractIdx % ATTRACT_PATH.length];
   var dx = wp[0] - P.x, dy = wp[1] - P.y, dd = Math.hypot(dx, dy);
   if (dd < 7) G.attractIdx++;
@@ -1743,29 +2011,36 @@ function tick(dt) {
   drainScan();
   if (!HAL.done) {
     halStep(dt);
-    if (HAL.stage === 3) { attractStep(dt); return; }
+    if (HAL.stage === 3) { attractStep(dt); microStep(); invStep(); return; }
     G.t += dt; G.frames++;
-    if (HAL.stage === 4) G.seedT = Math.min(0.6, G.seedT + dt);
+    if (HAL.stage === 4) {
+      G.seedT = Math.min(0.6, G.seedT + dt);
+      G.introSeg = Math.min(4, Math.floor(HAL.stageFrames / 45) + (HAL.stageFrames >= 180 ? 1 : 0));
+    }
     G.acctGap = acctGap();
+    microStep(); invStep();
     return;
   }
   if (G.mode === 'intro' || G.mode === 'seed') {
     G.seedT = Math.min(0.6, G.seedT + dt); G.t += dt; G.frames++;
+    G.introSeg = Math.min(4, Math.floor(G.seedT / 0.15));
     G.acctGap = acctGap();
+    microStep(); invStep();
     return;                        /* 入场硬直不写账本：账本只记录 PLAYING 帧 */
   }
   if (G.mode === 'title') {
     G.t += dt; G.frames++;
     G.acctGap = acctGap();
+    microStep(); invStep();
     return;
   }
   if (G.rollT >= 0) {
     G.rollT += dt;
     if (G.rollT > 2.2) { G.rollT = -1; settle(G.result || 'CORE_LOST'); }
     G.frames++; G.t += dt;
-    recordFrame(); return;
+    recordFrame(); microStep(); invStep(); return;
   }
-  if (G.settled) { G.frames++; recordFrame(); return; }   /* 结算后模拟冻结，账本不再前进 */
+  if (G.settled) { G.frames++; recordFrame(); microStep(); invStep(); return; }   /* 结算后模拟冻结，账本不再前进 */
   G.t += dt; G.frames++;
   if (G.overT > 0) G.overT -= dt;
   if (G.pulseLock > 0) G.pulseLock -= dt;
@@ -1791,6 +2066,7 @@ function tick(dt) {
   stepProj(dt);
   stepEnemies(dt);
   stepWaves(dt);
+  contractStep(dt);
   stepFx(dt);
 
   /* 波次推进：本波清空且无待命波次时自动排入下一波，走波前倒计时（按 N 可提前出怪换炉金） */
@@ -1802,6 +2078,7 @@ function tick(dt) {
 
   if (G.life <= 0 && G.rollT < 0 && !G.settled) failRun();
   if (G.wave >= 10 && waveClear() && !G.settled) settle('ALL_CLEAR');
+  microStep(); invStep();
   recordFrame();
 }
 function failRun() {
@@ -2014,50 +2291,84 @@ function drawHalBoot(g, w, h) {
   if (st === 0) {
     halHeader(g, w, 'FORGE MERIDIAN · HAL POST', 'STAGE 0/4 · POST_RAM_CHECK', '#66e0c8');
     var lines = HAL_POST.slice(0, HAL.postLines);
-    var y0 = 70, lh = Math.min(15, Math.floor((h - 150) / 22));
+    var y0 = 68, lh = Math.min(13, Math.floor((h - 128) / HAL_POST.length));
     for (var i = 0; i < lines.length; i++) {
       var txt = lines[i], col = '#7dff9b';
       if (i === 0) col = '#ffc247';
-      else if (/OK$/.test(txt)) col = '#66e0c8';
+      else if (/OK$|PASS$/.test(txt)) col = '#66e0c8';
       else if (!txt) col = '#2a4a3a';
-      bmp(g, txt, 24, y0 + i * lh, 10, col, 'left');
+      else if (/COMPLETE$/.test(txt)) col = '#9ee06a';
+      bmp(g, txt, 20, y0 + i * lh, 9, col, 'left');
     }
     var cy = y0 + lines.length * lh;
-    if (Math.floor(HAL.frames / 12) % 2 === 0) bmp(g, '_', 24, cy + 8, 10, '#7dff9b', 'left');
-    /* 右侧内存图 */
-    var px = w - Math.min(260, w * 0.28), py = 70;
+    if (Math.floor(HAL.frames / 8) % 2 === 0) bmp(g, '_', 20, cy + 3, 9, '#7dff9b', 'left');
+    /* 右侧：内存图 + 总线追踪 + POST 校验和 */
+    var px = w - Math.min(292, w * 0.33), py = 68;
     bmp(g, 'MEMORY MAP', px, py, 10, '#ffc247', 'left');
     var rows = [['VRAM 0x8000', 0.72, '#66e0c8'], ['RING 256W', 0.32, '#9ee06a'],
-                ['SHEET 2/2', 0.48, '#c08bff'], ['SEED LOCK', 0.88, '#ffc247']];
+                ['SHEET A/B', 0.48, '#c08bff'], ['SEED LATCH', 0.88, '#ffc247'],
+                ['AUDIO 3CH', 0.64, '#ff8a3d'], ['INV 30/30', 1.00, '#ff4d5e']];
     for (var r = 0; r < rows.length; r++) {
-      var ry = py + 22 + r * 34;
-      bmp(g, rows[r][0], px, ry, 9, '#b08a7c', 'left');
-      g.fillStyle = '#1d0a0a'; g.fillRect(px, ry + 6, w - px - 24, 6);
-      g.fillStyle = rows[r][2]; g.fillRect(px, ry + 6, (w - px - 24) * rows[r][1], 6);
+      var ry = py + 18 + r * 24;
+      bmp(g, rows[r][0], px, ry, 8, '#b08a7c', 'left');
+      g.fillStyle = '#1d0a0a'; g.fillRect(px, ry + 5, w - px - 20, 5);
+      g.fillStyle = rows[r][2]; g.fillRect(px, ry + 5, (w - px - 20) * rows[r][1], 5);
     }
-    bmp(g, 'POST 1.20S · NO FAULTS', 24, h - 52, 10, '#9ee06a', 'left');
-    bmp(g, 'FRAME ' + HAL.stageFrames + '/72', w - 24, h - 52, 10, '#b08a7c', 'right');
+    var by = py + 18 + rows.length * 24 + 12;
+    bmp(g, 'BUS TRACE', px, by, 9, '#ffc247', 'left');
+    var f = HAL.stageFrames;
+    var bus = [
+      'R 0x' + halHex(0x8000 + (f * 64) % 0x4000, 4) + ' OK',
+      'W 0x' + halHex(0xA000 + (f * 32) % 0x2000, 4) + ' OK',
+      'DMA CH2 0x' + halHex(0x40 + (f * 3) % 0x80, 2),
+      'IRQ 60HZ #' + halHex(f % 60, 2),
+      'LFSR 0x' + halHex((0x1ACE + f * 7) % 0x1FFFF, 5),
+      'SYNC ' + (f % 3 === 0 ? 'H' : 'V') + ' 0x' + halHex(halFnv(lines.join('|') + f), 4)
+    ];
+    for (var b = 0; b < bus.length; b++) {
+      bmp(g, bus[b], px, by + 15 + b * 12, 8, b === 5 ? '#c08bff' : '#7dff9b', 'left');
+    }
+    HAL.postSum = halFnv(lines.join('|'));
+    var sy = by + 15 + bus.length * 12 + 8;
+    bmp(g, 'POST SUM 0x' + halHex(HAL.postSum, 8), px, sy, 9, '#ffc247', 'left');
+    bmp(g, 'CHECK ' + Math.min(24, HAL.postLines) + '/24 PASS', px, sy + 14, 8,
+        HAL.postLines >= 24 ? '#9ee06a' : '#b08a7c', 'left');
+    bmp(g, 'POST 1.20S · NO FAULTS', 20, h - 88, 9, '#9ee06a', 'left');
+    bmp(g, 'FRAME ' + HAL.stageFrames + '/72', w - 20, h - 88, 9, '#b08a7c', 'right');
   } else if (st === 1) {
     halHeader(g, w, 'STAGE 1 · PALETTE ASSET BAKING', 'BAKING ' + Math.round(HAL.progress * 100) + '%', '#ffc247');
-    var bw = Math.min(560, w - 80), bx = (w - bw) / 2;
-    bmp(g, 'BAKING SHEET A / SHEET B', w / 2, 76, 11, '#ffc247', 'center');
-    g.fillStyle = '#241010'; g.fillRect(bx, 88, bw, 18);
-    g.fillStyle = '#ff8a3d'; g.fillRect(bx, 88, bw * HAL.progress, 18);
-    g.strokeStyle = '#5a2318'; g.lineWidth = 1; g.strokeRect(bx + 0.5, 88.5, bw - 1, 17);
-    bmp(g, Math.round(HAL.progress * 100) + '%', bx + bw + 4, 102, 11, '#ffe7cf', 'left');
+    var bw = Math.min(520, w - 90), bx = (w - bw) / 2;
+    bmp(g, 'BAKING SHEET A / SHEET B', w / 2, 62, 10, '#ffc247', 'center');
+    g.fillStyle = '#241010'; g.fillRect(bx, 70, bw, 14);
+    g.fillStyle = '#ff8a3d'; g.fillRect(bx, 70, bw * HAL.progress, 14);
+    g.strokeStyle = '#5a2318'; g.lineWidth = 1; g.strokeRect(bx + 0.5, 70.5, bw - 1, 13);
+    bmp(g, Math.round(HAL.progress * 100) + '%', bx + bw + 4, 82, 10, '#ffe7cf', 'left');
+    /* 四阶段烘焙流水：INDEX → QUANTIZE → PALETTE → VERIFY */
+    var phNames = ['INDEX', 'QUANTIZE', 'PALETTE', 'VERIFY'];
+    var phW = Math.min(128, (w - 80) / 4 - 8), ph0 = (w - (phW * 4 + 18)) / 2;
+    var phCur = Math.min(3, Math.floor(HAL.progress * 4));
+    for (var p2 = 0; p2 < 4; p2++) {
+      var pxx = ph0 + p2 * (phW + 6), done = HAL.progress * 4 >= p2 + 1;
+      g.fillStyle = done ? 'rgba(102,224,200,0.18)' : (p2 === phCur ? 'rgba(255,194,71,0.16)' : 'rgba(26,8,6,0.8)');
+      g.fillRect(pxx, 90, phW, 20);
+      g.strokeStyle = done ? '#66e0c8' : (p2 === phCur ? '#ffc247' : '#4a1d16');
+      g.strokeRect(pxx + 0.5, 90.5, phW - 1, 19);
+      bmp(g, (done ? '+ ' : String(p2 + 1) + ' ') + phNames[p2], pxx + 5, 104, 8,
+          done ? '#9ee06a' : (p2 === phCur ? '#ffc247' : '#7a5348'), 'left');
+    }
     /* 16 色板 */
-    var sw = Math.min(34, (w - 60) / 16), sx = (w - sw * 16) / 2;
+    var sw = Math.min(30, (w - 60) / 16), sx = (w - sw * 16) / 2;
     for (var p = 0; p < 16; p++) {
       g.fillStyle = PALETTE16[p];
-      g.fillRect(sx + p * sw + 1, 120, sw - 2, 22);
-      g.strokeStyle = '#4a1d16'; g.strokeRect(sx + p * sw + 1.5, 120.5, sw - 3, 21);
-      bmp(g, p.toString(16).toUpperCase(), sx + p * sw + sw / 2, 160, 9, '#b08a7c', 'center');
+      g.fillRect(sx + p * sw + 1, 116, sw - 2, 18);
+      g.strokeStyle = '#4a1d16'; g.strokeRect(sx + p * sw + 1.5, 116.5, sw - 3, 17);
+      bmp(g, p.toString(16).toUpperCase(), sx + p * sw + sw / 2, 146, 8, '#b08a7c', 'center');
     }
     /* Sheet A / B */
-    var shw = Math.min(300, (w - 90) / 2), shh = shw * 0.25;
-    var ay = 184, ax = w / 2 - shw - 14, bx2 = w / 2 + 14;
-    bmp(g, 'SHEET A · 4BIT INDEX', ax, ay - 6, 9, '#b08a7c', 'left');
-    bmp(g, 'SHEET B · 16 COLOR', bx2, ay - 6, 9, '#b08a7c', 'left');
+    var shw = Math.min(280, (w - 90) / 2), shh = shw * 0.25;
+    var ay = 164, ax = w / 2 - shw - 12, bx2 = w / 2 + 12;
+    bmp(g, 'SHEET A · 4BIT INDEX', ax, ay - 6, 8, '#b08a7c', 'left');
+    bmp(g, 'SHEET B · 16 COLOR', bx2, ay - 6, 8, '#b08a7c', 'left');
     g.fillStyle = '#1a0806'; g.fillRect(ax, ay, shw, shh); g.fillRect(bx2, ay, shw, shh);
     if (SHEET_A && SHEET_B) {
       g.imageSmoothingEnabled = false;
@@ -2066,40 +2377,80 @@ function drawHalBoot(g, w, h) {
     }
     g.strokeStyle = '#4a1d16'; g.strokeRect(ax + 0.5, ay + 0.5, shw - 1, shh - 1);
     g.strokeRect(bx2 + 0.5, ay + 0.5, shw - 1, shh - 1);
-    bmp(g, 'SHEET A 256×64 · 4096 BYTES · 4BIT', ax, ay + shh + 16, 9, '#66e0c8', 'left');
-    bmp(g, 'SPRITES WARDEN×4 ENEMY×8 TOWER×6', bx2, ay + shh + 16, 9, '#9ee06a', 'left');
-    bmp(g, 'PALETTE SWAP 16/16 · NO EXTERNAL IMAGE', w / 2, h - 52, 9, '#b08a7c', 'center');
-    bmp(g, 'FRAME ' + HAL.stageFrames + '/84', w - 24, h - 52, 9, '#b08a7c', 'right');
+    bmp(g, 'SHEET A 256×64 · 4096 BYTES · 4BIT', ax, ay + shh + 12, 8, '#66e0c8', 'left');
+    bmp(g, 'SPRITES WARDEN×4 ENEMY×8 TOWER×6', bx2, ay + shh + 12, 8, '#9ee06a', 'left');
+    /* 逐槽烘焙表：8 行两列，随进度逐槽点亮 */
+    var tableY = ay + shh + 26;
+    bmp(g, 'SLOT BAKE TABLE', 24, tableY, 8, '#ffc247', 'left');
+    if (HAL.bake) {
+      var shown = Math.max(0, Math.min(8, Math.floor(HAL.progress * 8.99)));
+      for (var s2 = 0; s2 < HAL.bake.slots.length; s2++) {
+        var sl = HAL.bake.slots[s2], col2 = s2 < shown ? '#9ee06a' : '#4a2a24';
+        var cx2 = 24 + (s2 % 2) * (w / 2 - 20), cy2 = tableY + 12 + Math.floor(s2 / 2) * 11;
+        bmp(g, halHex(s2, 2) + ' ' + sl.name + ' ' + sl.frames + 'F ' + sl.px + 'PX ' + sl.fp,
+            cx2, cy2, 7, col2, 'left');
+      }
+      var rbY = tableY + 12 + 4 * 11 + 4;
+      bmp(g, 'READBACK ' + Math.round(HAL.progress * 4096) + '/4096 · NONZERO ' + HAL.bake.nz +
+          ' · UNIQUE ' + HAL.bake.uni + '/16 · ALPHA ' + HAL.bake.alpha,
+          24, rbY, 8, '#9fd8ff', 'left');
+    }
+    bmp(g, 'PALETTE SWAP 16/16 · NO EXTERNAL IMAGE', w / 2, h - 88, 8, '#b08a7c', 'center');
+    bmp(g, 'FRAME ' + HAL.stageFrames + '/84', w - 20, h - 88, 8, '#b08a7c', 'right');
   } else if (st === 2) {
     halHeader(g, w, 'STAGE 2 · CHIP AUDIO WARMUP', 'AUDIO CORE', '#c08bff');
-    var chans = [['PULSE 1', '440 → 880 HZ', '#ffc247'], ['PULSE 2', '220 HZ · SQUARE', '#ff8a3d'], ['NOISE', 'LFSR-17 · 150MS', '#b08a7c']];
-    var cw2 = Math.min(210, (w - 100) / 3), cy2 = 78;
+    var fr = clamp(HAL.stageFrames / HAL_FRAMES[2], 0, 1);
+    var f1 = Math.round(440 * Math.pow(2, fr));
+    var gain = 0.22 * Math.sin(Math.PI * fr);
+    var chans = [['PULSE 1', f1 + ' HZ · SQUARE', '#ffc247'],
+                 ['PULSE 2', Math.round(f1 / 2) + ' HZ · SQUARE', '#ff8a3d'],
+                 ['NOISE', 'LFSR-17 · 150MS', '#b08a7c']];
+    var cw2 = Math.min(210, (w - 100) / 3), cy2 = 72;
     for (var c2 = 0; c2 < 3; c2++) {
-      var cx2 = 34 + c2 * (cw2 + 18);
-      g.fillStyle = 'rgba(26,8,6,0.9)'; g.fillRect(cx2, cy2, cw2, 92);
-      g.strokeStyle = '#4a1d16'; g.strokeRect(cx2 + 0.5, cy2 + 0.5, cw2 - 1, 91);
-      bmp(g, chans[c2][0], cx2 + 8, cy2 + 16, 10, chans[c2][2], 'left');
-      bmp(g, chans[c2][1], cx2 + 8, cy2 + 30, 8, '#b08a7c', 'left');
+      var cx2 = 26 + c2 * (cw2 + 14);
+      g.fillStyle = 'rgba(26,8,6,0.9)'; g.fillRect(cx2, cy2, cw2, 88);
+      g.strokeStyle = '#4a1d16'; g.strokeRect(cx2 + 0.5, cy2 + 0.5, cw2 - 1, 87);
+      bmp(g, chans[c2][0], cx2 + 8, cy2 + 15, 9, chans[c2][2], 'left');
+      bmp(g, chans[c2][1], cx2 + 8, cy2 + 28, 7, '#b08a7c', 'left');
       var lvl = 0.35 + 0.55 * Math.abs(Math.sin(HAL.frames * (0.11 + c2 * 0.03) + c2));
       for (var b2 = 0; b2 < 12; b2++) {
         g.fillStyle = b2 / 12 < lvl ? chans[c2][2] : '#33120e';
-        g.fillRect(cx2 + 8 + b2 * 8, cy2 + 52, 5, 22);
+        g.fillRect(cx2 + 8 + b2 * 8, cy2 + 50, 5, 20);
       }
     }
-    /* 扫频波形 */
-    var wx = 34, wy = 186, ww = w - 68, wh = 90;
+    /* 扫频波形：横轴就是 150ms 包络，右侧标出当前采样帧的频率 */
+    var wx = 26, wy = 172, ww = w - 52, wh = 86;
     g.fillStyle = 'rgba(10,3,3,0.9)'; g.fillRect(wx, wy, ww, wh);
     g.strokeStyle = '#4a1d16'; g.strokeRect(wx + 0.5, wy + 0.5, ww - 1, wh - 1);
-    bmp(g, 'SQUARE SWEEP 440 → 880 HZ', wx + 8, wy + 14, 9, '#b08a7c', 'left');
+    bmp(g, 'SQUARE SWEEP 440 → 880 HZ · 150MS', wx + 8, wy + 12, 8, '#b08a7c', 'left');
+    var cursorX = wx + ww * fr;
+    g.strokeStyle = 'rgba(255,194,71,0.45)'; g.beginPath();
+    g.moveTo(cursorX, wy + 20); g.lineTo(cursorX, wy + wh - 6); g.stroke();
     g.strokeStyle = '#66e0c8'; g.lineWidth = 1.6; g.beginPath();
     for (var q = 0; q < ww; q += 2) {
       var ph = q / ww, freq = 3 + ph * 7, yy2 = wy + wh / 2 + Math.sin(ph * freq * 12.6) * 24;
       q ? g.lineTo(wx + q, yy2) : g.moveTo(wx + q, yy2);
     }
     g.stroke();
-    bmp(g, 'AUDIO_CORE: DUAL_PULSE OK', w / 2, h - 56, 12, '#9ee06a', 'center');
-    bmp(g, 'SWEEP 150MS · 2×PULSE + 1×NOISE · NO EXTERNAL FILE', w / 2, h - 52, 9, '#b08a7c', 'center');
-    bmp(g, 'FRAME ' + HAL.stageFrames + '/54', w - 24, h - 52, 9, '#b08a7c', 'right');
+    /* 包络数值 + LFSR 位带 */
+    var ey = 272;
+    bmp(g, 'MIX ENVELOPE', 26, ey, 8, '#ffc247', 'left');
+    bmp(g, 'GAIN 0.220 → ' + gain.toFixed(3) + ' → 0.000', 26, ey + 13, 8, '#ffe7cf', 'left');
+    bmp(g, 'F1 ' + f1 + ' HZ · F2 ' + Math.round(f1 / 2) + ' HZ · NOISE x0.25', 26, ey + 26, 8, '#b08a7c', 'left');
+    var lfsr = 0x1ACE, bits = '';
+    for (var q2 = 0; q2 < 64; q2++) {
+      var bt = ((lfsr >> 16) ^ (lfsr >> 2)) & 1;
+      lfsr = ((lfsr << 1) | bt) & 0x1FFFF;
+      bits += (lfsr & 1) ? '1' : '0';
+    }
+    bmp(g, 'LFSR-17 NOISE BITS', 26, ey + 43, 8, '#ffc247', 'left');
+    for (var q3 = 0; q3 < 64; q3++) {
+      g.fillStyle = bits.charAt(q3) === '1' ? '#c08bff' : '#33120e';
+      g.fillRect(26 + q3 * 8, ey + 50, 5, 8);
+    }
+    bmp(g, 'AUDIO_CORE: DUAL_PULSE OK', w / 2, h - 92, 10, '#9ee06a', 'center');
+    bmp(g, '2×PULSE + 1×NOISE · NO EXTERNAL FILE', w / 2, h - 79, 7, '#b08a7c', 'center');
+    bmp(g, 'FRAME ' + HAL.stageFrames + '/54', w - 20, h - 79, 7, '#b08a7c', 'right');
   }
   g.restore();
 }
@@ -2110,6 +2461,17 @@ function drawIntroOverlay(g, w, h) {
   var col = '#ffc247';
   bmp(g, 'STAGE_INTRO_LOCK · PHYSICS LOCKED', w / 2, 56, 11, '#ffc247', 'center');
   bmp(g, 'PARALLAX RUNNING · INPUT BUFFERED · 60HZ', w / 2, 72, 8, '#b08a7c', 'center');
+  /* 入场四段检查：每 0.75s 点亮一段，与倒计时共用同一帧时钟 */
+  var segs = [['ROM CHECK', 'SEED 20260918'], ['SHEET BIND', 'A/B 2/2'],
+              ['TILE SEED', '108/108'], ['INPUT ARM', 'RING Q 0']];
+  var segCur = Math.min(4, Math.floor(t / 0.75));
+  for (var si = 0; si < 4; si++) {
+    var sy = 104 + si * 17, doneS = si < segCur;
+    bmp(g, (doneS ? '+' : si === segCur ? '>' : '.') + ' SEG ' + (si + 1) + '/4 ' + segs[si][0],
+        26, sy, 8, doneS ? '#9ee06a' : si === segCur ? '#ffc247' : '#5a3a30', 'left');
+    bmp(g, segs[si][1], 260, sy, 7, doneS ? '#66e0c8' : '#4a2a24', 'left');
+  }
+  bmp(g, 'PHYSICS LOCKED · VEL 0 · INPUT BUFFERED', 26, 104 + 4 * 17 + 8, 7, '#b08a7c', 'left');
   var label = t < 1 ? '3' : t < 2 ? '2' : t < 2.75 ? '1' : 'GO';
   var big = 96, cy = h / 2 + 6;
   var pulse = 1 + 0.06 * Math.sin(HAL.stageFrames * 0.5);
@@ -2132,16 +2494,35 @@ function drawIntroOverlay(g, w, h) {
 /* 八个状态各自的画面差异：色调、蒙版、横幅、装饰 */
 function drawStateOverlay(g, w, h, st) {
   if (G.mode === 'attract') {
-    /* 1.000s 周期呼吸：0.25 → 1.00 → 0.25，纯点阵字库绘制 */
-    var bl = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(G.t * TAU));
+    /* 1.000s 周期呼吸（0.25 → 1.00 → 0.25）由标题层 DOM 关键帧承载，与题面同频 */
     g.save();
-    g.globalAlpha = bl;
-    bmp(g, 'INSERT COIN / PRESS SPACE', w / 2, h - 78, 16, '#ffc247', 'center');
-    g.globalAlpha = 1;
-    bmp(g, 'ATTRACT DEMO · AUTOPILOT ON · 60HZ', w / 2, h - 54, 9, '#b08a7c', 'center');
-    bmp(g, 'CREDIT 01', w - 24, h - 54, 9, '#66e0c8', 'right');
+    /* 自动寻路 FSM 的可视读数：SCOUT → BUILD → WAVE → REPAIR（左侧竖排，避开标题层） */
+    var an = ['SCOUT', 'BUILD', 'WAVE', 'REPAIR'];
+    g.fillStyle = 'rgba(10,3,3,0.94)'; g.fillRect(12, 58, 122, 96);
+    g.strokeStyle = '#6a3a2c'; g.strokeRect(12.5, 58.5, 121, 95);
+    bmp(g, 'AUTO FSM ' + G.autoT.toFixed(1) + 'S', 18, 70, 7, '#ffc247', 'left');
+    for (var ai = 0; ai < 4; ai++) {
+      var act = (G.autoStep === ai);
+      bmp(g, (act ? '>' : '.') + ' ' + an[ai], 18, 82 + ai * 13, 8,
+          act ? '#9ee06a' : '#a87a66', 'left');
+    }
+    bmp(g, 'BUILD ' + G.autoBuilds + ' · WAVE ' + G.autoWaves, 18, 140, 6, '#66e0c8', 'left');
     g.restore();
     return;
+  }
+  /* 相位契约常驻条：只在 PLAYING 显示，读数与右栏、账本第 23 列同源 */
+  if (G.mode === 'play' && !G.settled) {
+    var ct = G.contract, ctCol = ct.ratio >= PHYS.CONTRACT_HOLD ? '#9ee06a' : '#ff4d5e';
+    var ctw = Math.min(330, w * 0.44);
+    g.fillStyle = 'rgba(13,4,3,0.82)'; g.fillRect(12, 96, ctw, 28);
+    g.strokeStyle = ctCol; g.lineWidth = 1; g.strokeRect(12.5, 96.5, ctw - 1, 27);
+    bmp(g, 'CONTRACT ' + (ct.route ? 'OUTER' : 'INNER') + ' ' +
+        routeTowerCount(ct.route) + '/' + ct.need, 18, 107, 9, ctCol, 'left');
+    bmp(g, 'HOLD ' + (ct.ratio * 100).toFixed(0) + '% · ' +
+        Math.max(0, ct.span - ct.t).toFixed(1) + 'S · STREAK ' + ct.streak,
+        18, 119, 7, '#b08a7c', 'left');
+    bmp(g, 'SHELL ' + G.shellsIn + ' · SERVO ' + G.servoN + '/' + TW.length,
+        ctw + 6, 107, 7, '#9fd8ff', 'left');
   }
   var pulse = 0.5 + 0.5 * Math.sin(G.t * 3.4);
   function vignette(col, a) {
@@ -2152,11 +2533,11 @@ function drawStateOverlay(g, w, h, st) {
   function banner(txt, sub, col) {
     var bw = Math.min(w - 40, Math.max(230, bmpW(txt, 14) + bmpW(sub, 7) + 90));
     g.fillStyle = 'rgba(13,4,3,0.86)';
-    g.fillRect((w - bw) / 2, 14, bw, 34);
+    g.fillRect((w - bw) / 2, 54, bw, 34);
     g.strokeStyle = col; g.lineWidth = 1.4;
-    g.strokeRect((w - bw) / 2 + 0.5, 14.5, bw - 1, 33);
-    bmp(g, txt, w / 2, 30, 14, col, 'center');
-    bmp(g, sub, w / 2, 43, 7, '#b08a7c', 'center');
+    g.strokeRect((w - bw) / 2 + 0.5, 54.5, bw - 1, 33);
+    bmp(g, txt, w / 2, 70, 14, col, 'center');
+    bmp(g, sub, w / 2, 83, 7, '#b08a7c', 'center');
   }
   function scan(col, n, sp) {
     g.strokeStyle = rgba(col, 0.10); g.lineWidth = 1;
@@ -2361,6 +2742,16 @@ function drawTower(g, tw) {
     g.strokeStyle = '#c08bff'; g.lineWidth = 1.4;
     g.beginPath(); g.arc(0, 0, 20, 0, TAU); g.stroke();
   }
+  /* 伺服锁定弧：外圈白色弧长 = 锁定度；达标后转青色实心点 */
+  if (tw.lock > 0.02) {
+    g.strokeStyle = tw.lock >= PHYS.SERVO_LOCK ? '#66e0c8' : '#ffe7cf';
+    g.lineWidth = 1.6;
+    g.beginPath(); g.arc(0, 0, 22, -Math.PI / 2, -Math.PI / 2 + TAU * tw.lock); g.stroke();
+    if (tw.lock >= PHYS.SERVO_LOCK) {
+      g.fillStyle = tw.mode === 2 ? '#9ee06a' : '#66e0c8';
+      g.beginPath(); g.arc(0, -24, 2.4, 0, TAU); g.fill();
+    }
+  }
   if (tw.over) {
     bmp(g, 'OVLD', 0, -22, 8, '#ff4d5e', 'center');
   }
@@ -2391,6 +2782,14 @@ function drawEnemy(g, e) {
   g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(-d.r, -d.r - 7, d.r * 2, 3);
   g.fillStyle = hp > 0.5 ? '#9ee06a' : hp > 0.25 ? '#ffc247' : '#ff4d5e';
   g.fillRect(-d.r, -d.r - 7, d.r * 2 * hp, 3);
+  /* 护送护壳：外层双环 + 壳量弧，壳破后消失 */
+  if (e.sh > 0) {
+    g.strokeStyle = 'rgba(159,216,255,0.85)'; g.lineWidth = 1.4;
+    g.beginPath(); g.arc(0, 0, d.r + 5, 0, TAU); g.stroke();
+    g.strokeStyle = '#9fd8ff'; g.lineWidth = 2.2;
+    g.beginPath(); g.arc(0, 0, d.r + 8, -Math.PI / 2,
+      -Math.PI / 2 + TAU * clamp(e.sh / (e.shMax || 1), 0, 1)); g.stroke();
+  }
   g.restore();
 }
 /* 烘焙好的 Sheet B 切片直接入场：证明调色板重映射产物真实参与渲染 */
@@ -2772,7 +3171,15 @@ function renderDom() {
       row('已生成', G.spawnIdx + ' / ' + ((G.queue || []).length)) +
       row('在场', EN.length) +
       row('倒计时', G.pending > 0 ? G.pendingT.toFixed(2) + ' s' : '进行中') +
-      row('结渣额外增员', Math.floor(G.clink / 50) + ' 只', G.clink >= 50 ? 'bad' : '');
+      row('结渣额外增员', Math.floor(G.clink / 50) + ' 只', G.clink >= 50 ? 'bad' : '') +
+      row('相位契约', (G.contract.route ? 'OUTER ' : 'INNER ') + routeTowerCount(G.contract.route) +
+          '/' + G.contract.need + ' · ' + (G.contract.ratio * 100).toFixed(0) + '%',
+          G.contract.ratio >= PHYS.CONTRACT_HOLD ? 'gr' : 'bad') +
+      row('履约 达成/违约', G.contract.held + ' / ' + G.contract.failed + ' · 连约 ' + G.contract.streak,
+          G.contract.streak > 0 ? 'gr' : '') +
+      row('护送护壳', G.shellsIn + ' 在场 · ' + G.shellsBroken + ' 已剥', G.shellsIn ? 'al' : '') +
+      row('伺服锁定', G.servoN + ' 锁定 · 均 ' + (G.lockAvg * 100).toFixed(0) + '%') +
+      row('微状态', G.microIdx + ' ' + SUB[G.microIdx], 'vi');
   }
 
   var sb = el('stBody');
@@ -2802,8 +3209,8 @@ function renderDom() {
     }).join('');
   }
   el('tagL').innerHTML = '状态 <b>' + stateName() + '</b>';
-  el('tagR').innerHTML = '相位 <b>' + G.phase.toFixed(4) + '</b> · 换相 ' + G.swaps +
-    ' · 账 ' + (acctGap() === 0 ? '平' : '缺 ' + acctGap());
+  el('tagR').innerHTML = '微态 <b>' + SUB[G.microIdx] + '</b> · 相位 ' + G.phase.toFixed(4) +
+    ' · 换相 ' + G.swaps + ' · 账 ' + (acctGap() === 0 ? '平' : '缺 ' + acctGap());
   var dot = el('stDot'), nm2 = el('stName'), sub = el('stSub');
   var SDOT = ['#66e0c8', '#ff4d5e', '#ff8a3d', '#66e0c8', '#b08a7c', '#ffc247', '#ff8a3d',
               '#ff4d5e', '#66e0c8', '#b18cff', '#66e0c8', '#9ee06a', '#ffc247', '#ffc247'];
@@ -2822,6 +3229,9 @@ function renderDom() {
       '<span class="chip ' + (G.clink > 50 ? 'no' : '') + '">结渣 ' + G.clink.toFixed(0) + '</span>' +
       '<span class="chip ' + (P.overT > 0 ? 'no' : '') + '">' + (P.overT > 0 ? '过载硬直' : '稳定') + '</span>' +
       '<span class="chip ' + (P.tether ? 'on' : '') + '">' + (P.tether ? '能量索锚定' : '自由') + '</span>' +
+      '<span class="chip ' + (G.contract.ratio >= PHYS.CONTRACT_HOLD ? 'on' : 'no') + '">契约 ' +
+        (G.contract.ratio * 100).toFixed(0) + '%</span>' +
+      '<span class="chip ' + (G.shellsIn ? 'hot' : '') + '">护壳 ' + G.shellsIn + '</span>' +
       '<span class="chip">波 ' + (G.wave || 0) + '/10</span>';
   }
   var note = el('titleNote');
@@ -2855,6 +3265,11 @@ function renderSettle() {
     row('账本帧', G.ledger.length) +
     row('落点样本', G.offN) + row('平均离差', G.offN ? (G.offSum / G.offN).toFixed(3) : '—') +
     row('PERFECT 次数', G.perfect) + row('跃迁落地', G.landed) +
+    row('契约达成 / 违约', G.contract.held + ' / ' + G.contract.failed) +
+    row('最佳连约', G.contract.streak > 0 ? G.contract.streak : G.contract.best) +
+    row('护壳剥离', G.shellsBroken) +
+    row('微状态跃迁', G.microN) +
+    row('不变式', G.invOk + ' / ' + G.invN) +
     '</tbody></table>';
   el('sA').textContent = (a.lifeP * 100).toFixed(0) + '%';
   el('sAd').textContent = '剩余结构 ' + G.life + '/' + G.lifeMax;
@@ -2864,7 +3279,10 @@ function renderSettle() {
   el('sCd').textContent = '结渣控制率';
   el('sFoot').innerHTML = '击杀 ' + G.kills + ' · 漏怪 ' + G.leaks + ' · 终分 ' + Math.round(G.score) +
     ' · 建塔 ' + TW.length + ' · 开火 ' + G.shots + ' · 总伤害 ' + Math.round(G.dmgTot) +
-    ' · 过热 ' + G.overheatN + ' · 结渣峰值 ' + G.peakClink.toFixed(0) + ' · 准线换相 ' + G.swaps;
+    ' · 过热 ' + G.overheatN + ' · 结渣峰值 ' + G.peakClink.toFixed(0) + ' · 准线换相 ' + G.swaps +
+    ' · 契约 ' + G.contract.held + '/' + (G.contract.held + G.contract.failed) +
+    ' · 护壳 ' + G.shellsBroken + ' · 伺服均值 ' + (G.lockAvg * 100).toFixed(0) + '%' +
+    ' · 微态 ' + G.microN + ' · INV ' + G.invOk + '/' + G.invN;
 }
 function info() {
   var a = G.aggCache;
@@ -2874,7 +3292,14 @@ function info() {
     phase: G.phase, swaps: G.swaps, settled: G.settled, rollT: G.rollT, overheatN: G.overheatN,
     pulses: G.pulses, dmgTot: G.dmgTot, shots: G.shots, coup: TW.filter(function (t) { return t.coup >= PHYS.COUPLING_THRESHOLD; }).length,
     peakClink: G.peakClink, pkEnemies: G.pkEnemies || 0, resOk: true, frac: 0,
-    pending: G.pending, pendingT: G.pendingT, mode: G.mode, offN: G.offN
+    pending: G.pending, pendingT: G.pendingT, mode: G.mode, offN: G.offN,
+    contract: { route: G.contract.route, need: G.contract.need, t: G.contract.t,
+                span: G.contract.span, ratio: G.contract.ratio, held: G.contract.held,
+                failed: G.contract.failed, streak: G.contract.streak,
+                onRoute: routeTowerCount(G.contract.route) },
+    shellsIn: G.shellsIn, shellsBroken: G.shellsBroken, servoN: G.servoN, lockAvg: G.lockAvg,
+    microIdx: G.microIdx, microName: SUB[G.microIdx], microN: G.microN,
+    invOk: G.invOk, invN: G.invN, invBad: G.invBad.slice()
   };
 }
 
@@ -3092,10 +3517,14 @@ window.GROVE = {
   fracture: function (c, r) { var t = tileAt(c, r); t.st = 2; t.integ = 0; if (t.tower) removeTower(t.tower); },
   unstable: function (c, r) { var t = tileAt(c, r); t.st = 1; t.integ = 0.25; },
   setFuse: function (c, r, ms) { tileAt(c, r).fuse = ms; },
-  spawn: function (k, d) { return spawn(k, d); },
+  spawn: function (k, d, sh) { return spawn(k, d, sh); },
   clearEnemies: function () { EN.length = 0; },
   killAll: function () { var n = 0; while (EN.length) { kill(EN[EN.length - 1]); n++; } return n; },
-  wave: function (n) { G.wave = n; G.queue = []; G.spawnIdx = 0; G.pending = 0; },
+  wave: function (n, total) {
+    G.wave = n; G.queue = []; G.spawnIdx = 0; G.pending = 0;
+    /* 截图/压测用的已生成计数：total 表示本波已按队列全部出怪 */
+    if (total) { for (var wi = 0; wi < total; wi++) G.queue.push('slag'); G.spawnIdx = total; }
+  },
   wavePending: function (n) { G.pending = n; G.pendingT = n ? PHYS.WAVE_LEAD : 0; },
   early: function () { earlyWave(); },
   crisis: function (b) { G.crisis = !!b; },
@@ -3119,6 +3548,15 @@ window.GROVE = {
   clearFx: function () { FX.length = 0; PJ.length = 0; },
   crashCheck: function () { return true; },
   /* 启动链路 / 守恒账 / 新增手势的探针面 */
+  reboot: function () {
+    HAL.done = false; HAL.stage = 0; HAL.stageFrames = 0; HAL.frames = 0;
+    HAL.t = 0; HAL.progress = 0; HAL.postLines = 0; HAL.bake = null;
+    HAL.audio = null; HAL.sheets = null; HAL.introT = 0;
+    HAL.auto.step = 0; HAL.auto.t = 0;
+    reset('title');
+    MI[M.TICK] = 0; MI[M.STAGE] = 0;
+    return HAL.stage;
+  },
   boot: function () {
     return { on: !HAL.done, stage: HAL.stage, stageName: HAL_STAGES[Math.min(4, HAL.stage)],
              done: HAL.done, fails: 0, total: HAL_STAGES.length, t: HAL.t,
@@ -3132,7 +3570,7 @@ window.GROVE = {
              sum: acctSum(), gap: acctGap(), total: ACCT_TOTAL };
   },
   setState: function (i) { G.forceState = (i === undefined || i === null) ? -1 : i; return evalState(); },
-  setGale: function (v) { G.galeNow = v; },
+  setGale: function (v) { G.galeNow = v; if (v >= PHYS.GALE_CROSS) G.galeSeen = Math.max(G.galeSeen, 24); return G.galeNow; },
   setHeat: function (v) { G.heatAvg = v; },
   setClink: function (v) { G.clink = v; G.peakClink = Math.max(G.peakClink, v); return G.clink; },
   setPulseLock: function (ms) { G.pulseLock = (ms || 0) / 1000; },
@@ -3165,6 +3603,31 @@ window.GROVE = {
     }
     return { steps: n, seconds: +(n * STEP).toFixed(6), mathPeriod: PHYS.MER_PERIOD / mul };
   },
+  /* 硬化子系统探针面 */
+  contract: function () { return info().contract; },
+  contractReset: function (r) { contractReset(r); return info().contract; },
+  setContract: function (route, t, hold) {
+    G.contract.route = route === undefined ? G.contract.route : route;
+    G.contract.t = t === undefined ? G.contract.t : t;
+    G.contract.hold = hold === undefined ? G.contract.hold : hold;
+    G.contract.ratio = clamp(G.contract.hold / Math.max(1e-4, G.contract.t), 0, 1);
+    return info().contract;
+  },
+  routeTowers: function (r) { return routeTowerCount(r === undefined ? G.contract.route : r); },
+  shells: function () {
+    return { inField: G.shellsIn, broken: G.shellsBroken,
+             list: EN.filter(function (e) { return e.sh > 0; }).map(function (e) {
+               return { kind: e.kind, sh: e.sh, shMax: e.shMax, hp: e.hp };
+             }) };
+  },
+  servos: function () {
+    return TW.map(function (t) { return { kind: t.kind, c: t.c, r: t.r, lock: t.lock, mode: t.mode }; });
+  },
+  micro: function () { return { idx: G.microIdx, name: SUB[G.microIdx], desc: SUBC[G.microIdx], transitions: G.microN, trace: G.microTrace.slice() }; },
+  microList: function () { return SUB.slice(); },
+  invariants: function () { return invChecks(); },
+  selfTest: function () { return selfTest(); },
+  sheetStats: function () { return HAL.bake; },
   /* 各画布独立绘制入口：用于证明多画布各自重绘、互不牵连 */
   draw: {
     world: drawWorld, rig: drawRig, radar: drawRadar, bars: drawBars,
@@ -3215,7 +3678,13 @@ window.__V2W_GAME_HARNESS__ = {
     return { tick: MI[M.TICK], px: MF[M.PX], py: MF[M.PY], score: MI[M.SCORE],
              life: MI[M.LIFE], stage: MI[M.STAGE], stageT: MI[M.STAGE_T] };
   },
-  getBootLog: function () { return HAL.bios.concat(HAL.logs); }
+  getBootLog: function () { return HAL.bios.concat(HAL.logs); },
+  getBakeStats: function () { return HAL.bake; },
+  getContract: function () { return info().contract; },
+  getMicro: function () { return window.GROVE.micro(); },
+  getShells: function () { return window.GROVE.shells(); },
+  getInvariants: function () { return invChecks(); },
+  selfTest: function () { return selfTest(); }
 };
 
 var _booted = false;

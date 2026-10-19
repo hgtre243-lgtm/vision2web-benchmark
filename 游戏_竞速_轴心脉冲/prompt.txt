@@ -1,169 +1,248 @@
-请严格依据随附的 8 张参考图，实现一个名为「轴心脉冲 AXELPULSE」的俯视环形漂移竞速游戏。产物为单个自包含 .html 文件，CSS 与 JS 全部内联，双击即可在浏览器中打开，并直接运行于 1280×720 的 #stage 舞台上（更高分辨率下整舞台等比放大，内部坐标系不变）。
+请严格依据随附的 8 张参考图，实现一个名为「轴心脉冲 AXELPULSE」的单文件俯视环形竞速游戏。产物是一个自包含的 .html 文件：CSS、JavaScript、点阵字库、角色与敌机贴图全部内联，双击即可打开；固定运行于 1280×720 的 #stage 舞台上，更高分辨率下整舞台等比缩放，内部坐标系永不变形。不得请求外部图片、字体、音频、脚本或任何网络资源。
 
-世界由一条闭合的非欧环形赛道构成：赛道半径随极角连续起伏（闭合极坐标环，不允许用折线段近似），带宽恒定；横截面被切成 5 条同心环带，每条环带拥有各自的摩擦系数、风剪倍率与感应强度，三条物理量沿「轴心环 → 内切线 → 中线带 → 外切线 → 真空带」严格单调变化。环道划分为 24 段浮屿板，每段板有独立的完好度与寿命引信，被击碎或引信烧尽后坠入不可站立的虚空。车辆以极坐标推进，横向位置落在哪条环带，就实时继承该带的全部动力学与配额规则。环道内缘之内是轴心区，外缘之外是外真空区，两者均不可通行。速度以 km/h 显示，圈次上限 10 圈。
-
-操作仅使用键盘：方向键或 WASD 转向与油门/刹车，另有 10 个高阶手势键（手刹漂移、浮空跃迁、长按蓄能弹射、空间相位翻转、能量索抓取摆荡、浮屿共振同调脉冲、动量下压速坠冲击、竞速功兑换入、牵引储备兑换出、分带配额置换）。每个手势的作用对象与代价都必须真实存在，不可做成无副作用的快捷按钮。主循环必须使用固定步长 1/60 s 的确定性积分，不得使用与真实时间耦合的可变 dt。
+本作的难度来自四个互相写入彼此的闭环子系统、一条四阶段冷启动链、以及一套可被自动化探针逐帧复算的纯数据内核。任何“只显示不参与”的仪表、任何与物理脱钩的动画、任何用对象或继承描述实体的写法，均视为未实现。
 
 ════════════════════════════════════════
-一、硬件抽象层（HAL）与零全局约束
+一、全局交付与零污染约束
 ════════════════════════════════════════
-1. 全部代码包在单个 IIFE 内。全局只允许存在两个名字：window.AXELPULSE（游戏 API）与 window.__V2W_GAME_HARNESS__（压测探针）。不得挂载任何调试变量、状态对象、计时器句柄或缓存表。
-2. 所有核心状态必须落在一块 65536 字节的 ArrayBuffer 上，且只通过三个视图读写：
-   - Int32Array(HAL.AB)  → 整数槽位；
-   - Uint8Array(HAL.AB)  → 字节视图；
-   - Float32Array(HAL.AB, 2048) → 浮点槽位，必须从字节偏移 2048 起。
-   整数槽位至少包含：TICK=0、STAGE=1、SCORE=2、PX=3、PY=4、LIFE=5、STAB=6、FATIGUE=7、STRAIN=8、LAP=9、GAP=10、HEAD=11、TAIL=12、KEYQ=32。浮点槽位至少包含：PX=0、PY=1、VX=2、VY=3、TH=4、U=5、ALT=6、VZ=7、T=8、CHARGE=9。
-   玩家坐标以 ×100 定点落在整数槽，速度、角度、高度、蓄能走浮点槽；G.score / G.lap / G.life / G.stab / G.fatigue / G.strain / G.chargeM 必须由这些槽位的访问器承载，不得另存一份影子变量。
-   注意：整数槽 LAP=9 与浮点槽 CHARGE=9 分属两个视图，互不相干；任何把蓄能写进整数视图的实现都会覆盖圈数，属于硬错误。
-3. 按键队列必须是 256 字的环形缓冲，元素打包为 ((scanCode & 127) << 1) | down，head/tail 存在整数槽 HEAD/TAIL。写入不得伪造 DOM 键盘事件，也不得依赖真实焦点。
-4. 画布文本一律使用内置 5×7 位图字库：不得出现 ctx.font、ctx.fillText、ctx.strokeText、ctx.measureText 或任何 .font 赋值。字符表至少覆盖 A–Z、0–9、空格与常用标点；小写统一转大写；缺字符号只允许用 '?' 占位，但成品画面上不得真的出现由未翻译汉字退化而来的 '?'。
-5. 字形必须离屏栅格化并缓存为位图画布（imageSmoothingEnabled=false），同一文本/颜色/倍率只生成一次。对齐语义由文本颜色与 c.textAlign 决定：left/center/right 均在绘制函数内部换算成左上角坐标；y 参数表示文本底边，实际绘制于 y−7×scale。
-6. 画布上的中文必须先经替换表译成 ASCII 再栅格化。替换表按「键长降序」排序后逐条替换，避免短词吃掉长词（例如「轴心」先于「轴心环」命中）。替换后再把残余非 ASCII 字符降到 '?'。DOM 覆盖层的文字可以保留中文，但六块 canvas 上不得残留任何汉字或 '?'。
-
-════════════════════════════════════════
-二、五阶段确定性启动（帧数精确，逐帧可复算）
-════════════════════════════════════════
-启动不是一段进度条动画，而是五个互斥阶段。每阶段有独立帧计数 HAL.frame，进入下一阶段时清零。整条链路由 tick(1/60) 驱动，rAF 只负责重绘。
-
-阶段 1　POST_RAM_CHECK（72 帧，约 1.2 s）
-- 全屏自检终端画面：标题 POST_RAM_CHECK，右上角实时打印「STAGE 0 / FRAME nn / 72」。
-- 逐行打印且必须逐字包含以下三条：`VRAM ALLOC: 0x8000 OK`、`AUDIO_CORE: DUAL_PULSE OK`、`PRNG SEED BOUND: OK`。
-- 其余自检行至少覆盖：HYDROSTAT BIOS 2.6 / ARCADE HARDWARE、CPU: 68000 COMPAT / 60 HZ FIXED TICK、RAM CHECK 64K、PALETTE RAM 16 X RGB444、NOISE LFSR-17、SHEET A 4-BIT INDEXED、SHEET B PALETTE SWAP X16、JAMMA 7-BIT SCAN RING、DETERMINISTIC CLOCK 1/60、ATTRACT PATHFINDER、BOOT COMPLETE / HAND OFF TO BAKING。
-- 底部必须有内存转储行，首行字节可读为 AXELPULSE 的 ASCII 码，证明 64 KiB 缓冲确实存在且被写过。
-- 第 72 帧结束，切 PALETTE_BAKING，帧计数归零。
-
-阶段 2　PALETTE_ASSET_BAKING（84 帧；探针枚举名为 PALETTE_BAKING）
-- 屏幕标题 PALETTE_ASSET_BAKING；左右两栏。
-- Sheet A：4 位索引色，必须现场画出角色 4 帧（FRAME 1..4）、一行 4 个敌人（ENEMY）、以及 8×2 共 16 块地形砖；帧序与砖块随烘焙进度逐格点亮，未完成帧保持暗色。
-- Sheet B：16 色调色板交换，必须画出 16 个色块，并叠加一条扫描线把上半区做明度偏移，证明调色板交换真实发生。
-- 像素进度条从 0 走到 100%，旁边大字打印 `BAKING nn%`。
-- 底部注明 `64K ARRAYBUFFER / 256-WORD SCAN RING / 0 EXTERNAL FETCH`，并左右打印各表状态（SHEET A OK / SHEET B / PALETTE）。
-- 第 84 帧结束，切 CHIP_AUDIO_WARMUP，帧计数归零。
-
-阶段 3　CHIP_AUDIO_WARMUP（54 帧）
-- 屏幕标题 CHIP_AUDIO_WARMUP，副标题 `2 X PULSE OSCILLATOR + 1 X WHITE NOISE SOURCE`。
-- 音频必须真实建立：两个方波 OscillatorNode（占空比 50% 与 25%）加一个白噪声 AudioBufferSourceNode（线性反馈移位寄存器生成样本）。
-- 两个振荡器在 150 ms 内同时从 440 Hz 线性扫到 880 Hz；画面上把两路方波与噪声脉冲同屏绘制，肉眼可见扫频密度变化。
-- 文案必须包含 `SWEEP 440 > 880 HZ / 150 MS`、`OSC1 SQUARE 50% / OSC2 SQUARE 25% / NOISE LFSR-17`、`AUDIO_CORE: DUAL_PULSE OK`，末尾打印 AUDIO READY。
-- 第 54 帧结束，切 ATTRACT_TITLE，帧计数归零；音频上下文保持到游戏结束。
-
-阶段 4　ATTRACT_TITLE（不定长，吸引模式）
-- 左侧是自动寻路演算的实况回放：由确定性转向逻辑驱动一台幽灵车跑环道，画面必须是真实解算结果，不得是录像或静态图；边框标注 `AUTO PATHFINDING ATTRACT REPLAY`。
-- 右侧是标题与招商信息：AXELPULSE 大字、副标题 AXIS PULSE / ORBITAL DRIFT、`5 BANDS / 24 PLATES / 10 LAPS`、`DUAL PULSE AUDIO / 5X7 HAL FONT`。
-- `INSERT COIN / PRESS SPACE` 必须按 1.0 s 周期的正弦呼吸（透明度或亮度连续变化），下方打印 COIN 00 CREDIT 00。
-- 列出三档难度：1 EASY / 2 NORMAL / 3 HARD；数字键可切换。
-- 右下打印 `HAL STAGE 3 / ATTRACT_TITLE` 与已运行秒数 T n.nn S。
-- 该阶段不推进比赛物理，但幽灵车与风场继续演算；分数、圈数、蓄能不得变化。
-
-阶段 5　STAGE_INTRO_LOCK（180 帧 = 3.0 s）
-- 由投币/空格触发。背景继续跑视差与呼吸，但物理完全锁定：油门、刹车、跃迁、蓄能、速坠、索、脉冲一律无效，车辆停在起跑格。
-- 中央显示 3-2-1-GO：0–54 帧显示 3，54–108 帧显示 2，108–162 帧显示 1，162–180 帧显示 GO；第 180 帧放行并切换到 PLAYING。
-- 必须同时打印剩余时间 `DEPLOY IN n.nn S` 与一条自左向右的进度条；剩余时间与进度条必须由「180 − 当前帧」直接推导，数字、进度与倒计时字三者严格自洽（例如帧 70 显示 2、剩余 1.83 s、进度约 39%）。
-- 标题行打印 `STAGE_INTRO_LOCK / PHYSICS LOCKED`。
-- 第 180 帧结束，切 PLAYING，解除物理锁并清空启动画布；PLAYING 之后不得再出现任何启动遮罩。
-
-终局阶段　GAME_OVER
-- 10 圈完赛、稳定性耗尽、结构性解体或探针强制结算后进入。进入时冻结物理、关闭启动画布、把 HAL.stage 置为 GAME_OVER，并显示结算面板。
+1. 全部代码包在单个 IIFE 内。全局只允许存在两个名字：window.AXELPULSE（游戏 API）与 window.__V2W_GAME_HARNESS__（压测探针）。不得挂载调试对象、计时器句柄、实体表、DOM 引用表或缓存字典。
+2. 舞台为 1280×720。内部分块固定如下，尺寸不得改动：
+   - 顶栏 #bar：标题、TOP 阶段徽标、子状态徽标、耦合位掩码、TICK/HEAT/POSTURE/ELEM 实时读数；
+   - A 区 #world：816×548，环形赛道、实体、粒子、世界 HUD；
+   - B 区 #thermal：424×150；
+   - C 区 #posture：424×146；
+   - D 区 #elements：424×124；
+   - E 区 #hfsm：424×110；
+   - F 区 #ledger：1256×96；
+   - 全屏 #bootcv：1280×720，z-index 高于所有 DOM 面板，仅启动与结算遮罩阶段显示。
+   六块业务 canvas 各自持有独立 2D 上下文、独立绘制函数，禁止先画进大图再裁切。
+3. 画布上的一切文字必须来自内置 5×7 点阵字库（A–Z、0–9、空格及常用标点）。严禁出现 ctx.font、ctx.fillText、ctx.strokeText、ctx.measureText 或任何 .font 赋值。小写统一转大写。画布上不得出现汉字或由汉字退化而来的 '?'；中文只允许出现在 DOM 的 pane 标签与结算面板中。
+4. 点阵绘制函数为 pxText(ctx, str, x, y, scale, color)：x/y 是文本左上角，字宽 6*scale，字高 7*scale；pxTextR 以右边界对齐，pxTextC 以中心对齐，二者必须在函数内部换算成左上角坐标，不得依赖 ctx.textAlign。
+5. 主循环固定 1/60 s 步长。rAF 只负责重绘；所有物理、状态机、计时、随机数只在 tick(1/60) 内推进。不得用真实 dt 积分，不得用 setTimeout 推进游戏。
+6. 确定性：随机数使用状态写在内存控制块中的 LCG：
+   s = (Math.imul(s, 1664525) + 1013904223) | 0；rnd() = ((s >>> 8) & 0xffffff) / 0x1000000。
+   同一输入序列必须得到逐位相同的世界状态与校验和。
 
 ════════════════════════════════════════
-三、压测探针协议 window.__V2W_GAME_HARNESS__
+二、架构红线：纯面向数据（Pure DOD / ECS）
 ════════════════════════════════════════
-1. getStage() 必须原样返回下列字符串之一：
-   "POST_RAM_CHECK" | "PALETTE_BAKING" | "ATTRACT_TITLE" | "STAGE_INTRO" | "PLAYING" | "GAME_OVER"。
-   注意：屏幕上阶段 2 的标题写作 PALETTE_ASSET_BAKING，但探针枚举值必须写作 PALETTE_BAKING；屏幕阶段 5 标题写作 STAGE_INTRO_LOCK，探针枚举值必须写作 STAGE_INTRO。
-2. injectScanCode(scanCode, isDown)：把一次按下/抬起写进 256 字环形缓冲，不得调用 dispatchEvent 或伪造 KeyboardEvent。位定义固定为：
-   1=UP，2=DOWN，4=LEFT，8=RIGHT，16=BUTTON_A，32=BUTTON_B，64=COIN/START。
-   在 ATTRACT_TITLE 中注入 64 必须立即进入 STAGE_INTRO；在 PLAYING 中按位驱动车辆；其余阶段只入队不生效。
-3. step(frameCount)：以固定 1/60 s 连续调用内部 tick，返回累计 tick 数。一旦被调用，rAF 循环只允许重绘，不得再推进时钟（HAL.manual 接管）。因此同一输入序列在任何时刻调用 step 都必须得到逐位相同的结果。
-4. getStateChecksum() 必须严格使用：
-   ((tickCount * 31) ^ (playerX_fixed * 17) ^ (playerY_fixed * 13) ^ score) >>> 0
-   其中 playerX_fixed / playerY_fixed 为内存中的 ×100 定点整数，score 取整。同一帧连续调用两次必须相等；在无输入的空跑中不得漂移。
-5. getMemory() 至少返回 { bytes, tick, head, tail, buffer }，bytes 必须恒为 65536。
-6. 探针不得改变渲染路径：注入按键后画面的表现必须与真人按键一致。
+1. 严禁 OOP 实体继承。不得出现 class Player、class Enemy、class Bullet extends Entity、new Entity()、this.x 之类以对象承载实体的写法；不得存在实体对象数组、实体方法、每实体闭包。实体只是池中的整数槽位。
+2. 所有实体数据落在同一块 new ArrayBuffer(65536) 上，按以下绝对偏移切分，偏移与长度必须精确：
+   - CTL  = Int32Array(AB, 0,     2048)   控制块，0..8191 B
+   - TR   = Float64Array(AB, 8192, 1024)  TransformComponentPool，8 KiB
+   - MO   = Float64Array(AB, 16384,1024)  MotionComponentPool，8 KiB
+   - TH   = Float64Array(AB, 24576,1024)  ThermalComponentPool，8 KiB
+   - PO   = Float64Array(AB, 32768,1024)  PostureComponentPool，8 KiB
+   - CB   = Float64Array(AB, 40960,1024)  CombatComponentPool，8 KiB
+   - ME   = Int32Array(AB,  49152,1024)   实体元数据，4 KiB
+   - EL   = Int32Array(AB,  53248,1024)   元素位掩码，4 KiB
+   - RING = Int32Array(AB,  57344, 256)   硬件输入环，1 KiB
+   - 0xE400..0xFFFF 为保留区，不得越界写入。
+   实体容量 128（槽 0 固定为玩家），每实体步长 S=8，故每个 Float64 池恰好 1024 槽。
+3. 组件槽语义（渲染、系统、探针均只按此读写）：
+   TR：0 x，1 y，2 上一帧 x，3 上一帧 y，4 朝向弧度，5 上一帧朝向，6 缩放，7 极角累计行程（仅玩家用于圈数判定）。
+   MO：0 vx，1 vy，2 速率 px/s，3 径向速度，4 极半径 r，5 极角 theta，6 角速度 omega，7 质量系数。
+   TH：0 热量 0..100，1 当前对流冷却率，2 油门标记，3 过载剩余秒，4 WET 剩余秒，5 BURN 剩余秒，6 OIL 剩余秒，7 ELEC 剩余秒。
+   PO：0 倾角 −90..+90，1 倾角角速度，2 姿态 0..100，3 STUMBLE 剩余秒，4 弹反/闪避窗口剩余秒，5 后坐计数，6 Trim 标记，7 闪避帧标记。
+   CB：0 结构值，1 护盾，2 射击冷却秒，3 敌机射击冷却秒，4 承伤倍率（1 或 3），5 阵营（1 玩家 / 2 敌机），6 备用，7 备用。
+   ME：0 槽位号，1 类型，2 存活，3 阵营，4 子类型/变体/危险区种类，5 辅助相位，6 寿命帧，7 备用。
+   EL：0 元素位掩码，1 电弧冷却帧，2 蒸汽冷却帧。
+   实体类型：E_NONE=0、E_PLAYER=1、E_DRONE=2、E_PLATE=3、E_HAZARD=4、E_SHOT=5、E_GHOST=6。
+4. 系统必须是顶层无状态纯函数，函数体内不得保存跨帧私有变量，不得直接访问 DOM/canvas，只接收以下签名：
+   InputSystem()
+   MovementSystem(dt, P, input, top)
+   ThermodynamicSystem(dt, P)
+   PostureSystem(dt, P, input)
+   ElementReactionSystem(dt, P)
+   CombatSystem(dt, P, input, demo)
+   HFSMSystem(dt, P)
+   RaceSystem(dt, P)
+   HazardSystem(P)
+   其中 P = {CTL,TR,MO,TH,PO,CB,ME,EL}。跨帧可变状态一律写入 CTL 或对应池；系统之间只通过池通信。唯一的顶层可变数据允许是离屏烘焙贴图、舞台尺寸与 HAL 驱动标志，它们不得承载任何玩法状态。
+5. 实体生灭只允许通过 entSpawn(type,x,y) / entKill(i)：前者线性扫描 ME 中类型为 E_NONE 的空槽，返回槽号；后者把类型清零、存活清零、EL 清零、CB 前两槽清零。禁止数组 push/splice 增删实体。
+6. 控制块至少包含：TICK=0、HEAD=1、TAIL=2、TOP=3、SUB=4、SUBT=5、PHASE=6、PF=7、SEED=8、MANUAL=9、HEAT=11、POSTURE=12、ELEM=13、PARRY=14、START=15、ZOOM=16、SHAKE=17、LAP=18、LAPF=19、RACE=20、SCORE=21、KILL=22、PARRYOK=23、MAXHEAT=24、STUMB=25、OVER=26、BAKEP=28、BAKEPX=29、BAKENZ=30、UNIQ=31；输入保持计数 40..46，PREV=47；守恒账本 64..68。
 
 ════════════════════════════════════════
-四、竞速内核（PLAYING 阶段的强耦合系统）
+三、冷启动流水线（帧数精确，逐帧可复算）
 ════════════════════════════════════════
-以下子系统不得少于 12 个，彼此必须互相读写，严禁出现只显示不参与的装饰条：
-1. 非欧极坐标环道解算核心（闭合曲线采样、内外缘判定、带宽归属）。
-2. 五带微气象与风切矢量场（逐带风剪、切向风与横向风合成）。
-3. 分带配额与汇率包络引擎（逐带配额、逐圈重发、抽取、置换与手续费）。
-4. 车辆动力学与非线性阻尼（极坐标推进、漂移滑移角、顺逆风差异）。
-5. 浮屿板衰变与崩落体系统（完好/引信/虚空三态、碎片生成、重建、回收与逾期）。
-6. 主动式蓄能与过载熔断引擎（三段氮气、蓄能压缩、越限截断与可见泄放）。
-7. 承压应变与稳定性储备双轴耦合（承压升高挤占转向权限，稳定性被侵蚀）。
-8. 结构疲劳与动态分支决策器（疲劳累积触发危机分支与轴心卫戍实体）。
-9. 外部波次放行与清波回收（按帧号预排的 12 波计划、在场实体、回收计数）。
-10. 整数守恒记账与逐帧事件溯源账本（五科目、缺口恒零、环形事件缓冲 ≥48 条）。
-11. 同调驻留与时延判定器（低速窗口、驻留累计、跃迁余量置位）。
-12. 种子化确定性初始化（同一 seed 必须复算出逐像素一致的派生指纹）。
+顶阶段枚举与探针字符串必须严格为：
+BOOT / ATTRACT_DEMO / GAME_READY / ACTIVE_CYCLE / SETTLEMENT。
+BOOT 内部四相位枚举与探针字符串必须严格为：
+POST_MEMORY_MAP / DUAL_PALETTE_PROCEDURAL_BAKING / ATTRACT_MODE_CALIBRATION / COUNTDOWN_3S_LOCK。
 
-十四阶互斥状态机（仅在 PLAYING 内运行，与 HAL 五阶段正交）：
-BOOT_SEQUENCING → TITLE_LOBBY → SEEDED_INITIALIZING → GRID_LOCKED → ACTIVE_ENGAGED → ATTUNEMENT_DWELL → GALE_CROSS → WAVE_ENGAGED → DYNAMIC_BRANCHING → STRAIN_CRITICAL → QUOTA_EXHAUSTED → OVERLOAD_PENALTY → CRISIS_FAILED_ROLLBACK → RUN_SETTLED_LEDGER。
-优先级（自高至低）：RUN_SETTLED_LEDGER > CRISIS_FAILED_ROLLBACK > OVERLOAD_PENALTY > STRAIN_CRITICAL > QUOTA_EXHAUSTED > GRID_LOCKED > WAVE_ENGAGED > DYNAMIC_BRANCHING > GALE_CROSS > ATTUNEMENT_DWELL > SEEDED_INITIALIZING > ACTIVE_ENGAGED。
-裁决必须写成「候选集合 + 优先级表」两段数据再取最高者，禁止用 if/else 的书写顺序碰巧凑对。HUD 顶栏的状态徽标必须与裁决结果同帧一致。
+阶段 0　POST_MEMORY_MAP（60 帧 = 1.000 s）
+- 全屏纯黑终端，仅用 5×7 点阵字。标题 POST_MEMORY_MAP；副标题 COLD BOOT 004 / HARDWARE ALLOCATION TRACE；右上角实时打印 STAGE 0 / 1.000 S / Fnn。
+- 左侧逐行打印硬件分配日志，至少 17 行，且必须逐字包含：
+  AXELPULSE M68K MONITOR 2.6 / 64K、ARRAYBUFFER 65536 B ... MAPPED、
+  00000-01FFF CONTROL I32 2048W OK、02000-03FFF TRANSFORM F64 1024W OK、
+  04000-05FFF MOTION F64 1024W OK、06000-07FFF THERMAL F64 1024W OK、
+  08000-09FFF POSTURE F64 1024W OK、0A000-0BFFF COMBAT F64 1024W OK、
+  0C000-0CFFF ENTITY META I32 OK、0D000-0DFFF ELEMENT MASK I32 OK、
+  0E000-0E3FF SCAN RING 128 EVT OK、STACK 0FF00 > 0E400 ... INTACT、
+  CRC16 B7E2 ... PASS、AUDIO YM2151 DUAL PULSE ... INIT、NOISE LFSR-17 ... SEEDED、
+  FIXED CLOCK 1/60 ... LOCK、HANDOFF > PALETTE BAKE。
+- 右侧绘制 MEMORY MAP / 64K：10 条横向块 CTL/TR/MO/TH/PO/CB/ME/EL/RING/FREE，标注 0x0000/8K、0x2000/8K、0x4000/8K、0x6000/8K、0x8000/8K、0xA000/8K、0xC000/4K、0xD000/4K、0xE000/1K、0xE400/7K，每行末尾 OK。块的宽度必须与区域大小成比例。
+- 左下逐帧闪烁绿色方块，并打印 NO OOP / NO ENTITY CLASS / PURE POOL。
+- 第 60 帧结束，秒表清零，切 DUAL_PALETTE_PROCEDURAL_BAKING。
 
-仪表（至少 15 个，分布在 6 块独立 canvas 上）：
-① 速度矢量仪 ② 风切矢量罗盘 ③ 五层环带整表（摩擦/风剪/配额/上限） ④ 承压应变条 ⑤ 实时损耗率监视器（GAS/STB/STR/STN 四路等距） ⑥ 稳定性储备 ⑦ 结构疲劳 ⑧ 氮气三段能量 ⑨ 蓄能压缩量（含安全线） ⑩ 分带配额沙盘 ⑪ 分带汇率包络与置换账 ⑫ 浮屿寿命环形条 ⑬ 同调充盈环 ⑭ 守恒科目表 ⑮ 收益倍率账本与连击蓄能槽。
-每块 canvas 独立尺寸、独立上下文、独立绘制函数，禁止先画一张大图再裁切。任何仪表在运行中读数恒定不动，视为未实现。
+阶段 1　DUAL_PALETTE_PROCEDURAL_BAKING（150 帧 = 2.500 s）
+- 全屏烘焙画面，标题 DUAL_PALETTE_PROCEDURAL_BAKING；右上角 STAGE 1 / Fnnn / 150。
+- 在两张隐藏的 256×64 离屏画布上真实作画，不得引用外部图：
+  Sheet A 绘制 4 帧角色骨架（每帧 64×32，位于 f*64,0）与 4 个敌机块（f*64,32）；
+  Sheet B 使用同一索引平面，只做调色板重映射。
+- 4 位索引必须从源像素红通道推导：idx = round(red / 17)，clamp 0..15。建立两条 16 项 LUT：LUT_N（正常）与 LUT_IR（红外热像），逐像素把索引映射为 RGBA；index=0 的 alpha 必须为 0，其余为 255，否则世界里的旋转贴图会出现黑方块。
+- 烘焙必须列优先推进：按 i 扫描索引平面时 col = floor(i/64)、row = i%64、源地址 si = row*256+col，使整张图的每一列同步点亮，进度条与真实像素一一对应。每帧推进 112 个索引像素（16384 像素约 147 帧完成）。
+- 画面左右两栏显示 Sheet A/B 的 512×128 放大预览、16 格 LUT 色带、边框与说明：
+  NORMAL PALETTE LUT / 16 ENTRIES、INFRARED THERMAL LUT / 16 ENTRIES、
+  SHEET A / 4 FRAME SKELETON + 4 ENEMY TILES / 256 X 64、SHEET B / SAME INDEX / THERMAL REMAP。
+- 居中真实像素加权进度条：1080×40，6 px 竖条格栅，颜色粉紫交替；下方大字 BAKING nn%。
+- 读数行必须是真实计数，不得写死：READBACK 非零像素/总非零像素、NONZERO、UNIQUE n/16、INDEX PLANE n/16384；LUT_N 在进度 >50% 后显示 OK，LUT_IR 在 >75% 后显示 OK。
+- 底部通栏 ALL PIXELS GENERATED IN MEMORY / NO IMAGE FETCH / NO FONT API。
+- 第 150 帧结束，调用 resetRun() 进入 ATTRACT_DEMO，PF 归零。
 
-十种手势（均须有代价与冷却）：
-手刹漂移（滑移角越限时衰减速度并转化为竞速功）、浮空跃迁（消耗跃迁余量）、长按蓄能弹射（越限即熔断）、空间相位翻转（旋转锁定窗口内失效）、能量索抓取摆荡（脱索窗口内不可再抓）、浮屿共振同调脉冲（先完成驻留才可释放）、动量下压速坠冲击（高速俯冲非线性放大）、竞速功兑换入、牵引储备兑换出、分带配额置换。
+阶段 2　ATTRACT_MODE_CALIBRATION（不定长）
+- 世界照常运行：确定性 600 帧自动驾驶输入带驱动玩家跑环道，无人机与危险区更新；全部为真实解算，不是录像。
+- 标题 AXELPULSE 以大号点阵绘制（scale 8），叠加同位置低透明度蓝色重影形成辉光。标题下方四行字幕：
+  AXEL PULSE / THERMAL POSTURE CASCADE RACER
+  5 BANDS / 24 PLATES / 64K POOLS / HFSM 5X5 GUARD
+  ATTRACT_MODE_CALIBRATION
+  AUTOPILOT REPLAY 600F / DRONES n / INPUT DEBOUNCE 8F
+  第四行必须实时写入当前存活无人机数。
+- 前 72 帧（1.2 s）显示 CALIBRATING nn%；之后才允许接受 START。PRESS START 必须在 (468,438,344,54) 的亮黄底板上，以 72 帧周期、0.5+0.5*sin 的正弦呼吸改变整块透明度；下方 INSERT COIN / SCAN 64 同步呼吸。
+- 按键去抖固定 8 帧：scanCode 必须写入 128 槽环形缓冲（RING[head&127]=code，head 环形前进，满时推进 tail），由下一物理 tick 的 InputSystem 消费。START 只在“上升沿”触发，且 PF>72 时进入 COUNTDOWN_3S_LOCK。
+- 演示回路无伤：伤害函数在 ATTRACT_DEMO 直接返回；分数、圈数保持不变。
 
-三大反直觉地雷（必须原样实现，并由启动后不变量自检真实检测）：
-1. 接触同调时延：落在锚点上不得立即重置跃迁余量；必须在 |v| < 0.05 下连续驻留 350 ms 才置位。
-2. 零被动恢复：能量、护盾、动能、稳定性不随时间自然回升；停在浮屿边缘每秒扣 5% 稳定性。3 秒零输入不得出现任何正向增长。
-3. 反常识风阻：顺风方向阻力被放大 40%，顺风反而更慢；逆风产生升力；离台下沉随撞击强度超线性增长，反方向弹起恢复系数固定 0.68；离台满 500 ms 后残余结构碎裂为虚空。
-
-守恒账本：
-五个整数科目——屿壳总和、牵引储备、蓄能存量、竞速功、熵损。任何手势、兑换、置换、崩落、回溯、结算都必须在同一帧内对至少两个科目做相反方向记账。恒定不变式：五科目之和恒等于 200000 千分位总额，「缺口」恒等于 0。账本逐条记录帧号、时间、事件类型、金额与注记，环形缓冲 ≥48 条，并至少在 HUD 的科目表中显示最近三条。
-
-════════════════════════════════════════
-五、画面布局
-════════════════════════════════════════
-#stage 为 1280×720 的等比舞台，内部包含 6 块 canvas：
-- 左列：world（主视窗·环道剖面，约 610×560）、radar（环境雷达与远端预警，约 610×120）；
-- 右列：rig（动态仪表组，约 690×330）、quota（分带配额沙盘与汇率包络，约 690×76）、rings（环形计量，约 690×110）、ledger（收益倍率账本与守恒科目，约 690×108）。
-外框由 DOM/CSS 绘制，窗格标题用中英混排；canvas 内的所有文字必须走 5×7 位图字库。
-启动画布 #bootcv 覆盖整个舞台、z-index 高于 HUD、pointer-events:none，在 ATTRACT_TITLE 之前显示自检/烘焙/音频画面，PLAYING 与 GAME_OVER 时彻底隐藏。
-
-════════════════════════════════════════
-六、八张参考图与运行状态的对应（必须逐张自洽）
-════════════════════════════════════════
-img_001.png —— POST_RAM_CHECK，帧 60/72。全屏自检终端：三行必备自检字符串必须可逐字读出；右上角显示 STAGE 0 / FRAME 60 / 72；底部内存转储首行可读为 AXELPULSE。
-img_002.png —— PALETTE_ASSET_BAKING，进度 56%。Sheet A 显示 4 帧角色、4 个敌人、16 块地形砖（后段尚未点亮）；Sheet B 显示 16 色块与扫描线；像素进度条约 56%，大字 BAKING 56%。
-img_003.png —— CHIP_AUDIO_WARMUP，帧 33。两路方波与噪声脉冲同屏；文案含 SWEEP 440 > 880 HZ / 150 MS 与 AUDIO_CORE: DUAL_PULSE OK；右下 AUDIO READY。
-img_004.png —— ATTRACT_TITLE，T 1.25 s。左框为自动寻路回放，右侧为 AXELPULSE 标题、INSERT COIN / PRESS SPACE（处于呼吸周期中）、COIN 00 CREDIT 00、三档难度、HAL STAGE 3 / ATTRACT_TITLE。
-img_005.png —— STAGE_INTRO，帧 70/180。中央倒计时数字 2，下方 DEPLOY IN 1.83 S，进度条约 39%，标题 STAGE_INTRO_LOCK / PHYSICS LOCKED；HUD 被压暗但仍可辨认；车辆与物理处于锁定态。
-img_006.png —— PLAYING / WAVE_ENGAGED。速度约 18 km/h，圈次 0/10，波次 4/12，轴心耦合余量 26.0；五带整表、承压 21.0、氮气 74%、蓄能 2600、守恒科目五项之和 200000 且缺口 0；账本可见 STATE / WAVE ENGAGED 等条目；状态徽标 WAVE_ENGAGED。
-img_007.png —— PLAYING / OVERLOAD_PENALTY。状态徽标切换为 OVERLOAD_PENALTY，主视窗底部横幅打印 OVERLOAD LOCK 1.8 S / STEERING LOCKED；承压条 99.0 触顶；MID 带配额归零并显示 EXTRACT HALTED；⑨ 蓄能压缩量处于可见泄放窗口，读数仍为正值并逐帧下降；账本记录 STATE / OVERLOAD STUN。
-img_008.png —— GAME_OVER / RUN_SETTLED_LEDGER。结算面板：标题为结算原因，副行给 RUNID、种子、难度、仿真帧数与时长；18 格数据表覆盖圈次进度、清波回收、累计得分、峰值倍率、轴心耦合余量、牵引储备、守恒缺口、结构疲劳峰值、承压峰值、速坠冲击、核心区锚定、平均落点精准度、相位/弹射/索计数、过载熔断、崩落体回收与逾期、风切穿越、账本事件、边缘暴露；页脚为评级字母、综合评分与七条分轴评分。
-
-════════════════════════════════════════
-七、红线（任一违反即整题判负）
-════════════════════════════════════════
-1. 单个 .html，CSS/JS 全内联；禁止 CDN、iframe、外部图片、外部音频与任何网络请求。
-2. 所有图像由 Canvas 程序化绘制，所有音效由 Web Audio 合成。
-3. 不得出现 ctx.font / fillText / strokeText / measureText；不得有任何 DOM 文字被画进 canvas。
-4. 不得在 window 上暴露除 AXELPULSE 与 __V2W_GAME_HARNESS__ 以外的名字。
-5. 64 KiB ArrayBuffer 必须真实分配并被读写；Float32 视图必须从字节偏移 2048 开始。
-6. 1280×720 下直接启动，初始画面非白非黑；连续运行 60 秒不得出现未捕获异常。
-7. 五阶段帧数必须精确为 72 / 84 / 54 / 不限 / 180；探针 getStage 在边界处必须返回下一阶段的枚举值且 getStageFrame 归零。
-8. 主循环固定 1/60 s；探针接管后 rAF 不得推进时钟；同一输入序列的校验和必须逐位一致。
-9. 五科目之和在任意时刻恒等于 200000，缺口恒为 0；连续 60 秒与 400 次随机 API 揉搓后仍为 0。
-10. 画布上不得出现未翻译汉字或由翻译失败产生的 '?'。
+阶段 3　COUNTDOWN_3S_LOCK（180 帧 = 3.000 s）
+- 进入时 resetRun()，物理与位移完全锁定：玩家 omega 与 speed 归零，油门/刹车/转向/开火不产生位移；但视差星野、环带、浮屿板、无人机、粒子继续运行。
+- 摄像机平滑推近：ZOOM = 100 + round(15 * min(1, PF/180))，即 1.00→1.15，期间画布可见连续缩放。
+- 中央大号点阵数字按 45 帧一拍：0–44 显示 3 与 HEAT GRID ONLINE；45–89 显示 2 与 POSTURE GYRO ONLINE；90–134 显示 1 与 ELEMENT CASCADE ARMED；135–179 显示 ENGAGE 与 CONTROL LOCK RELEASED。每一拍内部用 1+0.10*sin(beat/45*π) 做轻微脉冲缩放；字形必须叠加四份深色偏移副本形成街机描边。
+- 同时显示 COUNTDOWN_3S_LOCK / ZOOM n%、自左向右的进度条与 T-n.nn（由剩余帧数直接推导）。
+- 第 180 帧调用 resetRun() 后进入 ACTIVE_CYCLE，隐藏启动画布；此后直到结算不得再出现任何启动遮罩。
+- SETTLEMENT 由圈数、死亡或 90 s 上限触发；显示结算面板，START 可重新进入倒计时。
 
 ════════════════════════════════════════
-八、交付前自测（全部通过才算完成）
+四、四重耦合子系统（全部真实互写）
 ════════════════════════════════════════
-① 五阶段边界：step 至 72 → PALETTE_BAKING 帧 0；再 84 → CHIP_AUDIO_WARMUP 帧 0；再 54 → ATTRACT_TITLE 帧 0；注入 64 → STAGE_INTRO 帧 0..179；再 1 帧 → PLAYING。
-② ATTRACT 与 PLAYING 各连续两次 step(0)，checksum 必须相等；注入方向+油门步进 30 帧后 checksum 必须改变。
-③ getMemory().bytes === 65536；注入 4 次按键后 head=4、tail=0。
-④ 60 秒自动运行中守恒缺口恒为 0，五科目之和恒为 200000，结算后仍自洽。
-⑤ 3 秒零输入无任何正向恢复；边缘静止每秒 −5% 稳定性；触地 200 ms 内不可再次跃迁，350 ms 后置位。
-⑥ 顺风工况推进速度低于无风工况，逆风工况出现升力；离台反冲 0.68，500 ms 后该板转为虚空。
-⑦ 12 波按预排帧号放行；清波回收与波次进度自洽；结算面板给出七条分轴评分与评级。
-⑧ 六块 canvas 内容指纹两两互异，且全部绑定真实状态量；画布零 '?'、零汉字。
-⑨ 探针强制 settle 后 getStage() === "GAME_OVER"，结算面板出现。
+赛道为闭合极坐标环：中心 (408,286)，椭圆 y 压缩 0.72，5 条同心带半径 BAND=[116,158,200,242,284]。世界坐标：
+x = 408 + cos(theta)*r；y = 286 + sin(theta)*r*0.72。
+玩家半径限制 108..292。24 块浮屿板沿 i%5 分带、theta=i/24*2π 分布，每块以 0.035+(band%3)*0.01 rad/s 漂移；无人机沿环带巡航，半径在 112..288 间以正弦扰动。
 
-最终产物必须是一个 HTML（.html）文件，CSS 与 JS 全部内联，双击即可打开运行。题面、8 张参考图与最终实现三者必须在像素层与数值层完全自洽。
+4.1　MovementSystem：极坐标漂移与横向换带
+- omega 积分：accel = throttle*2.55 − brake*3.1 − omega*0.55，clamp −0.9..2.75 rad/s。
+- 径向：vr += steer*235*dt，随后 vr *= (1−2.6*dt)，r += vr*dt 并 clamp 108..292。
+- theta 按 omega*dt 累加并回绕 0..2π；TR[+7] 累加有符号 omega*dt，作为圈数行程。
+- 速率 speed = |omega|*r，写入 MO[+2]；这是热对流、姿态力矩、IDLE/ENGAGED 判定的共同输入。
+- 倾斜力矩：torque = steer*250*(0.45 + 0.9*speed/520)；回正 −tilt*7.5；阻尼 3.1；若转向与当前倾角符号相反，阻尼提升到 6.4 并置 Trim 标记。角速度 clamp ±420，倾角 clamp ±90。
+- 过载期间左右 steer 取反；BOOT 非倒计时相位与 GAME_READY 阶段玩家位移锁定。
+- 油门标记写入 TH[+2]，供热力学系统读取。
+
+4.2　ThermodynamicSystem：热与能量网格
+- 热量 0..100。油门每秒 +4.2。
+- 当 speed < 0.85*VMAX（442 px/s）时，对流冷却 = 0.42*sqrt(speed)*(1 + 0.45*WET)，从热量中扣除；当 speed ≥ 442 时冷却强制为 0，并转为被动积热 += (speed − 442)*0.085 /s。
+- 站在地面火区内额外 +17 /s。热量 clamp 0..100。
+- 热量到 100 时若过载计时 ≤0：置 3.0 s SYSTEM_OVERHEAT，护盾立即归零，震屏 9，过载计数 +1。过载期间：热量锁 100、护盾持续 0、全部武器锁定、左右控制反转、HFSM 强制 OVERHEAT。计时结束热量回落到 52，护盾不自动回满。
+- 无人机热量仅作可视化：+(1.6 − 0.05*sqrt(speed))*dt。
+
+4.3　PostureSystem：姿态与后坐惯性
+- 倾角 −90..+90，姿态 0..100。
+- 反向压舵（steer 与 tilt 异号）时角速度 *= (1−2.8*dt)，姿态 +5.5/s；|tilt|<14 且未硬直时姿态 +4.5/s。
+- 开火把 +26 的角速度冲量写入 PO[+1]（STUMBLE 中加倍）。
+- 硬直触发：|tilt|>60 或 posture≤0，且当前不在硬直中 → 置 1.2 s STUMBLE，姿态重置 18，震屏 7，STUMB 计数 +1。硬直期间承伤倍率写 3（即 +200% 伤害），闪避帧标志写 0，禁止弹反；结束时姿态取 max(当前, 28)，承伤倍率回到 1。
+- 任何伤害额外扣姿态 8，并按 46/质量系数 施加角速度。
+
+4.4　ElementReactionSystem：位掩码级联
+位定义固定：WET=1、BURNING=2、ELECTRIFIED=4、OILED=8。
+- 环境附着：玩家接触油污区则 OILED 且 OIL TTL=4.0 s；接触酸雨区则 WET 且 WET TTL=3.0 s；接触电弧桩则 ELECTRIFIED 且 ELEC TTL=2.2 s。
+- 四条 TTL 逐帧衰减，归零即清除对应位。
+- OILED + BURNING：立即清除两位，在当前位置产生 26 点爆炸（半径 102，衰减 1−d/140，最低 0.2），并生成一片半径 78、寿命 300 帧（5.0 s）的地面火区；玩家本人额外 +16 热量。地面火区使 4.2 中的吸热 +17/s 生效。
+- WET + 热量≥70：触发 Vaporize，清除 WET，生成半径 112、寿命 240 帧的致密蒸汽；蒸汽内部无人机瞄准误差从 ±0.10 rad 放大到 ±0.525 rad（总散布 1.05 rad，命中率下降约 80%）。蒸汽冷却计 90 帧，防止连发。
+- WET + ELECTRIFIED：每 54 帧放电一次，生成以玩家为中心、半径 200 px 的导电弧，命中所有存活玩家/无人机；对每个目标施加 PO[+1] += 68/max(0.45,mass) 的硬直冲量；玩家额外护盾 −6，无人机结构 −9、热量 +12。电弧可视计时 24 帧。
+- 玩家元素掩码每帧写回 CTL[ELEM]，供顶栏与耦合位掩码读取。
+
+4.5　HFSMSystem：顶层 HFSM + 五态嵌套
+外层：BOOT → ATTRACT_DEMO → GAME_READY → ACTIVE_CYCLE → SETTLEMENT。
+ACTIVE_CYCLE 内子状态 ID：IDLE=0、ENGAGED=1、STUMBLE=2、OVERHEAT=3、PARRYING=4。
+守卫矩阵按“行=当前、列=目标”，1 允许：
+IDLE      [0,1,1,1,1]
+ENGAGED   [1,0,1,1,1]
+STUMBLE   [1,1,0,1,0]   ← STUMBLE 明确拒绝 PARRYING
+OVERHEAT  [1,1,0,0,0]
+PARRYING  [0,1,1,1,0]
+- 一切子状态切换必须经过 canGo(from,to) 与 tryGo(P,to)；切换时子状态计时 SUBT 清零。禁止用 if/else 书写顺序碰巧凑对。
+- 每帧优先级自上而下：① 热量 100 且可转移 → OVERHEAT；② 非 OVERHEAT/STUMBLE 且 (|tilt|>60 或 posture≤0) → STUMBLE；③ OVERHEAT 计时结束 → 优先 ENGAGED，失败则 IDLE；④ STUMBLE 计时结束 → 优先 ENGAGED；⑤ PARRYING 持续 22 tick → ENGAGED；⑥ IDLE：speed>42 → ENGAGED；ENGAGED：speed<14 且持续 >42 tick → IDLE。
+- PARRYING 只能由输入的按下沿触发，条件为 posture>15、heat<99、GUARD[当前][PARRYING] 允许；进入时写入 1.0 s 弹反窗口与闪避帧标志，热量 +4.5。
+
+4.6　CombatSystem：开火、弹反、敌机 AI
+- 开火冷却 0.235 s；弹速 620 px/s；弹丸寿命 40 帧。每次开火热量 +3.4、倾角冲量 +26（STUMBLE 中 ×2）、震屏 2。OVERHEAT 中禁止开火。
+- 玩家：结构 100、护盾 70。敌方子弹命中时先扣护盾再扣结构；护盾破裂时额外 +6 热量。伤害 13+rand(8)。承伤倍率由姿态系统写入，STUMBLE 时 ×3。命中额外扣姿态 8、施加角速度 46/质量。
+- 弹反：窗口内（PO[+4]>0）被敌弹命中则判定成功：PARRYOK 与分数 +60，敌弹反射（速度 ×−1.35 并转为燃烧弹），姿态 +12，倾角角速度 ×0.4，热量 −5，震屏 5。窗口外照常受伤。
+- 玩家子弹命中无人机：结构 −24，附加 BURNING 3.0 s，敌机热量 +9；击毁 → KILL+1、分数 +120、账本 2→0 转移 300、四杀补一架无人机。
+- 敌机 AI：当玩家在 330 px 内且冷却到点，发射一发 330 px/s 子弹；间隔 70+rand(90) 帧。瞄准误差：正常 ±0.10 rad，蒸汽内 ±0.525 rad。
+
+4.7　RaceSystem 与守恒账本
+- 比赛 3 圈。每圈要求累计极角行程 4π（即 2 个完整环绕），第 n 圈阈值 4π*(n+1)，防止高速下 7 秒跑完。过线 → LAP+1、分数 +500、账本 4→2 转移 800、震屏 4。
+- 每 150 tick 检查一次，存活无人机 <12 时补 1 架。
+- 结算条件：LAP≥3、结构≤0、或比赛计时 ≥5400 tick（90 s）。进入 SETTLEMENT 时子状态归 IDLE、SUBT 清零；死亡额外执行账本 3→1 转移 1200。
+- 守恒账本五科目初值 [56000,42000,40000,36000,26000]，总和恒为 200000 MILLES。任何转移必须一进一出，且余额不足时截断转移量而不是透支；每帧账本总和必须仍为 200000。所有得分/伤害/圈数事件必须落到账本，不得只加分数。
+- 分数来源：击毁 +120、过圈 +500、弹反 +60。
+
+════════════════════════════════════════
+五、压测探针协议 window.__V2W_GAME_HARNESS__
+════════════════════════════════════════
+1. getStage() 必须原样返回：
+   "BOOT" | "ATTRACT_DEMO" | "GAME_READY" | "ACTIVE_CYCLE" | "SETTLEMENT"。
+2. getCoupledStateBitmask() 必须严格返回无符号 32 位：
+   (((HEAT & 0xFF) << 24) | ((POSTURE & 0xFF) << 16) | ((ELEM & 0xFF) << 8) | (SUB & 0xFF)) >>> 0
+   其中 HEAT/POSTURE 为内存控制块的整数读数（四舍五入），ELEM 为玩家元素位掩码，SUB 为当前 HFSM 子状态 ID。
+3. injectHardwareInput(scanCode)：只把扫描码压入 128 槽 RING，不得 dispatchEvent、不得伪造 KeyboardEvent、不得依赖焦点。位定义固定：
+   1=UP，2=DOWN，4=LEFT，8=RIGHT，16=FIRE，32=PARRY，64=START。
+   事件在下一物理 tick 被消费；同一码连续注入按 8 帧保持计数处理；START 必须按上升沿判定。
+4. step(frameCount)：强制 HAL.manual=true，连续调用内部 tick(1/60) 恰好 frameCount 次，返回累计 tick 数。一旦调用，rAF 不得再推进时钟。相同初始状态与输入序列必须得到完全相同的帧数与校验和。
+5. getBootPhase() 返回 "POST_MEMORY_MAP" | "DUAL_PALETTE_PROCEDURAL_BAKING" | "ATTRACT_MODE_CALIBRATION" | "COUNTDOWN_3S_LOCK"。
+6. getStateChecksum() 至少混合 tick、玩家极角、极半径、子状态、热量与倾角，且同一帧重复调用必须相等。
+7. getMemory() 返回 { bytes, tick, head, tail, buffer }，bytes 恒为 65536。
+8. getPools() 返回 { CTL,TR,MO,TH,PO,CB,ME,EL } 的真实类型化数组引用，不得返回拷贝。
+9. window.AXELPULSE 还必须提供：selfTest()、freeze()、unfreeze()、reboot()、tickCount()、getStage()、getCoupledStateBitmask()、injectHardwareInput()、step()、getPools()，以及只用于取图的 debug 方法 reset/toAttract/countdown/active/setHeat/setPosture/setTilt/setElement/sub/finish。
+10. 探针不得改变渲染路径：注入输入后的画面必须与真人按键完全一致。
+
+════════════════════════════════════════
+六、仪表与画面构成（任何读数不得恒定）
+════════════════════════════════════════
+A 区世界（816×548）：
+- 深蓝黑底 + 星野视差 + 径向曲率晕；5 条同心椭圆带、24 块漂移浮屿板、起跑格线、油污/酸雨/电弧/火焰/蒸汽五种环境区、无人机、玩家、子弹、电弧、尾迹、护盾环、过载红环、弹反白环。
+- 世界 HUD：左上 LAP n/3；右上 SCORE；左下 SPD nnn PX/S；右下 R nnn / TH n。ATTRACT 阶段隐藏 LAP/SCORE，避免与标题冲突。
+B 热力网格（424×150）：热量条 0..100、LIMIT 100 / CUT 85、GAIN +x.x /S、NET COOL x.xx ON/OFF、SHIELD n / WEAPONS READY|LOCKED；右侧 COOL=K*SQRT(SPD) 曲线图，CONV 与 CUT 85% 两条读数。过载时整栏叠加红色 SYSTEM_OVERHEAT n.nnS / SHIELD 0 / WEAPON LOCK / CTRL INVERT 警示。
+C 姿态（424×146）：−90..+90 半圆倾角表与指针、TILT 读数、姿态条、TRIM 状态、RECOIL 计数、DAMAGE X1.0|X3.0、DODGE STANDBY|NONE、BALANCE WINDOW ±14 DEG。
+D 元素（424×124）：四行 OILED/ELECTRIFIED/BURNING/WET，每行色块 + TTL 条 + 剩余秒/OFF；右上 MASK 8 位二进制 / 十进制；底部按优先级显示 OIL+BURN > EXPLOSION + 5S FIRE、WET+HEAT > VAPORIZE / STEAM、WET+ELEC > 200PX ARC CHAIN、HEAT CRITICAL / VENT NOW、STABLE 之一；右侧 ACCURACY −80% IN STEAM。
+E HFSM（424×110）：五个状态按钮（当前高亮）、5×5 守卫矩阵（允许绿、拒绝暗红、对角线描黄框）、GUARD / STUMBLE > PARRYING / REJECTED BY MATRIX 注记；右侧 HEAT/TILT/POST/SPD 与 SUB n / Tn、TRANSITION LOG ARMED|LOCKED。
+F 账本（1256×96）：五科目色条与数值、SUM n / 200000 与 INVARIANT OK|BROKEN、KILL/PARRY/DONE（已完成圈数，与 A 区“当前圈”区分）、MAXHEAT/STUMBLE/RACE nS、ZOOM/SHAKE、COUPLED 0xXXXXXXXX；右下 TICK。
+顶栏：AXELPULSE + 中文副题、TOP 徽标、子状态徽标、COUPLE 8 位十六进制、TICK/HEAT/POSTURE/ELEM。所有徽标必须与同帧内存值一致。
+结算面板：完赛时标题 RUN SETTLED、副题 THREE LAPS CLEARED；结构归零时 HULL LOST、90 s 超时则 TIME EXPIRED，未完成三圈统一副题 SETTLEMENT / LEDGER CLOSED。面板必须列出 LAPS n/3、RACE TIME nn.nn S、KILLS、PARRIES、STUMBLES、MAX HEAT、SCORE、LEDGER SUM 200000/200000，并以 PRESS START / SCAN 64 TO RECALIBRATE 收尾。
+
+════════════════════════════════════════
+七、自检与不变量（selfTest 至少 43 项，必须全绿）
+════════════════════════════════════════
+selfTest() 返回 {pass,total,checks:[{name,ok}]}，运行前后必须完整快照并还原全部池。至少覆盖：
+- AB=65536；TR/MO/TH/PO/CB/EL 的 byteOffset 与 length 精确匹配；实体容量 128；步长 8。
+- window.Player 与 window.Entity 均为 undefined。
+- 守卫矩阵：IDLE→ENGAGED 允许；STUMBLE→PARRYING 拒绝；OVERHEAT→PARRYING 拒绝；PARRYING 无自环；矩阵 5×5。
+- 热力：静止对流为 0；300 px/s 时 0.42*sqrt(300) 落在 6..9；达到 VMAX 时冷却为 0 且热量上升；热量 100 触发过载（计时 >2.9、护盾 0）；过载结束热量 =52。
+- 姿态：tilt=61 触发 STUMBLE（计时 >1.1）；承伤倍率 =3；闪避帧 =0；tilt clamp ±90；posture clamp 0..100。
+- 元素：OIL+BURN 清除两位并生成火区；WET+heat80 清除 WET 并生成蒸汽；WET+ELEC 使邻近无人机角速度改变。
+- 账本：初值总和 200000；转移后仍 200000；超额转移被截断不透支。
+- 池：entSpawn 返回合法槽位；entKill 归还 E_NONE。
+- 位掩码：HEAT=77、POSTURE=55、ELEM=0x0A、SUB=3 时必须打包为 0x4D370A03，且结果非负。
+- RNG：同 seed 两次首值相等；POST=60、BAKE=150、COUNTDOWN=180 三个启动帧常数成立。
+
+════════════════════════════════════════
+八、视觉基线与参考图
+════════════════════════════════════════
+1. 随附 8 张参考图是唯一视觉基线，尺寸均为 1536×864（1280×720 舞台以 1.2 设备缩放截取），不得改变构图、分栏、配色和读数位置。
+2. 参考图与阶段一一对应：
+   img_001 POST_MEMORY_MAP；img_002 DUAL_PALETTE_PROCEDURAL_BAKING（65%，F096）；
+   img_003 ATTRACT_MODE_CALIBRATION；img_004 COUNTDOWN_3S_LOCK（数字 2，ZOOM 105%）；
+   img_005 ACTIVE_CYCLE / ENGAGED；img_006 SYSTEM_OVERHEAT；
+   img_007 ELEMENTAL_CASCADE（火区 + 两团蒸汽 + 弧链）；img_008 SETTLEMENT。
+3. 配色基线：背景 #04060e / #060911；青 #9ff0ff、#5fe0c0；蓝 #62d4ff、#2d9cff；紫 #b98cff、#c08bff；橙 #ff9d4a、#ffd479；红 #ff5f6b。面板统一 1 px 暗紫描边与淡扫描线。所有发光只能用多层低透明度叠加，不得依赖 CSS filter 或外部 shader。
+4. 启动画面与世界画面必须使用同一套点阵字、同一套配色；不得出现系统字体、抗锯齿文本或平滑缩放的位图（imageSmoothingEnabled=false）。
+5. 最终产物只有一个 .html；不得附带 image_spec.md、说明文档、外部资源或构建脚本。
